@@ -15,8 +15,8 @@
     </view>
 
     <view class="tool-right">
-      <view class="tool-btn" bindtap="toggleSound" hover-class="tool-btn-hover">
-        <text>{{soundEnabled ? '🔊' : '🔇'}}</text>
+      <view class="tool-btn" bindtap="toggleDrawingMusic" hover-class="tool-btn-hover">
+        <text>{{drawingMusicEnabled ? '🎵' : '🔇'}}</text>
       </view>
       <view class="tool-btn" bindtap="choosePhoto" hover-class="tool-btn-hover">
         <text>📷</text>

@@ -59,38 +59,44 @@ function init() {
   initialized = true
 
   const sounds = {
-    // 每秒滴答
-    tick: { duration: 0.08, build: (view, total) => {
-      writeTone(view, 0, total, 880, 0.08, 0.3)
+    // 每秒滴答 - 轻快的水滴声
+    tick: { duration: 0.1, build: (view, total) => {
+      writeTone(view, 0, total, 1200, 0.05, 0.25)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.03), total, 800, 0.07, 0.2)
     }},
-    // 区域切换（C-E-G 琶音）
-    areaChange: { duration: 0.4, build: (view, total) => {
-      const s1 = 0, s2 = Math.floor(SAMPLE_RATE * 0.12), s3 = Math.floor(SAMPLE_RATE * 0.24)
-      writeTone(view, s1, total, 523, 0.12, 0.5)
-      writeTone(view, s2, total, 659, 0.12, 0.5)
-      writeTone(view, s3, total, 784, 0.18, 0.6)
+    // 区域切换 - 欢快的上行琶音
+    areaChange: { duration: 0.5, build: (view, total) => {
+      const s1 = 0, s2 = Math.floor(SAMPLE_RATE * 0.1), s3 = Math.floor(SAMPLE_RATE * 0.2), s4 = Math.floor(SAMPLE_RATE * 0.3)
+      writeTone(view, s1, total, 523, 0.1, 0.4)  // C
+      writeTone(view, s2, total, 659, 0.1, 0.45) // E
+      writeTone(view, s3, total, 784, 0.1, 0.5)  // G
+      writeTone(view, s4, total, 1047, 0.15, 0.55) // C高
     }},
-    // 倒计时叮
-    countdown: { duration: 0.12, build: (view, total) => {
-      writeTone(view, 0, total, 1175, 0.12, 0.4)
+    // 倒计时叮 - 清脆的叮声
+    countdown: { duration: 0.15, build: (view, total) => {
+      writeTone(view, 0, total, 1318, 0.08, 0.35)  // E6
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.05), total, 1568, 0.1, 0.3)  // G6
     }},
-    // 完成庆祝
-    complete: { duration: 0.7, build: (view, total) => {
-      writeTone(view, 0, total, 523, 0.12, 0.4)
-      writeTone(view, Math.floor(SAMPLE_RATE * 0.12), total, 659, 0.12, 0.45)
-      writeTone(view, Math.floor(SAMPLE_RATE * 0.24), total, 784, 0.12, 0.5)
-      // 和弦
-      const s4 = Math.floor(SAMPLE_RATE * 0.36)
-      const n4 = Math.floor(SAMPLE_RATE * 0.34)
-      writeTone(view, s4, total, 523, 0.34, 0.4)
-      writeTone(view, s4, total, 659, 0.34, 0.4)
-      writeTone(view, s4, total, 784, 0.34, 0.4)
-      writeTone(view, s4, total, 1047, 0.34, 0.3)
+    // 完成庆祝 - 欢快的庆祝音效
+    complete: { duration: 0.8, build: (view, total) => {
+      // 快速上行
+      writeTone(view, 0, total, 523, 0.1, 0.35)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.08), total, 659, 0.1, 0.4)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.16), total, 784, 0.1, 0.45)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.24), total, 1047, 0.1, 0.5)
+      // 大和弦
+      const s5 = Math.floor(SAMPLE_RATE * 0.35)
+      writeTone(view, s5, total, 523, 0.35, 0.3)
+      writeTone(view, s5, total, 659, 0.35, 0.3)
+      writeTone(view, s5, total, 784, 0.35, 0.3)
+      writeTone(view, s5, total, 1047, 0.35, 0.25)
+      writeTone(view, s5, total, 1318, 0.35, 0.2)
     }},
-    // 开始
-    start: { duration: 0.3, build: (view, total) => {
-      writeTone(view, 0, total, 523, 0.12, 0.4)
-      writeTone(view, Math.floor(SAMPLE_RATE * 0.12), total, 784, 0.18, 0.5)
+    // 开始 - 欢快的开始音效
+    start: { duration: 0.4, build: (view, total) => {
+      writeTone(view, 0, total, 659, 0.1, 0.35)  // E
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.1), total, 784, 0.1, 0.4)  // G
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.2), total, 1047, 0.15, 0.45) // C高
     }}
   }
 

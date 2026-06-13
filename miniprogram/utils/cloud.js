@@ -104,17 +104,6 @@ async function removeDrawing(id) {
       console.warn('云端删除失败:', err)
     }
   }
-  // 总是删除本地
-    // 删除云数据库记录
-    await db().collection('drawings').doc(id).remove()
-    // 删除云存储文件
-    await wx.cloud.deleteFile({
-      fileList: [`drawings/${id}.png`]
-    })
-  } catch (err) {
-    console.warn('云端删除失败:', err)
-  }
-
   // 同时删除本地
   const util = require('./util.js')
   util.deleteDrawing(id)
@@ -211,15 +200,7 @@ async function removeBrushingRecord(id) {
       console.warn('云端删除失败:', err)
     }
   }
-  // 总是删除本地
-    await db().collection('brushingRecords').doc(id).remove()
-    await wx.cloud.deleteFile({
-      fileList: [`brushing/${id}.jpg`]
-    })
-  } catch (err) {
-    console.warn('云端删除失败:', err)
-  }
-
+  // 同时删除本地
   const util = require('./util.js')
   util.deleteBrushingRecord(id)
 }

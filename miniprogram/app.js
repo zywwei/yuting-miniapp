@@ -4,11 +4,14 @@ App({
     try {
       if (wx.cloud) {
         wx.cloud.init({
+          env: 'your-env-id',  // TODO: 替换为你的云开发环境 ID
           traceUser: true
         })
+        this.globalData.cloudEnabled = true
       }
     } catch (e) {
       console.warn('云开发初始化失败，使用本地存储:', e)
+      this.globalData.cloudEnabled = false
     }
 
     // 初始化本地存储

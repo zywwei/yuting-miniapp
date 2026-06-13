@@ -4,6 +4,57 @@ const audio = require('../../utils/audio.js')
 const cloud = require('../../utils/cloud.js')
 const { templateDrawers } = require('../../utils/templates.js')
 
+// 画画音乐管理
+const drawingMusic = {
+  ctx: null,
+  isPlaying: false,
+  enabled: false,
+  init() {
+    if (this.ctx) return
+    this.ctx = wx.createInnerAudioContext()
+    this.ctx.src = '/audio/drawing-music.wav'
+    this.ctx.loop = true
+    this.ctx.volume = 0.35
+    this.ctx.autoplay = false
+    this.ctx.onEnded(() => {
+      if (this.enabled && this.ctx) {
+        this.ctx.seek(0)
+        this.ctx.play()
+      }
+    })
+  },
+  play() {
+    if (!this.ctx) this.init()
+    if (this.ctx && !this.isPlaying) {
+      this.ctx.play()
+      this.isPlaying = true
+      this.enabled = true
+    }
+  },
+  pause() {
+    if (this.ctx) {
+      this.ctx.pause()
+      this.isPlaying = false
+      this.enabled = false
+    }
+  },
+  toggle() {
+    if (this.isPlaying) {
+      this.pause()
+    } else {
+      this.play()
+    }
+    return this.enabled
+  },
+  stop() {
+    if (this.ctx) {
+      this.ctx.stop()
+      this.isPlaying = false
+      this.enabled = false
+    }
+  }
+}
+
 Page({
   data: {
     statusBarHeight: 20,
@@ -14,7 +65,7 @@ Page({
     currentMode: 'draw', // draw | eraser | sticker
     colors: [],
     brushSizes: [],
-    soundEnabled: true,
+    drawingMusicEnabled: false,
     // 贴纸选择列表
     stickers: [
       '❤️', '⭐', '🌟', '💖', '🎀', '🌸', '🌻', '🦋',
@@ -442,12 +493,12 @@ Page({
     this._refreshCanvasRect()
   },
 
-  // 切换音效
-  toggleSound() {
-    const enabled = audio.toggle()
-    this.setData({ soundEnabled: enabled })
+  // 切换画画音乐
+  toggleDrawingMusic() {
+    const enabled = drawingMusic.toggle()
+    this.setData({ drawingMusicEnabled: enabled })
     wx.showToast({
-      title: enabled ? '音效已开启' : '音效已关闭',
+      title: enabled ? '🎵 画画音乐已开启' : '🔇 画画音乐已关闭',
       icon: 'none'
     })
   },
@@ -642,6 +693,7 @@ Page({
 
   // 返回
   goBack() {
+    drawingMusic.stop()
     wx.navigateBack()
   }
 })

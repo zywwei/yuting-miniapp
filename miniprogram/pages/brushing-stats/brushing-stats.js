@@ -125,7 +125,7 @@ Page({
         current: path,
         urls: [path]
       })
-    }sheng
+    }
   },
 
   // 返回

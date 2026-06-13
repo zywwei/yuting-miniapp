@@ -147,12 +147,13 @@ Page({
   // 查看画作详情
   viewDrawing(e) {
     const id = e.currentTarget.dataset.id
-    const drawings = util.getDrawings()
-    const drawing = drawings.find(d => d.id === id)
+    // 从当前时间线数据中查找（保持与列表数据一致）
+    const allDrawings = this.data.timeline.reduce((arr, group) => arr.concat(group.drawings), [])
+    const drawing = allDrawings.find(d => d.id === id)
     if (drawing && drawing.imagePath) {
       wx.previewImage({
         current: drawing.imagePath,
-        urls: drawings.map(d => d.imagePath)
+        urls: allDrawings.map(d => d.imagePath)
       })
     }
   },
