@@ -1,10 +1,14 @@
 App({
   onLaunch() {
-    // 初始化云开发
-    if (wx.cloud) {
-      wx.cloud.init({
-        traceUser: true
-      })
+    // 初始化云开发（失败不影响小程序运行）
+    try {
+      if (wx.cloud) {
+        wx.cloud.init({
+          traceUser: true
+        })
+      }
+    } catch (e) {
+      console.warn('云开发初始化失败，使用本地存储:', e)
     }
 
     // 初始化本地存储

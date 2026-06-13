@@ -2,10 +2,22 @@
  * 云开发工具类
  * 统一管理云端数据库和云存储操作
  * 本地缓存 + 云端同步（离线也能用）
+ * 云开发不可用时自动降级到本地存储
  */
 
-const db = () => wx.cloud.database()
-const _ = db().command
+// 检查云开发是否可用
+const isCloudReady = () => {
+  try {
+    return typeof wx.cloud !== 'undefined' && wx.cloud
+  } catch (e) {
+    return false
+  }
+}
+
+const db = () => {
+  if (!isCloudReady()) return null
+  try { return wx.cloud.database() } catch (e) { return null }
+}
 
 // ===== 画作相关 =====
 
@@ -15,6 +27,10 @@ const _ = db().command
  * @param {object} drawing - 画作信息
  */
 async function uploadDrawing(tempFilePath, drawing) {
+  // 云不可用时直接走本地存储
+  if (!isCloudReady() || !db()) {
+    return localOnly(drawing, tempFilePath)
+  }
   try {
     // 上传图片到云存储
     const cloudPath = `drawings/${drawing.id}.png`
@@ -58,6 +74,9 @@ async function uploadDrawing(tempFilePath, drawing) {
  * 从云端获取画作列表
  */
 async function fetchDrawings() {
+  if (!isCloudReady() || !db()) {
+    return wx.getStorageSync('drawings') || []
+  }
   try {
     const res = await db().collection('drawings')
       .orderBy('createTime', 'desc')
@@ -77,7 +96,15 @@ async function fetchDrawings() {
  * 删除云端画作
  */
 async function removeDrawing(id) {
-  try {
+  if (isCloudReady() && db()) {
+    try {
+      await db().collection('drawings').doc(id).remove()
+      await wx.cloud.deleteFile({ fileList: [`drawings/${id}.png`] })
+    } catch (err) {
+      console.warn('云端删除失败:', err)
+    }
+  }
+  // 总是删除本地
     // 删除云数据库记录
     await db().collection('drawings').doc(id).remove()
     // 删除云存储文件
@@ -99,6 +126,9 @@ async function removeDrawing(id) {
  * 上传刷牙打卡记录到云端
  */
 async function uploadBrushingRecord(record) {
+  if (!isCloudReady() || !db()) {
+    return localOnlyBrushing(record)
+  }
   try {
     let cloudFileID = ''
 
@@ -152,6 +182,9 @@ async function uploadBrushingRecord(record) {
  * 从云端获取刷牙记录
  */
 async function fetchBrushingRecords() {
+  if (!isCloudReady() || !db()) {
+    return wx.getStorageSync('brushingRecords') || []
+  }
   try {
     const res = await db().collection('brushingRecords')
       .orderBy('createTime', 'desc')
@@ -170,7 +203,15 @@ async function fetchBrushingRecords() {
  * 删除云端刷牙记录
  */
 async function removeBrushingRecord(id) {
-  try {
+  if (isCloudReady() && db()) {
+    try {
+      await db().collection('brushingRecords').doc(id).remove()
+      await wx.cloud.deleteFile({ fileList: [`brushing/${id}.jpg`] })
+    } catch (err) {
+      console.warn('云端删除失败:', err)
+    }
+  }
+  // 总是删除本地
     await db().collection('brushingRecords').doc(id).remove()
     await wx.cloud.deleteFile({
       fileList: [`brushing/${id}.jpg`]
@@ -181,6 +222,29 @@ async function removeBrushingRecord(id) {
 
   const util = require('./util.js')
   util.deleteBrushingRecord(id)
+}
+
+// ===== 本地降级函数（云不可用时使用） =====
+
+// 画作本地保存
+async function localOnly(drawing, tempFilePath) {
+  const util = require('./util.js')
+  const savedPath = await util.saveImageToPersistent(tempFilePath)
+  const localDrawing = { ...drawing, imagePath: savedPath }
+  util.saveDrawing(localDrawing)
+  return savedPath
+}
+
+// 刷牙记录本地保存
+async function localOnlyBrushing(record) {
+  const util = require('./util.js')
+  let savedPath = record.imagePath
+  if (record.imagePath && !record.imagePath.startsWith(wx.env.USER_DATA_PATH)) {
+    savedPath = await util.saveImageToPersistent(record.imagePath)
+  }
+  const localRecord = { ...record, imagePath: savedPath }
+  util.saveBrushingRecord(localRecord)
+  return savedPath
 }
 
 // ===== 同步工具 =====
