@@ -1,0 +1,348 @@
+/* 刷牙打卡页样式 */
+.brushing-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF0F6 0%, #FFF5F8 50%, #FFF8F5 100%);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 状态栏占位 */
+.status-bar {
+  width: 100%;
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+}
+
+/* 顶部工具栏 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 20rpx;
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+}
+
+.tool-left, .tool-right {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.tool-btn {
+  padding: 12rpx 16rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 24rpx;
+}
+
+.tool-btn:active {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.tool-center {
+  flex: 1;
+  text-align: center;
+}
+
+.tool-title {
+  color: white;
+  font-size: 30rpx;
+  font-weight: bold;
+}
+
+/* 顶部信息区 */
+.header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx 40rpx;
+}
+
+.date-display {
+  display: flex;
+  flex-direction: column;
+}
+
+.date-day {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.date-week {
+  font-size: 28rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.streak-badge {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 16rpx 28rpx;
+  border-radius: 50rpx;
+  box-shadow: 0 4rpx 16rpx rgba(255, 154, 171, 0.2);
+}
+
+.streak-icon {
+  font-size: 36rpx;
+  margin-right: 8rpx;
+}
+
+.streak-text {
+  font-size: 26rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+/* 打卡卡片 */
+.cards-area {
+  padding: 0 30rpx;
+}
+
+.brushing-card {
+  background: white;
+  border-radius: 32rpx;
+  padding: 40rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 6rpx 24rpx rgba(255, 154, 171, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.brushing-card.done {
+  background: linear-gradient(135deg, #FFF8F0, #FFF0F3);
+  border: 2rpx solid #FFD6DE;
+}
+
+.brushing-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8rpx;
+  height: 100%;
+  background: linear-gradient(180deg, #FF9AAB, #FF6B8A);
+}
+
+.brushing-card.done::before {
+  background: linear-gradient(180deg, #90EE90, #4CAF50);
+}
+
+.card-icon {
+  font-size: 64rpx;
+  margin-bottom: 12rpx;
+}
+
+.card-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.card-desc {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 24rpx;
+}
+
+.card-action {
+  margin-top: 10rpx;
+  display: flex;
+  gap: 20rpx;
+}
+
+.check-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  color: white;
+  padding: 24rpx 60rpx;
+  border-radius: 50rpx;
+  font-size: 30rpx;
+  font-weight: bold;
+  box-shadow: 0 6rpx 20rpx rgba(255, 107, 138, 0.25);
+  transition: all 0.2s;
+}
+
+.check-btn:active {
+  transform: scale(0.96);
+}
+
+.check-btn.timer-btn {
+  background: linear-gradient(135deg, #81C784, #4CAF50);
+  box-shadow: 0 6rpx 20rpx rgba(76, 175, 80, 0.25);
+}
+
+/* 已完成记录展示 */
+.record-display {
+  margin-top: 10rpx;
+}
+
+.record-image {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 20rpx;
+  background: #F8F8F8;
+}
+
+.record-score {
+  display: flex;
+  gap: 8rpx;
+  margin-top: 16rpx;
+}
+
+.score-star {
+  font-size: 28rpx;
+  opacity: 0.3;
+}
+
+.score-star.active {
+  opacity: 1;
+}
+
+.record-note {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 12rpx;
+  background: rgba(255, 154, 171, 0.1);
+  padding: 10rpx 20rpx;
+  border-radius: 12rpx;
+  display: inline-block;
+}
+
+/* 鼓励语 */
+.encourage-area {
+  text-align: center;
+  padding: 30rpx 60rpx;
+}
+
+.encourage-text {
+  font-size: 28rpx;
+  color: #FF6B8A;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 20rpx 40rpx;
+  border-radius: 40rpx;
+  display: inline-block;
+}
+
+/* 弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-content {
+  width: 80%;
+  background: white;
+  border-radius: 32rpx;
+  padding: 50rpx 40rpx;
+  text-align: center;
+}
+
+.modal-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.modal-desc {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 30rpx;
+}
+
+.score-selector {
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
+  margin: 30rpx 0;
+}
+
+.select-star {
+  font-size: 56rpx;
+  opacity: 0.25;
+  transition: all 0.2s;
+}
+
+.select-star.active {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.score-label {
+  font-size: 30rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+  margin-bottom: 30rpx;
+}
+
+.note-input {
+  width: 90%;
+  height: 80rpx;
+  border: 2rpx solid #EEE;
+  border-radius: 16rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  margin: 0 auto 30rpx;
+  text-align: left;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 24rpx;
+}
+
+.modal-btn {
+  padding: 20rpx 50rpx;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.modal-btn.cancel {
+  background: #F5F5F5;
+  color: #999;
+}
+
+.modal-btn.confirm {
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  color: white;
+}
+
+/* 成功提示 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 40rpx 70rpx;
+  border-radius: 24rpx;
+  text-align: center;
+  z-index: 200;
+}
+
+.success-icon {
+  font-size: 60rpx;
+  margin-bottom: 12rpx;
+}
+
+.success-text {
+  font-size: 30rpx;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  height: 40rpx;
+}

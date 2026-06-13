@@ -1,0 +1,45 @@
+<!-- 涂色模板选择页 -->
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">🖼️ 选择涂色模板</text>
+    <text class="page-desc">选一个喜欢的图案来涂色吧~</text>
+  </view>
+
+  <!-- 分类标签 -->
+  <view class="category-tabs">
+    <view
+      wx:for="{{categories}}"
+      wx:key="index"
+      class="tab-item {{currentCategory === item.id ? 'active' : ''}}"
+      bindtap="switchCategory"
+      data-id="{{item.id}}"
+    >
+      {{item.icon}} {{item.name}}
+    </view>
+  </view>
+
+  <!-- 模板列表 -->
+  <view class="template-grid">
+    <view
+      wx:for="{{filteredTemplates}}"
+      wx:key="id"
+      class="template-card"
+      bindtap="selectTemplate"
+      data-template="{{item}}"
+    >
+      <view class="template-preview">
+        <text class="template-emoji">{{item.emoji}}</text>
+      </view>
+      <view class="template-name">{{item.name}}</view>
+      <view class="template-difficulty">
+        <text wx:for="{{item.difficulty}}" wx:key="*this" wx:for-item="star">⭐</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{filteredTemplates.length === 0}}" class="empty-state">
+    <text class="empty-icon">🎨</text>
+    <text class="empty-text">还没有模板哦~</text>
+  </view>
+</view>

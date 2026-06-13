@@ -1,0 +1,136 @@
+<!-- 刷牙计时页 - 可爱互动版 -->
+<view class="timer-container">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+
+  <!-- 顶部工具栏 -->
+  <view class="toolbar" style="padding-right: {{capsuleRight}}px;">
+    <view class="tool-left">
+      <view class="tool-btn" bindtap="goBack">
+        <text>← 返回</text>
+      </view>
+    </view>
+    <view class="tool-center">
+      <text class="tool-title">{{timeOfDay === 'morning' ? '☀️ 早上刷牙' : '🌙 晚上刷牙'}}</text>
+    </view>
+    <view class="tool-right">
+      <view class="tool-btn" bindtap="toggleSound">
+        <text>{{soundEnabled ? '🔊' : '🔇'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 主视觉区 ===== -->
+  <view class="main-visual">
+    <!-- 大大的可爱牙齿角色 -->
+    <view class="tooth-character {{isRunning ? 'tooth-happy' : ''}} {{isCompleted ? 'tooth-excited' : ''}}">
+      <view class="tooth-body">
+        <text class="tooth-emoji">{{toothFace}}</text>
+      </view>
+      <!-- 牙齿头顶的皇冠 -->
+      <view class="tooth-crown" wx:if="{{isCompleted}}">👑</view>
+      <!-- 泡泡 -->
+      <view wx:if="{{isRunning}}" class="bubble-area">
+        <view wx:for="{{bubbles}}" wx:key="id"
+              class="bubble-item"
+              style="left:{{item.x}}%;animation-delay:{{item.delay}}s;font-size:{{item.size}}rpx;">
+          {{item.emoji}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 可爱的进度环 -->
+    <view class="progress-ring-wrap">
+      <view class="ring-bg-circle"></view>
+      <view class="ring-fill-circle" style="background: conic-gradient({{ringColor}} {{overallProgress * 3.6}}deg, transparent 0deg);"></view>
+      <view class="ring-inner-circle">
+        <view class="ring-center-content">
+          <text class="ring-time">{{minutes}}:{{seconds}}</text>
+          <text class="ring-hint" wx:if="{{!isCompleted}}">{{isRunning ? '加油刷！' : '点击开始'}}</text>
+          <text class="ring-hint ring-done" wx:if="{{isCompleted}}">完成啦！</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 左右小动物加油 -->
+    <view class="cheer-left {{isRunning ? 'cheer-active' : ''}}">
+      <text class="cheer-emoji">🐱</text>
+      <text class="cheer-bubble">{{leftCheer}}</text>
+    </view>
+    <view class="cheer-right {{isRunning ? 'cheer-active' : ''}}">
+      <text class="cheer-emoji">🐰</text>
+      <text class="cheer-bubble">{{rightCheer}}</text>
+    </view>
+  </view>
+
+  <!-- ===== 区域提示 ===== -->
+  <view class="area-section" wx:if="{{isRunning || isPaused}}">
+    <view class="area-card">
+      <view class="area-tooth-row">
+        <view wx:for="{{teethArea}}" wx:key="index" wx:for-item="area"
+              class="mini-tooth {{currentAreaIndex === index ? 'current' : ''}} {{completedAreas.includes(area.name) ? 'done' : ''}}">
+          <text class="mini-tooth-icon">🦷</text>
+          <text class="mini-tooth-label">{{area.name}}</text>
+          <view wx:if="{{currentAreaIndex === index}}" class="mini-tooth-glow"></view>
+        </view>
+      </view>
+      <view class="area-timer">
+        <view class="area-timer-ring">
+          <view class="area-timer-fill" style="background: conic-gradient({{areaColor}} {{areaProgress * 3.6}}deg, #eee 0deg);"></view>
+          <view class="area-timer-inner">
+            <text class="area-timer-num">{{areaRemaining}}</text>
+          </view>
+        </view>
+        <text class="area-timer-label">秒</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 奖励星星 ===== -->
+  <view class="reward-section" wx:if="{{isRunning || isPaused || isCompleted}}">
+    <view class="star-row">
+      <view wx:for="{{rewardStars}}" wx:key="index" class="star-item {{item ? 'earned' : ''}}">
+        <text class="star-emoji">{{item ? '⭐' : '☆'}}</text>
+      </view>
+    </view>
+    <text class="reward-text">{{currentRewardText}}</text>
+  </view>
+
+  <!-- ===== 按钮 ===== -->
+  <view class="btn-area">
+    <view wx:if="{{!isRunning && !isPaused && !isCompleted}}" class="btn-start" bindtap="startTimer">
+      <view class="btn-sparkle"></view>
+      <text>🪥 开始刷牙啦！</text>
+    </view>
+    <view wx:if="{{isRunning}}" class="btn-pause" bindtap="pauseTimer">
+      <text>⏸ 暂停一下</text>
+    </view>
+    <view wx:if="{{isPaused && !isCompleted}}" class="btn-start" bindtap="resumeTimer">
+      <view class="btn-sparkle"></view>
+      <text>▶ 继续刷！</text>
+    </view>
+    <view wx:if="{{!isRunning && !isCompleted}}" class="btn-retry" bindtap="resetTimer">↻ 重新开始</view>
+  </view>
+
+  <!-- ===== 完成庆祝 ===== -->
+  <view wx:if="{{isCompleted}}" class="celebrate-area">
+    <view class="confetti-layer">
+      <view wx:for="{{confetti}}" wx:key="id" class="confetti-piece"
+            style="left:{{item.x}}%;animation-delay:{{item.delay}}s;background:{{item.color}};width:{{item.w}}rpx;height:{{item.h}}rpx;"></view>
+    </view>
+    <view class="done-box">
+      <view class="done-header">
+        <text class="done-emoji">🎉🦷🎉</text>
+      </view>
+      <text class="done-title">钰婷太棒啦！</text>
+      <view class="done-stars-row">
+        <text wx:for="{{completedStarsArr}}" wx:key="index" class="done-star"
+              style="animation-delay:{{index * 0.2}}s">⭐</text>
+      </view>
+      <text class="done-msg">{{completedText}}</text>
+      <view class="btn-checkin" bindtap="goCheckIn">📷 拍照打卡</view>
+    </view>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

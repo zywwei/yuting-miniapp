@@ -1,0 +1,27 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/draw/draw",
+    "pages/templates/templates",
+    "pages/gallery/gallery",
+    "pages/brushing/brushing",
+    "pages/brushing-timer/brushing-timer",
+    "pages/brushing-stats/brushing-stats"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#FF9AAB",
+    "navigationBarTitleText": "钰婷的小画板",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#FFF5F5"
+  },
+  "permission": {
+    "scope.writePhotosAlbum": {
+      "desc": "用于保存画作到相册"
+    },
+    "scope.camera": {
+      "desc": "用于拍照作为画画背景"
+    }
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

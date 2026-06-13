@@ -1,0 +1,55 @@
+<!-- 首页 - 模式选择 -->
+<view class="container">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+  <!-- 顶部欢迎区 -->
+  <view class="header">
+    <view class="logo">🎨</view>
+    <view class="title">钰婷的小画板</view>
+    <view class="subtitle">朱钰婷，今天想做什么呢？</view>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="menu-grid">
+    <!-- 刷牙打卡 -->
+    <view class="menu-item brushing" bindtap="goBrushing">
+      <view class="menu-icon">🦷</view>
+      <view class="menu-text">刷牙打卡</view>
+      <view class="menu-desc">养成刷牙好习惯</view>
+      <view wx:if="{{brushingToday > 0}}" class="menu-badge">{{brushingToday}}/2</view>
+    </view>
+
+    <!-- 自由画画 -->
+    <view class="menu-item" bindtap="goFreeDraw">
+      <view class="menu-icon">✏️</view>
+      <view class="menu-text">自由画画</view>
+      <view class="menu-desc">想画什么就画什么</view>
+    </view>
+
+    <!-- 涂色模板 -->
+    <view class="menu-item" bindtap="goTemplates">
+      <view class="menu-icon">🖼️</view>
+      <view class="menu-text">涂色模板</view>
+      <view class="menu-desc">给图案涂上颜色</view>
+    </view>
+
+    <!-- 我的画廊 -->
+    <view class="menu-item" bindtap="goGallery">
+      <view class="menu-icon">🏠</view>
+      <view class="menu-text">钰婷的画廊</view>
+      <view class="menu-desc">看看画过的画</view>
+    </view>
+
+    <!-- 亲子互动 -->
+    <view class="menu-item" bindtap="goParentMode">
+      <view class="menu-icon">👨‍👧</view>
+      <view class="menu-text">亲子画画</view>
+      <view class="menu-desc">和爸爸一起画画</view>
+    </view>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="footer">
+    <view class="tip">💡 钰婷加油，每一幅画都是成长的礼物~</view>
+  </view>
+</view>

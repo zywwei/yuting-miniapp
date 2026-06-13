@@ -1,0 +1,134 @@
+/* 首页样式 */
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF0F3 0%, #FFF5F0 50%, #FFF8F0 100%);
+  padding-bottom: 60rpx;
+}
+
+.status-bar {
+  width: 100%;
+  background: transparent;
+}
+
+/* 头部 */
+.header {
+  text-align: center;
+  padding: 60rpx 0 40rpx;
+}
+
+.logo {
+  font-size: 120rpx;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16rpx); }
+}
+
+.title {
+  font-size: 52rpx;
+  font-weight: bold;
+  color: #FF6B8A;
+  margin-top: 16rpx;
+}
+
+.subtitle {
+  font-size: 28rpx;
+  color: #999;
+  margin-top: 12rpx;
+}
+
+/* 菜单网格 */
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24rpx;
+  padding: 30rpx;
+}
+
+.menu-item {
+  background: white;
+  border-radius: 28rpx;
+  padding: 40rpx 24rpx;
+  text-align: center;
+  box-shadow: 0 6rpx 24rpx rgba(255, 154, 171, 0.15);
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-item:active {
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 12rpx rgba(255, 154, 171, 0.1);
+}
+
+/* 刷牙打卡特殊样式（第一行独占） */
+.menu-item.brushing {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, #E8F5E9, #FFF8F0);
+  border: 2rpx solid #C8E6C9;
+  padding: 30rpx 40rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  text-align: left;
+}
+
+.menu-item.brushing .menu-icon {
+  font-size: 72rpx;
+  margin-bottom: 0;
+}
+
+.menu-item.brushing .menu-text {
+  flex: 1;
+  font-size: 36rpx;
+}
+
+.menu-item.brushing .menu-desc {
+  font-size: 24rpx;
+}
+
+.menu-badge {
+  position: absolute;
+  top: 16rpx;
+  right: 16rpx;
+  background: #FF6B8A;
+  color: white;
+  font-size: 22rpx;
+  font-weight: bold;
+  padding: 6rpx 14rpx;
+  border-radius: 20rpx;
+}
+
+.menu-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.menu-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.menu-desc {
+  font-size: 22rpx;
+  color: #aaa;
+  margin-top: 8rpx;
+}
+
+/* 底部提示 */
+.footer {
+  text-align: center;
+  padding: 40rpx 30rpx;
+}
+
+.tip {
+  font-size: 24rpx;
+  color: #bbb;
+  background: rgba(255, 255, 255, 0.6);
+  display: inline-block;
+  padding: 16rpx 32rpx;
+  border-radius: 40rpx;
+}

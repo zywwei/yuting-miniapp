@@ -1,0 +1,151 @@
+<!-- 刷牙打卡页 -->
+<view class="brushing-container">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+
+  <!-- 顶部工具栏 -->
+  <view class="toolbar" style="padding-right: {{capsuleRight}}px;">
+    <view class="tool-left">
+      <view class="tool-btn" bindtap="goBack">
+        <text>← 返回</text>
+      </view>
+    </view>
+    <view class="tool-center">
+      <text class="tool-title">🦷 钰婷刷牙打卡</text>
+    </view>
+    <view class="tool-right">
+      <view class="tool-btn" bindtap="goStats">
+        <text>📊 统计</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 顶部信息区 -->
+  <view class="header-info">
+    <view class="date-display">
+      <text class="date-day">{{todayInfo.day}}</text>
+      <text class="date-week">{{todayInfo.weekday}}</text>
+    </view>
+    <view class="streak-badge">
+      <text class="streak-icon">🔥</text>
+      <text class="streak-text">已连续 {{streakDays}} 天</text>
+    </view>
+  </view>
+
+  <!-- 打卡卡片区 -->
+  <view class="cards-area">
+    <!-- 早上刷牙卡片 -->
+    <view class="brushing-card {{morningRecord ? 'done' : ''}}">
+      <view class="card-icon">☀️</view>
+      <view class="card-title">早上刷牙</view>
+      <view class="card-desc">{{morningRecord ? '已完成，牙齿亮晶晶~' : '早上刷一刷，口气清新'}}</view>
+
+      <view wx:if="{{!morningRecord}}" class="card-action">
+        <view class="check-btn timer-btn" bindtap="goTimer" data-time="morning">
+          <text>⏱ 计时刷牙</text>
+        </view>
+        <view class="check-btn" bindtap="checkIn" data-time="morning">
+          <text>📷 拍照打卡</text>
+        </view>
+      </view>
+
+      <view wx:if="{{morningRecord}}" class="record-display">
+        <image
+          class="record-image"
+          src="{{morningRecord.imagePath}}"
+          mode="aspectFill"
+          bindtap="previewImage"
+          data-path="{{morningRecord.imagePath}}"
+        />
+        <view class="record-score">
+          <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
+                class="score-star {{star <= morningRecord.score ? 'active' : ''}}">⭐</text>
+        </view>
+        <view wx:if="{{morningRecord.note}}" class="record-note">
+          💬 {{morningRecord.note}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 晚上刷牙卡片 -->
+    <view class="brushing-card {{eveningRecord ? 'done' : ''}}">
+      <view class="card-icon">🌙</view>
+      <view class="card-title">晚上刷牙</view>
+      <view class="card-desc">{{eveningRecord ? '已完成，可以安心睡觉啦~' : '睡前刷一刷，保护小牙齿'}}</view>
+
+      <view wx:if="{{!eveningRecord}}" class="card-action">
+        <view class="check-btn timer-btn" bindtap="goTimer" data-time="evening">
+          <text>⏱ 计时刷牙</text>
+        </view>
+        <view class="check-btn" bindtap="checkIn" data-time="evening">
+          <text>📷 拍照打卡</text>
+        </view>
+      </view>
+
+      <view wx:if="{{eveningRecord}}" class="record-display">
+        <image
+          class="record-image"
+          src="{{eveningRecord.imagePath}}"
+          mode="aspectFill"
+          bindtap="previewImage"
+          data-path="{{eveningRecord.imagePath}}"
+        />
+        <view class="record-score">
+          <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
+                class="score-star {{star <= eveningRecord.score ? 'active' : ''}}">⭐</text>
+        </view>
+        <view wx:if="{{eveningRecord.note}}" class="record-note">
+          💬 {{eveningRecord.note}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部鼓励语 -->
+  <view class="encourage-area">
+    <view class="encourage-text">{{encourageText}}</view>
+  </view>
+
+  <!-- 评分弹窗 -->
+  <view wx:if="{{showScoreModal}}" class="modal-mask">
+    <view class="modal-content">
+      <view class="modal-title">🦷 给钰婷打分</view>
+      <view class="modal-desc">{{modalTime === 'morning' ? '早上' : '晚上'}}刷牙完成啦~</view>
+
+      <view class="score-selector">
+        <view
+          wx:for="{{[1,2,3,4,5]}}"
+          wx:key="*this"
+          class="select-star {{score >= item ? 'active' : ''}}"
+          bindtap="selectScore"
+          data-score="{{item}}"
+        >
+          ⭐
+        </view>
+      </view>
+
+      <view class="score-label">{{scoreLabel}}</view>
+
+      <input
+        class="note-input"
+        placeholder="写点鼓励的话吧~（可选）"
+        value="{{note}}"
+        bindinput="onNoteInput"
+      />
+
+      <view class="modal-actions">
+        <view class="modal-btn cancel" bindtap="cancelScore">取消</view>
+        <view class="modal-btn confirm" bindtap="confirmScore">确认打卡</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成功提示 -->
+  <view wx:if="{{showSuccess}}" class="success-toast">
+    <view class="success-icon">✨</view>
+    <view class="success-text">{{successText}}</view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
+</view>

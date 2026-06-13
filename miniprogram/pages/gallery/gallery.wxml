@@ -1,0 +1,79 @@
+<!-- 画廊页面 - 成长记录时间线 -->
+<view class="container">
+  <!-- 顶部统计 -->
+  <view class="stats-header">
+    <view class="stats-card">
+      <text class="stats-number">{{totalCount}}</text>
+      <text class="stats-label">幅画作</text>
+    </view>
+    <view class="stats-card">
+      <text class="stats-number">{{streakDays}}</text>
+      <text class="stats-label">连续天数</text>
+    </view>
+    <view class="stats-card">
+      <text class="stats-number">{{thisMonthCount}}</text>
+      <text class="stats-label">本月创作</text>
+    </view>
+  </view>
+
+  <!-- 时间线 -->
+  <view wx:if="{{timeline.length > 0}}" class="timeline">
+    <view
+      wx:for="{{timeline}}"
+      wx:key="dateKey"
+      class="timeline-group"
+    >
+      <!-- 日期标签 -->
+      <view class="date-label">
+        <view class="date-dot"></view>
+        <text class="date-text">{{item.dateLabel}}</text>
+        <text class="date-count">{{item.drawings.length}}幅</text>
+      </view>
+
+      <!-- 该日期下的画作列表 -->
+      <view class="date-drawings">
+        <view
+          wx:for="{{item.drawings}}"
+          wx:for-item="drawing"
+          wx:key="id"
+          class="drawing-card"
+          bindtap="viewDrawing"
+          data-id="{{drawing.id}}"
+        >
+          <image
+            class="drawing-image"
+            src="{{drawing.imagePath}}"
+            mode="aspectFill"
+            lazy-load
+          />
+          <view class="drawing-info">
+            <text class="drawing-name">{{drawing.name}}</text>
+            <text class="drawing-time">{{drawing.timeFormatted}}</text>
+          </view>
+          <view class="drawing-actions">
+            <view
+              class="action-btn delete-btn"
+              catchtap="deleteDrawing"
+              data-id="{{drawing.id}}"
+            >
+              <text>🗑️</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:else class="empty-state">
+    <view class="empty-icon-wrapper">
+      <text class="empty-icon">🎨</text>
+    </view>
+    <text class="empty-text">钰婷还没有画作哦~</text>
+    <text class="empty-tip">每一幅画都是成长的足迹</text>
+    <view class="empty-btn" bindtap="goDraw">开始第一幅画</view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
+</view>

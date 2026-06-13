@@ -1,0 +1,273 @@
+/* 画画页面样式 */
+.draw-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #F8F8F8;
+}
+
+/* 状态栏占位 */
+.status-bar {
+  width: 100%;
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+}
+
+/* 顶部工具栏 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 20rpx;
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+}
+
+.tool-left, .tool-right {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.tool-btn {
+  padding: 12rpx 14rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 24rpx;
+}
+
+.tool-btn:active {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.tool-center {
+  flex: 1;
+  text-align: center;
+}
+
+.tool-title {
+  color: white;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+/* ========== 画布区域 ========== */
+.canvas-area {
+  flex: 1;
+  position: relative;
+  margin: 16rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+}
+
+.drawing-canvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+/* ========== 贴纸图层 ========== */
+.sticker-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+}
+
+.sticker-layer-item {
+  position: absolute;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transform-origin: center center;
+  transition: box-shadow 0.15s;
+  line-height: 1;
+  pointer-events: auto;
+}
+
+.sticker-layer-item.sticker-active {
+  border: 3rpx dashed #FF6B8A;
+  border-radius: 8rpx;
+  box-shadow: 0 0 12rpx rgba(255, 107, 138, 0.4);
+}
+
+/* 贴纸操作提示 */
+.sticker-hint {
+  position: absolute;
+  top: 12rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-size: 22rpx;
+  padding: 8rpx 24rpx;
+  border-radius: 30rpx;
+  white-space: nowrap;
+}
+
+/* 贴纸确认操作栏 */
+.sticker-confirm-bar {
+  position: absolute;
+  bottom: 12rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  gap: 16rpx;
+}
+
+.sticker-confirm-btn {
+  padding: 12rpx 24rpx;
+  border-radius: 30rpx;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 24rpx;
+  color: #666;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.sticker-confirm-btn.primary {
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  color: white;
+  font-weight: bold;
+}
+
+.sticker-confirm-btn:active {
+  transform: scale(0.95);
+}
+
+/* ========== 底部工具栏 ========== */
+.bottom-bar {
+  background: white;
+  padding: 16rpx 20rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #eee;
+}
+
+/* 模式切换 */
+.mode-switch {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.mode-btn {
+  padding: 12rpx 32rpx;
+  border-radius: 40rpx;
+  background: #F5F5F5;
+  font-size: 24rpx;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  color: white;
+  font-weight: bold;
+}
+
+/* 贴纸面板 */
+.sticker-panel {
+  margin-bottom: 12rpx;
+}
+
+.sticker-scroll {
+  white-space: nowrap;
+}
+
+.sticker-list {
+  display: inline-flex;
+  gap: 12rpx;
+  padding: 8rpx 4rpx;
+}
+
+.sticker-item {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 16rpx;
+  background: #F8F8F8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 3rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.sticker-item.active {
+  border-color: #FF6B8A;
+  background: #FFF0F3;
+  transform: scale(1.1);
+}
+
+.sticker-emoji {
+  font-size: 36rpx;
+}
+
+/* 画笔粗细选择 */
+.brush-sizes {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24rpx;
+  padding: 12rpx 0;
+}
+
+.size-dot {
+  border-radius: 50%;
+  background: #666;
+  transition: all 0.2s;
+  border: 4rpx solid transparent;
+}
+
+.size-dot.active {
+  background: #FF6B8A;
+  border-color: #FFB6C1;
+  transform: scale(1.2);
+}
+
+/* 颜色选择 */
+.color-scroll {
+  white-space: nowrap;
+  padding: 8rpx 0;
+}
+
+.color-list {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 8rpx 10rpx;
+}
+
+.color-item {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  border: 4rpx solid #E0E0E0;
+  flex-shrink: 0;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.color-item.active {
+  border-color: #333;
+  transform: scale(1.15);
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.2);
+}
+
+.color-check {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 26rpx;
+  font-weight: bold;
+  text-shadow: 0 1rpx 3rpx rgba(0, 0, 0, 0.5);
+}

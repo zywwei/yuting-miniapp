@@ -1,0 +1,47 @@
+### IntelliJ IDEA ###
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+.kotlin
+.idea/
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### WeChat Mini-program ###
+miniprogram/miniprogram_npm/
+miniprogram/node_modules/
+miniprogram/.miniprogram_npm/
+project.private.config.json
+
+### 本地图片文件（不上传到 git） ###
+*.jpg
+*.jpeg
+*.png
+*.svg
+
+# 只保留项目设计图
+!miniprogram/images/avatar.png
+!miniprogram/images/avatar.jpg
