@@ -1,6 +1,7 @@
 const util = require('../../utils/util.js')
 const audio = require('../../utils/audio.js')
 const beep = require('../../utils/beep.js')
+const cloud = require('../../utils/cloud.js')
 
 const BRUSH_AREAS = [
   { name: '左上', emoji: '🦷', duration: 20, color: '#FF9AAB' },
@@ -19,24 +20,6 @@ const BRUSHING_TIPS = [
   '💡 饭后30分钟刷牙最好~',
   '💡 用温水刷牙更舒服~',
   '💡 别忘了刷里面的牙齿~'
-]
-
-// 脏东西类型（牙齿上的敌人）
-const DIRTY_TYPES = [
-  { id: 'candy', emoji: '🍬', name: '糖果残渣', points: 5 },
-  { id: 'cake', emoji: '🍰', name: '蛋糕残渣', points: 5 },
-  { id: 'cookie', emoji: '🍪', name: '饼干碎碎', points: 5 },
-  { id: 'candy2', emoji: '🍭', name: '棒棒糖', points: 5 },
-  { id: 'icecream', emoji: '🍦', name: '冰淇淋', points: 5 },
-  { id: 'bug1', emoji: '🦠', name: '小细菌', points: 10 },
-  { id: 'bug2', emoji: '🐛', name: '蛀牙虫', points: 10 },
-  { id: 'bug3', emoji: '👾', name: '牙菌斑', points: 10 }
-]
-
-// 刷掉脏东西的特效文字
-const CLEAN_TEXTS = [
-  '刷掉啦！✨', '干干净净！💪', '真棒！🌟',
-  '好厉害！⭐', '刷得好！💖', '消灭！🎯'
 ]
 
 // 早上和晚上的不同主题（粉色为主色调）
@@ -64,32 +47,6 @@ const COMPLETED_TEXTS = [
 ]
 const CHEER_LEFT = ['加油', '好棒', '厉害', '继续', '加油', '棒棒']
 const CHEER_RIGHT = ['真乖', '认真', '好快', '漂亮', '太强', '赞赞']
-
-// 彩蛋：点击牙齿的有趣反应
-const TOOTH_REACTIONS = [
-  { face: '😜', text: '哎呀好痒~' },
-  { face: '😆', text: '哈哈哈~' },
-  { face: '🥰', text: '被摸到了~' },
-  { face: '😎', text: '我很酷吧~' },
-  { face: '🤩', text: '闪闪发光~' },
-  { face: '🤭', text: '嘻嘻嘻~' },
-  { face: '🫣', text: '好害羞呀~' },
-  { face: '😴', text: '还没刷完呢~' }
-]
-
-// 彩蛋：点击小动物的反应（加入了公主和佩奇元素）
-const ANIMAL_REACTIONS = {
-  cat: [
-    { emoji: '🐱', text: '喵~加油！', anim: 'bounce' },
-    { emoji: '😸', text: '刷得好棒！', anim: 'spin' },
-    { emoji: '😻', text: '好厉害呀~', anim: 'shake' }
-  ],
-  rabbit: [
-    { emoji: '🐰', text: '蹦蹦跳~', anim: 'bounce' },
-    { emoji: '🐇', text: '快快刷！', anim: 'spin' },
-    { emoji: '🐰', text: '真可爱~', anim: 'shake' }
-  ]
-}
 
 // 进度条颜色模式
 const RING_MODES = [
@@ -175,8 +132,29 @@ const BUBBLE_LIST = [
   { x: 25, delay: 2.0, size: 20, emoji: '🫧' }
 ]
 
+// 刷牙前小游戏：瞌睡细菌类型
+const PRE_GERM_TYPES = [
+  { emoji: '😴🦠', name: '瞌睡细菌', points: 3 },
+  { emoji: '😴🐛', name: '瞌睡虫虫', points: 3 },
+  { emoji: '😴👾', name: '瞌睡菌斑', points: 3 },
+  { emoji: '😴🍬', name: '赖床糖糖', points: 2 }
+]
+
+// 刷牙后贴纸装饰
+const STICKERS = [
+  { id: 'crown', emoji: '👑' },
+  { id: 'bow', emoji: '🎀' },
+  { id: 'flower', emoji: '🌸' },
+  { id: 'heart', emoji: '💖' },
+  { id: 'star', emoji: '⭐' },
+  { id: 'gem', emoji: '💎' }
+]
+
 // 女孩喜欢的泡泡元素（刷牙时随机出现）
 const GIRL_BUBBLES = ['👑', '👸', '🦄', '🐷', '🦋', '🌸', '💖', '💝', '💕', '💗', '✨', '⭐', '🌟', '💫', '🎀', '🎊']
+
+// 牙齿分区上的细菌类型（不需要点击，随区域自动被刷掉）
+const ZONE_GERM_TYPES = ['🦠', '🍬', '🍭', '🍰', '🐛', '👾']
 
 Page({
   data: {
@@ -192,8 +170,6 @@ Page({
     isCompleted: false,
     overallProgress: 0,
     ringColor: '#FF9AAB',
-    // 牙齿角色
-    toothFace: '🦷',
     // 区域
     currentAreaIndex: 0,
     currentArea: BRUSH_AREAS[0],
@@ -223,6 +199,8 @@ Page({
     princessColor: '#FFB6C1',
     princessX: 50,
     princessY: 50,
+    // 刷牙陪伴小公主（固定右下角，始终显示）
+    companionBubble: '一起刷牙吧~',
     // 主题和提示
     themeBg: THEMES.morning.bg,
     themeGreeting: THEMES.morning.greeting,
@@ -234,13 +212,20 @@ Page({
     brushPoints: 0,
     showPoints: false,
     pointsText: '',
-    // 刷牙小游戏
+    // 牙齿6区可视化（左上/上中/右上/左下/下中/右下）
+    toothZones: [],
+    // 刷牙小游戏（保留给刷牙前/后使用，刷牙中不再出现）
+    stage: 'pre',
     dirtySpots: [],
     showCleanEffect: false,
     cleanEffectText: '',
     cleanEffectX: 50,
     cleanEffectY: 50,
-    totalDirtyCleaned: 0
+    totalDirtyCleaned: 0,
+    // 刷牙后贴纸
+    stickers: STICKERS,
+    placedStickers: [],
+    showStickerPicker: false
   },
 
   _timer: null,
@@ -271,22 +256,20 @@ Page({
       themeTip: theme.tip
     })
 
+    // 初始化牙齿6区，让孩子一进来就看到要刷的牙齿
+    this.initToothZones()
+    // 初始化刷牙前小游戏：赶走瞌睡细菌
+    this.initPreGame()
+
     beep.preload()
   },
 
   onUnload() {
     this.clearTimers()
-    // 清除所有彩蛋定时器
-    if (this._toothTimer) { clearTimeout(this._toothTimer); this._toothTimer = null }
     if (this._ringColorTimer) { clearInterval(this._ringColorTimer); this._ringColorTimer = null }
     if (this._princessTimer) { clearTimeout(this._princessTimer); this._princessTimer = null }
     if (this._princessRestoreTimer) { clearTimeout(this._princessRestoreTimer); this._princessRestoreTimer = null }
     if (this._cleanEffectTimer) { clearTimeout(this._cleanEffectTimer); this._cleanEffectTimer = null }
-    // 清除所有脏东西定时器
-    if (this._dirtyTimers) {
-      Object.values(this._dirtyTimers).forEach(t => clearTimeout(t))
-      this._dirtyTimers = {}
-    }
   },
 
   // 生成超级炫酷撒花（满屏效果）
@@ -373,6 +356,188 @@ Page({
     }, 1000)
   },
 
+  // 初始化刷牙前小游戏：生成4个瞌睡细菌
+  initPreGame() {
+    const germs = []
+    for (let i = 0; i < 4; i++) {
+      const type = PRE_GERM_TYPES[Math.floor(Math.random() * PRE_GERM_TYPES.length)]
+      germs.push({
+        id: `pregerm_${i}_${Date.now()}`,
+        emoji: type.emoji,
+        name: type.name,
+        points: type.points,
+        x: 18 + Math.random() * 64,
+        y: 28 + Math.random() * 44,
+        fleeing: false
+      })
+    }
+    this.setData({ dirtySpots: germs, stage: 'pre', showStickerPicker: false, placedStickers: [] })
+  },
+
+  // 点击刷牙前瞌睡细菌
+  onTapPreGerm(e) {
+    if (this.data.stage !== 'pre') return
+    const id = e.currentTarget.dataset.id
+    const spot = this.data.dirtySpots.find(s => s.id === id)
+    if (!spot || spot.fleeing) return
+
+    // 标记为逃跑
+    const spots = this.data.dirtySpots.map(s => s.id === id ? { ...s, fleeing: true } : s)
+    this.setData({ dirtySpots: spots })
+
+    // 显示特效
+    this.setData({
+      showCleanEffect: true,
+      cleanEffectText: '赶走啦！',
+      cleanEffectX: spot.x,
+      cleanEffectY: spot.y
+    })
+    if (this._cleanEffectTimer) clearTimeout(this._cleanEffectTimer)
+    this._cleanEffectTimer = setTimeout(() => {
+      this.setData({ showCleanEffect: false })
+    }, 1200)
+
+    // 700ms 后真正移除
+    setTimeout(() => {
+      const remaining = this.data.dirtySpots.filter(s => s.id !== id)
+      this.setData({ dirtySpots: remaining })
+      if (remaining.length === 0) {
+        wx.showToast({ title: '🎉 细菌都赶走啦！', icon: 'none', duration: 1500 })
+      }
+    }, 700)
+  },
+
+  // 刷牙后贴纸装饰：点击贴纸按钮放置到牙齿上
+  onTapSticker(e) {
+    if (this.data.stage !== 'post') return
+    const stickerId = e.currentTarget.dataset.id
+    this.placeSticker(stickerId)
+  },
+
+  placeSticker(stickerId) {
+    const sticker = STICKERS.find(s => s.id === stickerId)
+    if (!sticker) return
+
+    // 随机选择一个已刷干净的区域
+    const cleanZones = this.data.toothZones
+      .map((z, i) => ({ ...z, originalIndex: i }))
+      .filter(z => z.state === 'clean')
+
+    if (cleanZones.length === 0) return
+
+    const zone = cleanZones[Math.floor(Math.random() * cleanZones.length)]
+    const newSticker = {
+      id: `sticker_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      stickerId: sticker.id,
+      emoji: sticker.emoji,
+      zoneIndex: zone.originalIndex,
+      x: 20 + Math.random() * 60,
+      y: 20 + Math.random() * 60
+    }
+
+    this.setData({
+      placedStickers: [...this.data.placedStickers, newSticker]
+    })
+
+    // 可爱反馈
+    wx.vibrateShort({ type: 'light' })
+  },
+
+  // 保存装饰好的牙齿纪念照到本地
+  saveDecoration() {
+    if (this.data.placedStickers.length === 0) {
+      wx.showToast({ title: '先贴几个贴纸吧~', icon: 'none' })
+      return
+    }
+    const decoration = {
+      id: util.generateId(),
+      date: util.getTodayStr(),
+      timeOfDay: this.data.timeOfDay,
+      stickers: this.data.placedStickers,
+      points: this.data.brushPoints,
+      createdAt: Date.now()
+    }
+    let decorations = wx.getStorageSync('toothDecorations') || []
+    decorations.unshift(decoration)
+    // 最多保留20张
+    if (decorations.length > 20) decorations = decorations.slice(0, 20)
+    wx.setStorageSync('toothDecorations', decorations)
+    wx.showToast({ title: '保存成功！🎉', icon: 'none' })
+  },
+
+  // 初始化牙齿6区，每个区随机分配1-2个细菌
+  initToothZones() {
+    const zones = BRUSH_AREAS.map((area, index) => {
+      const germCount = 1 + Math.floor(Math.random() * 2)
+      const germs = []
+      for (let i = 0; i < germCount; i++) {
+        germs.push({
+          id: `germ_${index}_${i}_${Date.now()}`,
+          emoji: ZONE_GERM_TYPES[Math.floor(Math.random() * ZONE_GERM_TYPES.length)],
+          x: 15 + Math.random() * 70,
+          y: 15 + Math.random() * 70,
+          fleeing: false
+        })
+      }
+      return {
+        index,
+        name: area.name,
+        color: area.color,
+        state: 'dirty',
+        germs
+      }
+    })
+    this.setData({ toothZones: zones })
+  },
+
+  // 根据当前区域和已完成区域更新牙齿分区状态
+  updateZoneStates() {
+    const { currentAreaIndex, completedAreas } = this.data
+    const zones = this.data.toothZones.map((zone, index) => {
+      let state = 'dirty'
+      if (completedAreas.includes(zone.name)) {
+        state = 'clean'
+      } else if (index === currentAreaIndex) {
+        state = 'current'
+      }
+      // 刚被刷干净的区域，细菌开始逃跑
+      const germs = (zone.state !== 'clean' && state === 'clean')
+        ? zone.germs.map(g => ({ ...g, fleeing: true }))
+        : zone.germs
+      return { ...zone, state, germs }
+    })
+    this.setData({ toothZones: zones })
+
+    // 逃跑动画结束后清除细菌
+    zones.forEach((zone, index) => {
+      if (zone.state === 'clean' && zone.germs.length > 0) {
+        setTimeout(() => {
+          const fresh = this.data.toothZones.map((z, i) =>
+            i === index ? { ...z, germs: [] } : z
+          )
+          this.setData({ toothZones: fresh })
+        }, 700)
+      }
+    })
+  },
+
+  // 更新陪伴小公主提示语（固定右下角）
+  updateCompanion() {
+    const index = this.data.currentAreaIndex
+    const area = BRUSH_AREAS[index]
+    const areaPrompts = [
+      `${area.name}~`,
+      `刷${area.name}`,
+      `${area.name}!`,
+      `${area.name}哦`
+    ]
+    const bubble = this.data.companionBubble
+      ? areaPrompts[index % areaPrompts.length]
+      : `刷牙啦！${areaPrompts[0]}`
+
+    this.setData({ companionBubble: bubble })
+  },
+
   // ===== 计时器 =====
   startTimer() {
     this._cheerIndex = 0
@@ -386,7 +551,10 @@ Page({
       rewardStars: [false, false, false, false, false],
       currentRewardText: REWARD_TEXTS[0],
       minutes: '02', seconds: '00',
-      toothFace: '😁'
+      stage: 'brushing',
+      dirtySpots: [],
+      placedStickers: [],
+      showStickerPicker: false
     })
 
     this._areaElapsed = 0
@@ -406,9 +574,12 @@ Page({
     // 重置颜色模式
     this._ringModeIndex = 0
 
-    // 初始化小游戏
-    this._dirtyCounter = 0
-    this._lastDirtyTime = 0
+    // 初始化牙齿6区细菌
+    this.initToothZones()
+    // 开始刷牙后，第一个区域标记为当前
+    this.updateZoneStates()
+    // 陪伴小公主就位
+    this.updateCompanion()
 
     this.startMainTimer()
     this.startAreaTimer()
@@ -445,56 +616,30 @@ Page({
       const starIndex = Math.floor(overallProgress / 20)
       const rewardStars = this.data.rewardStars.map((s, i) => i < starIndex)
 
-      // 动物加油文字轮换（如果彩蛋没在播放）
-      if (!this._animalEasterEgg) {
-        this._cheerIndex = (this._cheerIndex + 1) % CHEER_LEFT.length
-        const currentIndex = this._cheerIndex // 捕获当前索引
+      // 动物加油文字轮换
+      this._cheerIndex = (this._cheerIndex + 1) % CHEER_LEFT.length
+      const currentIndex = this._cheerIndex
 
-        // 随机触发公主鼓励（每6秒有概率出现）
-        if (currentIndex === 0 && Math.random() > 0.5) {
-          const princess = PRINCESS_CHEER[Math.floor(Math.random() * PRINCESS_CHEER.length)]
-          this.setData({
-            leftCheer: princess.text
-          })
-          // 2秒后恢复
-          setTimeout(() => {
-            if (!this._animalEasterEgg) {
-              this.setData({
-                leftCheer: CHEER_LEFT[currentIndex]
-              })
-            }
-          }, 2000)
-        } else {
-          this.setData({
-            leftCheer: CHEER_LEFT[currentIndex],
-            rightCheer: CHEER_RIGHT[currentIndex]
-          })
-        }
+      // 随机触发公主鼓励（每6秒有概率出现）
+      if (currentIndex === 0 && Math.random() > 0.5) {
+        const princess = PRINCESS_CHEER[Math.floor(Math.random() * PRINCESS_CHEER.length)]
+        this.setData({ leftCheer: princess.text })
+        setTimeout(() => {
+          this.setData({ leftCheer: CHEER_LEFT[currentIndex] })
+        }, 2000)
+      } else {
+        this.setData({
+          leftCheer: CHEER_LEFT[currentIndex],
+          rightCheer: CHEER_RIGHT[currentIndex]
+        })
       }
 
       // 随机显示公主角色（每15-20秒出现一次，持续5秒）
+      // 已改为陪伴小公主常驻指示，随机彩蛋保留但降低频率
       this._princessCounter++
-      if (this._princessCounter - this._lastPrincessTime >= 15 && Math.random() > 0.7) {
+      if (this._princessCounter - this._lastPrincessTime >= 25 && Math.random() > 0.85) {
         this._lastPrincessTime = this._princessCounter
         this.showRandomPrincess()
-      }
-
-      // 随机生成脏东西（每3-5秒出现一个，最多同时3个）
-      this._dirtyCounter++
-      if (this._dirtyCounter - this._lastDirtyTime >= 3 &&
-          this.data.dirtySpots.length < 3 &&
-          Math.random() > 0.4) {
-        this._lastDirtyTime = this._dirtyCounter
-        this.generateDirtySpot()
-      }
-
-      // 牙齿表情（如果彩蛋没在播放）
-      let toothFace = this.data.toothFace // 保持当前表情
-      if (!this._toothEasterEgg) {
-        toothFace = '😁'
-        if (overallProgress > 75) toothFace = '🤩'
-        else if (overallProgress > 50) toothFace = '😊'
-        else if (overallProgress > 25) toothFace = '😄'
       }
 
       beep.playBeep('tick')
@@ -506,8 +651,7 @@ Page({
       this.setData({
         remainingTime: remaining, minutes: min, seconds: sec,
         overallProgress, ringColor, rewardStars,
-        currentRewardText: REWARD_TEXTS[Math.min(starIndex, REWARD_TEXTS.length - 1)],
-        toothFace
+        currentRewardText: REWARD_TEXTS[Math.min(starIndex, REWARD_TEXTS.length - 1)]
       })
     }, 1000)
   },
@@ -524,16 +668,22 @@ Page({
         const nextIndex = this.data.currentAreaIndex + 1
         this._areaElapsed = 0
 
+        // 增加积分：区域完成 +10，该区域内所有细菌每个 +5
+        const finishedZone = this.data.toothZones.find(z => z.index === this.data.currentAreaIndex)
+        const germBonus = finishedZone ? finishedZone.germs.length * 5 : 0
+        const newPoints = this.data.brushPoints + 10 + germBonus
+        const newCleaned = this.data.totalDirtyCleaned + (finishedZone ? finishedZone.germs.length : 0)
+        const pointsText = germBonus > 0 ? `+${10 + germBonus} 积分！` : '+10 积分！'
+
         // 显示刷牙小知识
         const tipIndex = completedAreas.length - 1
         const tip = BRUSHING_TIPS[tipIndex % BRUSHING_TIPS.length]
 
-        // 增加积分
-        const newPoints = this.data.brushPoints + 10
         this.setData({
           brushPoints: newPoints,
+          totalDirtyCleaned: newCleaned,
           showPoints: true,
-          pointsText: '+10 积分！',
+          pointsText: pointsText,
           currentTip: tip,
           showTip: true
         })
@@ -549,9 +699,15 @@ Page({
             completedAreas, currentAreaIndex: nextIndex,
             currentArea: BRUSH_AREAS[nextIndex], areaColor: BRUSH_AREAS[nextIndex].color,
             areaProgress: 0, areaRemaining: BRUSH_AREAS[nextIndex].duration
+          }, () => {
+            this.updateZoneStates()
+            this.updateCompanion()
           })
         } else {
-          this.setData({ completedAreas, areaProgress: 100, areaRemaining: 0 })
+          this.setData({ completedAreas, areaProgress: 100, areaRemaining: 0 }, () => {
+            this.updateZoneStates()
+            this.updateCompanion()
+          })
           clearInterval(this._areaTimer)
         }
       } else {
@@ -563,11 +719,12 @@ Page({
   pauseTimer() {
     clearInterval(this._timer)
     clearInterval(this._areaTimer)
-    this.setData({ isRunning: false, isPaused: true, toothFace: '😴' })
+    this.setData({ isRunning: false, isPaused: true })
   },
 
   resumeTimer() {
-    this.setData({ isRunning: true, isPaused: false, toothFace: '😁' })
+    this.setData({ isRunning: true, isPaused: false })
+    this.updateCompanion()
     this.startMainTimer()
     this.startAreaTimer()
   },
@@ -579,21 +736,10 @@ Page({
       clearInterval(this._ringColorTimer)
       this._ringColorTimer = null
     }
-    // 清除牙齿彩蛋
-    this._toothEasterEgg = false
-    if (this._toothTimer) {
-      clearTimeout(this._toothTimer)
-      this._toothTimer = null
-    }
     // 清除特效定时器
     if (this._cleanEffectTimer) {
       clearTimeout(this._cleanEffectTimer)
       this._cleanEffectTimer = null
-    }
-    // 清除所有脏东西定时器
-    if (this._dirtyTimers) {
-      Object.values(this._dirtyTimers).forEach(t => clearTimeout(t))
-      this._dirtyTimers = {}
     }
     this._ringModeIndex = 0
     this.setData({
@@ -603,13 +749,18 @@ Page({
       areaColor: BRUSH_AREAS[0].color, completedAreas: [],
       areaProgress: 0, areaRemaining: 20, ringColor: '#FF9AAB',
       rewardStars: [false, false, false, false, false],
-      currentRewardText: '准备开始！', toothFace: '🦷',
+      currentRewardText: '准备开始！',
       completedStarsArr: [], completedText: '', confetti: [],
       showPrincess: false,
       dirtySpots: [], brushPoints: 0, totalDirtyCleaned: 0,
-      showCleanEffect: false, showPoints: false, showTip: false
+      showCleanEffect: false, showPoints: false, showTip: false,
+      toothZones: [],
+      companionBubble: ''
     })
     this._areaElapsed = 0
+    // 重置后回到刷牙前小游戏状态
+    this.initToothZones()
+    this.initPreGame()
   },
 
   completeTimer() {
@@ -635,19 +786,56 @@ Page({
       ? specialTitle + dirtyBonus
       : COMPLETED_TEXTS[Math.floor(Math.random() * COMPLETED_TEXTS.length)] + dirtyBonus
 
+    // 自动保存刷牙记录（核心数据打通）
+    this.saveBrushingRecord()
+
+    // 陪伴公主完成语
+    this.setData({ companionBubble: '太棒啦！🎉' })
+
     // 清除所有脏东西
     this.setData({
       isRunning: false, isCompleted: true, overallProgress: 100,
-      ringColor: '#81C784', toothFace: '🥳',
+      ringColor: '#81C784',
       completedStarsArr: Array(stars).fill(0),
       completedText: completedText,
-      dirtySpots: []
+      dirtySpots: [],
+      stage: 'post',
+      showStickerPicker: true
+    })
+  },
+
+  // 保存刷牙记录到本地和云端
+  saveBrushingRecord() {
+    const record = {
+      id: util.generateId(),
+      date: util.getTodayStr(),
+      timeOfDay: this.data.timeOfDay,
+      imagePath: null,
+      score: 100,
+      note: '完成2分钟刷牙',
+      points: this.data.brushPoints,
+      completedAreas: this.data.completedAreas,
+      createTime: new Date().toISOString(),
+      fromTimer: true
+    }
+
+    // 先存本地，确保不丢数据
+    util.saveBrushingRecord(record)
+
+    // 后台尝试同步云端（失败自动降级本地）
+    cloud.uploadBrushingRecord(record).catch(err => {
+      console.warn('刷牙记录云端同步失败，已保留本地:', err)
     })
   },
 
   clearTimers() {
     if (this._timer) { clearInterval(this._timer); this._timer = null }
     if (this._areaTimer) { clearInterval(this._areaTimer); this._areaTimer = null }
+  },
+
+  // 关闭庆祝画面，回到初始状态
+  closeCelebration() {
+    this.resetTimer()
   },
 
   goCheckIn() {
@@ -665,82 +853,7 @@ Page({
 
   // ===== 彩蛋功能 =====
 
-  // 彩蛋1：点击牙齿角色
-  onTapTooth() {
-    if (!this.data.isRunning) return
-
-    const reaction = TOOTH_REACTIONS[Math.floor(Math.random() * TOOTH_REACTIONS.length)]
-    this._toothEasterEgg = true // 标记正在显示彩蛋
-    this.setData({ toothFace: reaction.face })
-
-    wx.showToast({
-      title: reaction.text,
-      icon: 'none',
-      duration: 2000
-    })
-
-    // 3秒后恢复原表情
-    if (this._toothTimer) clearTimeout(this._toothTimer)
-    this._toothTimer = setTimeout(() => {
-      this._toothEasterEgg = false
-      if (this.data.isRunning) {
-        const progress = this.data.overallProgress
-        let face = '😁'
-        if (progress > 75) face = '🤩'
-        else if (progress > 50) face = '😊'
-        else if (progress > 25) face = '😄'
-        this.setData({ toothFace: face })
-      }
-    }, 3000)
-  },
-
-  // 彩蛋2：点击左边小猫
-  onTapCat() {
-    if (!this.data.isRunning) return
-
-    const reaction = ANIMAL_REACTIONS.cat[Math.floor(Math.random() * ANIMAL_REACTIONS.cat.length)]
-    this._animalEasterEgg = true
-    this.setData({
-      leftCheer: reaction.text
-    })
-
-    // 播放音效
-    wx.vibrateShort({ type: 'medium' })
-
-    // 3秒后恢复
-    const restoreIndex = this._cheerIndex
-    setTimeout(() => {
-      this._animalEasterEgg = false
-      this.setData({
-        leftCheer: CHEER_LEFT[restoreIndex]
-      })
-    }, 3000)
-  },
-
-  // 彩蛋3：点击右边兔子
-  onTapRabbit() {
-    if (!this.data.isRunning) return
-
-    const reaction = ANIMAL_REACTIONS.rabbit[Math.floor(Math.random() * ANIMAL_REACTIONS.rabbit.length)]
-    this._animalEasterEgg = true
-    this.setData({
-      rightCheer: reaction.text
-    })
-
-    // 播放音效
-    wx.vibrateShort({ type: 'medium' })
-
-    // 3秒后恢复
-    const restoreIndex = this._cheerIndex
-    setTimeout(() => {
-      this._animalEasterEgg = false
-      this.setData({
-        rightCheer: CHEER_RIGHT[restoreIndex]
-      })
-    }, 3000)
-  },
-
-  // 彩蛋4：点击进度环切换颜色模式
+  // 彩蛋：点击进度环切换颜色模式（刷牙前/后可用）
   onTapRing() {
     if (!this.data.isRunning) return
 
@@ -792,110 +905,24 @@ Page({
     return null
   },
 
-  // ===== 刷牙小游戏 =====
-
-  // 生成脏东西
-  generateDirtySpot() {
-    if (!this.data.isRunning) return
-
-    const dirty = DIRTY_TYPES[Math.floor(Math.random() * DIRTY_TYPES.length)]
-    const id = 'dirty_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)
-
-    // 随机位置（在牙齿周围的区域）
-    const x = 20 + Math.random() * 60
-    const y = 20 + Math.random() * 60
-
-    const newDirty = {
-      id: id,
-      emoji: dirty.emoji,
-      name: dirty.name,
-      points: dirty.points,
-      x: x,
-      y: y
-    }
-
-    this.setData({
-      dirtySpots: [...this.data.dirtySpots, newDirty]
-    })
-
-    // 8秒后自动消失（存储定时器以便清除）
-    if (!this._dirtyTimers) this._dirtyTimers = {}
-    this._dirtyTimers[id] = setTimeout(() => {
-      this.removeDirtySpot(id)
-      if (this._dirtyTimers) delete this._dirtyTimers[id]
-    }, 8000)
-  },
-
-  // 移除脏东西
-  removeDirtySpot(id) {
-    const spots = this.data.dirtySpots.filter(s => s.id !== id)
-    this.setData({ dirtySpots: spots })
-    // 清除该脏东西的自动移除定时器
-    if (this._dirtyTimers && this._dirtyTimers[id]) {
-      clearTimeout(this._dirtyTimers[id])
-      delete this._dirtyTimers[id]
-    }
-  },
-
-  // 点击脏东西（刷掉它！）
-  onTapDirty(e) {
-    if (!this.data.isRunning) return
-
-    const id = e.currentTarget.dataset.id
-    const spot = this.data.dirtySpots.find(s => s.id === id)
-    if (!spot) return
-
-    // 移除脏东西
-    this.removeDirtySpot(id)
-
-    // 增加积分
-    const newPoints = this.data.brushPoints + spot.points
-    const newCleaned = this.data.totalDirtyCleaned + 1
-
-    // 显示刷掉特效
-    const cleanText = CLEAN_TEXTS[Math.floor(Math.random() * CLEAN_TEXTS.length)]
-    this.setData({
-      brushPoints: newPoints,
-      totalDirtyCleaned: newCleaned,
-      showCleanEffect: true,
-      cleanEffectText: `+${spot.points} ${cleanText}`,
-      cleanEffectX: spot.x,
-      cleanEffectY: spot.y
-    })
-
-    // 播放音效
-    wx.vibrateShort({ type: 'medium' })
-
-    // 1.5秒后隐藏特效（存储定时器以便清除）
-    if (this._cleanEffectTimer) clearTimeout(this._cleanEffectTimer)
-    this._cleanEffectTimer = setTimeout(() => {
-      this.setData({ showCleanEffect: false })
-    }, 1500)
-
-    // 每刷掉5个脏东西，显示特殊奖励
-    if (newCleaned % 5 === 0) {
-      setTimeout(() => {
-        wx.showToast({
-          title: `🎉 已刷掉${newCleaned}个脏东西！`,
-          icon: 'none',
-          duration: 1500
-        })
-      }, 500)
-    }
-  },
-
   // ===== 公主角色功能 =====
 
-  // 显示随机公主角色（随机位置）
+  // 显示随机公主角色（避开中心区域）
   showRandomPrincess() {
     if (!this.data.isRunning) return
 
     const princess = PRINCESS_CHARACTERS[Math.floor(Math.random() * PRINCESS_CHARACTERS.length)]
 
-    // 生成随机位置（避免出现在进度环和按钮区域）
-    // X: 10-90%，Y: 15-75%（避开顶部工具栏和底部按钮）
-    const x = 10 + Math.random() * 80
-    const y = 15 + Math.random() * 60
+    // 安全区域：避开中心（牙齿+进度环）、顶部工具栏、底部按钮
+    const safeZones = [
+      { xMin: 3, xMax: 22, yMin: 8, yMax: 30 },   // 左上
+      { xMin: 78, xMax: 95, yMin: 8, yMax: 30 },   // 右上
+      { xMin: 3, xMax: 18, yMin: 35, yMax: 70 },   // 左侧
+      { xMin: 82, xMax: 95, yMin: 35, yMax: 70 },   // 右侧
+    ]
+    const zone = safeZones[Math.floor(Math.random() * safeZones.length)]
+    const x = zone.xMin + Math.random() * (zone.xMax - zone.xMin)
+    const y = zone.yMin + Math.random() * (zone.yMax - zone.yMin)
 
     this.setData({
       showPrincess: true,

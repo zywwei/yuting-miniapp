@@ -109,7 +109,7 @@
   50% { transform: scale(1.05); }
 }
 
-/* ===== 主视觉区 ===== */
+/* ===== 主视觉区（四角+中心） ===== */
 .main-visual {
   position: relative;
   display: flex;
@@ -120,78 +120,284 @@
   z-index: 1;
 }
 
-/* 中心区域 */
-.center-area {
+/* 四角元素通用 */
+.corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+  z-index: 2;
+  transition: all 0.3s;
+}
+
+.corner-tl { top: 16rpx; left: 24rpx; }
+.corner-tr { top: 16rpx; right: 24rpx; }
+.corner-bl { bottom: 16rpx; left: 24rpx; }
+.corner-br { bottom: 16rpx; right: 24rpx; }
+
+.corner.cheer-active {
+  animation: cornerBounce 2s ease-in-out infinite;
+}
+
+.corner-tr.cheer-active { animation-delay: 0.3s; }
+
+@keyframes cornerBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10rpx); }
+}
+
+.corner-emoji {
+  font-size: 80rpx;
+  filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.12));
+}
+
+.corner-bubble {
+  font-size: 20rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(255, 154, 171, 0.15);
+  white-space: nowrap;
+}
+
+/* 右下：陪伴小公主 */
+.companion-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  animation: miniAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes miniAppear {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  70% { transform: scale(1.1) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.companion-mini-emoji {
+  font-size: 80rpx;
+  animation: companionFloat 2s ease-in-out infinite;
+  filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.15));
+}
+
+@keyframes companionFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8rpx); }
+}
+
+.companion-mini-bubble {
+  font-size: 18rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 6rpx 14rpx;
+  border-radius: 18rpx;
+  box-shadow: 0 2rpx 8rpx rgba(255, 154, 171, 0.2);
+  white-space: nowrap;
+}
+
+/* 6区牙齿（2行3列，占满宽度） */
+.tooth-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 10rpx;
+  padding: 16rpx;
+  margin: 0 24rpx;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 32rpx;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4rpx 16rpx rgba(255, 154, 171, 0.2);
+}
+
+.tooth-zone {
   position: relative;
+  height: 120rpx;
+  background: linear-gradient(180deg, #FFFDE7 0%, #FFF9C4 100%);
+  border: 3rpx solid;
+  border-radius: 20rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 可爱牙齿角色 */
-.tooth-character {
+/* 当前正在刷的区域：脉冲发光 */
+.tooth-zone.zone-current {
+  background: linear-gradient(180deg, #FFF0F5 0%, #FFE4EC 100%);
+  transform: scale(1.08);
+  z-index: 2;
+}
+
+.zone-pulse {
+  animation: zonePulse 1s ease-in-out infinite;
+}
+
+@keyframes zonePulse {
+  0%, 100% { box-shadow: 0 0 16rpx rgba(255, 154, 171, 0.45); }
+  50% { box-shadow: 0 0 36rpx rgba(255, 154, 171, 0.75); }
+}
+
+/* 已刷干净的区域：雪白闪亮 */
+.tooth-zone.zone-clean {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8F5E9 100%);
+  border-color: #81C784 !important;
+  transform: scale(1);
+}
+
+.zone-tooth-body {
   position: relative;
-  z-index: 5;
-  margin-right: -80rpx;
-  cursor: pointer;
+  z-index: 1;
 }
 
-.tooth-body {
-  font-size: 160rpx;
-  transition: transform 0.3s;
-  filter: drop-shadow(0 8rpx 16rpx rgba(0,0,0,0.15));
+.zone-tooth-emoji {
+  font-size: 40rpx;
+  display: block;
+  transition: transform 0.4s;
 }
 
-.tooth-happy {
-  animation: toothBounce 1.2s ease-in-out infinite;
+.tooth-zone.zone-clean .zone-tooth-emoji {
+  animation: cleanToothPop 0.6s ease-out;
 }
 
-.tooth-excited {
-  animation: toothJump 0.6s ease-in-out infinite;
+@keyframes cleanToothPop {
+  0% { transform: scale(0.5) rotate(-10deg); }
+  60% { transform: scale(1.3) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
 }
 
-@keyframes toothBounce {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(-16rpx) rotate(-8deg); }
-  75% { transform: translateY(8rpx) rotate(8deg); }
-}
-
-@keyframes toothJump {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-24rpx) scale(1.1); }
-}
-
-.tooth-crown {
+/* 细菌层 */
+.zone-germs {
   position: absolute;
-  top: -40rpx;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.zone-germ {
+  position: absolute;
+  font-size: 22rpx;
+  filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.15));
+}
+
+.germ-wiggle {
+  animation: germWiggle 1.2s ease-in-out infinite;
+}
+
+@keyframes germWiggle {
+  0%, 100% { transform: rotate(-12deg) scale(1); }
+  50% { transform: rotate(12deg) scale(1.15); }
+}
+
+.germ-flee {
+  animation: germFlee 0.7s ease-out forwards;
+}
+
+@keyframes germFlee {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  40% { transform: translate(0, -30rpx) scale(1.1); opacity: 1; }
+  100% { transform: translate(0, -120rpx) scale(0.3); opacity: 0; }
+}
+
+/* 闪亮特效 */
+.zone-shine {
+  position: absolute;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  font-size: 56rpx;
-  animation: crownBounce 1s ease-in-out infinite;
+  transform: translate(-50%, -50%);
+  font-size: 40rpx;
+  z-index: 3;
+  animation: shinePop 0.8s ease-out forwards;
+  pointer-events: none;
 }
 
-@keyframes crownBounce {
-  0%, 100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
-  50% { transform: translateX(-50%) translateY(-12rpx) rotate(15deg); }
+@keyframes shinePop {
+  0% { transform: translate(-50%, -50%) scale(0) rotate(-45deg); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scale(1.6) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 0.85; }
 }
 
-/* 脸颊红晕 */
-.tooth-blush {
+/* 小皇冠 */
+.zone-crown {
   position: absolute;
-  width: 30rpx;
-  height: 20rpx;
-  background: radial-gradient(ellipse, rgba(255, 154, 171, 0.6) 0%, transparent 70%);
-  border-radius: 50%;
-  top: 55%;
-  animation: blush 2s ease-in-out infinite;
+  top: -4rpx;
+  right: -2rpx;
+  font-size: 20rpx;
+  z-index: 4;
+  animation: miniCrownBounce 1s ease-in-out infinite;
 }
 
-.tooth-blush.left { left: 10%; }
-.tooth-blush.right { right: 10%; }
+@keyframes miniCrownBounce {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4rpx) rotate(12deg); }
+}
 
-@keyframes blush {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+/* 区域名称标签 */
+.zone-label {
+  position: absolute;
+  bottom: 4rpx;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 18rpx;
+  color: #999;
+  font-weight: 500;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.tooth-zone.zone-current .zone-label {
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+.tooth-zone.zone-clean .zone-label {
+  color: #81C784;
+  font-weight: bold;
+}
+
+/* 当前区域倒计时 */
+.zone-timer {
+  position: absolute;
+  top: 2rpx;
+  right: 4rpx;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.zone-timer-num {
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #FF6B8A;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 2rpx 8rpx;
+  border-radius: 12rpx;
+  line-height: 1;
+  box-shadow: 0 2rpx 6rpx rgba(255, 154, 171, 0.2);
+}
+
+/* 已完成勾号 */
+.zone-check {
+  position: absolute;
+  top: 2rpx;
+  left: 4rpx;
+  font-size: 20rpx;
+  color: #81C784;
+  font-weight: bold;
+  z-index: 5;
+  pointer-events: none;
+  animation: checkPop 0.3s ease-out;
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.3); }
+  100% { transform: scale(1); }
 }
 
 /* 进度环 */
@@ -295,60 +501,6 @@
   100% { opacity: 0; transform: translateY(-80rpx) scale(1.3); }
 }
 
-/* 动物加油（分散到两侧） */
-.cheer-left, .cheer-right {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  opacity: 0.5;
-  transition: all 0.3s;
-  z-index: 2;
-}
-
-/* 左下角 */
-.cheer-left {
-  left: 24rpx;
-  bottom: 280rpx;
-}
-
-/* 右下角 */
-.cheer-right {
-  right: 24rpx;
-  bottom: 280rpx;
-}
-
-.cheer-active {
-  opacity: 1;
-  animation: cheerBounce 2s ease-in-out infinite;
-}
-
-.cheer-left.cheer-active { animation-delay: 0s; }
-.cheer-right.cheer-active { animation-delay: 0.5s; }
-
-@keyframes cheerBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-16rpx); }
-}
-
-.cheer-emoji {
-  font-size: 72rpx;
-  filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.15));
-}
-
-.cheer-bubble {
-  font-size: 22rpx;
-  color: #FF6B8A;
-  font-weight: bold;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 8rpx 18rpx;
-  border-radius: 24rpx;
-  margin-top: 8rpx;
-  box-shadow: 0 4rpx 12rpx rgba(255, 154, 171, 0.2);
-  backdrop-filter: blur(10px);
-  white-space: nowrap;
-}
-
 /* 公主角色 */
 .princess-character {
   position: absolute;
@@ -393,11 +545,146 @@
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
 }
 
-@keyframes bubblePop {
-  0% { transform: scale(0); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+/* 刷牙前小游戏：瞌睡细菌 */
+.pre-game-area {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 8;
+  pointer-events: none;
 }
+
+.pre-germ {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.pre-germ-wiggle {
+  animation: preGermWiggle 2s ease-in-out infinite;
+}
+
+@keyframes preGermWiggle {
+  0%, 100% { transform: translate(-50%, -50%) rotate(-8deg) scale(1); }
+  50% { transform: translate(-50%, -50%) rotate(8deg) scale(1.1); }
+}
+
+.pre-germ-flee {
+  animation: preGermFlee 0.7s ease-out forwards;
+}
+
+@keyframes preGermFlee {
+  0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -150%) scale(0.3) rotate(360deg); opacity: 0; }
+}
+
+.pre-germ-emoji {
+  font-size: 64rpx;
+  filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.2));
+}
+
+.pre-hint {
+  position: absolute;
+  bottom: 200rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  color: #FF6B8A;
+  font-size: 28rpx;
+  font-weight: bold;
+  padding: 16rpx 32rpx;
+  border-radius: 40rpx;
+  box-shadow: 0 8rpx 24rpx rgba(255, 154, 171, 0.3);
+  animation: preHintPop 0.5s ease-out;
+  pointer-events: none;
+}
+
+@keyframes preHintPop {
+  0% { transform: translateX(-50%) scale(0); }
+  60% { transform: translateX(-50%) scale(1.1); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+
+/* 刷牙后贴纸 */
+.zone-stickers {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.zone-sticker {
+  position: absolute;
+  font-size: 24rpx;
+  animation: stickerPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.15));
+}
+
+@keyframes stickerPop {
+  0% { transform: scale(0) rotate(-45deg); }
+  70% { transform: scale(1.4) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.sticker-section {
+  margin-top: 24rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx dashed rgba(255, 154, 171, 0.3);
+}
+
+.sticker-title {
+  display: block;
+  font-size: 26rpx;
+  color: #FF6B8A;
+  margin-bottom: 16rpx;
+  font-weight: bold;
+}
+
+.sticker-row {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.sticker-btn {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 4rpx 12rpx rgba(255, 154, 171, 0.25);
+  transition: transform 0.15s;
+}
+
+.sticker-btn:active { transform: scale(0.9); }
+
+.sticker-emoji { font-size: 40rpx; }
+
+.sticker-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.btn-save-decoration {
+  display: inline-block;
+  background: linear-gradient(135deg, #81C784, #66BB6A);
+  color: white;
+  padding: 22rpx 56rpx;
+  border-radius: 60rpx;
+  font-size: 30rpx;
+  font-weight: bold;
+  box-shadow: 0 10rpx 30rpx rgba(129, 199, 132, 0.4);
+  transition: transform 0.2s;
+}
+
+.btn-save-decoration:active { transform: scale(0.95); }
 
 /* 脏东西 */
 .dirty-spot {
@@ -519,81 +806,6 @@
   100% { transform: translateX(-50%) translateY(-20rpx); opacity: 0; }
 }
 
-/* ===== 区域卡片（粉色主题） ===== */
-.area-section { padding: 0 32rpx 16rpx; }
-
-.area-card {
-  background: rgba(255, 240, 245, 0.9);
-  border-radius: 32rpx;
-  padding: 24rpx 28rpx;
-  box-shadow: 0 8rpx 24rpx rgba(255, 154, 171, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  backdrop-filter: blur(20px);
-  border: 1rpx solid rgba(255, 182, 193, 0.3);
-}
-
-.area-tooth-row {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12rpx;
-}
-
-.mini-tooth {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10rpx 6rpx;
-  border-radius: 16rpx;
-  background: rgba(255, 245, 248, 0.8);
-  position: relative;
-  transition: all 0.3s;
-  border: 1rpx solid rgba(255, 210, 220, 0.3);
-}
-
-.mini-tooth.current {
-  background: rgba(255, 230, 238, 0.95);
-  transform: scale(1.08);
-  box-shadow: 0 4rpx 12rpx rgba(255, 154, 171, 0.25);
-  border-color: rgba(255, 154, 171, 0.5);
-}
-
-.mini-tooth.done {
-  background: rgba(232, 245, 233, 0.9);
-  border-color: rgba(200, 230, 201, 0.5);
-}
-
-.mini-tooth-icon { font-size: 28rpx; }
-.mini-tooth-label { font-size: 20rpx; color: #999; margin-top: 2rpx; }
-.mini-tooth.current .mini-tooth-label { color: #FF6B8A; font-weight: bold; }
-.mini-tooth.done .mini-tooth-label { color: #81C784; }
-
-.mini-tooth-glow {
-  position: absolute;
-  top: -3rpx; left: -3rpx; right: -3rpx; bottom: -3rpx;
-  border-radius: 18rpx;
-  border: 3rpx solid #FF9AAB;
-  animation: miniGlow 1.5s ease-in-out infinite;
-}
-
-@keyframes miniGlow {
-  0%, 100% { box-shadow: 0 0 10rpx rgba(255, 154, 171, 0.3); }
-  50% { box-shadow: 0 0 20rpx rgba(255, 154, 171, 0.6); }
-}
-
-.area-timer { text-align: center; flex-shrink: 0; }
-.area-timer-ring { position: relative; width: 80rpx; height: 80rpx; }
-.area-timer-fill { width: 100%; height: 100%; border-radius: 50%; transition: background 0.3s; }
-.area-timer-inner {
-  position: absolute; top: 8rpx; left: 8rpx; right: 8rpx; bottom: 8rpx;
-  border-radius: 50%; background: rgba(255, 255, 255, 0.95);
-  display: flex; align-items: center; justify-content: center;
-}
-.area-timer-num { font-size: 28rpx; font-weight: bold; color: #FF6B8A; }
-.area-timer-label { font-size: 20rpx; color: #999; margin-top: 4rpx; display: block; }
-
 /* ===== 奖励 ===== */
 .reward-section { padding: 8rpx 40rpx; text-align: center; }
 .star-row { display: flex; justify-content: center; gap: 20rpx; margin-bottom: 6rpx; }
@@ -682,16 +894,12 @@
 
 /* ===== 完成庆祝（超级炫酷满屏效果） ===== */
 .celebrate-area {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: celebrateFadeIn 0.3s ease-out;
+  background: rgba(255, 240, 245, 0.6);
+  backdrop-filter: blur(6px);
 }
 
 @keyframes celebrateFadeIn {
@@ -708,7 +916,7 @@
   bottom: 0;
   pointer-events: none;
   overflow: hidden;
-  z-index: 101;
+  z-index: 1;
 }
 
 /* 彩色纸片 */
@@ -767,7 +975,7 @@
   top: 30%;
   animation: bigEmojiPop 3s ease-out forwards;
   filter: drop-shadow(0 8rpx 16rpx rgba(0,0,0,0.3));
-  z-index: 102;
+  z-index: 2;
 }
 
 @keyframes bigEmojiPop {
@@ -802,7 +1010,7 @@
   width: 600rpx;
   height: 600rpx;
   pointer-events: none;
-  z-index: 100;
+  z-index: 0;
 }
 
 .ray {
@@ -841,7 +1049,7 @@
   animation: doneBoxPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   backdrop-filter: blur(30px);
   border: 3rpx solid rgba(255, 182, 193, 0.5);
-  z-index: 103;
+  z-index: 10;
   max-width: 80%;
 }
 
@@ -858,6 +1066,29 @@
     transform: scale(1) rotate(0deg);
     opacity: 1;
   }
+}
+
+.done-close {
+  position: absolute;
+  top: 16rpx;
+  right: 24rpx;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #ccc;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.done-close:active {
+  background: rgba(0, 0, 0, 0.1);
+  color: #999;
+  transform: scale(0.9);
 }
 
 .done-header {

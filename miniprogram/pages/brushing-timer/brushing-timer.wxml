@@ -44,46 +44,50 @@
 
   <!-- ===== 主视觉区 ===== -->
   <view class="main-visual">
-    <!-- 左右小动物加油 -->
-    <view class="cheer-left {{isRunning ? 'cheer-active' : ''}}" bindtap="onTapCat">
-      <text class="cheer-emoji">🐱</text>
-      <text class="cheer-bubble">{{leftCheer}}</text>
+    <!-- 左上：小猫 -->
+    <view class="corner corner-tl {{isRunning ? 'cheer-active' : ''}}">
+      <text class="corner-emoji">🐱</text>
+      <text class="corner-bubble">{{leftCheer}}</text>
     </view>
-    <view class="cheer-right {{isRunning ? 'cheer-active' : ''}}" bindtap="onTapRabbit">
-      <text class="cheer-emoji">🐰</text>
-      <text class="cheer-bubble">{{rightCheer}}</text>
+    <!-- 右上：兔子 -->
+    <view class="corner corner-tr {{isRunning ? 'cheer-active' : ''}}">
+      <text class="corner-emoji">🐰</text>
+      <text class="corner-bubble">{{rightCheer}}</text>
+    </view>
+    <!-- 左下：小青蛙 -->
+    <view class="corner corner-bl {{isRunning ? 'cheer-active' : ''}}">
+      <text class="corner-emoji">🐸</text>
+      <text class="corner-bubble">{{completedAreas.length}}/6 区域</text>
+    </view>
+    <!-- 右下：陪伴小公主 -->
+    <view class="corner corner-br">
+      <view class="companion-mini">
+        <text class="companion-mini-emoji">👸</text>
+        <text class="companion-mini-bubble">{{companionBubble}}</text>
+      </view>
     </view>
 
-    <!-- 中心区域：牙齿 + 进度环 -->
-    <view class="center-area">
-      <!-- 大大的可爱牙齿角色 -->
-      <view class="tooth-character {{isRunning ? 'tooth-happy' : ''}} {{isCompleted ? 'tooth-excited' : ''}}"
-            bindtap="onTapTooth">
-        <view class="tooth-body">
-          <text class="tooth-emoji">{{toothFace}}</text>
+    <!-- 中心：进度环 -->
+    <view class="progress-ring-wrap" bindtap="onTapRing"
+          style="{{stage === 'brushing' ? 'pointer-events: none;' : ''}}">
+      <view class="ring-bg-circle"></view>
+      <view class="ring-fill-circle" style="background: conic-gradient({{ringColor}} {{overallProgress * 3.6}}deg, transparent 0deg);"></view>
+      <view class="ring-inner-circle">
+        <view class="ring-center-content">
+          <text class="ring-time">{{minutes}}:{{seconds}}</text>
+          <text class="ring-hint" wx:if="{{!isCompleted}}">{{isRunning ? '加油刷！' : '点击开始'}}</text>
+          <text class="ring-hint ring-done" wx:if="{{isCompleted}}">完成啦！</text>
         </view>
-        <!-- 牙齿头顶的皇冠 -->
-        <view class="tooth-crown" wx:if="{{isCompleted}}">👑</view>
-        <!-- 脸颊红晕 -->
-        <view class="tooth-blush left" wx:if="{{isRunning}}"></view>
-        <view class="tooth-blush right" wx:if="{{isRunning}}"></view>
       </view>
+      <view class="ring-deco ring-deco-1" wx:if="{{isRunning}}">✨</view>
+      <view class="ring-deco ring-deco-2" wx:if="{{isRunning}}">⭐</view>
+    </view>
 
-      <!-- 可爱的进度环 -->
-      <view class="progress-ring-wrap" bindtap="onTapRing">
-        <view class="ring-bg-circle"></view>
-        <view class="ring-fill-circle" style="background: conic-gradient({{ringColor}} {{overallProgress * 3.6}}deg, transparent 0deg);"></view>
-        <view class="ring-inner-circle">
-          <view class="ring-center-content">
-            <text class="ring-time">{{minutes}}:{{seconds}}</text>
-            <text class="ring-hint" wx:if="{{!isCompleted}}">{{isRunning ? '加油刷！' : '点击开始'}}</text>
-            <text class="ring-hint ring-done" wx:if="{{isCompleted}}">完成啦！</text>
-          </view>
-        </view>
-        <!-- 进度环装饰 -->
-        <view class="ring-deco ring-deco-1" wx:if="{{isRunning}}">✨</view>
-        <view class="ring-deco ring-deco-2" wx:if="{{isRunning}}">⭐</view>
-      </view>
+    <!-- 随机公主彩蛋（仍在随机位置出现） -->
+    <view wx:if="{{showPrincess}}" class="princess-character" bindtap="onTapPrincess"
+          style="left: {{princessX}}%; top: {{princessY}}%; {{stage === 'brushing' ? 'pointer-events: none;' : ''}}">
+      <text class="princess-emoji">{{princessEmoji}}</text>
+      <text class="princess-bubble" style="background: {{princessColor}};">{{princessBubble}}</text>
     </view>
 
     <!-- 泡泡 -->
@@ -95,21 +99,21 @@
       </view>
     </view>
 
-    <!-- 公主角色（随机位置出现） -->
-    <view wx:if="{{showPrincess}}" class="princess-character" bindtap="onTapPrincess"
-          style="left: {{princessX}}%; top: {{princessY}}%;">
-      <text class="princess-emoji">{{princessEmoji}}</text>
-      <text class="princess-bubble" style="background: {{princessColor}};">{{princessBubble}}</text>
+    <!-- 刷牙前小游戏：瞌睡细菌（点击赶走） -->
+    <view wx:if="{{stage === 'pre'}}" class="pre-game-area">
+      <view wx:for="{{dirtySpots}}" wx:key="id" wx:for-item="germ"
+            class="pre-germ {{germ.fleeing ? 'pre-germ-flee' : 'pre-germ-wiggle'}}"
+            bindtap="onTapPreGerm"
+            data-id="{{germ.id}}"
+            style="left: {{germ.x}}%; top: {{germ.y}}%;">
+        <text class="pre-germ-emoji">{{germ.emoji}}</text>
+      </view>
+      <view wx:if="{{dirtySpots.length === 0}}" class="pre-hint">
+        🎉 细菌都赶走啦，开始刷牙吧！
+      </view>
     </view>
 
-    <!-- 脏东西（刷牙小游戏） -->
-    <view wx:for="{{dirtySpots}}" wx:key="id" wx:for-item="dirty"
-          class="dirty-spot" bindtap="onTapDirty"
-          data-id="{{dirty.id}}"
-          style="left: {{dirty.x}}%; top: {{dirty.y}}%;">
-      <text class="dirty-emoji">{{dirty.emoji}}</text>
-      <text class="dirty-points">+{{dirty.points}}</text>
-    </view>
+    <!-- 刷牙小游戏：脏东西已绑定到6区牙齿上，刷牙中不再单独显示 -->
 
     <!-- 刷掉特效 -->
     <view wx:if="{{showCleanEffect}}" class="clean-effect"
@@ -128,26 +132,32 @@
     </view>
   </view>
 
-  <!-- ===== 区域提示 ===== -->
-  <view class="area-section" wx:if="{{isRunning || isPaused}}">
-    <view class="area-card">
-      <view class="area-tooth-row">
-        <view wx:for="{{teethArea}}" wx:key="index" wx:for-item="area"
-              class="mini-tooth {{currentAreaIndex === index ? 'current' : ''}} {{completedAreas.includes(area.name) ? 'done' : ''}}">
-          <text class="mini-tooth-icon">🦷</text>
-          <text class="mini-tooth-label">{{area.name}}</text>
-          <view wx:if="{{currentAreaIndex === index}}" class="mini-tooth-glow"></view>
-        </view>
+  <!-- ===== 6区牙齿（一行占满） ===== -->
+  <view class="tooth-strip" wx:if="{{toothZones.length > 0}}">
+    <view wx:for="{{toothZones}}" wx:key="index"
+          class="tooth-zone zone-{{item.state}} {{item.state === 'current' ? 'zone-pulse' : ''}}"
+          style="border-color: {{item.color}};">
+      <view class="zone-tooth-body">
+        <text class="zone-tooth-emoji">{{item.state === 'clean' ? '✨' : '🦷'}}</text>
       </view>
-      <view class="area-timer">
-        <view class="area-timer-ring">
-          <view class="area-timer-fill" style="background: conic-gradient({{areaColor}} {{areaProgress * 3.6}}deg, #eee 0deg);"></view>
-          <view class="area-timer-inner">
-            <text class="area-timer-num">{{areaRemaining}}</text>
-          </view>
-        </view>
-        <text class="area-timer-label">秒</text>
+      <view class="zone-germs" wx:if="{{item.germs.length > 0 && item.state !== 'clean'}}">
+        <text wx:for="{{item.germs}}" wx:key="id"
+              class="zone-germ {{item.fleeing ? 'germ-flee' : 'germ-wiggle'}}"
+              style="left: {{item.x}}%; top: {{item.y}}%;">{{item.emoji}}</text>
       </view>
+      <view class="zone-stickers" wx:if="{{placedStickers.length > 0 && item.state === 'clean'}}">
+        <text wx:for="{{placedStickers}}" wx:key="id" wx:for-item="sticker"
+              wx:if="{{sticker.zoneIndex === index}}"
+              class="zone-sticker"
+              style="left: {{sticker.x}}%; top: {{sticker.y}}%;">{{sticker.emoji}}</text>
+      </view>
+      <view class="zone-shine" wx:if="{{item.state === 'clean'}}">✨</view>
+      <view class="zone-crown" wx:if="{{item.state === 'clean'}}">👑</view>
+      <view class="zone-label">{{item.name}}</view>
+      <view class="zone-timer" wx:if="{{currentAreaIndex === index && isRunning}}">
+        <text class="zone-timer-num">{{areaRemaining}}</text>
+      </view>
+      <view class="zone-check" wx:if="{{item.state === 'clean'}}">✓</view>
     </view>
   </view>
 
@@ -182,8 +192,8 @@
     </view>
   </view>
 
-  <!-- ===== 完成庆祝（超级炫酷满屏效果） ===== -->
-  <view wx:if="{{isCompleted}}" class="celebrate-area">
+  <!-- ===== 完成庆祝（全屏覆盖） ===== -->
+  <view wx:if="{{isCompleted}}" class="celebrate-area" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999;">
     <!-- 全屏撒花层 -->
     <view class="confetti-fullscreen">
       <!-- 彩色纸片 -->
@@ -217,6 +227,7 @@
 
     <!-- 完成弹窗 -->
     <view class="done-box">
+      <view class="done-close" bindtap="closeCelebration">✕</view>
       <view class="done-header">
         <text class="done-emoji-big">🎉</text>
         <text class="done-emoji-big">🦷</text>
@@ -231,7 +242,25 @@
       <view class="done-points" wx:if="{{brushPoints > 0}}">
         <text>🏆 本次积分：{{brushPoints}}</text>
       </view>
-      <view class="btn-checkin" bindtap="goCheckIn">📷 拍照打卡</view>
+
+      <!-- 刷牙后贴纸装饰 -->
+      <view class="sticker-section" wx:if="{{showStickerPicker}}">
+        <text class="sticker-title">给牙齿贴个贴纸吧~✨</text>
+        <view class="sticker-row">
+          <view wx:for="{{stickers}}" wx:key="id"
+                class="sticker-btn"
+                bindtap="onTapSticker"
+                data-id="{{item.id}}">
+            <text class="sticker-emoji">{{item.emoji}}</text>
+          </view>
+        </view>
+        <view class="sticker-actions">
+          <view class="btn-save-decoration" bindtap="saveDecoration">💾 保存纪念</view>
+          <view class="btn-checkin" bindtap="goCheckIn">📷 拍照打卡</view>
+        </view>
+      </view>
+
+      <view wx:if="{{!showStickerPicker}}" class="btn-checkin" bindtap="goCheckIn">📷 拍照打卡</view>
     </view>
   </view>
 
