@@ -161,7 +161,6 @@ Page({
     statusBarHeight: 20,
     capsuleRight: 80,
     timeOfDay: 'morning',
-    totalTime: 120,
     remainingTime: 120,
     minutes: '02',
     seconds: '00',
@@ -175,7 +174,6 @@ Page({
     currentArea: BRUSH_AREAS[0],
     teethArea: BRUSH_AREAS,
     completedAreas: [],
-    areaProgress: 0,
     areaRemaining: 20,
     areaColor: BRUSH_AREAS[0].color,
     // 泡泡
@@ -201,10 +199,8 @@ Page({
     princessY: 50,
     // 刷牙陪伴小公主（固定右下角，始终显示）
     companionBubble: '一起刷牙吧~',
-    // 主题和提示
+    // 主题
     themeBg: THEMES.morning.bg,
-    themeGreeting: THEMES.morning.greeting,
-    themeTip: THEMES.morning.tip,
     // 刷牙小知识
     currentTip: '',
     showTip: false,
@@ -232,6 +228,7 @@ Page({
   _areaTimer: null,
   _areaElapsed: 0,
   _cheerIndex: 0,
+  _totalTime: 120,
 
   onLoad(options) {
     const timeOfDay = options.time || 'morning'
@@ -251,9 +248,7 @@ Page({
       timeOfDay,
       teethArea: BRUSH_AREAS,
       soundEnabled: audio.enabled,
-      themeBg: theme.bg,
-      themeGreeting: theme.greeting,
-      themeTip: theme.tip
+      themeBg: theme.bg
     })
 
     // 初始化牙齿6区，让孩子一进来就看到要刷的牙齿
@@ -543,10 +538,10 @@ Page({
     this._cheerIndex = 0
     this.setData({
       isRunning: true, isPaused: false, isCompleted: false,
-      remainingTime: this.data.totalTime, overallProgress: 0,
+      remainingTime: this._totalTime, overallProgress: 0,
       currentAreaIndex: 0, currentArea: BRUSH_AREAS[0],
       areaColor: BRUSH_AREAS[0].color, completedAreas: [],
-      areaProgress: 0, areaRemaining: 20,
+      areaRemaining: 20,
       ringColor: '#FF9AAB',
       rewardStars: [false, false, false, false, false],
       currentRewardText: REWARD_TEXTS[0],
@@ -593,7 +588,7 @@ Page({
       }
 
       const remaining = this.data.remainingTime - 1
-      const overallProgress = Math.round(((this.data.totalTime - remaining) / this.data.totalTime) * 100)
+      const overallProgress = Math.round(((this._totalTime - remaining) / this._totalTime) * 100)
 
       // 颜色变化（根据当前模式）
       let ringColor = '#FF9AAB' // 默认粉色
@@ -660,7 +655,6 @@ Page({
     const areaDuration = BRUSH_AREAS[this.data.currentAreaIndex].duration
     this._areaTimer = setInterval(() => {
       this._areaElapsed++
-      const areaProgress = Math.round((this._areaElapsed / areaDuration) * 100)
       const areaRemaining = areaDuration - this._areaElapsed
 
       if (this._areaElapsed >= areaDuration) {
@@ -698,20 +692,20 @@ Page({
           this.setData({
             completedAreas, currentAreaIndex: nextIndex,
             currentArea: BRUSH_AREAS[nextIndex], areaColor: BRUSH_AREAS[nextIndex].color,
-            areaProgress: 0, areaRemaining: BRUSH_AREAS[nextIndex].duration
+            areaRemaining: BRUSH_AREAS[nextIndex].duration
           }, () => {
             this.updateZoneStates()
             this.updateCompanion()
           })
         } else {
-          this.setData({ completedAreas, areaProgress: 100, areaRemaining: 0 }, () => {
+          this.setData({ completedAreas, areaRemaining: 0 }, () => {
             this.updateZoneStates()
             this.updateCompanion()
           })
           clearInterval(this._areaTimer)
         }
       } else {
-        this.setData({ areaProgress, areaRemaining })
+        this.setData({ areaRemaining })
       }
     }, 1000)
   },
@@ -744,10 +738,10 @@ Page({
     this._ringModeIndex = 0
     this.setData({
       isRunning: false, isPaused: false, isCompleted: false,
-      remainingTime: this.data.totalTime, minutes: '02', seconds: '00',
+      remainingTime: this._totalTime, minutes: '02', seconds: '00',
       overallProgress: 0, currentAreaIndex: 0, currentArea: BRUSH_AREAS[0],
       areaColor: BRUSH_AREAS[0].color, completedAreas: [],
-      areaProgress: 0, areaRemaining: 20, ringColor: '#FF9AAB',
+      areaRemaining: 20, ringColor: '#FF9AAB',
       rewardStars: [false, false, false, false, false],
       currentRewardText: '准备开始！',
       completedStarsArr: [], completedText: '', confetti: [],
@@ -853,10 +847,8 @@ Page({
 
   // ===== 彩蛋功能 =====
 
-  // 彩蛋：点击进度环切换颜色模式（刷牙前/后可用）
+  // 彩蛋：点击进度环切换颜色模式
   onTapRing() {
-    if (!this.data.isRunning) return
-
     // 初始化当前模式索引
     if (this._ringModeIndex === undefined) this._ringModeIndex = 0
 
@@ -893,7 +885,7 @@ Page({
     }
   },
 
-  // 彩蛋5：完成时根据连续天数显示特殊称号
+  // 完成时根据连续天数显示特殊称号
   getSpecialTitle() {
     const stats = util.getBrushingStats()
     const streak = stats.streak

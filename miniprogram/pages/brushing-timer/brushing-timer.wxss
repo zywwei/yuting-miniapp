@@ -894,6 +894,12 @@
 
 /* ===== 完成庆祝（超级炫酷满屏效果） ===== */
 .celebrate-area {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
   display: flex;
   align-items: center;
   justify-content: center;

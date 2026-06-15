@@ -193,7 +193,7 @@
   </view>
 
   <!-- ===== 完成庆祝（全屏覆盖） ===== -->
-  <view wx:if="{{isCompleted}}" class="celebrate-area" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 999;">
+  <view wx:if="{{isCompleted}}" class="celebrate-area">
     <!-- 全屏撒花层 -->
     <view class="confetti-fullscreen">
       <!-- 彩色纸片 -->
