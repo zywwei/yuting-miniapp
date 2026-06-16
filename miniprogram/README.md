@@ -140,8 +140,9 @@ miniprogram/
 │   ├── cloud.js             # 云开发操作
 │   └── templates.js         # 模板线稿绘制
 ├── audio/
-│   └── drawing-music.wav    # 画画专属音乐（688KB）
+│   └── drawing-music.mp3    # 画画专属音乐（173KB）
 └── images/
+│   └── icon.svg             # 小程序图标
 ```
 
 ## 🛠️ 技术栈
@@ -154,6 +155,18 @@ miniprogram/
 ---
 
 ## 📝 更新日志
+
+### 2026-06-16
+- **优化** 代码质量扫描问题修复
+  - 启用组件按需注入：`app.json` 新增 `lazyCodeLoading: requiredComponents`
+  - 压缩音频资源：`audio/drawing-music.wav`（688KB）转码为 `drawing-music.mp3`（173KB）
+  - 删除未使用的图片资源：`images/avatar.jpg`（75KB）和 `images/avatar.png`（63KB）
+  - 当前本地图片+音频总资源 179KB，满足「图片和音频资源大小不超过 200K」
+  - 同步更新 `pages/draw/draw.js` 中音乐文件引用路径
+- **调整** 刷牙前小游戏角色 emoji
+  - 将 `😴🦠/😴🐛/😴👾/😴🍬` 组合表情替换为单独的 `🦠/🐛/👾/🍬`
+  - 避免把人脸和虫/菌放在一起，让孩子看起来更舒服
+  - 修改 `pages/brushing-timer/brushing-timer.js` 中 `PRE_GERM_TYPES` 定义
 
 ### 2026-06-15
 - **重做** 刷牙计时核心视觉体验

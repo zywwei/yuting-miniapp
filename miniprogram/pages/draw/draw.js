@@ -12,7 +12,7 @@ const drawingMusic = {
   init() {
     if (this.ctx) return
     this.ctx = wx.createInnerAudioContext()
-    this.ctx.src = '/audio/drawing-music.wav'
+    this.ctx.src = '/audio/drawing-music.mp3'
     this.ctx.loop = true
     this.ctx.volume = 0.35
     this.ctx.autoplay = false

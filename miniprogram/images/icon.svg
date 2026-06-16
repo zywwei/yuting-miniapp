@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD4EC"/>
+      <stop offset="100%" style="stop-color:#FFACD8"/>
+    </linearGradient>
+    <radialGradient id="face" cx="48%" cy="42%" r="52%">
+      <stop offset="0%" style="stop-color:#FFF0DC"/>
+      <stop offset="100%" style="stop-color:#F5D5B5"/>
+    </radialGradient>
+    <radialGradient id="blushL" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FFB0C8;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#FFB0C8;stop-opacity:0"/>
+    </radialGradient>
+    <radialGradient id="blushR" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FFB0C8;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#FFB0C8;stop-opacity:0"/>
+    </radialGradient>
+    <linearGradient id="shirt" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4B0EE"/>
+      <stop offset="100%" style="stop-color:#BA90D6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
+
+  <!-- 光斑 -->
+  <circle cx="70" cy="90" r="35" fill="rgba(255,255,255,0.25)"/>
+  <circle cx="445" cy="75" r="22" fill="rgba(255,255,255,0.22)"/>
+  <circle cx="50" cy="430" r="18" fill="rgba(255,255,255,0.22)"/>
+  <circle cx="460" cy="440" r="28" fill="rgba(255,255,255,0.18)"/>
+
+  <!-- 星星 -->
+  <g fill="rgba(255,255,255,0.5)">
+    <polygon points="450,55 454,68 467,68 457,76 460,89 450,81 440,89 443,76 433,68 446,68"/>
+    <polygon points="62,380 65,390 75,390 68,396 70,406 62,400 54,406 56,396 49,390 59,390"/>
+    <polygon points="460,370 462,377 469,377 464,382 466,389 460,385 454,389 456,382 451,377 458,377"/>
+  </g>
+
+  <!-- ===== Q版小女孩（大头小身体） ===== -->
+
+  <!-- 身体（小小的身体） -->
+  <path d="M195,385 Q195,350 225,340 L256,350 L287,340 Q317,350 317,385 L317,430 L195,430 Z" fill="url(#shirt)"/>
+  <!-- sweet -->
+  <text x="256" y="398" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="rgba(255,255,255,0.5)" font-style="italic">sweet</text>
+  <!-- 荷叶边 -->
+  <path d="M195,425 Q215,435 235,425 Q256,435 277,425 Q297,435 317,425 L317,435 L195,435 Z" fill="#E8D0F8" opacity="0.7"/>
+  <!-- 纱裙 -->
+  <ellipse cx="256" cy="448" rx="65" ry="22" fill="rgba(255,255,255,0.5)"/>
+
+  <!-- 左手 -->
+  <path d="M195,365 Q168,375 162,400" stroke="#F5D5B5" stroke-width="16" fill="none" stroke-linecap="round"/>
+  <circle cx="160" cy="403" r="10" fill="#F5D5B5"/>
+  <!-- 棒棒糖 -->
+  <line x1="148" y1="380" x2="165" y2="370" stroke="#E8A050" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="143" cy="376" r="10" fill="#FF6B8A"/>
+  <circle cx="143" cy="376" r="5" fill="white" opacity="0.4"/>
+  <path d="M138,376 Q143,370 148,376" stroke="white" stroke-width="1.5" fill="none" opacity="0.5"/>
+  <path d="M138,378 Q143,384 148,378" stroke="white" stroke-width="1.5" fill="none" opacity="0.5"/>
+
+  <!-- 右手 -->
+  <path d="M317,365 Q344,378 348,405" stroke="#F5D5B5" stroke-width="16" fill="none" stroke-linecap="round"/>
+  <circle cx="350" cy="408" r="10" fill="#F5D5B5"/>
+
+  <!-- ===== 大头 ===== -->
+
+  <!-- 脸（超圆的脸） -->
+  <circle cx="256" cy="245" r="105" fill="url(#face)"/>
+
+  <!-- 头发后层 -->
+  <path d="M151,215 Q151,110 256,105 Q361,110 361,215" fill="#3D2B1F"/>
+  <!-- 左侧垂发 -->
+  <path d="M153,215 Q130,250 130,310 Q138,330 160,318" fill="#3D2B1F"/>
+  <path d="M160,215 Q142,245 142,300 Q148,315 165,308" fill="#3D2B1F"/>
+  <!-- 右侧垂发 -->
+  <path d="M359,215 Q382,250 382,310 Q374,330 352,318" fill="#3D2B1F"/>
+  <path d="M352,215 Q370,245 370,300 Q364,315 347,308" fill="#3D2B1F"/>
+
+  <!-- 头发前层（刘海） -->
+  <path d="M170,220 Q200,160 256,150 Q312,160 342,220" fill="#3D2B1F"/>
+  <!-- 刘海弧度 -->
+  <path d="M180,220 Q210,175 256,168 Q302,175 332,220" fill="#3D2B1F"/>
+  <!-- 刘海碎发 -->
+  <path d="M195,218 Q215,185 240,178" stroke="#2C1E12" stroke-width="3" fill="none"/>
+  <path d="M317,218 Q297,185 272,178" stroke="#2C1E12" stroke-width="3" fill="none"/>
+
+  <!-- 丸子头 -->
+  <circle cx="256" cy="100" r="40" fill="#3D2B1F"/>
+  <path d="M228,90 Q256,75 284,90" stroke="#2C1E12" stroke-width="2.5" fill="none"/>
+  <path d="M232,100 Q256,88 280,100" stroke="#2C1E12" stroke-width="2.5" fill="none"/>
+  <path d="M235,110 Q256,100 277,110" stroke="#2C1E12" stroke-width="2" fill="none"/>
+
+  <!-- 蓝色发圈 -->
+  <ellipse cx="256" cy="135" rx="18" ry="8" fill="#7EC8E3"/>
+  <ellipse cx="256" cy="133" rx="13" ry="4.5" fill="#A0D8EF"/>
+
+  <!-- ===== 五官（大眼Q版） ===== -->
+
+  <!-- 眉毛 -->
+  <path d="M200,208 Q218,200 232,205" stroke="#4A3728" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M280,205 Q294,200 312,208" stroke="#4A3728" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- 超大眼睛 -->
+  <ellipse cx="220" cy="245" rx="20" ry="22" fill="#2C1E12"/>
+  <ellipse cx="292" cy="245" rx="20" ry="22" fill="#2C1E12"/>
+  <!-- 大高光 -->
+  <circle cx="227" cy="238" r="8" fill="white"/>
+  <circle cx="299" cy="238" r="8" fill="white"/>
+  <!-- 小高光 -->
+  <circle cx="215" cy="252" r="3.5" fill="white"/>
+  <circle cx="287" cy="252" r="3.5" fill="white"/>
+  <!-- 眼睛弧光 -->
+  <path d="M208,238 Q220,232 232,238" stroke="white" stroke-width="1.5" fill="none" opacity="0.3"/>
+  <path d="M280,238 Q292,232 304,238" stroke="white" stroke-width="1.5" fill="none" opacity="0.3"/>
+
+  <!-- 大腮红 -->
+  <circle cx="180" cy="275" r="22" fill="url(#blushL)"/>
+  <circle cx="332" cy="275" r="22" fill="url(#blushR)"/>
+
+  <!-- 小鼻子 -->
+  <ellipse cx="256" cy="265" rx="3.5" ry="3" fill="#E8A090"/>
+
+  <!-- 嘴巴（猫嘴微笑） -->
+  <path d="M242,280 Q250,290 256,285 Q262,290 270,280" stroke="#E07060" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+</svg>

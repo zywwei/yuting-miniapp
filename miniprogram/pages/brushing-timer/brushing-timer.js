@@ -132,12 +132,12 @@ const BUBBLE_LIST = [
   { x: 25, delay: 2.0, size: 20, emoji: '🫧' }
 ]
 
-// 刷牙前小游戏：瞌睡细菌类型
+// 刷牙前小游戏：可点击赶走的脏东西（避免把人脸和虫/菌组合在一起）
 const PRE_GERM_TYPES = [
-  { emoji: '😴🦠', name: '瞌睡细菌', points: 3 },
-  { emoji: '😴🐛', name: '瞌睡虫虫', points: 3 },
-  { emoji: '😴👾', name: '瞌睡菌斑', points: 3 },
-  { emoji: '😴🍬', name: '赖床糖糖', points: 2 }
+  { emoji: '🦠', name: '小细菌', points: 3 },
+  { emoji: '🐛', name: '小虫虫', points: 3 },
+  { emoji: '👾', name: '小菌斑', points: 3 },
+  { emoji: '🍬', name: '小糖糖', points: 2 }
 ]
 
 // 刷牙后贴纸装饰
