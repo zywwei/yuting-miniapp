@@ -1,7 +1,43 @@
 /* 习惯详情页样式 */
 .container {
   min-height: 100vh;
-  background: #F5F7FA;
+  padding-bottom: 40rpx;
+}
+
+/* 打卡动画 */
+.checkin-animation {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  z-index: 100;
+  text-align: center;
+  transition: all 0.5s ease;
+}
+
+.checkin-animation.show {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  animation: bounceIn 0.5s ease;
+}
+
+@keyframes bounceIn {
+  0% { transform: translate(-50%, -50%) scale(0); }
+  50% { transform: translate(-50%, -50%) scale(1.2); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.animation-icon {
+  font-size: 120rpx;
+}
+
+.animation-text {
+  color: white;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-top: 20rpx;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.3);
 }
 
 /* 头部 */
@@ -11,18 +47,18 @@
   color: white;
 }
 
-.habit-icon {
-  font-size: 80rpx;
+.habit-icon-big {
+  font-size: 100rpx;
   margin-bottom: 16rpx;
 }
 
 .habit-name {
-  font-size: 40rpx;
+  font-size: 44rpx;
   font-weight: bold;
-  margin-bottom: 8rpx;
+  margin-bottom: 12rpx;
 }
 
-.habit-target {
+.habit-tip {
   font-size: 26rpx;
   opacity: 0.9;
 }
@@ -30,43 +66,42 @@
 /* 统计 */
 .stats {
   display: flex;
-  background: white;
-  margin: -20rpx 30rpx 30rpx;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 30rpx 20rpx;
   border-radius: 20rpx;
-  padding: 30rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+  padding: 24rpx;
 }
 
 .stat-item {
   flex: 1;
   text-align: center;
+  color: white;
 }
 
 .stat-number {
   font-size: 40rpx;
   font-weight: bold;
-  color: #333;
 }
 
 .stat-label {
   font-size: 22rpx;
-  color: #999;
-  margin-top: 8rpx;
+  opacity: 0.9;
+  margin-top: 4rpx;
 }
 
 /* 作息统计 */
 .sleep-stats {
-  background: white;
-  margin: 0 30rpx 30rpx;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 30rpx 20rpx;
   border-radius: 20rpx;
-  padding: 28rpx;
+  padding: 24rpx;
 }
 
 .sleep-title {
   font-size: 28rpx;
   font-weight: bold;
-  color: #333;
-  margin-bottom: 20rpx;
+  color: white;
+  margin-bottom: 16rpx;
 }
 
 .sleep-grid {
@@ -77,37 +112,80 @@
 .sleep-item {
   flex: 1;
   text-align: center;
-  background: #F5F7FA;
-  border-radius: 16rpx;
-  padding: 20rpx 12rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12rpx;
+  padding: 16rpx 8rpx;
 }
 
 .sleep-value {
-  font-size: 32rpx;
+  font-size: 28rpx;
   font-weight: bold;
-  color: #333;
+  color: white;
 }
 
 .sleep-label {
-  font-size: 20rpx;
-  color: #999;
-  margin-top: 8rpx;
+  font-size: 18rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 4rpx;
+}
+
+/* 今日进度 */
+.today-progress {
+  background: rgba(255, 255, 255, 0.2);
+  margin: 0 30rpx 20rpx;
+  border-radius: 20rpx;
+  padding: 20rpx 24rpx;
+}
+
+.progress-text {
+  color: white;
+  font-size: 24rpx;
+  margin-bottom: 12rpx;
+}
+
+.progress-bar-bg {
+  height: 16rpx;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: white;
+  border-radius: 8rpx;
+  transition: width 0.3s;
 }
 
 /* 打卡按钮 */
 .checkin-btn {
   margin: 0 30rpx 30rpx;
-  color: white;
+  background: rgba(255, 255, 255, 0.3);
+  border: 4rpx solid rgba(255, 255, 255, 0.5);
+  border-radius: 30rpx;
+  padding: 30rpx;
   text-align: center;
-  padding: 28rpx;
-  border-radius: 20rpx;
-  font-size: 32rpx;
-  font-weight: bold;
+  color: white;
+  transition: all 0.2s;
 }
 
 .checkin-btn:active {
-  opacity: 0.9;
   transform: scale(0.98);
+}
+
+.checkin-btn.completed {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: white;
+}
+
+.btn-icon {
+  font-size: 60rpx;
+  margin-bottom: 12rpx;
+}
+
+.btn-text {
+  font-size: 32rpx;
+  font-weight: bold;
 }
 
 /* 区块 */
@@ -116,24 +194,25 @@
 }
 
 .section-title {
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: bold;
-  color: #333;
-  margin-bottom: 20rpx;
+  color: white;
+  margin-bottom: 16rpx;
 }
 
 /* 记录列表 */
 .record-list {
-  background: white;
-  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16rpx;
   overflow: hidden;
 }
 
 .record-item {
   display: flex;
   justify-content: space-between;
-  padding: 24rpx 28rpx;
-  border-bottom: 1rpx solid #F5F5F5;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .record-item:last-child {
@@ -141,18 +220,17 @@
 }
 
 .record-date {
-  font-size: 28rpx;
-  color: #333;
+  font-size: 26rpx;
 }
 
 .record-time {
-  font-size: 26rpx;
-  color: #999;
+  font-size: 24rpx;
+  opacity: 0.8;
 }
 
 .empty {
   text-align: center;
-  padding: 60rpx;
-  color: #999;
-  font-size: 26rpx;
+  padding: 40rpx;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 24rpx;
 }

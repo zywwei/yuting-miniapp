@@ -1,11 +1,16 @@
 <!-- 习惯详情页 -->
-<view class="container">
+<view class="container" style="background: {{style.bgGradient}};">
+  <!-- 打卡动画 -->
+  <view class="checkin-animation {{showCheckinAnimation ? 'show' : ''}}">
+    <view class="animation-icon">{{style.icon}}</view>
+    <view class="animation-text">{{style.successText}}</view>
+  </view>
+
   <!-- 头部 -->
-  <view class="header" style="background: {{habit.color}};">
-    <view class="habit-icon">{{habit.icon}}</view>
+  <view class="header">
+    <view class="habit-icon-big">{{habit.icon}}</view>
     <view class="habit-name">{{habit.name}}</view>
-    <view class="habit-target" wx:if="{{habit.isSleepHabit}}">作息习惯</view>
-    <view class="habit-target" wx:else>目标：每天{{habit.target}}次</view>
+    <view class="habit-tip">{{style.tipText}}</view>
   </view>
 
   <!-- 统计 -->
@@ -24,7 +29,7 @@
     </view>
   </view>
 
-  <!-- 作息统计（仅早起/早睡显示） -->
+  <!-- 作息统计 -->
   <view wx:if="{{sleepStats}}" class="sleep-stats">
     <view class="sleep-title">
       {{habit.type === 'early_up' ? '🌅 早起统计' : habit.type === 'nap' ? '😴 午睡统计' : '🌙 早睡统计'}}
@@ -45,9 +50,18 @@
     </view>
   </view>
 
+  <!-- 今日进度 -->
+  <view class="today-progress">
+    <view class="progress-text">今日 {{todayDone}}/{{habit.target}}</view>
+    <view class="progress-bar-bg">
+      <view class="progress-bar-fill" style="width: {{todayDone / habit.target * 100}}%;"></view>
+    </view>
+  </view>
+
   <!-- 打卡按钮 -->
-  <view class="checkin-btn" bindtap="checkIn" style="background: {{habit.color}};">
-    <text>✅ 今日打卡</text>
+  <view class="checkin-btn {{completed ? 'completed' : ''}}" bindtap="checkIn">
+    <view class="btn-icon">{{completed ? '✅' : style.icon}}</view>
+    <view class="btn-text">{{completed ? '今日已完成' : style.checkinText}}</view>
   </view>
 
   <!-- 打卡记录 -->
