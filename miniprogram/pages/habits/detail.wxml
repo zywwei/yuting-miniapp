@@ -1,0 +1,64 @@
+<!-- 习惯详情页 -->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header" style="background: {{habit.color}};">
+    <view class="habit-icon">{{habit.icon}}</view>
+    <view class="habit-name">{{habit.name}}</view>
+    <view class="habit-target" wx:if="{{habit.isSleepHabit}}">作息习惯</view>
+    <view class="habit-target" wx:else>目标：每天{{habit.target}}次</view>
+  </view>
+
+  <!-- 统计 -->
+  <view class="stats">
+    <view class="stat-item">
+      <view class="stat-number">{{stats.total}}</view>
+      <view class="stat-label">累计打卡</view>
+    </view>
+    <view class="stat-item">
+      <view class="stat-number">{{stats.streak}}</view>
+      <view class="stat-label">连续天数</view>
+    </view>
+    <view class="stat-item">
+      <view class="stat-number">{{stats.weekRate}}%</view>
+      <view class="stat-label">本周完成率</view>
+    </view>
+  </view>
+
+  <!-- 作息统计（仅早起/早睡显示） -->
+  <view wx:if="{{sleepStats}}" class="sleep-stats">
+    <view class="sleep-title">
+      {{habit.type === 'early_up' ? '🌅 早起统计' : habit.type === 'nap' ? '😴 午睡统计' : '🌙 早睡统计'}}
+    </view>
+    <view class="sleep-grid">
+      <view class="sleep-item">
+        <view class="sleep-value">{{sleepStats.avgTime}}</view>
+        <view class="sleep-label">最近7天平均</view>
+      </view>
+      <view class="sleep-item">
+        <view class="sleep-value">{{sleepStats.earliest}}</view>
+        <view class="sleep-label">最早时间</view>
+      </view>
+      <view class="sleep-item">
+        <view class="sleep-value">{{sleepStats.latest}}</view>
+        <view class="sleep-label">最晚时间</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 打卡按钮 -->
+  <view class="checkin-btn" bindtap="checkIn" style="background: {{habit.color}};">
+    <text>✅ 今日打卡</text>
+  </view>
+
+  <!-- 打卡记录 -->
+  <view class="section">
+    <view class="section-title">打卡记录</view>
+    <view class="record-list" wx:if="{{records.length > 0}}">
+      <view wx:for="{{records}}" wx:key="id" class="record-item">
+        <view class="record-date">{{item.date}}</view>
+        <view class="record-time">{{item.time}}</view>
+      </view>
+    </view>
+    <view wx:else class="empty">暂无打卡记录</view>
+  </view>
+</view>

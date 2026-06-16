@@ -1,0 +1,158 @@
+/* 习惯详情页样式 */
+.container {
+  min-height: 100vh;
+  background: #F5F7FA;
+}
+
+/* 头部 */
+.header {
+  padding: 60rpx 40rpx 40rpx;
+  text-align: center;
+  color: white;
+}
+
+.habit-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.habit-name {
+  font-size: 40rpx;
+  font-weight: bold;
+  margin-bottom: 8rpx;
+}
+
+.habit-target {
+  font-size: 26rpx;
+  opacity: 0.9;
+}
+
+/* 统计 */
+.stats {
+  display: flex;
+  background: white;
+  margin: -20rpx 30rpx 30rpx;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+/* 作息统计 */
+.sleep-stats {
+  background: white;
+  margin: 0 30rpx 30rpx;
+  border-radius: 20rpx;
+  padding: 28rpx;
+}
+
+.sleep-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.sleep-grid {
+  display: flex;
+  gap: 16rpx;
+}
+
+.sleep-item {
+  flex: 1;
+  text-align: center;
+  background: #F5F7FA;
+  border-radius: 16rpx;
+  padding: 20rpx 12rpx;
+}
+
+.sleep-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.sleep-label {
+  font-size: 20rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+/* 打卡按钮 */
+.checkin-btn {
+  margin: 0 30rpx 30rpx;
+  color: white;
+  text-align: center;
+  padding: 28rpx;
+  border-radius: 20rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.checkin-btn:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+/* 区块 */
+.section {
+  margin: 0 30rpx 30rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+/* 记录列表 */
+.record-list {
+  background: white;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+.record-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 24rpx 28rpx;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.record-item:last-child {
+  border-bottom: none;
+}
+
+.record-date {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.record-time {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.empty {
+  text-align: center;
+  padding: 60rpx;
+  color: #999;
+  font-size: 26rpx;
+}

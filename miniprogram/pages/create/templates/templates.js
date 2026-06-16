@@ -1,4 +1,4 @@
-const { templateList } = require('../../utils/templates.js')
+var templateList = require('../../../utils/templates.js').templateList
 
 Page({
   data: {
@@ -15,34 +15,33 @@ Page({
     filteredTemplates: []
   },
 
-  onLoad() {
-    // 使用模板数据
+  onLoad: function() {
     this.setData({ templates: templateList })
     this.filterTemplates()
   },
 
   // 切换分类
-  switchCategory(e) {
-    const id = e.currentTarget.dataset.id
+  switchCategory: function(e) {
+    var id = e.currentTarget.dataset.id
     this.setData({ currentCategory: id })
     this.filterTemplates()
   },
 
   // 过滤模板
-  filterTemplates() {
-    const category = this.data.currentCategory
-    const filtered = category === 'all'
+  filterTemplates: function() {
+    var category = this.data.currentCategory
+    var filtered = category === 'all'
       ? this.data.templates
-      : this.data.templates.filter(t => t.category === category)
+      : this.data.templates.filter(function(t) { return t.category === category })
 
     this.setData({ filteredTemplates: filtered })
   },
 
   // 选择模板
-  selectTemplate(e) {
-    const template = e.currentTarget.dataset.template
+  selectTemplate: function(e) {
+    var template = e.currentTarget.dataset.template
     wx.navigateTo({
-      url: `/pages/draw/draw?mode=template&templateId=${template.id}&name=${template.name}`
+      url: '/pages/create/draw/draw?mode=template&templateId=' + template.id + '&name=' + template.name
     })
   }
 })

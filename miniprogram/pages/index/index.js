@@ -1,62 +1,212 @@
-const util = require('../../utils/util.js')
+var util = require('../../utils/util.js')
+var learnData = require('../../utils/learn-data.js')
+var achievements = require('../../utils/achievements.js')
+
+var app = getApp()
 
 Page({
   data: {
     statusBarHeight: 20,
-    brushingToday: 0
+    greeting: '',
+    growthDays: 0,
+    todayHabits: [],
+    achievements: [],
+    recommendations: []
   },
 
-  onLoad() {
-    const sysInfo = wx.getSystemInfoSync()
+  onLoad: function() {
+    var sysInfo = wx.getSystemInfoSync()
     this.setData({
-      statusBarHeight: sysInfo.statusBarHeight || 20
+      statusBarHeight: sysInfo.statusBarHeight || 20,
+      growthDays: app.globalData.growthDays || 0
     })
   },
 
-  onShow() {
-    this.loadBrushingCount()
+  onShow: function() {
+    this.setGreeting()
+    this.loadTodayHabits()
+    this.loadAchievements()
+    this.loadRecommendations()
+
+    // 更新 tabBar 选中状态
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 0 })
+    }
   },
 
-  // 加载今日刷牙次数
-  loadBrushingCount() {
-    const today = util.getTodayStr()
-    const records = util.getBrushingRecords()
-    const todayCount = records.filter(r => r.date === today).length
-    this.setData({ brushingToday: todayCount })
+  // 设置问候语
+  setGreeting: function() {
+    var hour = new Date().getHours()
+    var greeting = '早上好'
+    if (hour >= 12 && hour < 18) greeting = '下午好'
+    else if (hour >= 18) greeting = '晚上好'
+    this.setData({ greeting: greeting })
   },
 
-  // 刷牙打卡
-  goBrushing() {
-    wx.navigateTo({
-      url: '/pages/brushing/brushing'
+  // 加载今日习惯
+  loadTodayHabits: function() {
+    var today = util.getTodayStr()
+    var habits = wx.getStorageSync('habits') || []
+    var records = wx.getStorageSync('habitRecords') || []
+
+    // 默认习惯（只显示常用的习惯在首页）
+    var defaultHabits = [
+      { type: 'brushing', name: '刷牙', icon: '🦷', target: 2 },
+      { type: 'early_up', name: '早起', icon: '🌅', target: 1 },
+      { type: 'early_sleep', name: '早睡', icon: '🌙', target: 1 },
+      { type: 'drink', name: '喝水', icon: '💧', target: 8 },
+      { type: 'wash_hands', name: '洗手', icon: '🧼', target: 3 },
+      { type: 'eat_breakfast', name: '吃早餐', icon: '🥣', target: 1 },
+      { type: 'eat_lunch', name: '吃午餐', icon: '🍱', target: 1 },
+      { type: 'eat_dinner', name: '吃晚餐', icon: '🍛', target: 1 }
+    ]
+
+    // 合并自定义习惯
+    var customHabits = habits.filter(function(h) { return h.type === 'custom' })
+    var allHabits = defaultHabits.concat(customHabits)
+
+    var todayHabits = allHabits.map(function(habit) {
+      var todayRecords = records.filter(function(r) {
+        return r.date === today && r.type === habit.type
+      })
+      var done = todayRecords.length
+      var target = habit.target || 1
+      return {
+        type: habit.type,
+        name: habit.name,
+        icon: habit.icon,
+        target: target,
+        done: done,
+        completed: done >= target
+      }
     })
+
+    this.setData({ todayHabits: todayHabits })
   },
 
-  // 自由画画
-  goFreeDraw() {
-    wx.navigateTo({
-      url: '/pages/draw/draw?mode=free'
+  // 加载成就
+  loadAchievements: function() {
+    // 检查并解锁新成就
+    var newAchievements = achievements.checkAchievements()
+
+    // 显示新成就通知
+    if (newAchievements.length > 0) {
+      wx.showToast({
+        title: '解锁新成就: ' + newAchievements[0].title,
+        icon: 'success',
+        duration: 2000
+      })
+    }
+
+    // 获取已解锁成就用于展示
+    var unlocked = achievements.getUnlockedAchievements()
+    var displayAchievements = unlocked.slice(-4).reverse().map(function(a) {
+      return { icon: a.icon, text: a.title }
     })
+
+    // 默认成就
+    if (displayAchievements.length === 0) {
+      displayAchievements.push({ icon: '⭐', text: '开始成长之旅' })
+    }
+
+    this.setData({ achievements: displayAchievements })
   },
 
-  // 涂色模板
-  goTemplates() {
-    wx.navigateTo({
-      url: '/pages/templates/templates'
-    })
+  // 加载今日推荐（动态推荐）
+  loadRecommendations: function() {
+    var recommendations = learnData.getRecommendations()
+
+    // 如果推荐不足3条，添加习惯推荐
+    if (recommendations.length < 3) {
+      var records = wx.getStorageSync('habitRecords') || []
+      var today = util.getTodayStr()
+      var todayRecords = records.filter(function(r) { return r.date === today })
+
+      if (todayRecords.length === 0) {
+        recommendations.push({
+          type: 'habits',
+          icon: '🎯',
+          text: '完成今天的习惯打卡',
+          target: '/pages/habits/index'
+        })
+      }
+    }
+
+    this.setData({ recommendations: recommendations.slice(0, 3) })
   },
 
-  // 我的画廊
-  goGallery() {
-    wx.navigateTo({
-      url: '/pages/gallery/gallery'
-    })
+  // 跳转到习惯打卡
+  goHabit: function(e) {
+    var type = e.currentTarget.dataset.type
+    if (type === 'brushing') {
+      wx.navigateTo({ url: '/pages/habits/brushing/brushing' })
+    } else {
+      wx.navigateTo({ url: '/pages/habits/detail?type=' + type })
+    }
   },
 
-  // 亲子互动模式
-  goParentMode() {
-    wx.navigateTo({
-      url: '/pages/draw/draw?mode=parent'
-    })
+  // 跳转到模块页面
+  goModule: function(e) {
+    var module = e.currentTarget.dataset.module
+    var urlMap = {
+      habits: '/pages/habits/index',
+      learn: '/pages/learn/index',
+      create: '/pages/create/index',
+      notes: '/pages/notes/index'
+    }
+    wx.switchTab({ url: urlMap[module] })
+  },
+
+  // 跳转到推荐
+  goRecommendation: function(e) {
+    var target = e.currentTarget.dataset.target
+    if (target) {
+      // 判断是 switchTab 还是 navigateTo
+      var tabPages = ['/pages/habits/index', '/pages/learn/index', '/pages/create/index', '/pages/notes/index']
+      var isTab = false
+      for (var i = 0; i < tabPages.length; i++) {
+        if (target.indexOf(tabPages[i]) === 0) {
+          isTab = true
+          break
+        }
+      }
+      if (isTab) {
+        wx.switchTab({ url: target.split('?')[0] })
+      } else {
+        wx.navigateTo({ url: target })
+      }
+    }
+  },
+
+  // 跳转到家长中心
+  goParent: function() {
+    wx.navigateTo({ url: '/pages/parent/index' })
+  },
+
+  // 计算连续天数
+  calcStreak: function(records) {
+    if (records.length === 0) return 0
+
+    var dateSet = {}
+    records.forEach(function(r) { dateSet[r.date] = true })
+    var dates = Object.keys(dateSet).sort().reverse()
+    var streak = 0
+
+    for (var i = 0; i < dates.length; i++) {
+      var expectedDate = new Date()
+      expectedDate.setDate(expectedDate.getDate() - i)
+      var year = expectedDate.getFullYear()
+      var month = String(expectedDate.getMonth() + 1).padStart(2, '0')
+      var day = String(expectedDate.getDate()).padStart(2, '0')
+      var expectedStr = year + '-' + month + '-' + day
+
+      if (dates[i] === expectedStr) {
+        streak++
+      } else {
+        break
+      }
+    }
+
+    return streak
   }
 })

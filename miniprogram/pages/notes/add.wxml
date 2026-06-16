@@ -1,0 +1,83 @@
+<!-- 添加笔记 -->
+<view class="container">
+  <!-- 笔记类型 -->
+  <view class="section">
+    <view class="section-title">笔记类型</view>
+    <view class="type-list">
+      <view
+        wx:for="{{types}}"
+        wx:key="value"
+        class="type-item {{type === item.value ? 'selected' : ''}}"
+        bindtap="selectType"
+        data-type="{{item.value}}"
+      >
+        <view class="type-icon">{{item.icon}}</view>
+        <view class="type-label">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 标题 -->
+  <view class="section">
+    <input
+      class="title-input"
+      placeholder="给笔记起个标题..."
+      value="{{title}}"
+      bindinput="onTitleInput"
+      maxlength="30"
+    />
+  </view>
+
+  <!-- 内容 -->
+  <view class="section">
+    <textarea
+      class="content-input"
+      placeholder="记录今天的成长故事..."
+      value="{{content}}"
+      bindinput="onContentInput"
+      maxlength="500"
+      auto-height
+    />
+  </view>
+
+  <!-- 心情选择 -->
+  <view class="section">
+    <view class="section-title">今天的心情</view>
+    <view class="mood-list">
+      <view
+        wx:for="{{moods}}"
+        wx:key="value"
+        class="mood-item {{mood === item.value ? 'selected' : ''}}"
+        bindtap="selectMood"
+        data-mood="{{item.value}}"
+      >
+        <view class="mood-icon">{{item.icon}}</view>
+        <view class="mood-label">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 标签 -->
+  <view class="section">
+    <view class="section-title">标签（可选）</view>
+    <view class="tag-input-row">
+      <input
+        class="tag-input"
+        placeholder="添加标签..."
+        value="{{tagInput}}"
+        bindinput="onTagInput"
+        maxlength="10"
+      />
+      <view class="tag-add-btn" bindtap="addTag">添加</view>
+    </view>
+    <view class="tag-list" wx:if="{{tags.length > 0}}">
+      <view wx:for="{{tags}}" wx:key="*this" class="tag-item">
+        <text>{{item}}</text>
+        <view class="tag-remove" bindtap="removeTag" data-index="{{index}}">×</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 保存按钮 -->
+  <view class="save-btn" bindtap="save">保存笔记</view>
+</view>

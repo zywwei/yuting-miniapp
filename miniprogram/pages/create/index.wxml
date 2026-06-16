@@ -1,0 +1,27 @@
+<!-- 创意天地首页 -->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header">
+    <view class="header-title">🎨 创意天地</view>
+    <view class="header-desc">激发创造力，展现艺术天赋</view>
+    <view class="header-stat">已创作 {{drawingCount}} 幅作品</view>
+  </view>
+
+  <!-- 创作入口 -->
+  <view class="work-list">
+    <view
+      wx:for="{{works}}"
+      wx:key="type"
+      class="work-card"
+      bindtap="goCreate"
+      data-url="{{item.url}}"
+    >
+      <view class="work-icon">{{item.icon}}</view>
+      <view class="work-info">
+        <view class="work-name">{{item.name}}</view>
+        <view class="work-desc">{{item.desc}}</view>
+      </view>
+      <view class="work-arrow">›</view>
+    </view>
+  </view>
+</view>

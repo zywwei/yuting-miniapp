@@ -1,8 +1,8 @@
 const app = getApp()
-const util = require('../../utils/util.js')
-const audio = require('../../utils/audio.js')
-const cloud = require('../../utils/cloud.js')
-const { templateDrawers } = require('../../utils/templates.js')
+const util = require('../../../utils/util.js')
+const audio = require('../../../utils/audio.js')
+const cloud = require('../../../utils/cloud.js')
+const { templateDrawers } = require('../../../utils/templates.js')
 
 // 画画音乐管理
 const drawingMusic = {

@@ -35,4 +35,5 @@ page {
 .container {
   min-height: 100vh;
   padding-bottom: 40rpx;
+  box-sizing: border-box;
 }

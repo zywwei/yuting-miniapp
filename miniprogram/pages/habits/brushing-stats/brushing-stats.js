@@ -1,6 +1,6 @@
-const util = require('../../utils/util.js')
-const cloud = require('../../utils/cloud.js')
-const { getNavBarInfo, previewImage } = require('../../utils/page-helpers.js')
+const util = require('../../../utils/util.js')
+const cloud = require('../../../utils/cloud.js')
+const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 
 Page({
   data: {

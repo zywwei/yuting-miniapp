@@ -1,8 +1,8 @@
-const util = require('../../utils/util.js')
-const audio = require('../../utils/audio.js')
-const beep = require('../../utils/beep.js')
-const cloud = require('../../utils/cloud.js')
-const { getNavBarInfo } = require('../../utils/page-helpers.js')
+const util = require('../../../utils/util.js')
+const audio = require('../../../utils/audio.js')
+const beep = require('../../../utils/beep.js')
+const cloud = require('../../../utils/cloud.js')
+const { getNavBarInfo } = require('../../../utils/page-helpers.js')
 const {
   BRUSH_AREAS, BRUSHING_TIPS, THEMES, REWARD_TEXTS, COMPLETED_TEXTS,
   CHEER_LEFT, CHEER_RIGHT, RING_MODES, PRINCESS_CHEER, PRINCESS_CHARACTERS,
@@ -699,7 +699,7 @@ Page({
   },
 
   goCheckIn() {
-    wx.redirectTo({ url: '/pages/brushing/brushing' })
+    wx.redirectTo({ url: '/pages/habits/brushing/brushing' })
   },
 
   toggleSound() {

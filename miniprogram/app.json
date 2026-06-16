@@ -1,18 +1,60 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/draw/draw",
-    "pages/templates/templates",
-    "pages/gallery/gallery",
-    "pages/brushing/brushing",
-    "pages/brushing-timer/brushing-timer",
-    "pages/brushing-stats/brushing-stats"
+    "pages/habits/index",
+    "pages/habits/detail",
+    "pages/habits/add",
+    "pages/habits/brushing/brushing",
+    "pages/habits/brushing-timer/brushing-timer",
+    "pages/habits/brushing-stats/brushing-stats",
+    "pages/learn/index",
+    "pages/learn/cards",
+    "pages/learn/poems",
+    "pages/learn/numbers",
+    "pages/learn/english",
+    "pages/create/index",
+    "pages/create/draw/draw",
+    "pages/create/templates/templates",
+    "pages/create/gallery/gallery",
+    "pages/notes/index",
+    "pages/notes/add",
+    "pages/notes/detail",
+    "pages/parent/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#FF9AAB",
-    "navigationBarTitleText": "钰婷的小画板",
+    "navigationBarTitleText": "钰婷成长小助手",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#FFF5F5"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#999999",
+    "selectedColor": "#FF6B8A",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/habits/index",
+        "text": "习惯"
+      },
+      {
+        "pagePath": "pages/learn/index",
+        "text": "学习"
+      },
+      {
+        "pagePath": "pages/create/index",
+        "text": "创作"
+      },
+      {
+        "pagePath": "pages/notes/index",
+        "text": "笔记"
+      }
+    ]
   },
   "permission": {
     "scope.writePhotosAlbum": {
@@ -20,6 +62,9 @@
     },
     "scope.camera": {
       "desc": "用于拍照作为画画背景"
+    },
+    "scope.record": {
+      "desc": "用于录制语音日记"
     }
   },
   "sitemapLocation": "sitemap.json",

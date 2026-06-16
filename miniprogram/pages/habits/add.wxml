@@ -1,0 +1,49 @@
+<!-- 添加自定义习惯 -->
+<view class="container">
+  <!-- 习惯名称 -->
+  <view class="section">
+    <view class="section-title">习惯名称</view>
+    <input
+      class="name-input"
+      placeholder="例如：喝水、练琴、跳绳..."
+      value="{{name}}"
+      bindinput="onNameInput"
+      maxlength="10"
+    />
+  </view>
+
+  <!-- 选择图标 -->
+  <view class="section">
+    <view class="section-title">选择图标</view>
+    <view class="icon-grid">
+      <view
+        wx:for="{{icons}}"
+        wx:key="*this"
+        class="icon-item {{icon === item ? 'selected' : ''}}"
+        bindtap="selectIcon"
+        data-icon="{{item}}"
+      >
+        {{item}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 目标次数 -->
+  <view class="section">
+    <view class="section-title">每天目标</view>
+    <view class="target-list">
+      <view
+        wx:for="{{[1, 2, 3]}}"
+        wx:key="*this"
+        class="target-item {{target === item ? 'selected' : ''}}"
+        bindtap="setTarget"
+        data-target="{{item}}"
+      >
+        {{item}}次
+      </view>
+    </view>
+  </view>
+
+  <!-- 保存按钮 -->
+  <view class="save-btn" bindtap="save">保存习惯</view>
+</view>

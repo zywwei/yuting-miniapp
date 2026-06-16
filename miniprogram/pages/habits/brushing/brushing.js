@@ -1,7 +1,7 @@
-const util = require('../../utils/util.js')
-const audio = require('../../utils/audio.js')
-const cloud = require('../../utils/cloud.js')
-const { getNavBarInfo, previewImage } = require('../../utils/page-helpers.js')
+const util = require('../../../utils/util.js')
+const audio = require('../../../utils/audio.js')
+const cloud = require('../../../utils/cloud.js')
+const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 
 Page({
   data: {
@@ -191,22 +191,22 @@ Page({
 
   // 跳转到计时刷牙页
   goTimer(e) {
-    const timeOfDay = e.currentTarget.dataset.time
+    var timeOfDay = e.currentTarget.dataset.time
     wx.navigateTo({
-      url: `/pages/brushing-timer/brushing-timer?time=${timeOfDay}`
+      url: '/pages/habits/brushing-timer/brushing-timer?time=' + timeOfDay
     })
   },
 
   // 预览图片
   previewImage(e) {
-    const path = e.currentTarget.dataset.path
+    var path = e.currentTarget.dataset.path
     previewImage(path)
   },
 
   // 跳转到统计页
   goStats() {
     wx.navigateTo({
-      url: '/pages/brushing-stats/brushing-stats'
+      url: '/pages/habits/brushing-stats/brushing-stats'
     })
   },
 

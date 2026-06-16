@@ -1,0 +1,150 @@
+<!-- 习惯养成首页 -->
+<view class="container">
+  <!-- 头部统计 + 花园进度 -->
+  <view class="header">
+    <view class="header-top">
+      <view class="header-stats">
+        <view class="stat-card">
+          <view class="stat-icon">🔥</view>
+          <view class="stat-info">
+            <view class="stat-number">{{streak}}</view>
+            <view class="stat-label">天连续打卡</view>
+          </view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-icon">⭐</view>
+          <view class="stat-info">
+            <view class="stat-number">{{todayDone}}<text class="stat-total">/{{todayTotal}}</text></view>
+            <view class="stat-label">今日已完成</view>
+          </view>
+        </view>
+      </view>
+      <view class="add-btn" bindtap="addHabit">+ 添加</view>
+    </view>
+    <!-- 花园进度 -->
+    <view class="garden">
+      <view class="garden-flowers">
+        <view
+          wx:for="{{todayTotal}}"
+          wx:key="*this"
+          class="flower {{index < todayDone ? 'bloomed' : 'bud'}}"
+        >
+          {{index < todayDone ? '🌸' : '🌱'}}
+        </view>
+      </view>
+      <view class="garden-tip" wx:if="{{todayDone === 0}}">完成习惯，让花园开花吧~</view>
+      <view class="garden-tip" wx:elif="{{todayDone < todayTotal}}">还差{{todayTotal - todayDone}}朵花就开满啦~</view>
+      <view class="garden-tip" wx:else>🎉 花园开满了！钰婷真棒！</view>
+    </view>
+  </view>
+
+  <!-- 睡眠作息 -->
+  <view class="habit-group">
+    <view class="group-title" bindtap="toggleCollapse" data-group="sleep">
+      <text>💤 睡眠</text>
+      <text class="collapse-icon">{{collapsed.sleep ? '▸' : '▾'}}</text>
+    </view>
+    <view class="habit-grid" wx:if="{{!collapsed.sleep}}">
+      <view
+        wx:for="{{sleepHabits}}"
+        wx:key="type"
+        class="habit-item {{item.completed ? 'completed' : ''}}"
+        bindtap="goDetail"
+        data-type="{{item.type}}"
+      >
+        <view class="habit-icon">{{item.icon}}</view>
+        <view class="habit-name">{{item.name}}</view>
+        <view class="habit-done" wx:if="{{item.completed}}">✅</view>
+        <view class="habit-done" wx:else>{{item.done}}/{{item.target}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 健康卫生 -->
+  <view class="habit-group">
+    <view class="group-title" bindtap="toggleCollapse" data-group="health">
+      <text>🧴 健康</text>
+      <text class="collapse-icon">{{collapsed.health ? '▸' : '▾'}}</text>
+    </view>
+    <view class="habit-grid" wx:if="{{!collapsed.health}}">
+      <view
+        wx:for="{{healthHabits}}"
+        wx:key="type"
+        class="habit-item {{item.completed ? 'completed' : ''}}"
+        bindtap="goDetail"
+        data-type="{{item.type}}"
+      >
+        <view class="habit-icon">{{item.icon}}</view>
+        <view class="habit-name">{{item.name}}</view>
+        <view class="habit-done" wx:if="{{item.completed}}">✅</view>
+        <view class="habit-done" wx:else>{{item.done}}/{{item.target}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 生活自理 -->
+  <view class="habit-group">
+    <view class="group-title" bindtap="toggleCollapse" data-group="life">
+      <text>🏠 生活</text>
+      <text class="collapse-icon">{{collapsed.life ? '▸' : '▾'}}</text>
+    </view>
+    <view class="habit-grid" wx:if="{{!collapsed.life}}">
+      <view
+        wx:for="{{lifeHabits}}"
+        wx:key="type"
+        class="habit-item {{item.completed ? 'completed' : ''}}"
+        bindtap="goDetail"
+        data-type="{{item.type}}"
+      >
+        <view class="habit-icon">{{item.icon}}</view>
+        <view class="habit-name">{{item.name}}</view>
+        <view class="habit-done" wx:if="{{item.completed}}">✅</view>
+        <view class="habit-done" wx:else>{{item.done}}/{{item.target}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 学习成长 -->
+  <view class="habit-group">
+    <view class="group-title" bindtap="toggleCollapse" data-group="learn">
+      <text>📚 学习</text>
+      <text class="collapse-icon">{{collapsed.learn ? '▸' : '▾'}}</text>
+    </view>
+    <view class="habit-grid" wx:if="{{!collapsed.learn}}">
+      <view
+        wx:for="{{learnHabits}}"
+        wx:key="type"
+        class="habit-item {{item.completed ? 'completed' : ''}}"
+        bindtap="goDetail"
+        data-type="{{item.type}}"
+      >
+        <view class="habit-icon">{{item.icon}}</view>
+        <view class="habit-name">{{item.name}}</view>
+        <view class="habit-done" wx:if="{{item.completed}}">✅</view>
+        <view class="habit-done" wx:else>{{item.done}}/{{item.target}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 自定义习惯 -->
+  <view class="habit-group" wx:if="{{otherHabits.length > 0}}">
+    <view class="group-title" bindtap="toggleCollapse" data-group="other">
+      <text>⭐ 自定义</text>
+      <text class="collapse-icon">{{collapsed.other ? '▸' : '▾'}}</text>
+    </view>
+    <view class="habit-grid" wx:if="{{!collapsed.other}}">
+      <view
+        wx:for="{{otherHabits}}"
+        wx:key="type"
+        class="habit-item {{item.completed ? 'completed' : ''}}"
+        bindtap="goDetail"
+        data-type="{{item.type}}"
+      >
+        <view class="habit-icon">{{item.icon}}</view>
+        <view class="habit-name">{{item.name}}</view>
+        <view class="habit-done" wx:if="{{item.completed}}">✅</view>
+        <view class="habit-done" wx:else>{{item.done}}/{{item.target}}</view>
+      </view>
+    </view>
+  </view>
+</view>

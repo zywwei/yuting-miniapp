@@ -1,0 +1,44 @@
+<!-- 成长笔记首页 -->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header">
+    <view class="header-left">
+      <view class="header-title">📝 成长笔记</view>
+      <view class="header-desc">记录成长的每一个瞬间</view>
+    </view>
+    <view class="add-btn" bindtap="addNote">+ 写笔记</view>
+  </view>
+
+  <!-- 笔记列表 -->
+  <view class="note-list" wx:if="{{notes.length > 0}}">
+    <view
+      wx:for="{{notes}}"
+      wx:key="id"
+      class="note-card"
+      bindtap="goDetail"
+      data-id="{{item.id}}"
+    >
+      <view class="note-header">
+        <view class="note-type-tag {{item.type}}">
+          {{item.type === 'diary' ? '📖 日记' : item.type === 'funny' ? '😄 趣事' : '📚 学习'}}
+        </view>
+        <view class="note-mood">{{item.mood === 'happy' ? '😊' : item.mood === 'excited' ? '🤩' : item.mood === 'calm' ? '😌' : '😴'}}</view>
+      </view>
+      <view class="note-title">{{item.title}}</view>
+      <view class="note-content">{{item.content}}</view>
+      <view class="note-footer">
+        <view class="note-date">{{item.createTime}}</view>
+        <view class="note-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+          <view wx:for="{{item.tags}}" wx:key="*this" class="tag">{{item}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{notes.length === 0}}" class="empty">
+    <view class="empty-icon">📝</view>
+    <view class="empty-text">还没有笔记，快来记录成长的瞬间吧</view>
+    <view class="empty-btn" bindtap="addNote">写笔记</view>
+  </view>
+</view>

@@ -1,0 +1,131 @@
+/* 识字卡片样式 */
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #E3F2FD, #F5F7FA);
+  padding: 30rpx;
+}
+
+/* 进度条 */
+.progress-bar {
+  background: white;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 30rpx;
+}
+
+.progress-text {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.progress-track {
+  height: 12rpx;
+  background: #E0E0E0;
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #42A5F5, #2196F3);
+  border-radius: 6rpx;
+  transition: width 0.3s;
+}
+
+/* 卡片 */
+.card-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card {
+  background: white;
+  border-radius: 30rpx;
+  width: 100%;
+  padding: 80rpx 40rpx;
+  text-align: center;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
+  margin-bottom: 40rpx;
+}
+
+.card-word {
+  font-size: 160rpx;
+  font-weight: bold;
+  color: #333;
+  line-height: 1.2;
+}
+
+.card-pinyin {
+  font-size: 40rpx;
+  color: #2196F3;
+  margin-top: 16rpx;
+}
+
+.card-meaning {
+  font-size: 28rpx;
+  color: #666;
+  margin-top: 20rpx;
+}
+
+.card-category {
+  display: inline-block;
+  background: #E3F2FD;
+  color: #2196F3;
+  font-size: 22rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 16rpx;
+  margin-top: 20rpx;
+}
+
+/* 操作按钮 */
+.actions {
+  display: flex;
+  gap: 16rpx;
+  width: 100%;
+  margin-bottom: 24rpx;
+}
+
+.action-btn {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 8rpx;
+  background: white;
+  border-radius: 14rpx;
+  font-size: 24rpx;
+  color: #666;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #42A5F5, #2196F3);
+  color: white;
+  font-weight: bold;
+}
+
+.action-btn.speak {
+  background: #FFF3E0;
+  color: #FF9800;
+}
+
+.action-btn:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+/* 拼音开关 */
+.toggle-row {
+  text-align: center;
+}
+
+.toggle-btn {
+  display: inline-block;
+  color: #2196F3;
+  font-size: 26rpx;
+  padding: 12rpx 24rpx;
+}
+
+.toggle-btn:active {
+  opacity: 0.7;
+}

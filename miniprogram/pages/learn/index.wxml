@@ -1,0 +1,32 @@
+<!-- 学习乐园首页 -->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header">
+    <view class="header-title">📚 学习乐园</view>
+    <view class="header-desc">寓教于乐，快乐学习</view>
+  </view>
+
+  <!-- 学习类别 -->
+  <view class="category-list">
+    <view
+      wx:for="{{categories}}"
+      wx:key="type"
+      class="category-card"
+      bindtap="goLearn"
+      data-type="{{item.type}}"
+    >
+      <view class="category-icon">{{item.icon}}</view>
+      <view class="category-info">
+        <view class="category-name">{{item.name}}</view>
+        <view class="category-desc">{{item.desc}}</view>
+        <view class="category-progress">
+          <view class="progress-text">已学 {{progress[item.type] || 0}}/{{item.count}}</view>
+          <view class="progress-bar">
+            <view class="progress-fill" style="width: {{(progress[item.type] || 0) / item.count * 100}}%;"></view>
+          </view>
+        </view>
+      </view>
+      <view class="category-arrow">›</view>
+    </view>
+  </view>
+</view>

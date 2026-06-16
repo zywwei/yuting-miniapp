@@ -1,0 +1,66 @@
+<!-- 数字启蒙 -->
+<view class="container">
+  <!-- 学习模式 -->
+  <view wx:if="{{mode === 'learn'}}">
+    <!-- 进度 -->
+    <view class="progress-bar">
+      <view class="progress-text">已学 {{learnedCount}}/100</view>
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{learnedCount}}%;"></view>
+      </view>
+    </view>
+
+    <!-- 数字卡片 -->
+    <view class="number-container">
+      <view class="number-card">
+        <view class="number-big">{{numbers[currentIndex].number}}</view>
+        <view class="number-chinese">{{numbers[currentIndex].chinese}}</view>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="actions">
+        <view class="action-btn" bindtap="prevNumber">上一个</view>
+        <view class="action-btn speak" bindtap="speakNumber">🔊 跟读</view>
+        <view class="action-btn primary" bindtap="markLearned">
+          {{numbers[currentIndex].learned ? '已学会 ✓' : '学会了'}}
+        </view>
+        <view class="action-btn" bindtap="nextNumber">下一个</view>
+      </view>
+
+      <!-- 测验按钮 -->
+      <view class="quiz-btn" bindtap="startQuiz">开始测验</view>
+    </view>
+  </view>
+
+  <!-- 测验模式 -->
+  <view wx:if="{{mode === 'quiz'}}">
+    <view class="quiz-header">
+      <view class="quiz-progress">第 {{quizIndex + 1}}/{{quizNumbers.length}} 题</view>
+      <view class="quiz-score">得分: {{score}}</view>
+    </view>
+
+    <view class="quiz-question">
+      <view class="quiz-number">{{quizNumbers[quizIndex].chinese}}</view>
+      <view class="quiz-hint">请选择正确的数字</view>
+    </view>
+
+    <view class="quiz-options">
+      <view
+        wx:for="{{options}}"
+        wx:key="*this"
+        class="quiz-option {{selectedOption === index ? (item === quizNumbers[quizIndex].number ? 'correct' : 'wrong') : ''}} {{showResult && item === quizNumbers[quizIndex].number ? 'correct' : ''}}"
+        bindtap="selectOption"
+        data-index="{{index}}"
+      >
+        {{item}}
+      </view>
+    </view>
+
+    <view wx:if="{{showResult}}" class="quiz-result">
+      <view class="result-text">{{options[selectedOption] === quizNumbers[quizIndex].number ? '✅ 答对了！' : '❌ 答错了'}}</view>
+      <view class="next-btn" bindtap="nextQuiz">{{quizIndex < quizNumbers.length - 1 ? '下一题' : '查看结果'}}</view>
+    </view>
+
+    <view class="back-btn" bindtap="backToLearn">返回学习</view>
+  </view>
+</view>

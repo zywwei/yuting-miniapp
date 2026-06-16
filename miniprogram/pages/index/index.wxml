@@ -1,56 +1,95 @@
-<!-- 首页 - 模式选择 -->
-<page-meta page-style="overflow: hidden;" />
+<!-- 首页 - 钰婷成长小助手 -->
 <view class="container">
   <!-- 状态栏占位 -->
   <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+
   <!-- 顶部欢迎区 -->
   <view class="header">
-    <view class="logo">🎨</view>
-    <view class="title">钰婷的小画板</view>
-    <view class="subtitle">朱钰婷，今天想做什么呢？</view>
+    <view class="greeting">👋 钰婷，{{greeting}}！</view>
+    <view class="growth-info">今天是你成长的第 {{growthDays}} 天</view>
   </view>
 
-  <!-- 功能入口 -->
-  <view class="menu-grid">
-    <!-- 刷牙打卡 -->
-    <view class="menu-item brushing" bindtap="goBrushing">
-      <view class="menu-icon">🦷</view>
-      <view class="menu-text">刷牙打卡</view>
-      <view class="menu-desc">养成刷牙好习惯</view>
-      <view wx:if="{{brushingToday > 0}}" class="menu-badge">{{brushingToday}}/2</view>
-    </view>
-
-    <!-- 自由画画 -->
-    <view class="menu-item" bindtap="goFreeDraw">
-      <view class="menu-icon">✏️</view>
-      <view class="menu-text">自由画画</view>
-      <view class="menu-desc">想画什么就画什么</view>
-    </view>
-
-    <!-- 涂色模板 -->
-    <view class="menu-item" bindtap="goTemplates">
-      <view class="menu-icon">🖼️</view>
-      <view class="menu-text">涂色模板</view>
-      <view class="menu-desc">给图案涂上颜色</view>
-    </view>
-
-    <!-- 我的画廊 -->
-    <view class="menu-item" bindtap="goGallery">
-      <view class="menu-icon">🏠</view>
-      <view class="menu-text">钰婷的画廊</view>
-      <view class="menu-desc">看看画过的画</view>
-    </view>
-
-    <!-- 亲子互动 -->
-    <view class="menu-item" bindtap="goParentMode">
-      <view class="menu-icon">👨‍👧</view>
-      <view class="menu-text">亲子画画</view>
-      <view class="menu-desc">和爸爸一起画画</view>
+  <!-- 今日习惯 -->
+  <view class="section">
+    <view class="section-title">📅 今日待办</view>
+    <view class="habit-list">
+      <view
+        wx:for="{{todayHabits}}"
+        wx:key="type"
+        class="habit-item {{item.completed ? 'completed' : ''}}"
+        bindtap="goHabit"
+        data-type="{{item.type}}"
+      >
+        <view class="habit-icon">{{item.icon}}</view>
+        <view class="habit-name">{{item.name}}</view>
+        <view class="habit-status">
+          <text wx:if="{{item.completed}}">✅</text>
+          <text wx:else>{{item.done}}/{{item.target}}</text>
+        </view>
+      </view>
     </view>
   </view>
 
-  <!-- 底部提示 -->
-  <view class="footer">
-    <view class="tip">💡 钰婷加油，每一幅画都是成长的礼物~</view>
+  <!-- 快捷入口 -->
+  <view class="section">
+    <view class="section-title">🎯 快捷入口</view>
+    <view class="quick-grid">
+      <view class="quick-item" bindtap="goModule" data-module="habits">
+        <view class="quick-icon">🎯</view>
+        <view class="quick-text">习惯</view>
+      </view>
+      <view class="quick-item" bindtap="goModule" data-module="learn">
+        <view class="quick-icon">📚</view>
+        <view class="quick-text">学习</view>
+      </view>
+      <view class="quick-item" bindtap="goModule" data-module="create">
+        <view class="quick-icon">🎨</view>
+        <view class="quick-text">创作</view>
+      </view>
+      <view class="quick-item" bindtap="goModule" data-module="notes">
+        <view class="quick-icon">📝</view>
+        <view class="quick-text">笔记</view>
+      </view>
+    </view>
   </view>
+
+  <!-- 今日推荐 -->
+  <view class="section">
+    <view class="section-title">⭐ 今日推荐</view>
+    <view class="recommend-list">
+      <view
+        wx:for="{{recommendations}}"
+        wx:key="text"
+        class="recommend-item"
+        bindtap="goRecommendation"
+        data-target="{{item.target}}"
+      >
+        <view class="recommend-icon">{{item.icon}}</view>
+        <view class="recommend-text">{{item.text}}</view>
+        <view class="recommend-arrow">›</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成就墙 -->
+  <view class="section">
+    <view class="section-title">🏆 成就墙</view>
+    <view class="achievement-list">
+      <view wx:for="{{achievements}}" wx:key="text" class="achievement-item">
+        <view class="achievement-icon">{{item.icon}}</view>
+        <view class="achievement-text">{{item.text}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 家长中心入口 -->
+  <view class="section parent-entry" bindtap="goParent">
+    <view class="parent-icon">👨‍👩‍👧</view>
+    <view class="parent-text">家长中心</view>
+    <view class="parent-desc">查看成长数据和报告</view>
+    <view class="parent-arrow">›</view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
 </view>

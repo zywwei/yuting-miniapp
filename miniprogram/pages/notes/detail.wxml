@@ -1,0 +1,29 @@
+<!-- 笔记详情 -->
+<view class="container" wx:if="{{note}}">
+  <!-- 头部 -->
+  <view class="header">
+    <view class="note-type-tag {{note.type}}">
+      {{note.type === 'diary' ? '📖 成长日记' : note.type === 'funny' ? '😄 今日趣事' : '📚 学习笔记'}}
+    </view>
+    <view class="mood">{{note.mood === 'happy' ? '😊' : note.mood === 'excited' ? '🤩' : note.mood === 'calm' ? '😌' : '😴'}}</view>
+  </view>
+
+  <!-- 标题 -->
+  <view class="title">{{note.title}}</view>
+
+  <!-- 内容 -->
+  <view class="content">{{note.content}}</view>
+
+  <!-- 标签 -->
+  <view class="tags" wx:if="{{note.tags && note.tags.length > 0}}">
+    <view wx:for="{{note.tags}}" wx:key="*this" class="tag">{{item}}</view>
+  </view>
+
+  <!-- 日期 -->
+  <view class="date">{{note.createTime}}</view>
+
+  <!-- 操作 -->
+  <view class="actions">
+    <view class="delete-btn" bindtap="deleteNote">删除笔记</view>
+  </view>
+</view>

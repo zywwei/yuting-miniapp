@@ -2,8 +2,7 @@
 .container {
   min-height: 100vh;
   background: linear-gradient(180deg, #FFF0F3 0%, #FFF5F0 50%, #FFF8F0 100%);
-  padding-bottom: 60rpx;
-  overflow: hidden;
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 }
 
 .status-bar {
@@ -11,125 +10,208 @@
   background: transparent;
 }
 
-/* 头部 */
+/* 头部欢迎区 */
 .header {
-  text-align: center;
-  padding: 60rpx 0 40rpx;
+  padding: 40rpx 40rpx 20rpx;
 }
 
-.logo {
-  font-size: 120rpx;
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-16rpx); }
-}
-
-.title {
-  font-size: 52rpx;
-  font-weight: bold;
-  color: #FF6B8A;
-  margin-top: 16rpx;
-}
-
-.subtitle {
-  font-size: 28rpx;
-  color: #999;
-  margin-top: 12rpx;
-}
-
-/* 菜单网格 */
-.menu-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24rpx;
-  padding: 30rpx;
-}
-
-.menu-item {
-  background: white;
-  border-radius: 28rpx;
-  padding: 40rpx 24rpx;
-  text-align: center;
-  box-shadow: 0 6rpx 24rpx rgba(255, 154, 171, 0.15);
-  transition: all 0.2s;
-  position: relative;
-  overflow: hidden;
-}
-
-.menu-item:active {
-  transform: scale(0.95);
-  box-shadow: 0 2rpx 12rpx rgba(255, 154, 171, 0.1);
-}
-
-/* 刷牙打卡特殊样式（第一行独占） */
-.menu-item.brushing {
-  grid-column: 1 / -1;
-  background: linear-gradient(135deg, #E8F5E9, #FFF8F0);
-  border: 2rpx solid #C8E6C9;
-  padding: 30rpx 40rpx;
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  text-align: left;
-}
-
-.menu-item.brushing .menu-icon {
-  font-size: 72rpx;
-  margin-bottom: 0;
-}
-
-.menu-item.brushing .menu-text {
-  flex: 1;
-  font-size: 36rpx;
-}
-
-.menu-item.brushing .menu-desc {
-  font-size: 24rpx;
-}
-
-.menu-badge {
-  position: absolute;
-  top: 16rpx;
-  right: 16rpx;
-  background: #FF6B8A;
-  color: white;
-  font-size: 22rpx;
-  font-weight: bold;
-  padding: 6rpx 14rpx;
-  border-radius: 20rpx;
-}
-
-.menu-icon {
-  font-size: 80rpx;
-  margin-bottom: 16rpx;
-}
-
-.menu-text {
-  font-size: 32rpx;
+.greeting {
+  font-size: 44rpx;
   font-weight: bold;
   color: #333;
 }
 
-.menu-desc {
-  font-size: 22rpx;
-  color: #aaa;
+.growth-info {
+  font-size: 26rpx;
+  color: #999;
   margin-top: 8rpx;
 }
 
-/* 底部提示 */
-.footer {
-  text-align: center;
-  padding: 40rpx 30rpx;
+/* 通用区块 */
+.section {
+  margin: 24rpx 30rpx;
 }
 
-.tip {
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+/* 今日习惯 */
+.habit-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.habit-item {
+  background: white;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+}
+
+.habit-item:active {
+  transform: scale(0.96);
+}
+
+.habit-item.completed {
+  background: #F0FFF0;
+  border: 2rpx solid #C8E6C9;
+}
+
+.habit-icon {
+  font-size: 40rpx;
+}
+
+.habit-name {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.habit-status {
   font-size: 24rpx;
-  color: #bbb;
-  background: rgba(255, 255, 255, 0.6);
-  display: inline-block;
-  padding: 16rpx 32rpx;
-  border-radius: 40rpx;
+  color: #999;
+}
+
+.habit-item.completed .habit-status {
+  color: #4CAF50;
+}
+
+/* 快捷入口 */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20rpx;
+}
+
+.quick-item {
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx 0;
+  text-align: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+}
+
+.quick-item:active {
+  transform: scale(0.95);
+}
+
+.quick-icon {
+  font-size: 48rpx;
+  margin-bottom: 12rpx;
+}
+
+.quick-text {
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* 今日推荐 */
+.recommend-list {
+  background: white;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.recommend-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  border-bottom: 1rpx solid #F5F5F5;
+  transition: all 0.2s;
+}
+
+.recommend-item:last-child {
+  border-bottom: none;
+}
+
+.recommend-item:active {
+  background: #FFF5F5;
+}
+
+.recommend-icon {
+  font-size: 36rpx;
+  margin-right: 20rpx;
+}
+
+.recommend-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.recommend-arrow {
+  font-size: 32rpx;
+  color: #CCC;
+}
+
+/* 成就墙 */
+.achievement-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.achievement-item {
+  background: white;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.achievement-icon {
+  font-size: 32rpx;
+}
+
+.achievement-text {
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* 家长中心入口 */
+.parent-entry {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background: linear-gradient(135deg, #F3E5F5, #E1BEE7);
+  border: 2rpx solid #CE93D8;
+}
+
+.parent-icon {
+  font-size: 40rpx;
+}
+
+.parent-text {
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #7E57C2;
+}
+
+.parent-desc {
+  font-size: 22rpx;
+  color: #9C27B0;
+}
+
+.parent-arrow {
+  font-size: 32rpx;
+  color: #CE93D8;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  height: 40rpx;
 }
