@@ -167,6 +167,16 @@ miniprogram/
   - 将 `😴🦠/😴🐛/😴👾/😴🍬` 组合表情替换为单独的 `🦠/🐛/👾/🍬`
   - 避免把人脸和虫/菌放在一起，让孩子看起来更舒服
   - 修改 `pages/brushing-timer/brushing-timer.js` 中 `PRE_GERM_TYPES` 定义
+- **重构** 刷牙模块代码组织与功能优化
+  - 抽取常量到 `pages/brushing-timer/constants.js`（`brushing-timer.js` 从 1037 行降至 ~838 行）
+  - 抽取公共方法到 `utils/page-helpers.js`（`getNavBarInfo` / `previewImage`），三页复用
+  - 公主角色点击反应改用 `REACTION_MAP` 查表，替代大量 if-else 分支
+  - `cloud.fetchBrushingRecords` 云端获取后合并本地未同步记录，避免覆盖丢失
+  - 刷牙记录按 `date+timeOfDay` 去重，优先保留 `fromTimer` 记录
+- **新增** 打卡页「直接打卡」按钮 —— 不拍照也能完成打卡，跳过照片选择
+- **新增** 计时器「提前完成」按钮 —— 刷牙中可随时结束，按已刷区域数计算评分
+- **新增** 统计页月份切换 —— 点击 ◀/▶ 查看上月/下月日历和记录
+- **优化** 完成庆祝关闭后保留积分展示 —— 关闭弹窗不再清空积分，下次刷牙前可见
 
 ### 2026-06-15
 - **重做** 刷牙计时核心视觉体验

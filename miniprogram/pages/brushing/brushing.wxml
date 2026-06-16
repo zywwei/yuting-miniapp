@@ -47,16 +47,21 @@
         <view class="check-btn" bindtap="checkIn" data-time="morning">
           <text>📷 拍照打卡</text>
         </view>
+        <view class="check-btn direct-btn" bindtap="directCheckIn" data-time="morning">
+          <text>✅ 直接打卡</text>
+        </view>
       </view>
 
       <view wx:if="{{morningRecord}}" class="record-display">
         <image
+          wx:if="{{morningRecord.imagePath}}"
           class="record-image"
           src="{{morningRecord.imagePath}}"
           mode="aspectFill"
           bindtap="previewImage"
           data-path="{{morningRecord.imagePath}}"
         />
+        <view wx:else class="record-image record-image-placeholder">✅</view>
         <view class="record-score">
           <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
                 class="score-star {{star <= morningRecord.score ? 'active' : ''}}">⭐</text>
@@ -80,16 +85,21 @@
         <view class="check-btn" bindtap="checkIn" data-time="evening">
           <text>📷 拍照打卡</text>
         </view>
+        <view class="check-btn direct-btn" bindtap="directCheckIn" data-time="evening">
+          <text>✅ 直接打卡</text>
+        </view>
       </view>
 
       <view wx:if="{{eveningRecord}}" class="record-display">
         <image
+          wx:if="{{eveningRecord.imagePath}}"
           class="record-image"
           src="{{eveningRecord.imagePath}}"
           mode="aspectFill"
           bindtap="previewImage"
           data-path="{{eveningRecord.imagePath}}"
         />
+        <view wx:else class="record-image record-image-placeholder">✅</view>
         <view class="record-score">
           <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
                 class="score-star {{star <= eveningRecord.score ? 'active' : ''}}">⭐</text>

@@ -93,6 +93,24 @@
   margin-bottom: 20rpx;
 }
 
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.calendar-arrow {
+  font-size: 24rpx;
+  color: #FF6B8A;
+  padding: 8rpx 12rpx;
+  border-radius: 12rpx;
+  background: rgba(255, 107, 138, 0.08);
+}
+
+.calendar-arrow:active {
+  background: rgba(255, 107, 138, 0.2);
+}
+
 .calendar-title {
   font-size: 32rpx;
   font-weight: bold;
@@ -221,6 +239,14 @@
   border-radius: 14rpx;
   flex-shrink: 0;
   background: #F8F8F8;
+}
+
+.history-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  background: linear-gradient(135deg, #E8F5E9, #F1F8E9);
 }
 
 .history-info {

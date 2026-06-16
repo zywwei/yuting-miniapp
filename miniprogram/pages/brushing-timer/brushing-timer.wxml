@@ -36,6 +36,9 @@
       <view class="points-badge" wx:if="{{brushPoints > 0}}">
         <text>⭐ {{brushPoints}}</text>
       </view>
+      <view class="points-badge" wx:elif="{{lastBrushPoints > 0 && !isRunning && !isCompleted}}">
+        <text>⭐ {{lastBrushPoints}}</text>
+      </view>
       <view class="tool-btn" bindtap="toggleSound">
         <text>{{soundEnabled ? '🔊' : '🔇'}}</text>
       </view>
@@ -186,6 +189,9 @@
       <view class="btn-sparkle"></view>
       <text class="btn-icon">▶</text>
       <text class="btn-label">继续刷！</text>
+    </view>
+    <view wx:if="{{isRunning}}" class="btn-finish-early" bindtap="finishEarly">
+      <text>✅ 刷完啦！</text>
     </view>
     <view wx:if="{{!isRunning && !isCompleted}}" class="btn-retry" bindtap="resetTimer">
       <text>↻ 重新开始</text>

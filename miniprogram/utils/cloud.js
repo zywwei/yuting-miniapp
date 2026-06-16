@@ -180,8 +180,29 @@ async function fetchBrushingRecords() {
       .limit(200)
       .get()
 
-    wx.setStorageSync('brushingRecords', res.data)
-    return res.data
+    // 合并本地未同步的记录（本地有但云端没有的）
+    const cloudRecords = res.data || []
+    const localRecords = wx.getStorageSync('brushingRecords') || []
+    const cloudIds = new Set(cloudRecords.map(r => r.id || r._id))
+    const unsynced = localRecords.filter(r => !cloudIds.has(r.id))
+
+    const all = [...unsynced, ...cloudRecords]
+
+    // 按 date+timeOfDay 去重，优先保留 fromTimer 的记录
+    const dedupMap = {}
+    all.forEach(r => {
+      const key = `${r.date}_${r.timeOfDay}`
+      const existing = dedupMap[key]
+      if (!existing || (r.fromTimer && !existing.fromTimer)) {
+        dedupMap[key] = r
+      }
+    })
+
+    const merged = Object.values(dedupMap)
+      .sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+
+    wx.setStorageSync('brushingRecords', merged)
+    return merged
   } catch (err) {
     console.warn('云端读取失败，使用本地缓存:', err)
     return wx.getStorageSync('brushingRecords') || []

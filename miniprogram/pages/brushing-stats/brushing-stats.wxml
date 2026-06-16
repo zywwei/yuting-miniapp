@@ -41,7 +41,11 @@
   <!-- 日历 -->
   <view class="calendar-card">
     <view class="calendar-header">
-      <view class="calendar-title">{{currentYear}}年{{currentMonth}}月</view>
+      <view class="calendar-nav">
+        <view class="calendar-arrow" bindtap="prevMonth">◀</view>
+        <view class="calendar-title">{{currentYear}}年{{currentMonth}}月</view>
+        <view class="calendar-arrow" bindtap="nextMonth">▶</view>
+      </view>
       <view class="calendar-legend">
         <view class="legend-item">
           <view class="legend-dot morning-dot"></view>
@@ -84,12 +88,14 @@
         class="history-item"
       >
         <image
+          wx:if="{{item.imagePath}}"
           class="history-image"
           src="{{item.imagePath}}"
           mode="aspectFill"
           bindtap="previewImage"
           data-path="{{item.imagePath}}"
         />
+        <view wx:else class="history-image history-image-placeholder">✅</view>
         <view class="history-info">
           <view class="history-date">{{item.date}} {{item.timeOfDay === 'morning' ? '早上' : '晚上'}}</view>
           <view class="history-time">{{item.createTimeFormatted}}</view>

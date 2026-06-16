@@ -892,6 +892,20 @@
   font-size: 26rpx;
 }
 
+.btn-finish-early {
+  padding: 16rpx 40rpx;
+  color: #81C784;
+  font-size: 28rpx;
+  font-weight: bold;
+  background: rgba(129, 199, 132, 0.1);
+  border-radius: 40rpx;
+  transition: transform 0.2s;
+}
+
+.btn-finish-early:active {
+  transform: scale(0.96);
+}
+
 /* ===== 完成庆祝（超级炫酷满屏效果） ===== */
 .celebrate-area {
   position: fixed;

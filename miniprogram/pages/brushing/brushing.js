@@ -1,6 +1,7 @@
 const util = require('../../utils/util.js')
 const audio = require('../../utils/audio.js')
 const cloud = require('../../utils/cloud.js')
+const { getNavBarInfo, previewImage } = require('../../utils/page-helpers.js')
 
 Page({
   data: {
@@ -28,16 +29,10 @@ Page({
   },
 
   onLoad() {
-    const sysInfo = wx.getSystemInfoSync()
-    let capsuleRight = 80
-    try {
-      const capsule = wx.getMenuButtonBoundingClientRect()
-      capsuleRight = sysInfo.windowWidth - capsule.left + 8
-    } catch (e) {}
-
+    const navInfo = getNavBarInfo()
     this.setData({
-      statusBarHeight: sysInfo.statusBarHeight || 20,
-      capsuleRight: capsuleRight
+      statusBarHeight: navInfo.statusBarHeight,
+      capsuleRight: navInfo.capsuleRight
     })
 
     this.loadTodayInfo()
@@ -90,7 +85,7 @@ Page({
     })
   },
 
-  // 打卡
+  // 拍照打卡
   checkIn(e) {
     const timeOfDay = e.currentTarget.dataset.time
 
@@ -110,6 +105,19 @@ Page({
           note: ''
         })
       }
+    })
+  },
+
+  // 直接打卡（不拍照）
+  directCheckIn(e) {
+    const timeOfDay = e.currentTarget.dataset.time
+    this.setData({
+      showScoreModal: true,
+      modalTime: timeOfDay,
+      tempImagePath: '',
+      score: 5,
+      scoreLabel: '超级棒！',
+      note: ''
     })
   },
 
@@ -192,12 +200,7 @@ Page({
   // 预览图片
   previewImage(e) {
     const path = e.currentTarget.dataset.path
-    if (path) {
-      wx.previewImage({
-        current: path,
-        urls: [path]
-      })
-    }
+    previewImage(path)
   },
 
   // 跳转到统计页

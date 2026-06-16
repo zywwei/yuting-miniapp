@@ -1,5 +1,6 @@
 const util = require('../../utils/util.js')
 const cloud = require('../../utils/cloud.js')
+const { getNavBarInfo, previewImage } = require('../../utils/page-helpers.js')
 
 Page({
   data: {
@@ -18,17 +19,11 @@ Page({
   },
 
   onLoad() {
-    const sysInfo = wx.getSystemInfoSync()
-    let capsuleRight = 80
-    try {
-      const capsule = wx.getMenuButtonBoundingClientRect()
-      capsuleRight = sysInfo.windowWidth - capsule.left + 8
-    } catch (e) {}
-
+    const navInfo = getNavBarInfo()
     const now = new Date()
     this.setData({
-      statusBarHeight: sysInfo.statusBarHeight || 20,
-      capsuleRight: capsuleRight,
+      statusBarHeight: navInfo.statusBarHeight,
+      capsuleRight: navInfo.capsuleRight,
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth() + 1
     })
@@ -99,6 +94,34 @@ Page({
     return days
   },
 
+  // 上个月
+  prevMonth() {
+    let { currentYear, currentMonth } = this.data
+    currentMonth--
+    if (currentMonth < 1) {
+      currentMonth = 12
+      currentYear--
+    }
+    this.setData({ currentYear, currentMonth })
+    this.loadData()
+  },
+
+  // 下个月
+  nextMonth() {
+    let { currentYear, currentMonth } = this.data
+    const now = new Date()
+    // 不允许超过当月
+    if (currentYear >= now.getFullYear() && currentMonth >= now.getMonth() + 1) return
+
+    currentMonth++
+    if (currentMonth > 12) {
+      currentMonth = 1
+      currentYear++
+    }
+    this.setData({ currentYear, currentMonth })
+    this.loadData()
+  },
+
   // 删除记录（云端+本地）
   async deleteRecord(e) {
     const id = e.currentTarget.dataset.id
@@ -120,12 +143,7 @@ Page({
   // 预览图片
   previewImage(e) {
     const path = e.currentTarget.dataset.path
-    if (path) {
-      wx.previewImage({
-        current: path,
-        urls: [path]
-      })
-    }
+    previewImage(path)
   },
 
   // 返回
