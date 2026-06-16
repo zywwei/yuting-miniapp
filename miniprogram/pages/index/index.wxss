@@ -3,6 +3,7 @@
   min-height: 100vh;
   background: linear-gradient(180deg, #FFF0F3 0%, #FFF5F0 50%, #FFF8F0 100%);
   padding-bottom: 60rpx;
+  overflow: hidden;
 }
 
 .status-bar {

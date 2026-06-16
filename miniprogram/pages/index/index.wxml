@@ -1,4 +1,5 @@
 <!-- 首页 - 模式选择 -->
+<page-meta page-style="overflow: hidden;" />
 <view class="container">
   <!-- 状态栏占位 -->
   <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
