@@ -1,0 +1,64 @@
+<!-- 成就详情页 -->
+<view class="container">
+  <!-- 顶部统计 -->
+  <view class="stats-card">
+    <view class="stats-top">
+      <view class="stats-icon">🏆</view>
+      <view class="stats-info">
+        <view class="stats-number">{{stats.unlocked}} / {{stats.total}}</view>
+        <view class="stats-label">已解锁成就</view>
+      </view>
+      <view class="stats-percent">{{stats.percentage}}%</view>
+    </view>
+    <view class="stats-bar">
+      <view class="stats-bar-fill" style="width: {{stats.percentage}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 分类 Tab -->
+  <view class="tab-bar">
+    <view
+      wx:for="{{categories}}"
+      wx:key="key"
+      class="tab-item {{currentCategory === item.key ? 'active' : ''}}"
+      bindtap="onTabTap"
+      data-key="{{item.key}}"
+    >{{item.name}}</view>
+  </view>
+
+  <!-- 成就列表 -->
+  <view class="achievement-grid">
+    <view
+      wx:for="{{filteredList}}"
+      wx:key="id"
+      class="achievement-card {{item.unlocked ? 'unlocked' : 'locked'}} rarity-{{item.rarity}}"
+      bindtap="onAchievementTap"
+      data-item="{{item}}"
+    >
+      <!-- 稀有度角标 -->
+      <view wx:if="{{item.rarity !== 'common'}}" class="rarity-badge rarity-badge-{{item.rarity}}">
+        {{item.rarity === 'legendary' ? '传说' : '稀有'}}
+      </view>
+
+      <!-- 图标 -->
+      <view class="card-icon {{item.unlocked ? '' : 'grayscale'}}">{{item.icon}}</view>
+
+      <!-- 标题 -->
+      <view class="card-title">{{item.title}}</view>
+
+      <!-- 进度条 -->
+      <view wx:if="{{!item.unlocked}}" class="card-progress">
+        <view class="card-progress-bar">
+          <view class="card-progress-fill" style="width: {{item.progressPercent}}%;"></view>
+        </view>
+        <view class="card-progress-text">{{item.progress}}/{{item.maxProgress}}</view>
+      </view>
+
+      <!-- 已解锁标记 -->
+      <view wx:if="{{item.unlocked}}" class="card-unlocked">✅</view>
+    </view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
+</view>

@@ -1,4 +1,5 @@
 var speak = require('../../utils/speak.js')
+var achievements = require('../../utils/achievements.js')
 
 // 内置古诗数据（25首经典古诗）
 var BUILTIN_POEMS = [
@@ -103,6 +104,18 @@ Page({
     speak.speakSuccess()
 
     wx.showToast({ title: '已背诵！', icon: 'success' })
+
+    // 检查成就解锁
+    var newAchievements = achievements.checkAchievements()
+    if (newAchievements.length > 0) {
+      setTimeout(function() {
+        wx.showToast({
+          title: '🎉 解锁: ' + newAchievements[0].title,
+          icon: 'success',
+          duration: 2000
+        })
+      }, 1500)
+    }
 
     if (currentIndex < poems.length - 1) {
       setTimeout(function() {

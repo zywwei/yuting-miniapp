@@ -1,5 +1,6 @@
 const util = require('../../../utils/util.js')
 const cloud = require('../../../utils/cloud.js')
+const achievements = require('../../../utils/achievements.js')
 const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 const { getHabitConfig } = require('./habit-config.js')
 
@@ -345,6 +346,18 @@ Page({
       })
       that.loadTodayRecords()
       that.showSuccessToast()
+
+      // 检查成就解锁
+      var newAchievements = achievements.checkAchievements()
+      if (newAchievements.length > 0) {
+        setTimeout(function() {
+          wx.showToast({
+            title: '🎉 解锁: ' + newAchievements[0].title,
+            icon: 'success',
+            duration: 2000
+          })
+        }, 2500)
+      }
     })
   },
 

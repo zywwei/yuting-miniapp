@@ -1,4 +1,5 @@
 var util = require('../../utils/util.js')
+var achievements = require('../../utils/achievements.js')
 var { previewImage } = require('../../utils/page-helpers.js')
 
 Page({
@@ -220,6 +221,19 @@ Page({
 
       wx.hideLoading()
       wx.showToast({ title: '保存成功', icon: 'success' })
+
+      // 检查成就解锁
+      var newAchievements = achievements.checkAchievements()
+      if (newAchievements.length > 0) {
+        setTimeout(function() {
+          wx.showToast({
+            title: '🎉 解锁: ' + newAchievements[0].title,
+            icon: 'success',
+            duration: 2000
+          })
+        }, 1500)
+      }
+
       setTimeout(function() { wx.navigateBack() }, 1500)
     })
   }

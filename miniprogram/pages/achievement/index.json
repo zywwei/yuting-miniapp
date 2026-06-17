@@ -1,6 +1,5 @@
 {
-  "navigationBarTitleText": "钰婷成长小助手",
-  "navigationStyle": "custom",
+  "navigationBarTitleText": "成就墙",
   "usingComponents": {
     "achievement-popup": "/components/achievement-popup/achievement-popup"
   }

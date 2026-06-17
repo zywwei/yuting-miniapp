@@ -6,6 +6,7 @@
   <!-- 顶部欢迎区 -->
   <view class="header">
     <view class="greeting">👋 钰婷，{{greeting}}！</view>
+    <view class="date-info">{{dateStr}} {{weekdayStr}}</view>
     <view class="growth-info">今天是你成长的第 {{growthDays}} 天</view>
   </view>
 
@@ -73,7 +74,10 @@
 
   <!-- 成就墙 -->
   <view class="section">
-    <view class="section-title">🏆 成就墙</view>
+    <view class="section-title-bar">
+      <view class="section-title">🏆 成就墙</view>
+      <view class="section-more" bindtap="goAchievements">查看全部 ›</view>
+    </view>
     <view class="achievement-list">
       <view wx:for="{{achievements}}" wx:key="text" class="achievement-item">
         <view class="achievement-icon">{{item.icon}}</view>
@@ -81,6 +85,9 @@
       </view>
     </view>
   </view>
+
+  <!-- 成就解锁弹窗 -->
+  <achievement-popup id="achievementPopup"></achievement-popup>
 
   <!-- 家长中心入口 -->
   <view class="section parent-entry" bindtap="goParent">

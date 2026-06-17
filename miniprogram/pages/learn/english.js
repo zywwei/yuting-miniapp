@@ -1,4 +1,5 @@
 var speak = require('../../utils/speak.js')
+var achievements = require('../../utils/achievements.js')
 
 // 内置英语字母数据
 var BUILTIN_LETTERS = [
@@ -168,6 +169,18 @@ Page({
 
     wx.showToast({ title: '已学会！', icon: 'success' })
 
+    // 检查成就解锁
+    var newAchievements = achievements.checkAchievements()
+    if (newAchievements.length > 0) {
+      setTimeout(function() {
+        wx.showToast({
+          title: '🎉 解锁: ' + newAchievements[0].title,
+          icon: 'success',
+          duration: 2000
+        })
+      }, 1500)
+    }
+
     if (currentIndex < letters.length - 1) {
       setTimeout(function() {
         self.setData({ currentLetterIndex: currentIndex + 1 })
@@ -248,6 +261,18 @@ Page({
     self.setData({ words: words, learnedWordCount: learnedWordCount })
 
     wx.showToast({ title: '已学会！', icon: 'success' })
+
+    // 检查成就解锁
+    var newAchievements = achievements.checkAchievements()
+    if (newAchievements.length > 0) {
+      setTimeout(function() {
+        wx.showToast({
+          title: '🎉 解锁: ' + newAchievements[0].title,
+          icon: 'success',
+          duration: 2000
+        })
+      }, 1500)
+    }
 
     if (currentIndex < words.length - 1) {
       setTimeout(function() {

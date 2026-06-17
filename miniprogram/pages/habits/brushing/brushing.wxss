@@ -1,10 +1,7 @@
 /* 刷牙打卡页样式 */
 .brushing-container {
-  height: 100vh;
+  min-height: 100vh;
   background: linear-gradient(180deg, #FFF0F6 0%, #FFF5F8 50%, #FFF8F5 100%);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 /* 状态栏占位 */
@@ -18,22 +15,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16rpx 20rpx;
+  padding: 8rpx 16rpx;
   background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
 }
 
 .tool-left, .tool-right {
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: 6rpx;
 }
 
 .tool-btn {
-  padding: 12rpx 16rpx;
-  border-radius: 16rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 12rpx;
   background: rgba(255, 255, 255, 0.2);
   color: white;
-  font-size: 24rpx;
+  font-size: 22rpx;
 }
 
 .tool-btn:active {
@@ -47,7 +44,7 @@
 
 .tool-title {
   color: white;
-  font-size: 30rpx;
+  font-size: 26rpx;
   font-weight: bold;
 }
 
@@ -56,27 +53,27 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16rpx 20rpx;
+  padding: 6rpx 16rpx;
 }
 
 .date-display {
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
+  gap: 0;
 }
 
 .date-main {
   display: flex;
   align-items: center;
-  gap: 8rpx;
+  gap: 4rpx;
 }
 
 .date-icon {
-  font-size: 28rpx;
+  font-size: 20rpx;
 }
 
 .date-day {
-  font-size: 36rpx;
+  font-size: 26rpx;
   font-weight: bold;
   color: #333;
 }
@@ -84,56 +81,54 @@
 .date-sub {
   display: flex;
   align-items: center;
-  gap: 6rpx;
+  gap: 4rpx;
 }
 
 .date-week-icon {
-  font-size: 20rpx;
+  font-size: 16rpx;
 }
 
 .date-week {
-  font-size: 24rpx;
+  font-size: 20rpx;
   color: #666;
 }
 
 .streak-badge {
   display: flex;
   align-items: center;
-  gap: 6rpx;
+  gap: 4rpx;
   background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
-  padding: 10rpx 16rpx;
-  border-radius: 20rpx;
-  box-shadow: 0 4rpx 12rpx rgba(255, 107, 138, 0.3);
+  padding: 4rpx 10rpx;
+  border-radius: 14rpx;
+  box-shadow: 0 2rpx 6rpx rgba(255, 107, 138, 0.3);
 }
 
 .streak-icon {
-  font-size: 24rpx;
+  font-size: 18rpx;
 }
 
 .streak-text {
-  font-size: 22rpx;
+  font-size: 18rpx;
   color: white;
   font-weight: bold;
 }
 
 /* 打卡卡片 */
 .cards-area {
-  padding: 0 20rpx;
-  flex: 1;
-  overflow: hidden;
+  padding: 12rpx 16rpx;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 12rpx;
+  gap: 20rpx;
 }
 
 .brushing-card {
   background: white;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 6rpx 16rpx rgba(255, 154, 171, 0.15);
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 12rpx rgba(255, 154, 171, 0.15);
   position: relative;
   overflow: hidden;
+  min-height: 280rpx;
 }
 
 .brushing-card.done {
@@ -158,7 +153,7 @@
 /* 卡片内容布局 */
 .card-content {
   display: flex;
-  gap: 16rpx;
+  gap: 20rpx;
 }
 
 .card-left {
@@ -168,15 +163,15 @@
 
 .card-right {
   flex-shrink: 0;
-  width: 160rpx;
+  width: 180rpx;
 }
 
 /* 图片区域 */
 .photo-area {
   position: relative;
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 16rpx;
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 18rpx;
   overflow: hidden;
 }
 
@@ -220,61 +215,75 @@
 
 /* 记录信息 */
 .record-info {
-  margin-top: 12rpx;
+  margin-top: 16rpx;
 }
 
-.record-score {
+.record-score-row {
   display: flex;
-  gap: 4rpx;
-  margin-bottom: 8rpx;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 10rpx;
 }
 
-.record-score .star {
-  font-size: 20rpx;
+.record-score-row .star {
+  font-size: 28rpx;
   opacity: 0.3;
 }
 
-.record-score .star.active {
+.record-score-row .star.active {
   opacity: 1;
 }
 
-.record-note {
-  font-size: 22rpx;
-  color: #666;
-  margin-bottom: 8rpx;
+.record-note-inline {
+  font-size: 24rpx;
+  color: #4CAF50;
+  font-weight: 500;
+  background: rgba(76, 175, 80, 0.1);
+  padding: 6rpx 14rpx;
+  border-radius: 12rpx;
+  white-space: nowrap;
 }
 
 .record-detail {
   display: flex;
   flex-wrap: wrap;
-  gap: 8rpx;
+  gap: 10rpx;
 }
 
 .detail-tag {
-  font-size: 20rpx;
-  color: #999;
+  font-size: 24rpx;
+  color: #666;
   background: rgba(0,0,0,0.05);
-  padding: 4rpx 10rpx;
-  border-radius: 8rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 10rpx;
 }
 
 /* 操作按钮 */
 .record-actions {
   display: flex;
-  gap: 10rpx;
-  margin-top: 12rpx;
+  gap: 18rpx;
+  margin-top: 18rpx;
 }
 
 .action-btn {
-  padding: 8rpx 16rpx;
-  background: rgba(255, 107, 138, 0.1);
-  border-radius: 16rpx;
-  border: 1rpx solid rgba(255, 107, 138, 0.3);
+  flex: 1;
+  padding: 16rpx 0;
+  background: linear-gradient(135deg, #FFF0F3, #FFE4EC);
+  border-radius: 24rpx;
+  border: 2rpx solid #FFD6DE;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.action-btn:active {
+  transform: scale(0.96);
+  background: linear-gradient(135deg, #FFE4EC, #FFD6DE);
 }
 
 .action-btn text {
-  font-size: 20rpx;
+  font-size: 26rpx;
   color: #FF6B8A;
+  font-weight: 500;
 }
 
 .action-btn:active {
@@ -285,30 +294,31 @@
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 14rpx;
 }
 
 .card-icon {
-  font-size: 52rpx;
+  font-size: 60rpx;
 }
 
 .card-title {
-  font-size: 34rpx;
+  font-size: 38rpx;
   font-weight: bold;
   color: #333;
 }
 
 .card-desc {
-  font-size: 26rpx;
-  color: #999;
-  margin-bottom: 20rpx;
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 18rpx;
 }
 
 .card-action {
-  margin-top: 20rpx;
+  margin-top: 18rpx;
   display: flex;
-  gap: 16rpx;
+  gap: 14rpx;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .check-btn {
@@ -317,9 +327,9 @@
   justify-content: center;
   background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
   color: white;
-  padding: 18rpx 30rpx;
-  border-radius: 26rpx;
-  font-size: 26rpx;
+  padding: 16rpx 28rpx;
+  border-radius: 24rpx;
+  font-size: 28rpx;
   font-weight: bold;
   white-space: nowrap;
   box-shadow: 0 4rpx 12rpx rgba(255, 107, 138, 0.25);
@@ -507,16 +517,25 @@
 
 /* 昨日回顾 */
 .yesterday-section {
-  margin: 0 20rpx 12rpx;
-  background: rgba(255, 255, 255, 0.7);
+  margin: 8rpx 16rpx;
+  background: rgba(255, 255, 255, 0.85);
   border-radius: 16rpx;
-  padding: 12rpx 16rpx;
+  padding: 12rpx 14rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 
 .yesterday-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 22rpx;
-  color: #999;
+  color: #666;
   margin-bottom: 10rpx;
+}
+
+.yesterday-date {
+  font-size: 18rpx;
+  color: #999;
 }
 
 .yesterday-cards {
@@ -526,20 +545,25 @@
 
 .yesterday-card {
   flex: 1;
-  padding: 12rpx;
-  background: rgba(255, 255, 255, 0.9);
+  padding: 10rpx;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 12rpx;
   border: 2rpx solid #EEE;
   text-align: center;
+  transition: all 0.2s;
+}
+
+.yesterday-card:active {
+  transform: scale(0.98);
 }
 
 .yesterday-card.done {
-  background: rgba(129, 199, 132, 0.15);
+  background: linear-gradient(135deg, #F0FFF4, #E8F5E9);
   border-color: #81C784;
 }
 
 .yesterday-card.missed {
-  background: rgba(255, 182, 193, 0.15);
+  background: linear-gradient(135deg, #FFF5F5, #FFEBEE);
   border-color: #FFB6C1;
 }
 
@@ -552,12 +576,12 @@
 }
 
 .yesterday-icon {
-  font-size: 24rpx;
+  font-size: 28rpx;
 }
 
 .yesterday-label {
-  font-size: 22rpx;
-  color: #666;
+  font-size: 24rpx;
+  color: #333;
   font-weight: bold;
 }
 
@@ -574,7 +598,7 @@
 }
 
 .yesterday-stars .star {
-  font-size: 16rpx;
+  font-size: 18rpx;
   opacity: 0.3;
 }
 
@@ -584,59 +608,25 @@
 
 .yesterday-time {
   font-size: 18rpx;
-  color: #999;
+  color: #666;
 }
 
 .yesterday-duration {
   font-size: 18rpx;
-  color: #666;
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+.yesterday-photo-count {
+  font-size: 18rpx;
+  color: #0288D1;
+  margin-top: 2rpx;
 }
 
 .yesterday-missed-text {
   color: #FF6B8A;
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: bold;
-}
-
-/* 底部区域 */
-.bottom-area {
-  padding: 12rpx 20rpx 20rpx;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.encourage-text {
-  font-size: 24rpx;
-  color: #FF6B8A;
-  background: rgba(255, 255, 255, 0.7);
-  padding: 10rpx 20rpx;
-  border-radius: 20rpx;
-  display: inline-block;
-  margin-bottom: 12rpx;
-}
-
-/* 牙齿装饰 */
-.tooth-decoration {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  opacity: 0.6;
-}
-
-.tooth-emoji {
-  font-size: 24rpx;
-  animation: toothBounce 2s ease-in-out infinite;
-}
-
-@keyframes toothBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5rpx); }
-}
-
-.tooth-text {
-  font-size: 20rpx;
-  color: #FFB6C1;
 }
 
 /* 弹窗 */
@@ -808,16 +798,16 @@
 
 /* 底部安全区 */
 .safe-bottom {
-  height: 40rpx;
+  height: 20rpx;
 }
 
 /* ===== 主线故事区域 ===== */
 .story-section {
-  margin: 12rpx 20rpx;
+  margin: 8rpx 16rpx;
   background: linear-gradient(135deg, #FFF5F8 0%, #FFE4EC 100%);
-  border-radius: 20rpx;
-  padding: 16rpx;
-  box-shadow: 0 4rpx 16rpx rgba(255, 107, 138, 0.15);
+  border-radius: 12rpx;
+  padding: 8rpx 10rpx;
+  box-shadow: 0 2rpx 8rpx rgba(255, 107, 138, 0.15);
   animation: fadeIn 0.5s ease-out;
 }
 
@@ -827,140 +817,80 @@
 }
 
 .story-header {
-  margin-bottom: 12rpx;
-}
-
-.story-chapter-tag {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 20rpx;
-  padding: 10rpx 20rpx;
-  box-shadow: 0 4rpx 12rpx rgba(255, 107, 138, 0.1);
+  gap: 6rpx;
+  margin-bottom: 2rpx;
 }
 
 .story-chapter-emoji {
-  font-size: 32rpx;
-  margin-right: 10rpx;
+  font-size: 22rpx;
 }
 
 .story-chapter-name {
-  font-size: 28rpx;
+  font-size: 22rpx;
   color: #E91E63;
   font-weight: bold;
 }
 
-/* 敌人信息 */
-.story-enemy-info {
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 20rpx;
-  padding: 20rpx;
+.story-mission-text {
+  font-size: 22rpx;
+  color: #E91E63;
+  font-weight: 500;
+  margin-left: auto;
 }
 
-.enemy-display {
+.story-mission-text:first-of-type {
+  color: #4CAF50;
+}
+
+/* 进度条区域 */
+.progress-area {
   display: flex;
   align-items: center;
-  margin-bottom: 15rpx;
+  gap: 6rpx;
+  padding: 3rpx 6rpx;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8rpx;
 }
 
 .enemy-emoji {
-  font-size: 60rpx;
-  margin-right: 20rpx;
+  font-size: 30rpx;
   animation: enemyBounce 2s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 @keyframes enemyBounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10rpx); }
+  50% { transform: translateY(-3rpx); }
 }
 
-.enemy-details {
+.hp-bar-wrap {
   flex: 1;
-}
-
-.enemy-name {
-  font-size: 30rpx;
-  font-weight: bold;
-  color: #E91E63;
-  display: block;
-  margin-bottom: 10rpx;
-}
-
-/* 小怪物进度 */
-.minion-progress {
   display: flex;
   align-items: center;
-  gap: 8rpx;
-  margin-top: 8rpx;
-}
-
-.minion-label {
-  font-size: 22rpx;
-  color: #666;
-}
-
-.minion-dots {
-  display: flex;
   gap: 6rpx;
-}
-
-.minion-dot {
-  font-size: 20rpx;
-  color: #DDD;
-}
-
-.minion-dot.defeated {
-  color: #4CAF50;
-}
-
-.minion-count {
-  font-size: 20rpx;
-  color: #999;
-}
-
-/* 大怪物HP条 */
-.enemy-hp-bar {
-  display: flex;
-  align-items: center;
-  gap: 15rpx;
-  margin-top: 8rpx;
 }
 
 .hp-bg {
   flex: 1;
-  height: 16rpx;
+  height: 10rpx;
   background: #FFD6E0;
-  border-radius: 8rpx;
+  border-radius: 5rpx;
   overflow: hidden;
 }
 
 .hp-fill {
   height: 100%;
-  border-radius: 8rpx;
+  border-radius: 5rpx;
   transition: width 0.5s ease-out, background 0.3s ease;
 }
 
 .hp-text {
-  font-size: 22rpx;
+  font-size: 18rpx;
   color: #E91E63;
   font-weight: 500;
-  min-width: 60rpx;
+  min-width: 90rpx;
   text-align: right;
-}
-
-/* 任务提示 */
-.story-mission {
-  text-align: center;
-  padding-top: 15rpx;
-  border-top: 2rpx dashed #FFB6C1;
-}
-
-.mission-text {
-  font-size: 26rpx;
-  color: #E91E63;
-  font-weight: 500;
-}
-
-.mission-complete {
-  color: #4CAF50;
+  flex-shrink: 0;
 }

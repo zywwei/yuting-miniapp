@@ -111,8 +111,10 @@
 
         <!-- 牙刷（根据区域动态变化位置和方向） -->
         <view class="toothbrush-hero {{isRunning ? 'attacking' : ''}}"
-              style="left: {{toothbrushX}}%; top: {{toothbrushY}}%; transform: translate(-50%, -50%) rotate({{toothbrushRotation}}deg);">
-          <text class="toothbrush-emoji">🪥</text>
+              style="left: {{toothbrushX}}%; top: {{toothbrushY}}%;">
+          <view class="toothbrush-wrapper" style="transform: translate(-50%, -50%) rotate({{toothbrushRotation}}deg);">
+            <text class="toothbrush-emoji">🪥</text>
+          </view>
           <view class="attack-lines" wx:if="{{isRunning}}">
             <view class="line line-1"></view>
             <view class="line line-2"></view>

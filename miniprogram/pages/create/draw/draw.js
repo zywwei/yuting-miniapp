@@ -2,6 +2,7 @@ const app = getApp()
 const util = require('../../../utils/util.js')
 const audio = require('../../../utils/audio.js')
 const cloud = require('../../../utils/cloud.js')
+const achievements = require('../../../utils/achievements.js')
 const { templateDrawers } = require('../../../utils/templates.js')
 
 // 画画音乐管理
@@ -761,12 +762,26 @@ Page({
       await cloud.uploadDrawing(res.tempFilePath, drawing)
       audio.saveSuccess()
 
+      // 检查成就解锁
+      var newAchievements = achievements.checkAchievements()
+
       wx.hideLoading()
       wx.showToast({
         title: '保存成功！',
         icon: 'success',
         duration: 2000
       })
+
+      // 显示成就解锁提示
+      if (newAchievements.length > 0) {
+        setTimeout(function() {
+          wx.showToast({
+            title: '🎉 解锁: ' + newAchievements[0].title,
+            icon: 'success',
+            duration: 2000
+          })
+        }, 2500)
+      }
     } catch (err) {
       wx.hideLoading()
       console.error('保存失败:', err)

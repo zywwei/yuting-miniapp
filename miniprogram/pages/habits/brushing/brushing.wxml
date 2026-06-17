@@ -40,49 +40,25 @@
 
   <!-- ===== 主线故事区域 ===== -->
   <view wx:if="{{showStorySection && currentChapter}}" class="story-section">
+    <!-- 标题行：探险 + 今日任务 -->
     <view class="story-header">
-      <view class="story-chapter-tag">
-        <text class="story-chapter-emoji">{{currentChapter.emoji}}</text>
-        <text class="story-chapter-name">第{{round}}轮 · {{currentChapter.name}}</text>
-      </view>
+      <text class="story-chapter-emoji">{{currentChapter.emoji}}</text>
+      <text class="story-chapter-name">第{{round}}轮·{{currentChapter.name}}</text>
+      <text class="story-mission-text" wx:if="{{isEnemyDefeated}}">✅ 今日任务：已打败{{currentEnemy.name}}</text>
+      <text class="story-mission-text" wx:else>⚔️ 今日任务：打败{{currentEnemy.name}}</text>
     </view>
 
-    <view class="story-enemy-info">
-      <view class="enemy-display">
-        <text class="enemy-emoji">{{currentEnemy.emoji}}</text>
-        <view class="enemy-details">
-          <text class="enemy-name">{{currentEnemy.name}}</text>
-          <!-- 小怪物进度 -->
-          <view class="minion-progress" wx:if="{{minionDefeated < minionTotal}}">
-            <text class="minion-label">👾 先消灭小怪物：</text>
-            <view class="minion-dots">
-              <text wx:for="{{minionTotal}}" wx:key="*this" class="minion-dot {{index < minionDefeated ? 'defeated' : ''}}">●</text>
-            </view>
-            <text class="minion-count">{{minionDefeated}}/{{minionTotal}}</text>
-          </view>
-          <!-- 大怪物HP条 -->
-          <view class="enemy-hp-bar" wx:if="{{minionDefeated >= minionTotal}}">
-            <view class="hp-bg">
-              <view
-                class="hp-fill"
-                style="width: {{(enemyCurrentHp / currentEnemy.hp) * 100}}%; background: {{enemyCurrentHp > 3 ? '#4CAF50' : (enemyCurrentHp > 1 ? '#FF9800' : '#F44336')}};"
-              />
-            </view>
-            <text class="hp-text">{{enemyCurrentHp}}/{{currentEnemy.hp}}</text>
-          </view>
+    <!-- 进度条区域 -->
+    <view class="progress-area">
+      <text class="enemy-emoji">{{currentEnemy.emoji}}</text>
+      <view class="hp-bar-wrap">
+        <view class="hp-bg">
+          <view
+            class="hp-fill"
+            style="width: {{(enemyCurrentHp / currentEnemy.hp) * 100}}%; background: {{enemyCurrentHp > 3 ? '#4CAF50' : (enemyCurrentHp > 1 ? '#FF9800' : '#F44336')}};"
+          />
         </view>
-      </view>
-
-      <view class="story-mission">
-        <text wx:if="{{isEnemyDefeated}}" class="mission-text mission-complete">
-          ✅ {{currentEnemy.name}}已被打败！明天继续冒险~
-        </text>
-        <text wx:elif="{{minionDefeated < minionTotal}}" class="mission-text">
-          🎯 今日任务：消灭{{minionTotal - minionDefeated}}个小怪物！
-        </text>
-        <text wx:else class="mission-text">
-          ⚔️ 今日任务：打败{{currentEnemy.name}}！还剩{{enemyCurrentHp}}点血量
-        </text>
+        <text class="hp-text">HP {{enemyCurrentHp}}/{{currentEnemy.hp}}</text>
       </view>
     </view>
   </view>
@@ -113,12 +89,10 @@
           </view>
 
           <view wx:if="{{morningRecord}}" class="record-info">
-            <view class="record-score">
+            <view class="record-score-row">
               <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
                     class="star {{star <= morningRecord.score ? 'active' : ''}}">⭐</text>
-            </view>
-            <view wx:if="{{morningRecord.note}}" class="record-note">
-              💬 {{morningRecord.note}}
+              <text wx:if="{{morningRecord.note}}" class="record-note-inline">{{morningRecord.note}}</text>
             </view>
             <view class="record-detail">
               <view class="detail-tag" wx:if="{{morningRecord.createTimeFormatted}}">🕐 {{morningRecord.createTimeFormatted}}</view>
@@ -179,12 +153,10 @@
           </view>
 
           <view wx:if="{{eveningRecord}}" class="record-info">
-            <view class="record-score">
+            <view class="record-score-row">
               <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
                     class="star {{star <= eveningRecord.score ? 'active' : ''}}">⭐</text>
-            </view>
-            <view wx:if="{{eveningRecord.note}}" class="record-note">
-              💬 {{eveningRecord.note}}
+              <text wx:if="{{eveningRecord.note}}" class="record-note-inline">{{eveningRecord.note}}</text>
             </view>
             <view class="record-detail">
               <view class="detail-tag" wx:if="{{eveningRecord.createTimeFormatted}}">🕐 {{eveningRecord.createTimeFormatted}}</view>
@@ -224,10 +196,13 @@
 
   <!-- 昨日回顾 -->
   <view class="yesterday-section">
-    <view class="yesterday-title">📋 昨日回顾</view>
+    <view class="yesterday-title">
+      <text>📋 昨日回顾</text>
+      <text class="yesterday-date" wx:if="{{yesterdayDate}}">{{yesterdayDate}}</text>
+    </view>
     <view class="yesterday-cards">
       <!-- 早上 -->
-      <view class="yesterday-card {{yesterdayMorning ? 'done' : 'missed'}}">
+      <view class="yesterday-card {{yesterdayMorning ? 'done' : 'missed'}}" bindtap="previewYesterdayImage" data-time="morning">
         <view class="yesterday-header">
           <text class="yesterday-icon">☀️</text>
           <text class="yesterday-label">早上</text>
@@ -237,15 +212,18 @@
             <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
                   class="star {{star <= yesterdayMorning.score ? 'active' : ''}}">⭐</text>
           </view>
-          <text class="yesterday-time" wx:if="{{yesterdayMorning.createTimeFormatted}}">{{yesterdayMorning.createTimeFormatted}}</text>
+          <text class="yesterday-time" wx:if="{{yesterdayMorning.createTimeFormatted}}">🕐 {{yesterdayMorning.createTimeFormatted}}</text>
           <text class="yesterday-duration" wx:if="{{yesterdayMorning.durationText}}">⏱ {{yesterdayMorning.durationText}}</text>
+          <view wx:if="{{yesterdayMorning.images && yesterdayMorning.images.length > 0}}" class="yesterday-photo-count">
+            <text>📷 {{yesterdayMorning.images.length}}张照片</text>
+          </view>
         </view>
         <view wx:else class="yesterday-missed-text">
           <text>✗ 未刷</text>
         </view>
       </view>
       <!-- 晚上 -->
-      <view class="yesterday-card {{yesterdayEvening ? 'done' : 'missed'}}">
+      <view class="yesterday-card {{yesterdayEvening ? 'done' : 'missed'}}" bindtap="previewYesterdayImage" data-time="evening">
         <view class="yesterday-header">
           <text class="yesterday-icon">🌙</text>
           <text class="yesterday-label">晚上</text>
@@ -255,22 +233,16 @@
             <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
                   class="star {{star <= yesterdayEvening.score ? 'active' : ''}}">⭐</text>
           </view>
-          <text class="yesterday-time" wx:if="{{yesterdayEvening.createTimeFormatted}}">{{yesterdayEvening.createTimeFormatted}}</text>
+          <text class="yesterday-time" wx:if="{{yesterdayEvening.createTimeFormatted}}">🕐 {{yesterdayEvening.createTimeFormatted}}</text>
           <text class="yesterday-duration" wx:if="{{yesterdayEvening.durationText}}">⏱ {{yesterdayEvening.durationText}}</text>
+          <view wx:if="{{yesterdayEvening.images && yesterdayEvening.images.length > 0}}" class="yesterday-photo-count">
+            <text>📷 {{yesterdayEvening.images.length}}张照片</text>
+          </view>
         </view>
         <view wx:else class="yesterday-missed-text">
           <text>✗ 未刷</text>
         </view>
       </view>
-    </view>
-  </view>
-
-  <!-- 底部鼓励语 + 牙齿装饰 -->
-  <view class="bottom-area">
-    <view class="encourage-text">{{encourageText}}</view>
-    <view class="tooth-decoration">
-      <text class="tooth-emoji">🦷</text>
-      <text class="tooth-text">好好刷牙，牙齿白白</text>
     </view>
   </view>
 

@@ -21,7 +21,8 @@
     "pages/notes/index",
     "pages/notes/add",
     "pages/notes/detail",
-    "pages/parent/index"
+    "pages/parent/index",
+    "pages/achievement/index"
   ],
   "window": {
     "navigationBarBackgroundColor": "#FF9AAB",

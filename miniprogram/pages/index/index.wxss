@@ -21,10 +21,16 @@
   color: #333;
 }
 
+.date-info {
+  font-size: 28rpx;
+  color: #666;
+  margin-top: 8rpx;
+}
+
 .growth-info {
   font-size: 26rpx;
   color: #999;
-  margin-top: 8rpx;
+  margin-top: 4rpx;
 }
 
 /* 通用区块 */
@@ -153,6 +159,19 @@
 .recommend-arrow {
   font-size: 32rpx;
   color: #CCC;
+}
+
+/* 区块标题栏 */
+.section-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.section-more {
+  font-size: 24rpx;
+  color: #FF6B8A;
 }
 
 /* 成就墙 */

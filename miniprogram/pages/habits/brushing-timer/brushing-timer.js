@@ -2,6 +2,7 @@ const util = require('../../../utils/util.js')
 const audio = require('../../../utils/audio.js')
 const beep = require('../../../utils/beep.js')
 const cloud = require('../../../utils/cloud.js')
+const achievements = require('../../../utils/achievements.js')
 const { getNavBarInfo } = require('../../../utils/page-helpers.js')
 const {
   BRUSH_AREAS, BRUSHING_TIPS, THEMES, REWARD_TEXTS, COMPLETED_TEXTS,
@@ -272,16 +273,33 @@ Page({
     const types = BATTLE_CONFIG.MINION_TYPES
     const minions = []
 
+    // 小怪物位置配置，避开中央大怪物区域（中央 35%-65%）
+    const positions = [
+      { xRange: [5, 30], yRange: [5, 30] },    // 左上角
+      { xRange: [70, 95], yRange: [5, 30] },   // 右上角
+      { xRange: [5, 30], yRange: [70, 95] },   // 左下角
+      { xRange: [70, 95], yRange: [70, 95] },  // 右下角
+      { xRange: [5, 25], yRange: [35, 65] },   // 左侧
+      { xRange: [75, 95], yRange: [35, 65] },  // 右侧
+      { xRange: [35, 65], yRange: [5, 20] },   // 上方
+      { xRange: [35, 65], yRange: [80, 95] }   // 下方
+    ]
+
     for (let i = 0; i < count; i++) {
       const type = types[Math.floor(Math.random() * types.length)]
+      // 从预设位置中随机选择一个区域
+      const pos = positions[i % positions.length]
+      const x = pos.xRange[0] + Math.random() * (pos.xRange[1] - pos.xRange[0])
+      const y = pos.yRange[0] + Math.random() * (pos.yRange[1] - pos.yRange[0])
+
       minions.push({
         id: `minion_${Date.now()}_${i}`,
         emoji: type.emoji,
         name: type.name,
         color: type.color,
         hp: BATTLE_CONFIG.MINION_HP,
-        x: 15 + Math.random() * 70,  // 随机位置
-        y: 20 + Math.random() * 60,
+        x: x,
+        y: y,
         defeated: false,
         defeating: false
       })
@@ -718,15 +736,15 @@ Page({
   updateToothbrushPosition() {
     const index = this.data.currentAreaIndex
     // 6个区域对应不同的牙刷位置和角度
-    // 牙刷头始终指向中央敌人
-    // 左上、上中、右上、右下、下中、左下
+    // 牙刷头始终指向中央敌人（中心点 50, 50）
+    // emoji 🪥 默认朝右，需要旋转使其指向中心
     const positions = [
-      { x: 15, y: 25, rotation: 45 },    // 左上 → 牙刷头朝右下
-      { x: 50, y: 15, rotation: 90 },    // 上中 → 牙刷头朝下
-      { x: 85, y: 25, rotation: 135 },   // 右上 → 牙刷头朝左下
-      { x: 85, y: 75, rotation: 225 },   // 右下 → 牙刷头朝左上
-      { x: 50, y: 85, rotation: 270 },   // 下中 → 牙刷头朝上
-      { x: 15, y: 75, rotation: 315 }    // 左下 → 牙刷头朝右上
+      { x: 15, y: 25, rotation: 135 },   // 左上 → 牙刷头朝右下（指向中心）
+      { x: 50, y: 15, rotation: 180 },   // 上中 → 牙刷头朝下（指向中心）
+      { x: 85, y: 25, rotation: 225 },   // 右上 → 牙刷头朝左下（指向中心）
+      { x: 85, y: 75, rotation: 315 },   // 右下 → 牙刷头朝左上（指向中心）
+      { x: 50, y: 85, rotation: 0 },     // 下中 → 牙刷头朝上（指向中心）
+      { x: 15, y: 75, rotation: 45 }     // 左下 → 牙刷头朝右上（指向中心）
     ]
 
     const pos = positions[index] || positions[0]
@@ -1130,6 +1148,18 @@ Page({
     cloud.uploadBrushingRecord(record).catch(err => {
       console.warn('刷牙记录云端同步失败，已保留本地:', err)
     })
+
+    // 检查成就解锁
+    var newAchievements = achievements.checkAchievements()
+    if (newAchievements.length > 0) {
+      setTimeout(function() {
+        wx.showToast({
+          title: '🎉 解锁: ' + newAchievements[0].title,
+          icon: 'success',
+          duration: 2000
+        })
+      }, 3000)
+    }
   },
 
   clearTimers() {

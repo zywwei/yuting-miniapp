@@ -1,0 +1,27 @@
+<!-- 成就解锁弹窗 -->
+<view class="popup-mask {{show ? 'show' : ''}}" catchtap="onTapClose">
+  <view class="popup-container {{show ? 'show' : ''}} {{rarityClass}}" catchtap="onTapPopup">
+    <!-- 光晕背景 -->
+    <view class="glow"></view>
+
+    <!-- 成就图标 -->
+    <view class="achievement-icon-wrap">
+      <view class="achievement-icon">{{current.icon}}</view>
+    </view>
+
+    <!-- 解锁提示 -->
+    <view class="unlock-label">🎉 成就解锁！</view>
+
+    <!-- 成就信息 -->
+    <view class="achievement-title">{{current.title}}</view>
+    <view class="achievement-desc">{{current.desc}}</view>
+
+    <!-- 稀有度标签 -->
+    <view class="rarity-tag {{rarityClass}}">
+      {{current.rarity === 'legendary' ? '传说' : current.rarity === 'rare' ? '稀有' : '普通'}}
+    </view>
+
+    <!-- 关闭提示 -->
+    <view class="tap-hint">点击查看详情</view>
+  </view>
+</view>

@@ -98,7 +98,7 @@ Page({
 
   // 查看成就详情
   viewAchievements: function() {
-    wx.showToast({ title: '成就系统开发中', icon: 'none' })
+    wx.navigateTo({ url: '/pages/achievement/index' })
   },
 
   // 查看笔记详情

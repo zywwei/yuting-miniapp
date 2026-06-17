@@ -1,0 +1,209 @@
+/* 成就详情页样式 */
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF0F3 0%, #FFF5F0 50%, #FFF8F0 100%);
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+}
+
+/* 顶部统计卡片 */
+.stats-card {
+  margin: 30rpx;
+  background: white;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+
+.stats-top {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.stats-icon {
+  font-size: 56rpx;
+  margin-right: 20rpx;
+}
+
+.stats-info {
+  flex: 1;
+}
+
+.stats-number {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.stats-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.stats-percent {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #FF6B8A;
+}
+
+.stats-bar {
+  height: 16rpx;
+  background: #F5F5F5;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.stats-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF9AAB, #FF6B8A);
+  border-radius: 8rpx;
+  transition: width 0.5s ease;
+}
+
+/* 分类 Tab */
+.tab-bar {
+  display: flex;
+  margin: 0 30rpx 24rpx;
+  background: white;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  font-size: 26rpx;
+  color: #666;
+  padding: 16rpx 0;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+}
+
+.tab-item.active {
+  background: #FF6B8A;
+  color: white;
+  font-weight: bold;
+}
+
+/* 成就网格 */
+.achievement-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  padding: 0 30rpx;
+}
+
+.achievement-card {
+  position: relative;
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx 20rpx 20rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+}
+
+.achievement-card:active {
+  transform: scale(0.96);
+}
+
+.achievement-card.locked {
+  background: #FAFAFA;
+}
+
+/* 稀有度边框 */
+.achievement-card.rarity-rare {
+  border: 2rpx solid #E3F2FD;
+}
+
+.achievement-card.rarity-legendary {
+  border: 2rpx solid #FFE0B2;
+  background: linear-gradient(135deg, #FFFDF5, #FFF8E1);
+}
+
+.achievement-card.rarity-legendary.locked {
+  background: linear-gradient(135deg, #FAFAF5, #F5F5F0);
+}
+
+/* 稀有度角标 */
+.rarity-badge {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  font-size: 18rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 10rpx;
+  font-weight: bold;
+}
+
+.rarity-badge-rare {
+  background: #E3F2FD;
+  color: #2196F3;
+}
+
+.rarity-badge-legendary {
+  background: #FFF3E0;
+  color: #FF9800;
+}
+
+/* 卡片图标 */
+.card-icon {
+  font-size: 64rpx;
+  margin-bottom: 12rpx;
+  line-height: 1.2;
+}
+
+.card-icon.grayscale {
+  filter: grayscale(100%);
+  opacity: 0.4;
+}
+
+/* 卡片标题 */
+.card-title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.locked .card-title {
+  color: #999;
+}
+
+/* 进度条 */
+.card-progress {
+  margin-top: 8rpx;
+}
+
+.card-progress-bar {
+  height: 10rpx;
+  background: #EEEEEE;
+  border-radius: 5rpx;
+  overflow: hidden;
+  margin-bottom: 6rpx;
+}
+
+.card-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFB74D, #FF9800);
+  border-radius: 5rpx;
+  transition: width 0.3s ease;
+}
+
+.card-progress-text {
+  font-size: 20rpx;
+  color: #999;
+}
+
+/* 已解锁标记 */
+.card-unlocked {
+  font-size: 24rpx;
+  margin-top: 4rpx;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  height: 40rpx;
+}

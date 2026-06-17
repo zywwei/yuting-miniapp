@@ -1,6 +1,7 @@
 const util = require('../../../utils/util.js')
 const audio = require('../../../utils/audio.js')
 const cloud = require('../../../utils/cloud.js')
+const achievements = require('../../../utils/achievements.js')
 const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 const { CHAPTERS } = require('../brushing-timer/constants.js')
 
@@ -17,6 +18,7 @@ Page({
     eveningRecord: null,
     yesterdayMorning: null,
     yesterdayEvening: null,
+    yesterdayDate: '',
     encourageText: '今天也要认真刷牙哦~',
     // 弹窗状态
     showScoreModal: false,
@@ -210,6 +212,14 @@ Page({
     const yesterdayMorning = formatRecord(records.find(r => r.date === yesterday && r.timeOfDay === 'morning'))
     const yesterdayEvening = formatRecord(records.find(r => r.date === yesterday && r.timeOfDay === 'evening'))
 
+    // 昨日日期格式化
+    const yesterdayDateObj = new Date()
+    yesterdayDateObj.setDate(yesterdayDateObj.getDate() - 1)
+    const yesterdayMonth = yesterdayDateObj.getMonth() + 1
+    const yesterdayDay = yesterdayDateObj.getDate()
+    const yesterdayWeekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    const yesterdayDateStr = `${yesterdayMonth}月${yesterdayDay}日 ${yesterdayWeekdays[yesterdayDateObj.getDay()]}`
+
     // 更新鼓励语
     let encourageText = '今天也要认真刷牙哦~'
     if (morningRecord && eveningRecord) {
@@ -225,6 +235,7 @@ Page({
       eveningRecord,
       yesterdayMorning,
       yesterdayEvening,
+      yesterdayDate: yesterdayDateStr,
       streakDays: stats.streak,
       encourageText
     })
@@ -316,10 +327,24 @@ Page({
       await cloud.uploadBrushingRecord(record)
       audio.brushingSuccess()
 
+      // 检查成就解锁
+      var newAchievements = achievements.checkAchievements()
+
       wx.hideLoading()
       this.setData({ showScoreModal: false })
       this.loadRecords()
       this.showSuccessToast(modalTime)
+
+      // 显示成就解锁提示
+      if (newAchievements.length > 0) {
+        setTimeout(function() {
+          wx.showToast({
+            title: '🎉 解锁: ' + newAchievements[0].title,
+            icon: 'success',
+            duration: 2000
+          })
+        }, 2500)
+      }
     } catch (err) {
       wx.hideLoading()
       console.error('保存失败:', err)
@@ -452,6 +477,31 @@ Page({
   // 返回首页
   goBack() {
     wx.navigateBack()
+  },
+
+  // 预览昨日照片
+  previewYesterdayImage(e) {
+    const timeOfDay = e.currentTarget.dataset.time
+    const record = timeOfDay === 'morning' ? this.data.yesterdayMorning : this.data.yesterdayEvening
+    if (!record) {
+      wx.showToast({ title: '昨天没有记录哦~', icon: 'none' })
+      return
+    }
+
+    const images = record.images || []
+    if (images.length === 0 && !record.imagePath) {
+      wx.showToast({ title: '昨天没有拍照哦~', icon: 'none' })
+      return
+    }
+
+    // 构建图片列表
+    const imageList = images.length > 0 ? images : [record.imagePath]
+    const current = e.currentTarget.dataset.path || imageList[0]
+
+    wx.previewImage({
+      current: current,
+      urls: imageList
+    })
   },
 
   // ===== 提醒设置 =====

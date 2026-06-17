@@ -8,6 +8,8 @@ Page({
   data: {
     statusBarHeight: 20,
     greeting: '',
+    dateStr: '',
+    weekdayStr: '',
     growthDays: 0,
     todayHabits: [],
     achievements: [],
@@ -34,13 +36,24 @@ Page({
     }
   },
 
-  // 设置问候语
+  // 设置问候语和日期
   setGreeting: function() {
-    var hour = new Date().getHours()
+    var now = new Date()
+    var hour = now.getHours()
     var greeting = '早上好'
     if (hour >= 12 && hour < 18) greeting = '下午好'
     else if (hour >= 18) greeting = '晚上好'
-    this.setData({ greeting: greeting })
+
+    // 日期格式：2026年6月17日
+    var month = now.getMonth() + 1
+    var day = now.getDate()
+    var dateStr = now.getFullYear() + '年' + month + '月' + day + '日'
+
+    // 星期
+    var weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+    var weekdayStr = weekdays[now.getDay()]
+
+    this.setData({ greeting: greeting, dateStr: dateStr, weekdayStr: weekdayStr })
   },
 
   // 加载今日习惯
@@ -98,18 +111,17 @@ Page({
     // 检查并解锁新成就
     var newAchievements = achievements.checkAchievements()
 
-    // 显示新成就通知
+    // 使用弹窗组件显示新成就
     if (newAchievements.length > 0) {
-      wx.showToast({
-        title: '解锁新成就: ' + newAchievements[0].title,
-        icon: 'success',
-        duration: 2000
-      })
+      var popup = this.selectComponent('#achievementPopup')
+      if (popup) {
+        popup.showAchievements(newAchievements)
+      }
     }
 
-    // 获取已解锁成就用于展示
-    var unlocked = achievements.getUnlockedAchievements()
-    var displayAchievements = unlocked.slice(-4).reverse().map(function(a) {
+    // 获取最近解锁的成就用于展示
+    var recent = achievements.getRecentUnlocked(4)
+    var displayAchievements = recent.map(function(a) {
       return { icon: a.icon, text: a.title }
     })
 
@@ -119,6 +131,11 @@ Page({
     }
 
     this.setData({ achievements: displayAchievements })
+  },
+
+  // 跳转到成就详情页
+  goAchievements: function() {
+    wx.navigateTo({ url: '/pages/achievement/index' })
   },
 
   // 加载今日推荐（动态推荐）

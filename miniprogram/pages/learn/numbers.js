@@ -1,4 +1,5 @@
 var speak = require('../../utils/speak.js')
+var achievements = require('../../utils/achievements.js')
 
 // 数字启蒙页面
 Page({
@@ -102,6 +103,18 @@ Page({
     speak.speakSuccess()
 
     wx.showToast({ title: '已学会！', icon: 'success' })
+
+    // 检查成就解锁
+    var newAchievements = achievements.checkAchievements()
+    if (newAchievements.length > 0) {
+      setTimeout(function() {
+        wx.showToast({
+          title: '🎉 解锁: ' + newAchievements[0].title,
+          icon: 'success',
+          duration: 2000
+        })
+      }, 1500)
+    }
 
     if (currentIndex < numbers.length - 1) {
       setTimeout(function() {
