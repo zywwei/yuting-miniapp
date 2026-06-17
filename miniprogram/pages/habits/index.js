@@ -38,6 +38,7 @@ Page({
     var today = util.getTodayStr()
     var habits = wx.getStorageSync('habits') || []
     var records = wx.getStorageSync('habitRecords') || []
+    var brushingRecords = wx.getStorageSync('brushingRecords') || []
 
     // 默认习惯
     var defaultHabits = [
@@ -67,10 +68,17 @@ Page({
 
     // 计算今日完成情况
     var habitsWithStatus = allHabits.map(function(habit) {
-      var todayRecords = records.filter(function(r) {
-        return r.date === today && r.type === habit.type
-      })
-      var done = todayRecords.length
+      var done
+      if (habit.type === 'brushing') {
+        done = brushingRecords.filter(function(r) {
+          return r.date === today
+        }).length
+      } else {
+        var todayRecords = records.filter(function(r) {
+          return r.date === today && r.type === habit.type
+        })
+        done = todayRecords.length
+      }
       var target = habit.target || 1
       return {
         type: habit.type,
@@ -141,10 +149,13 @@ Page({
   // 跳转到习惯详情
   goDetail: function(e) {
     var type = e.currentTarget.dataset.type
+
     if (type === 'brushing') {
       wx.navigateTo({ url: '/pages/habits/brushing/brushing' })
     } else {
-      wx.navigateTo({ url: '/pages/habits/detail?type=' + type })
+      wx.navigateTo({
+        url: '/pages/habits/detail?type=' + type
+      })
     }
   },
 

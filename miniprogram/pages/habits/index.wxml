@@ -51,6 +51,9 @@
         class="habit-item {{item.completed ? 'completed' : ''}}"
         bindtap="goDetail"
         data-type="{{item.type}}"
+        data-name="{{item.name}}"
+        data-icon="{{item.icon}}"
+        data-color="{{item.color}}"
       >
         <view class="habit-icon">{{item.icon}}</view>
         <view class="habit-name">{{item.name}}</view>
@@ -73,6 +76,9 @@
         class="habit-item {{item.completed ? 'completed' : ''}}"
         bindtap="goDetail"
         data-type="{{item.type}}"
+        data-name="{{item.name}}"
+        data-icon="{{item.icon}}"
+        data-color="{{item.color}}"
       >
         <view class="habit-icon">{{item.icon}}</view>
         <view class="habit-name">{{item.name}}</view>
@@ -95,6 +101,9 @@
         class="habit-item {{item.completed ? 'completed' : ''}}"
         bindtap="goDetail"
         data-type="{{item.type}}"
+        data-name="{{item.name}}"
+        data-icon="{{item.icon}}"
+        data-color="{{item.color}}"
       >
         <view class="habit-icon">{{item.icon}}</view>
         <view class="habit-name">{{item.name}}</view>
@@ -117,6 +126,9 @@
         class="habit-item {{item.completed ? 'completed' : ''}}"
         bindtap="goDetail"
         data-type="{{item.type}}"
+        data-name="{{item.name}}"
+        data-icon="{{item.icon}}"
+        data-color="{{item.color}}"
       >
         <view class="habit-icon">{{item.icon}}</view>
         <view class="habit-name">{{item.name}}</view>
@@ -139,6 +151,9 @@
         class="habit-item {{item.completed ? 'completed' : ''}}"
         bindtap="goDetail"
         data-type="{{item.type}}"
+        data-name="{{item.name}}"
+        data-icon="{{item.icon}}"
+        data-color="{{item.color}}"
       >
         <view class="habit-icon">{{item.icon}}</view>
         <view class="habit-name">{{item.name}}</view>

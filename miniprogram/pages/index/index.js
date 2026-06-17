@@ -48,6 +48,7 @@ Page({
     var today = util.getTodayStr()
     var habits = wx.getStorageSync('habits') || []
     var records = wx.getStorageSync('habitRecords') || []
+    var brushingRecords = wx.getStorageSync('brushingRecords') || []
 
     // 默认习惯（只显示常用的习惯在首页）
     var defaultHabits = [
@@ -66,10 +67,18 @@ Page({
     var allHabits = defaultHabits.concat(customHabits)
 
     var todayHabits = allHabits.map(function(habit) {
-      var todayRecords = records.filter(function(r) {
-        return r.date === today && r.type === habit.type
-      })
-      var done = todayRecords.length
+      var done
+      if (habit.type === 'brushing') {
+        // 刷牙从独立的 brushingRecords 读取
+        done = brushingRecords.filter(function(r) {
+          return r.date === today
+        }).length
+      } else {
+        var todayRecords = records.filter(function(r) {
+          return r.date === today && r.type === habit.type
+        })
+        done = todayRecords.length
+      }
       var target = habit.target || 1
       return {
         type: habit.type,

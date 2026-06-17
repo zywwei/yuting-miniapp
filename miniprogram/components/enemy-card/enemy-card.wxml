@@ -1,0 +1,50 @@
+<!-- 敌人卡片组件 -->
+<view wx:if="{{show && enemy}}" class="enemy-card {{isVictory ? 'victory' : ''}} {{shakeEnemy ? 'shake' : ''}}" catchtap="onTapEnemy">
+  <!-- 章节标签 -->
+  <view wx:if="{{chapter}}" class="chapter-tag">
+    <text class="chapter-tag-emoji">{{chapter.emoji}}</text>
+    <text class="chapter-tag-text">{{chapter.name}}</text>
+  </view>
+
+  <!-- 敌人主体 -->
+  <view class="enemy-body">
+    <!-- 敌人emoji -->
+    <view class="enemy-emoji {{isVictory ? 'defeated' : ''}}">
+      {{enemy.emoji}}
+    </view>
+
+    <!-- 胜利标记 -->
+    <view wx:if="{{isVictory}}" class="victory-badge">
+      <text>已击败</text>
+    </view>
+
+    <!-- 伤害显示 -->
+    <view wx:if="{{showDamage}}" class="damage-text">
+      <text>{{damageText}}</text>
+    </view>
+  </view>
+
+  <!-- 敌人信息 -->
+  <view class="enemy-info">
+    <view class="enemy-name">{{enemy.name}}</view>
+    <view wx:if="{{enemy.description}}" class="enemy-desc">{{enemy.description}}</view>
+
+    <!-- HP条 -->
+    <view wx:if="{{!isVictory}}" class="hp-bar-container">
+      <view class="hp-bar-bg">
+        <view
+          class="hp-bar-fill"
+          style="width: {{hpPercent}}%; background: {{hpPercent > 50 ? '#4CAF50' : (hpPercent > 20 ? '#FF9800' : '#F44336')}};"
+        />
+      </view>
+      <view class="hp-text">
+        <text>{{enemy.currentHp || 0}} / {{enemy.hp || 6}}</text>
+      </view>
+    </view>
+
+    <!-- 胜利文字 -->
+    <view wx:if="{{isVictory && enemy.defeatText}}" class="defeat-text">
+      <text>{{enemy.defeatText}}</text>
+    </view>
+  </view>
+</view>

@@ -32,6 +32,43 @@
     </view>
   </view>
 
+  <!-- ===== 主线故事区域 ===== -->
+  <view wx:if="{{showStorySection && currentChapter}}" class="story-section">
+    <view class="story-header">
+      <view class="story-chapter-tag">
+        <text class="story-chapter-emoji">{{currentChapter.emoji}}</text>
+        <text class="story-chapter-name">第{{round}}轮 · {{currentChapter.name}}</text>
+      </view>
+    </view>
+
+    <view class="story-enemy-info">
+      <view class="enemy-display">
+        <text class="enemy-emoji">{{currentEnemy.emoji}}</text>
+        <view class="enemy-details">
+          <text class="enemy-name">{{currentEnemy.name}}</text>
+          <view class="enemy-hp-bar">
+            <view class="hp-bg">
+              <view
+                class="hp-fill"
+                style="width: {{(enemyCurrentHp / currentEnemy.hp) * 100}}%; background: {{enemyCurrentHp > 3 ? '#4CAF50' : (enemyCurrentHp > 1 ? '#FF9800' : '#F44336')}};"
+              />
+            </view>
+            <text class="hp-text">{{enemyCurrentHp}}/{{currentEnemy.hp}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="story-mission">
+        <text wx:if="{{!isEnemyDefeated}}" class="mission-text">
+          🎯 第{{round}}轮：打败{{currentEnemy.name}}！
+        </text>
+        <text wx:else class="mission-text mission-complete">
+          ✅ {{currentEnemy.name}}已被打败！明天继续冒险~
+        </text>
+      </view>
+    </view>
+  </view>
+
   <!-- 打卡卡片区 -->
   <view class="cards-area">
     <!-- 早上刷牙卡片 -->
@@ -53,21 +90,47 @@
       </view>
 
       <view wx:if="{{morningRecord}}" class="record-display">
-        <image
-          wx:if="{{morningRecord.imagePath}}"
-          class="record-image"
-          src="{{morningRecord.imagePath}}"
-          mode="aspectFill"
-          bindtap="previewImage"
-          data-path="{{morningRecord.imagePath}}"
-        />
+        <!-- 多图展示 -->
+        <scroll-view wx:if="{{morningRecord.images.length > 0}}" scroll-x class="photo-scroll">
+          <view class="photo-list">
+            <view wx:for="{{morningRecord.images}}" wx:key="*this" class="photo-item">
+              <image class="record-image" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" />
+              <view class="photo-delete" catchtap="deletePhoto" data-time="morning" data-index="{{index}}">✕</view>
+              <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{item}}">✏️</view>
+            </view>
+            <view wx:if="{{morningRecord.images.length < 9}}" class="photo-item photo-add" bindtap="addPhoto" data-time="morning">
+              <text class="photo-add-icon">+</text>
+            </view>
+          </view>
+        </scroll-view>
+        <view wx:elif="{{morningRecord.imagePath}}" class="photo-single">
+          <image class="record-image" src="{{morningRecord.imagePath}}" mode="aspectFill" bindtap="previewImage" data-path="{{morningRecord.imagePath}}" />
+          <view class="photo-delete" catchtap="deletePhoto" data-time="morning" data-index="0">✕</view>
+          <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{morningRecord.imagePath}}">✏️</view>
+        </view>
         <view wx:else class="record-image record-image-placeholder">✅</view>
+        <view class="record-extra-actions">
+          <view wx:if="{{!morningRecord.imagePath && !morningRecord.images.length}}" class="add-photo-btn" bindtap="addPhoto" data-time="morning">
+            <text>📷 补拍照片</text>
+          </view>
+          <view class="retry-btn" bindtap="goTimer" data-time="morning">
+            <text>🔄 再次刷牙</text>
+          </view>
+        </view>
         <view class="record-score">
           <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
                 class="score-star {{star <= morningRecord.score ? 'active' : ''}}">⭐</text>
         </view>
         <view wx:if="{{morningRecord.note}}" class="record-note">
           💬 {{morningRecord.note}}
+        </view>
+        <!-- 刷牙详情 -->
+        <view class="record-detail" wx:if="{{morningRecord}}">
+          <view class="detail-tag" wx:if="{{morningRecord.createTimeFormatted}}">🕐 {{morningRecord.createTimeFormatted}}</view>
+          <view class="detail-tag" wx:if="{{morningRecord.durationText}}">⏱ {{morningRecord.durationText}}</view>
+          <view class="detail-tag" wx:if="{{morningRecord.points}}">🏆 +{{morningRecord.points}}积分</view>
+          <view class="detail-tag" wx:if="{{morningRecord.completedAreas.length > 0}}">🦷 {{morningRecord.completedAreas.length}}区</view>
+          <view class="detail-tag" wx:if="{{morningRecord.fromTimer}}">⏱ 计时刷牙</view>
         </view>
       </view>
     </view>
@@ -91,15 +154,33 @@
       </view>
 
       <view wx:if="{{eveningRecord}}" class="record-display">
-        <image
-          wx:if="{{eveningRecord.imagePath}}"
-          class="record-image"
-          src="{{eveningRecord.imagePath}}"
-          mode="aspectFill"
-          bindtap="previewImage"
-          data-path="{{eveningRecord.imagePath}}"
-        />
+        <!-- 多图展示 -->
+        <scroll-view wx:if="{{eveningRecord.images.length > 0}}" scroll-x class="photo-scroll">
+          <view class="photo-list">
+            <view wx:for="{{eveningRecord.images}}" wx:key="*this" class="photo-item">
+              <image class="record-image" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" />
+              <view class="photo-delete" catchtap="deletePhoto" data-time="evening" data-index="{{index}}">✕</view>
+              <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{item}}">✏️</view>
+            </view>
+            <view wx:if="{{eveningRecord.images.length < 9}}" class="photo-item photo-add" bindtap="addPhoto" data-time="evening">
+              <text class="photo-add-icon">+</text>
+            </view>
+          </view>
+        </scroll-view>
+        <view wx:elif="{{eveningRecord.imagePath}}" class="photo-single">
+          <image class="record-image" src="{{eveningRecord.imagePath}}" mode="aspectFill" bindtap="previewImage" data-path="{{eveningRecord.imagePath}}" />
+          <view class="photo-delete" catchtap="deletePhoto" data-time="evening" data-index="0">✕</view>
+          <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{eveningRecord.imagePath}}">✏️</view>
+        </view>
         <view wx:else class="record-image record-image-placeholder">✅</view>
+        <view class="record-extra-actions">
+          <view wx:if="{{!eveningRecord.imagePath && !eveningRecord.images.length}}" class="add-photo-btn" bindtap="addPhoto" data-time="evening">
+            <text>📷 补拍照片</text>
+          </view>
+          <view class="retry-btn" bindtap="goTimer" data-time="evening">
+            <text>🔄 再次刷牙</text>
+          </view>
+        </view>
         <view class="record-score">
           <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
                 class="score-star {{star <= eveningRecord.score ? 'active' : ''}}">⭐</text>
@@ -107,7 +188,34 @@
         <view wx:if="{{eveningRecord.note}}" class="record-note">
           💬 {{eveningRecord.note}}
         </view>
+        <!-- 刷牙详情 -->
+        <view class="record-detail" wx:if="{{eveningRecord}}">
+          <view class="detail-tag" wx:if="{{eveningRecord.createTimeFormatted}}">🕐 {{eveningRecord.createTimeFormatted}}</view>
+          <view class="detail-tag" wx:if="{{eveningRecord.durationText}}">⏱ {{eveningRecord.durationText}}</view>
+          <view class="detail-tag" wx:if="{{eveningRecord.points}}">🏆 +{{eveningRecord.points}}积分</view>
+          <view class="detail-tag" wx:if="{{eveningRecord.completedAreas.length > 0}}">🦷 {{eveningRecord.completedAreas.length}}区</view>
+          <view class="detail-tag" wx:if="{{eveningRecord.fromTimer}}">⏱ 计时刷牙</view>
+        </view>
       </view>
+    </view>
+  </view>
+
+  <!-- 刷牙提醒设置 -->
+  <view class="reminder-card">
+    <view class="reminder-title">⏰ 刷牙提醒</view>
+    <view class="reminder-row">
+      <text class="reminder-label">☀️ 早上提醒</text>
+      <switch class="reminder-switch" checked="{{reminderMorning}}" bindchange="toggleMorningReminder" color="#FF6B8A" />
+      <picker mode="time" value="{{reminderMorningTime}}" bindchange="setMorningTime" disabled="{{!reminderMorning}}">
+        <text class="reminder-time {{reminderMorning ? '' : 'disabled'}}">{{reminderMorningTime}}</text>
+      </picker>
+    </view>
+    <view class="reminder-row">
+      <text class="reminder-label">🌙 晚上提醒</text>
+      <switch class="reminder-switch" checked="{{reminderEvening}}" bindchange="toggleEveningReminder" color="#FF6B8A" />
+      <picker mode="time" value="{{reminderEveningTime}}" bindchange="setEveningTime" disabled="{{!reminderEvening}}">
+        <text class="reminder-time {{reminderEvening ? '' : 'disabled'}}">{{reminderEveningTime}}</text>
+      </picker>
     </view>
   </view>
 

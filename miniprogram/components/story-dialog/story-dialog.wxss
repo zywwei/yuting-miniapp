@@ -1,0 +1,181 @@
+/* 故事对话组件样式 */
+
+.dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dialog-container {
+  width: 85%;
+  max-width: 650rpx;
+  background: linear-gradient(135deg, #FFF5F8 0%, #FFE4EC 100%);
+  border-radius: 40rpx;
+  padding: 50rpx 40rpx 40rpx;
+  position: relative;
+  box-shadow: 0 20rpx 60rpx rgba(255, 107, 138, 0.3);
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 跳过按钮 */
+.skip-btn {
+  position: absolute;
+  top: 20rpx;
+  right: 30rpx;
+  color: #999;
+  font-size: 24rpx;
+  padding: 10rpx 20rpx;
+}
+
+.skip-btn:active {
+  opacity: 0.7;
+}
+
+/* 章节标题 */
+.chapter-header {
+  text-align: center;
+  margin-bottom: 40rpx;
+  padding-bottom: 30rpx;
+  border-bottom: 2rpx dashed #FFB6C1;
+}
+
+.chapter-emoji {
+  font-size: 100rpx;
+  margin-bottom: 15rpx;
+  animation: bounce 1s ease infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20rpx); }
+}
+
+.chapter-name {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #E91E63;
+  margin-bottom: 15rpx;
+}
+
+.chapter-desc {
+  font-size: 26rpx;
+  color: #888;
+  line-height: 1.6;
+  padding: 0 20rpx;
+}
+
+/* 对话内容 */
+.dialog-content {
+  margin-top: 30rpx;
+  text-align: center;
+}
+
+.dialog-emoji {
+  font-size: 80rpx;
+  margin-bottom: 25rpx;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.dialog-text-box {
+  background: #fff;
+  border-radius: 25rpx;
+  padding: 25rpx 30rpx;
+  min-height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 20rpx rgba(255, 182, 193, 0.3);
+}
+
+.dialog-text {
+  font-size: 32rpx;
+  color: #333;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.dialog-cursor {
+  color: #E91E63;
+  font-weight: bold;
+  animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* 继续提示 */
+.continue-hint {
+  margin-top: 30rpx;
+  color: #E91E63;
+  font-size: 26rpx;
+  animation: pulse 1.5s ease-in-out infinite;
+  padding: 15rpx;
+}
+
+.continue-hint:active {
+  opacity: 0.7;
+}
+
+/* 进度指示器 */
+.dialog-progress {
+  display: flex;
+  justify-content: center;
+  gap: 12rpx;
+  margin-top: 30rpx;
+}
+
+.progress-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #FFD6E0;
+  transition: all 0.3s ease;
+}
+
+.progress-dot.completed {
+  background: #E91E63;
+  transform: scale(1.1);
+}
+
+.progress-dot.current {
+  background: #FF6B8A;
+  width: 30rpx;
+  border-radius: 8rpx;
+  animation: dotPulse 1s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

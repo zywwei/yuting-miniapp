@@ -114,7 +114,13 @@
 
     <!-- 贴纸面板（贴纸模式下显示） -->
     <view wx:if="{{currentMode === 'sticker'}}" class="sticker-panel">
-      <scroll-view scroll-x class="sticker-scroll">
+      <!-- 分类切换 -->
+      <view class="sticker-tabs">
+        <view class="sticker-tab {{stickerTab === 'emoji' ? 'active' : ''}}" bindtap="switchStickerTab" data-tab="emoji">😊 表情</view>
+        <view class="sticker-tab {{stickerTab === 'text' ? 'active' : ''}}" bindtap="switchStickerTab" data-tab="text">✏️ 文字</view>
+      </view>
+      <!-- emoji 贴纸 -->
+      <scroll-view wx:if="{{stickerTab === 'emoji'}}" scroll-x class="sticker-scroll">
         <view class="sticker-list">
           <view
             wx:for="{{stickers}}"
@@ -124,6 +130,20 @@
             data-sticker="{{item}}"
           >
             <text class="sticker-emoji">{{item}}</text>
+          </view>
+        </view>
+      </scroll-view>
+      <!-- 文字贴纸 -->
+      <scroll-view wx:if="{{stickerTab === 'text'}}" scroll-x class="sticker-scroll">
+        <view class="sticker-list">
+          <view
+            wx:for="{{textStickers}}"
+            wx:key="index"
+            class="sticker-item sticker-text-item {{selectedSticker === item ? 'active' : ''}}"
+            bindtap="selectSticker"
+            data-sticker="{{item}}"
+          >
+            <text class="sticker-text">{{item}}</text>
           </view>
         </view>
       </scroll-view>

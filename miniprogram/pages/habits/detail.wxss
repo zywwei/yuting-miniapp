@@ -4,6 +4,33 @@
   padding-bottom: 40rpx;
 }
 
+/* 状态栏和工具栏 */
+.status-bar {
+  width: 100%;
+  background: transparent;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 20rpx;
+  background: transparent;
+}
+
+.tool-left { display: flex; align-items: center; }
+.tool-btn {
+  padding: 12rpx 18rpx;
+  border-radius: 20rpx;
+  background: rgba(255,255,255,0.25);
+  color: white;
+  font-size: 24rpx;
+}
+.tool-btn:active { background: rgba(255,255,255,0.4); }
+.tool-center { flex: 1; text-align: center; }
+.tool-title { color: white; font-size: 30rpx; font-weight: bold; }
+.tool-right { display: flex; align-items: center; gap: 12rpx; }
+
 /* 打卡动画 */
 .checkin-animation {
   position: fixed;
@@ -233,4 +260,377 @@
   padding: 40rpx;
   color: rgba(255, 255, 255, 0.8);
   font-size: 24rpx;
+}
+
+/* 特色表单区域 */
+.custom-fields {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20rpx;
+  padding: 24rpx;
+}
+
+.field-item {
+  margin-bottom: 24rpx;
+}
+
+.field-item:last-child {
+  margin-bottom: 0;
+}
+
+.field-label {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 12rpx;
+}
+
+.field-required {
+  color: #FFD700;
+  margin-left: 4rpx;
+}
+
+.field-input {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12rpx;
+  padding: 16rpx;
+}
+
+.field-input input {
+  font-size: 28rpx;
+  color: white;
+}
+
+.time-picker {
+  font-size: 32rpx;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.time-picker.selected {
+  color: white;
+}
+
+/* 计数器 */
+.field-counter {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.counter-btn {
+  width: 60rpx;
+  height: 60rpx;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  color: white;
+  font-weight: bold;
+}
+
+.counter-btn.disabled {
+  opacity: 0.5;
+}
+
+.counter-btn:active:not(.disabled) {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.counter-value {
+  min-width: 80rpx;
+  text-align: center;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: white;
+}
+
+/* 选项 */
+.field-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.option-item.selected {
+  background: rgba(255, 255, 255, 0.4);
+  border-color: white;
+}
+
+.option-icon {
+  font-size: 28rpx;
+}
+
+.option-label {
+  font-size: 24rpx;
+  color: white;
+}
+
+/* 心情选择 */
+.field-mood {
+  display: flex;
+  gap: 16rpx;
+}
+
+.mood-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 8rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.mood-item.selected {
+  background: rgba(255, 255, 255, 0.4);
+  border-color: white;
+}
+
+.mood-icon {
+  font-size: 36rpx;
+}
+
+.mood-label {
+  font-size: 20rpx;
+  color: white;
+  text-align: center;
+}
+
+/* 照片区域 */
+.photo-section {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20rpx;
+  padding: 24rpx;
+}
+
+.photo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.photo-item {
+  position: relative;
+  width: 150rpx;
+  height: 150rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.photo-img {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-edit {
+  position: absolute;
+  bottom: 8rpx;
+  left: 8rpx;
+  width: 36rpx;
+  height: 36rpx;
+  background: rgba(0,0,0,0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18rpx;
+}
+
+.photo-delete {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 32rpx;
+  height: 32rpx;
+  background: rgba(255,0,0,0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16rpx;
+  color: white;
+}
+
+.photo-add {
+  width: 150rpx;
+  height: 150rpx;
+  border: 3rpx dashed rgba(255, 255, 255, 0.5);
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.add-icon {
+  font-size: 36rpx;
+}
+
+.add-text {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 评分区域 */
+.score-section {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20rpx;
+  padding: 24rpx;
+  text-align: center;
+}
+
+.score-label {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 16rpx;
+}
+
+.score-stars {
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
+}
+
+.score-star {
+  font-size: 48rpx;
+  opacity: 0.3;
+  transition: transform 0.2s;
+}
+
+.score-star.active {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.score-text {
+  font-size: 28rpx;
+  color: white;
+  font-weight: bold;
+  margin-top: 12rpx;
+}
+
+/* 留言区域 */
+.note-section {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20rpx;
+  padding: 24rpx;
+}
+
+.note-input {
+  width: 100%;
+  min-height: 100rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12rpx;
+  padding: 16rpx;
+  font-size: 28rpx;
+  color: white;
+  box-sizing: border-box;
+}
+
+.note-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 打卡按钮区域 */
+.checkin-btn-area {
+  padding: 0 30rpx 30rpx;
+}
+
+/* 记录详情 */
+.record-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.record-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4rpx;
+}
+
+.record-summary {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 400rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-note {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 400rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-score {
+  display: flex;
+  gap: 2rpx;
+}
+
+.record-score .star {
+  font-size: 18rpx;
+  opacity: 0.3;
+}
+
+.record-score .star.active {
+  opacity: 1;
+}
+
+/* 成功提示 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 30rpx 50rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  z-index: 1000;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+.success-icon {
+  font-size: 60rpx;
+  margin-bottom: 10rpx;
+}
+
+.success-text {
+  font-size: 28rpx;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  height: 40rpx;
 }

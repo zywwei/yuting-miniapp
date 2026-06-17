@@ -120,15 +120,21 @@ async function uploadBrushingRecord(record) {
   }
   try {
     let cloudFileID = ''
+    const cloudImageIDs = []
 
-    // 如果有照片，先上传到云存储
-    if (record.imagePath && !record.imagePath.startsWith('cloud://')) {
-      const cloudPath = `brushing/${record.id}.jpg`
-      const uploadRes = await wx.cloud.uploadFile({
-        cloudPath,
-        filePath: record.imagePath
-      })
-      cloudFileID = uploadRes.fileID
+    // 上传多张图片到云存储
+    const images = record.images || (record.imagePath ? [record.imagePath] : [])
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i]
+      if (img && !img.startsWith('cloud://')) {
+        const cloudPath = `brushing/${record.id}_${i}.jpg`
+        const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: img })
+        cloudImageIDs.push(uploadRes.fileID)
+        if (i === 0) cloudFileID = uploadRes.fileID
+      } else if (img) {
+        cloudImageIDs.push(img)
+        if (i === 0) cloudFileID = img
+      }
     }
 
     // 写入云数据库
@@ -138,6 +144,7 @@ async function uploadBrushingRecord(record) {
         date: record.date,
         timeOfDay: record.timeOfDay,
         cloudFileID: cloudFileID || record.imagePath,
+        images: cloudImageIDs,
         score: record.score,
         note: record.note,
         createTime: record.createTime
@@ -148,7 +155,8 @@ async function uploadBrushingRecord(record) {
     const localRecords = wx.getStorageSync('brushingRecords') || []
     localRecords.unshift({
       ...record,
-      imagePath: cloudFileID || record.imagePath
+      imagePath: cloudFileID || record.imagePath,
+      images: cloudImageIDs.length > 0 ? cloudImageIDs : images
     })
     wx.setStorageSync('brushingRecords', localRecords)
 
@@ -181,7 +189,12 @@ async function fetchBrushingRecords() {
       .get()
 
     // 合并本地未同步的记录（本地有但云端没有的）
-    const cloudRecords = res.data || []
+    const cloudRecords = (res.data || []).map(r => ({
+      ...r,
+      id: r.id || r._id,
+      imagePath: r.cloudFileID || r.imagePath || '',
+      images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+    }))
     const localRecords = wx.getStorageSync('brushingRecords') || []
     const cloudIds = new Set(cloudRecords.map(r => r.id || r._id))
     const unsynced = localRecords.filter(r => !cloudIds.has(r.id))
@@ -215,8 +228,15 @@ async function fetchBrushingRecords() {
 async function removeBrushingRecord(id) {
   if (isCloudReady() && db()) {
     try {
+      // 先获取记录以拿到 images 数组
+      const doc = await db().collection('brushingRecords').doc(id).get().catch(() => null)
+      const images = (doc && doc.data && doc.data.images) || []
+      const fileList = images.filter(img => img && img.startsWith('cloud://'))
+
       await db().collection('brushingRecords').doc(id).remove()
-      await wx.cloud.deleteFile({ fileList: [`brushing/${id}.jpg`] })
+      if (fileList.length > 0) {
+        await wx.cloud.deleteFile({ fileList })
+      }
     } catch (err) {
       console.warn('云端删除失败:', err)
     }
@@ -224,6 +244,88 @@ async function removeBrushingRecord(id) {
   // 同时删除本地
   const util = require('./util.js')
   util.deleteBrushingRecord(id)
+}
+
+/**
+ * 更新已有刷牙记录（补拍照片等场景）
+ * @param {string} timeOfDay - 'morning' | 'evening'
+ * @param {object} updates - 要更新的字段，如 { imagePath: '...' }
+ */
+async function updateBrushingRecord(timeOfDay, updates) {
+  const util = require('./util.js')
+  const today = util.getTodayStr()
+
+  // 更新本地 storage
+  const localRecords = wx.getStorageSync('brushingRecords') || []
+  const target = localRecords.find(r => r.date === today && r.timeOfDay === timeOfDay)
+  if (!target) throw new Error('未找到对应记录')
+
+  // 持久化图片数组
+  let savedImages = updates.images || []
+  for (let i = 0; i < savedImages.length; i++) {
+    const img = savedImages[i]
+    if (img && !img.startsWith(wx.env.USER_DATA_PATH) && !img.startsWith('cloud://')) {
+      savedImages[i] = await util.saveImageToPersistent(img)
+    }
+  }
+
+  // 更新本地记录
+  const updatedRecords = localRecords.map(r => {
+    if (r.date === today && r.timeOfDay === timeOfDay) {
+      return { ...r, ...updates, imagePath: savedImages[0] || updates.imagePath, images: savedImages }
+    }
+    return r
+  })
+  wx.setStorageSync('brushingRecords', updatedRecords)
+
+  // 同步更新云端
+  if (isCloudReady() && db()) {
+    try {
+      const cloudImageIDs = []
+      for (let i = 0; i < savedImages.length; i++) {
+        const img = savedImages[i]
+        if (img && !img.startsWith('cloud://')) {
+          const cloudPath = `brushing/${target.id}_${i}.jpg`
+          const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: img })
+          cloudImageIDs.push(uploadRes.fileID)
+        } else if (img) {
+          cloudImageIDs.push(img)
+        }
+      }
+
+      const finalRecords = updatedRecords.map(r => {
+        if (r.date === today && r.timeOfDay === timeOfDay) {
+          return { ...r, imagePath: cloudImageIDs[0] || r.imagePath, images: cloudImageIDs.length > 0 ? cloudImageIDs : savedImages }
+        }
+        return r
+      })
+      wx.setStorageSync('brushingRecords', finalRecords)
+
+      await db().collection('brushingRecords').doc(target.id).update({
+        data: {
+          cloudFileID: cloudImageIDs[0] || '',
+          images: cloudImageIDs
+        }
+      })
+    } catch (err) {
+      console.warn('云端更新失败，本地已更新:', err)
+    }
+  }
+}
+
+/**
+ * 按 ID 更新刷牙记录字段（编辑评分/备注等场景）
+ * @param {string} id - 记录 ID
+ * @param {object} updates - 要更新的字段
+ */
+async function updateBrushingRecordById(id, updates) {
+  if (isCloudReady() && db()) {
+    try {
+      await db().collection('brushingRecords').doc(id).update({ data: updates })
+    } catch (err) {
+      console.warn('云端更新失败:', err)
+    }
+  }
 }
 
 // ===== 本地降级函数（云不可用时使用） =====
@@ -244,7 +346,16 @@ async function localOnlyBrushing(record) {
   if (record.imagePath && !record.imagePath.startsWith(wx.env.USER_DATA_PATH)) {
     savedPath = await util.saveImageToPersistent(record.imagePath)
   }
-  const localRecord = { ...record, imagePath: savedPath }
+  // 持久化多图数组
+  const savedImages = []
+  for (const img of (record.images || [])) {
+    if (img && !img.startsWith(wx.env.USER_DATA_PATH)) {
+      savedImages.push(await util.saveImageToPersistent(img))
+    } else if (img) {
+      savedImages.push(img)
+    }
+  }
+  const localRecord = { ...record, imagePath: savedPath, images: savedImages.length > 0 ? savedImages : record.images }
   util.saveBrushingRecord(localRecord)
   return savedPath
 }
@@ -284,6 +395,7 @@ async function syncLocalToCloud() {
             date: r.date,
             timeOfDay: r.timeOfDay,
             cloudFileID: r.imagePath || '',
+            images: r.images || [],
             score: r.score,
             note: r.note,
             createTime: r.createTime
@@ -296,12 +408,84 @@ async function syncLocalToCloud() {
   }
 }
 
+// ===== 习惯打卡相关 =====
+
+/**
+ * 上传习惯打卡记录到云端
+ */
+async function uploadHabitRecord(record) {
+  if (!isCloudReady() || !db()) {
+    return localOnlyHabit(record)
+  }
+  try {
+    let cloudFileID = ''
+    const cloudImageIDs = []
+
+    // 上传多张图片到云存储
+    const images = record.images || (record.imagePath ? [record.imagePath] : [])
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i]
+      if (img && !img.startsWith('cloud://')) {
+        const cloudPath = `habits/${record.id}_${i}.jpg`
+        const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: img })
+        cloudImageIDs.push(uploadRes.fileID)
+        if (i === 0) cloudFileID = uploadRes.fileID
+      } else if (img) {
+        cloudImageIDs.push(img)
+        if (i === 0) cloudFileID = img
+      }
+    }
+
+    // 写入云数据库
+    await db().collection('habitRecords').add({
+      data: {
+        _id: record.id,
+        type: record.type,
+        date: record.date,
+        cloudFileID: cloudFileID || record.imagePath,
+        images: cloudImageIDs,
+        score: record.score,
+        note: record.note,
+        createTime: record.createTime
+      }
+    })
+
+    return cloudFileID || record.imagePath
+  } catch (err) {
+    console.warn('云端上传失败，使用本地存储:', err)
+    return localOnlyHabit(record)
+  }
+}
+
+// 习惯打卡本地保存
+async function localOnlyHabit(record) {
+  const util = require('./util.js')
+  let savedPath = record.imagePath
+  if (record.imagePath && !record.imagePath.startsWith(wx.env.USER_DATA_PATH)) {
+    savedPath = await util.saveImageToPersistent(record.imagePath)
+  }
+  // 持久化多图数组
+  const savedImages = []
+  for (const img of (record.images || [])) {
+    if (img && !img.startsWith(wx.env.USER_DATA_PATH)) {
+      savedImages.push(await util.saveImageToPersistent(img))
+    } else if (img) {
+      savedImages.push(img)
+    }
+  }
+  return savedPath
+}
+
 module.exports = {
+  isCloudReady,
   uploadDrawing,
   fetchDrawings,
   removeDrawing,
   uploadBrushingRecord,
   fetchBrushingRecords,
   removeBrushingRecord,
+  updateBrushingRecord,
+  updateBrushingRecordById,
+  uploadHabitRecord,
   syncLocalToCloud
 }

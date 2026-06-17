@@ -18,12 +18,14 @@ function getNavBarInfo() {
 
 /**
  * 预览图片
+ * @param {string} path - 当前图片路径
+ * @param {Array} images - 图片数组（可选，支持左右滑动）
  */
-function previewImage(path) {
+function previewImage(path, images) {
   if (path) {
     wx.previewImage({
       current: path,
-      urls: [path]
+      urls: images && images.length > 0 ? images : [path]
     })
   }
 }

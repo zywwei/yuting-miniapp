@@ -1,0 +1,159 @@
+<!-- 习惯统计页 -->
+<view class="container">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+
+  <!-- 顶部工具栏 -->
+  <view class="toolbar" style="padding-right: {{capsuleRight}}px;">
+    <view class="tool-left">
+      <view class="tool-btn" bindtap="goBack">
+        <text>← 返回</text>
+      </view>
+    </view>
+    <view class="tool-center">
+      <text class="tool-title">{{habitIcon}} {{habitName}}统计</text>
+    </view>
+    <view class="tool-right"></view>
+  </view>
+
+  <!-- 统计概览 -->
+  <view class="stats-overview">
+    <view class="stat-card">
+      <view class="stat-number">{{stats.total}}</view>
+      <view class="stat-label">累计打卡</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-number">{{stats.streak}}</view>
+      <view class="stat-label">连续天数</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-number">{{stats.weekRate}}%</view>
+      <view class="stat-label">本周完成率</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-number">{{stats.avgScore}}</view>
+      <view class="stat-label">平均评分</view>
+    </view>
+  </view>
+
+  <!-- 日历 -->
+  <view class="calendar-section">
+    <view class="calendar-header">
+      <view class="calendar-nav" bindtap="prevMonth">
+        <text>◀</text>
+      </view>
+      <view class="calendar-title">
+        <text>{{currentYear}}年{{currentMonth}}月</text>
+      </view>
+      <view class="calendar-nav" bindtap="nextMonth">
+        <text>▶</text>
+      </view>
+    </view>
+
+    <view class="calendar-weekdays">
+      <text wx:for="{{['日','一','二','三','四','五','六']}}" wx:key="*this" class="weekday">{{item}}</text>
+    </view>
+
+    <view class="calendar-days">
+      <view wx:for="{{calendarDays}}" wx:key="index"
+            class="day-item {{item.isCurrentMonth ? 'current' : 'other'}} {{item.isToday ? 'today' : ''}} {{item.date === selectedDate ? 'selected' : ''}} {{item.hasRecord ? 'has-record' : ''}}"
+            bindtap="selectDate"
+            data-date="{{item.date}}">
+        <text class="day-num">{{item.day}}</text>
+        <view wx:if="{{item.hasRecord}}" class="day-dot"></view>
+        <view wx:if="{{item.count > 1}}" class="day-count">{{item.count}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 当日摘要 -->
+  <view wx:if="{{daySummary}}" class="day-summary">
+    <view class="summary-title">{{daySummary.date}} {{daySummary.weekday}}</view>
+    <view class="summary-info">
+      <text>打卡 {{daySummary.count}} 次</text>
+      <text wx:if="{{daySummary.avgScore > 0}}"> | 平均 {{daySummary.avgScore}} ⭐</text>
+    </view>
+  </view>
+
+  <!-- 记录列表 -->
+  <view class="records-section">
+    <view class="section-title">📋 打卡记录</view>
+    <view class="record-list" wx:if="{{records.length > 0}}">
+      <view wx:for="{{records}}" wx:key="id" class="record-item" bindtap="viewDetail" data-id="{{item.id}}">
+        <view class="record-left">
+          <view class="record-date">{{item.date}}</view>
+          <view class="record-time">{{item.time || item.createTimeFormatted}}</view>
+        </view>
+        <view class="record-right">
+          <view wx:if="{{item.summary}}" class="record-summary">{{item.summary}}</view>
+          <view wx:elif="{{item.note}}" class="record-note">{{item.note}}</view>
+          <view wx:if="{{item.score}}" class="record-score">
+            <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
+                  class="star {{star <= item.score ? 'active' : ''}}">⭐</text>
+          </view>
+        </view>
+        <view class="record-arrow">›</view>
+      </view>
+    </view>
+    <view wx:else class="empty-text">暂无打卡记录</view>
+  </view>
+
+  <!-- 详情弹窗 -->
+  <view wx:if="{{showDetail}}" class="modal-mask" bindtap="closeDetail">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-close" bindtap="closeDetail">✕</view>
+
+      <view class="modal-header">
+        <view class="modal-icon">{{habitIcon}}</view>
+        <view class="modal-title">{{habitName}}打卡详情</view>
+      </view>
+
+      <view class="modal-body">
+        <view class="detail-row">
+          <text class="detail-label">📅 日期</text>
+          <text class="detail-value">{{detailRecord.date}}</text>
+        </view>
+        <view wx:if="{{detailRecord.time}}" class="detail-row">
+          <text class="detail-label">🕐 时间</text>
+          <text class="detail-value">{{detailRecord.time}}</text>
+        </view>
+        <view wx:if="{{detailRecord.score}}" class="detail-row">
+          <text class="detail-label">⭐ 评分</text>
+          <text class="detail-value">
+            <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
+                  class="star {{star <= detailRecord.score ? 'active' : ''}}">⭐</text>
+          </text>
+        </view>
+        <view wx:if="{{detailRecord.summary}}" class="detail-row">
+          <text class="detail-label">📝 详情</text>
+          <text class="detail-value">{{detailRecord.summary}}</text>
+        </view>
+        <view wx:if="{{detailRecord.note}}" class="detail-row">
+          <text class="detail-label">💬 留言</text>
+          <text class="detail-value">{{detailRecord.note}}</text>
+        </view>
+
+        <!-- 照片展示 -->
+        <view wx:if="{{detailRecord.images.length > 0}}" class="detail-photos">
+          <text class="detail-label">📷 照片</text>
+          <scroll-view scroll-x class="photo-scroll">
+            <view class="photo-list">
+              <image wx:for="{{detailRecord.images}}" wx:key="*this"
+                     src="{{item}}" mode="aspectFill" class="detail-photo"
+                     bindtap="previewImage" data-path="{{item}}" />
+            </view>
+          </scroll-view>
+        </view>
+      </view>
+
+      <view class="modal-footer">
+        <view class="btn-delete" bindtap="deleteRecord" data-id="{{detailRecord.id}}">
+          <text>🗑️ 删除记录</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
+</view>

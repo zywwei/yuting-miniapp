@@ -178,6 +178,37 @@
   margin-bottom: 12rpx;
 }
 
+.sticker-tabs {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+  justify-content: center;
+}
+
+.sticker-tab {
+  padding: 8rpx 24rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  color: #999;
+  background: #F5F5F5;
+}
+
+.sticker-tab.active {
+  background: #FF6B8A;
+  color: white;
+}
+
+.sticker-text-item {
+  min-width: 100rpx;
+  text-align: center;
+}
+
+.sticker-text {
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #FF6B8A;
+}
+
 .sticker-scroll {
   white-space: nowrap;
 }

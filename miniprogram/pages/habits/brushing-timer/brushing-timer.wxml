@@ -1,4 +1,4 @@
-<!-- 刷牙计时页 - 梦幻可爱版 -->
+<!-- 刷牙计时页 - 战斗场景 -->
 <view class="timer-container" style="background: {{themeBg}};">
   <!-- 背景装饰 - 闪烁星星 -->
   <view class="bg-stars">
@@ -18,92 +18,229 @@
     <view class="cloud cloud-3">☁️</view>
   </view>
 
+  <!-- ===== 主线故事组件 ===== -->
+  <story-dialog
+    show="{{showStoryDialog}}"
+    dialogues="{{storyDialogues}}"
+    chapter="{{currentChapter}}"
+    type="start"
+    bind:complete="onStoryDialogComplete"
+  />
+
+  <story-dialog
+    show="{{showVictoryDialog}}"
+    dialogues="{{victoryDialogues}}"
+    chapter="{{currentChapter}}"
+    type="victory"
+    bind:complete="onVictoryDialogComplete"
+  />
+
   <!-- 状态栏占位 -->
   <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
 
-  <!-- 顶部工具栏 -->
-  <view class="toolbar" style="padding-right: {{capsuleRight}}px;">
-    <view class="tool-left">
-      <view class="tool-btn" bindtap="goBack">
-        <text>← 返回</text>
-      </view>
+  <!-- 顶部极简工具栏（融入场景） -->
+  <view class="top-bar" style="padding-right: {{capsuleRight}}px;">
+    <view class="back-btn" bindtap="goBack">
+      <text>←</text>
     </view>
-    <view class="tool-center">
-      <text class="tool-title">{{timeOfDay === 'morning' ? '☀️ 早上好' : '🌙 晚上好'}}，钰婷！</text>
-    </view>
-    <view class="tool-right">
-      <!-- 积分显示 -->
-      <view class="points-badge" wx:if="{{brushPoints > 0}}">
-        <text>⭐ {{brushPoints}}</text>
+    <view class="top-right">
+      <view class="points-badge" wx:if="{{brushPoints > 0 || lastBrushPoints > 0}}">
+        <text>⭐ {{brushPoints > 0 ? brushPoints : lastBrushPoints}}</text>
       </view>
-      <view class="points-badge" wx:elif="{{lastBrushPoints > 0 && !isRunning && !isCompleted}}">
-        <text>⭐ {{lastBrushPoints}}</text>
-      </view>
-      <view class="tool-btn" bindtap="toggleSound">
+      <view class="sound-btn" bindtap="toggleSound">
         <text>{{soundEnabled ? '🔊' : '🔇'}}</text>
       </view>
     </view>
   </view>
 
-  <!-- ===== 主视觉区 ===== -->
-  <view class="main-visual">
-    <!-- 左上：小猫 -->
-    <view class="corner corner-tl {{isRunning ? 'cheer-active' : ''}}">
-      <text class="corner-emoji">🐱</text>
-      <text class="corner-bubble">{{leftCheer}}</text>
-    </view>
-    <!-- 右上：兔子 -->
-    <view class="corner corner-tr {{isRunning ? 'cheer-active' : ''}}">
-      <text class="corner-emoji">🐰</text>
-      <text class="corner-bubble">{{rightCheer}}</text>
-    </view>
-    <!-- 左下：小青蛙 -->
-    <view class="corner corner-bl {{isRunning ? 'cheer-active' : ''}}">
-      <text class="corner-emoji">🐸</text>
-      <text class="corner-bubble">{{completedAreas.length}}/6 区域</text>
-    </view>
-    <!-- 右下：陪伴小公主 -->
-    <view class="corner corner-br">
-      <view class="companion-mini">
-        <text class="companion-mini-emoji">👸</text>
-        <text class="companion-mini-bubble">{{companionBubble}}</text>
+  <!-- ===== 战斗场景（一体化布局） ===== -->
+  <view class="battle-scene">
+    <!-- 顶部信息栏 -->
+    <view class="battle-top-bar">
+      <view class="chapter-tag" wx:if="{{currentChapter}}">
+        <text>{{currentChapter.emoji}} 第{{round}}轮 · {{currentChapter.name}}</text>
       </view>
-    </view>
-
-    <!-- 中心：进度环 -->
-    <view class="progress-ring-wrap" bindtap="onTapRing"
-          style="{{stage === 'brushing' ? 'pointer-events: none;' : ''}}">
-      <view class="ring-bg-circle"></view>
-      <view class="ring-fill-circle" style="background: conic-gradient({{ringColor}} {{overallProgress * 3.6}}deg, transparent 0deg);"></view>
-      <view class="ring-inner-circle">
-        <view class="ring-center-content">
-          <text class="ring-time">{{minutes}}:{{seconds}}</text>
-          <text class="ring-hint" wx:if="{{!isCompleted}}">{{isRunning ? '加油刷！' : '点击开始'}}</text>
-          <text class="ring-hint ring-done" wx:if="{{isCompleted}}">完成啦！</text>
+      <view class="timer-bar {{isRunning ? 'timer-active' : ''}}">
+        <text class="timer-num">{{minutes}}:{{seconds}}</text>
+        <view class="timer-progress">
+          <view class="timer-fill" style="width: {{overallProgress}}%;"></view>
         </view>
       </view>
-      <view class="ring-deco ring-deco-1" wx:if="{{isRunning}}">✨</view>
-      <view class="ring-deco ring-deco-2" wx:if="{{isRunning}}">⭐</view>
     </view>
 
-    <!-- 随机公主彩蛋（仍在随机位置出现） -->
-    <view wx:if="{{showPrincess}}" class="princess-character" bindtap="onTapPrincess"
-          style="left: {{princessX}}%; top: {{princessY}}%; {{stage === 'brushing' ? 'pointer-events: none;' : ''}}">
-      <text class="princess-emoji">{{princessEmoji}}</text>
-      <text class="princess-bubble" style="background: {{princessColor}};">{{princessBubble}}</text>
-    </view>
+    <!-- 战斗主区域 -->
+    <view class="battle-arena">
+      <!-- 战斗中 -->
+      <view wx:if="{{currentEnemy && !isCompleted}}" class="battle-fight">
+        <!-- 地面/背景 -->
+        <view class="battle-ground"></view>
 
-    <!-- 泡泡 -->
-    <view wx:if="{{isRunning}}" class="bubble-area">
-      <view wx:for="{{bubbles}}" wx:key="id"
-            class="bubble-item"
-            style="left:{{item.x}}%;animation-delay:{{item.delay}}s;font-size:{{item.size}}rpx;">
-        {{item.emoji}}
+        <!-- 牙刷（左侧进攻） -->
+        <view class="toothbrush-hero {{isRunning ? 'attacking' : ''}}">
+          <text class="toothbrush-emoji">🪥</text>
+          <view class="attack-lines" wx:if="{{isRunning}}">
+            <view class="line line-1"></view>
+            <view class="line line-2"></view>
+            <view class="line line-3"></view>
+          </view>
+        </view>
+
+        <!-- 小怪物 -->
+        <view wx:if="{{showMinions}}" class="minions-area">
+          <view wx:for="{{minions}}" wx:key="id"
+                class="minion {{item.defeating ? 'minion-defeating' : ''}} {{item.defeated ? 'minion-defeated' : ''}}"
+                style="left: {{item.x}}%; top: {{item.y}}%;">
+            <text class="minion-emoji">{{item.emoji}}</text>
+            <view wx:if="{{item.defeating}}" class="minion-hit">💥</view>
+          </view>
+          <!-- 小怪物进度 -->
+          <view class="minions-progress">
+            <text class="minions-count">小怪物：{{defeatedMinions}}/{{totalMinions}}</text>
+          </view>
+        </view>
+
+        <!-- 敌人（右侧防守） -->
+        <view class="enemy-hero {{enemyShaking ? 'shake' : ''}} {{isEnemyDefeated ? 'defeated' : ''}} {{enemyAngry ? 'angry' : ''}}">
+          <text class="enemy-emoji">{{currentEnemy.emoji}}</text>
+          <!-- HP条 -->
+          <view class="enemy-hp">
+            <view class="hp-bar">
+              <view class="hp-fill" style="width: {{(enemyCurrentHp / currentEnemy.hp) * 100}}%;"></view>
+            </view>
+            <text class="hp-num">HP {{enemyCurrentHp}}/{{currentEnemy.hp}}</text>
+          </view>
+          <!-- 敌人名称 -->
+          <text class="enemy-name">{{currentEnemy.name}}</text>
+          <!-- 愤怒标记 -->
+          <view wx:if="{{enemyAngry}}" class="angry-mark">😤</view>
+          <!-- 小怪物消灭提示 -->
+          <view wx:if="{{minionDefeatEffect && minionDefeatEffect.show}}" class="minion-defeat-text">
+            <text>{{minionDefeatEffect.text}}</text>
+          </view>
+        </view>
+
+        <!-- 攻击特效 -->
+        <view wx:if="{{showAttackEffect}}" class="hit-effect {{isCritical ? 'critical' : ''}}" style="left: {{attackEffectX}}%; top: {{attackEffectY}}%;">
+          <text class="hit-text">-{{attackDamage}}</text>
+          <text wx:if="{{isCritical}}" class="crit-text">暴击！</text>
+          <text class="hit-icon">{{isCritical ? '⚡' : '💥'}}</text>
+        </view>
+
+        <!-- 连击计数器 -->
+        <view wx:if="{{showCombo}}" class="combo-counter">
+          <text class="combo-text">{{comboText}}</text>
+        </view>
+
+        <!-- 战斗提示 -->
+        <view class="fight-hint" wx:if="{{!isRunning && !isPaused}}">
+          <text>⚔️ 点击下方开始战斗</text>
+        </view>
+        <view class="fight-hint" wx:if="{{isRunning && showMinions && defeatedMinions < totalMinions}}">
+          <text>🎯 先消灭{{totalMinions - defeatedMinions}}个小怪物！</text>
+        </view>
+        <view class="fight-hint" wx:if="{{isRunning && (!showMinions || defeatedMinions >= totalMinions)}}">
+          <text>🪥 攻击{{currentEnemy.name}}！</text>
+        </view>
+        <view class="fight-hint" wx:if="{{isPaused}}">
+          <text>⏸ 战斗暂停</text>
+        </view>
+
+        <!-- 积分飘字 -->
+        <view wx:if="{{showPoints}}" class="points-float">
+          <text>{{pointsText}}</text>
+        </view>
+      </view>
+
+      <!-- 胜利状态 -->
+      <view wx:if="{{isCompleted}}" class="battle-victory">
+        <!-- 撒花 -->
+        <view class="confetti-layer">
+          <view wx:for="{{confetti}}" wx:key="id" wx:if="{{item.type === 'paper'}}"
+                class="confetti-paper"
+                style="left:{{item.x}}%;animation-delay:{{item.delay}}s;background:{{item.color}};width:{{item.w}}rpx;height:{{item.h}}rpx;">
+          </view>
+          <view wx:for="{{confetti}}" wx:key="id" wx:if="{{item.type === 'emoji'}}"
+                class="confetti-emoji"
+                style="left:{{item.x}}%;animation-delay:{{item.delay}}s;font-size:{{item.size}}rpx;">
+            {{item.emoji}}
+          </view>
+        </view>
+
+        <!-- 胜利主体 -->
+        <view class="victory-main">
+          <!-- 被击败的敌人 -->
+          <view class="defeated-enemy">
+            <text class="defeated-emoji">{{currentEnemy.emoji}}</text>
+            <view class="defeated-mark">已击败</view>
+          </view>
+
+          <!-- 胜利信息 -->
+          <view class="victory-info">
+            <text class="victory-title">🎉 战斗胜利！</text>
+            <text class="victory-desc">{{completedText}}</text>
+            <view class="victory-stars">
+              <text wx:for="{{completedStarsArr}}" wx:key="index" class="star"
+                    style="animation-delay:{{index * 0.15}}s">⭐</text>
+            </view>
+            <view class="victory-points" wx:if="{{brushPoints > 0}}">
+              <text>🏆 +{{brushPoints}} 积分</text>
+            </view>
+          </view>
+
+          <!-- 贴纸选择 -->
+          <view class="sticker-picker" wx:if="{{showStickerPicker}}">
+            <text class="sticker-hint">给牙齿贴个贴纸吧~</text>
+            <view class="sticker-list">
+              <view wx:for="{{stickers}}" wx:key="id" class="sticker-item" bindtap="onTapSticker" data-id="{{item.id}}">
+                <text>{{item.emoji}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
       </view>
     </view>
 
-    <!-- 刷牙前小游戏：瞌睡细菌（点击赶走） -->
-    <view wx:if="{{stage === 'pre'}}" class="pre-game-area">
+    <!-- ===== 6区牙齿（整合到战斗场景内） ===== -->
+    <view class="tooth-strip" wx:if="{{toothZones.length > 0}}">
+      <view wx:for="{{toothZones}}" wx:key="index"
+            class="tooth-zone zone-{{item.state}} {{item.state === 'current' ? 'zone-pulse' : ''}}"
+            style="border-color: {{item.color}};">
+        <view class="zone-tooth-body">
+          <text class="zone-tooth-emoji">{{item.state === 'clean' ? '✨' : '🦷'}}</text>
+        </view>
+        <view class="zone-germs" wx:if="{{item.germs.length > 0 && item.state !== 'clean'}}">
+          <text wx:for="{{item.germs}}" wx:key="id"
+                class="zone-germ {{item.fleeing ? 'germ-flee' : 'germ-wiggle'}}"
+                style="left: {{item.x}}%; top: {{item.y}}%;">{{item.emoji}}</text>
+        </view>
+        <view class="zone-stickers" wx:if="{{placedStickers.length > 0 && item.state === 'clean'}}">
+          <text wx:for="{{placedStickers}}" wx:key="id" wx:for-item="sticker"
+                wx:if="{{sticker.zoneIndex === index}}"
+                class="zone-sticker"
+                style="left: {{sticker.x}}%; top: {{sticker.y}}%;">{{sticker.emoji}}</text>
+        </view>
+        <view class="zone-shine" wx:if="{{item.state === 'clean'}}">✨</view>
+        <view class="zone-crown" wx:if="{{item.state === 'clean'}}">👑</view>
+        <view class="zone-label">{{item.name}}</view>
+        <view class="zone-timer" wx:if="{{currentAreaIndex === index && isRunning}}">
+          <text class="zone-timer-num">{{areaRemaining}}</text>
+        </view>
+        <view class="zone-check" wx:if="{{item.state === 'clean'}}">✓</view>
+      </view>
+    </view>
+
+    <!-- ===== 奖励星星 ===== -->
+    <view class="reward-section" wx:if="{{isRunning || isPaused || isCompleted}}">
+      <view class="star-row">
+        <view wx:for="{{rewardStars}}" wx:key="index" class="star-item {{item ? 'earned' : ''}}">
+          <text class="star-emoji">{{item ? '⭐' : '☆'}}</text>
+        </view>
+      </view>
+      <text class="reward-text">{{currentRewardText}}</text>
+    </view>
+
+    <!-- 刷牙前小游戏 -->
+    <view wx:if="{{stage === 'pre'}}" class="pre-game">
       <view wx:for="{{dirtySpots}}" wx:key="id" wx:for-item="germ"
             class="pre-germ {{germ.fleeing ? 'pre-germ-flee' : 'pre-germ-wiggle'}}"
             bindtap="onTapPreGerm"
@@ -115,158 +252,62 @@
         🎉 细菌都赶走啦，开始刷牙吧！
       </view>
     </view>
-
-    <!-- 刷牙小游戏：脏东西已绑定到6区牙齿上，刷牙中不再单独显示 -->
-
-    <!-- 刷掉特效 -->
-    <view wx:if="{{showCleanEffect}}" class="clean-effect"
-          style="left: {{cleanEffectX}}%; top: {{cleanEffectY}}%;">
-      <text class="clean-text">{{cleanEffectText}}</text>
-    </view>
-
-    <!-- 积分动画 -->
-    <view wx:if="{{showPoints}}" class="points-popup">
-      <text class="points-text">{{pointsText}}</text>
-    </view>
-
-    <!-- 刷牙小知识 -->
-    <view wx:if="{{showTip}}" class="tip-popup">
-      <text class="tip-text">{{currentTip}}</text>
-    </view>
   </view>
 
-  <!-- ===== 6区牙齿（一行占满） ===== -->
-  <view class="tooth-strip" wx:if="{{toothZones.length > 0}}">
-    <view wx:for="{{toothZones}}" wx:key="index"
-          class="tooth-zone zone-{{item.state}} {{item.state === 'current' ? 'zone-pulse' : ''}}"
-          style="border-color: {{item.color}};">
-      <view class="zone-tooth-body">
-        <text class="zone-tooth-emoji">{{item.state === 'clean' ? '✨' : '🦷'}}</text>
+  <!-- ===== 时长选择 ===== -->
+  <view wx:if="{{!isRunning && !isPaused && !isCompleted}}" class="duration-picker">
+    <text class="duration-title">⏱ 刷牙时长</text>
+    <view class="duration-options">
+      <view class="duration-opt {{selectedDuration === 60 ? 'active' : ''}}" bindtap="selectDuration" data-sec="60">
+        <text class="duration-num">1</text><text class="duration-unit">分钟</text>
       </view>
-      <view class="zone-germs" wx:if="{{item.germs.length > 0 && item.state !== 'clean'}}">
-        <text wx:for="{{item.germs}}" wx:key="id"
-              class="zone-germ {{item.fleeing ? 'germ-flee' : 'germ-wiggle'}}"
-              style="left: {{item.x}}%; top: {{item.y}}%;">{{item.emoji}}</text>
+      <view class="duration-opt {{selectedDuration === 120 ? 'active' : ''}}" bindtap="selectDuration" data-sec="120">
+        <text class="duration-num">2</text><text class="duration-unit">分钟</text>
       </view>
-      <view class="zone-stickers" wx:if="{{placedStickers.length > 0 && item.state === 'clean'}}">
-        <text wx:for="{{placedStickers}}" wx:key="id" wx:for-item="sticker"
-              wx:if="{{sticker.zoneIndex === index}}"
-              class="zone-sticker"
-              style="left: {{sticker.x}}%; top: {{sticker.y}}%;">{{sticker.emoji}}</text>
-      </view>
-      <view class="zone-shine" wx:if="{{item.state === 'clean'}}">✨</view>
-      <view class="zone-crown" wx:if="{{item.state === 'clean'}}">👑</view>
-      <view class="zone-label">{{item.name}}</view>
-      <view class="zone-timer" wx:if="{{currentAreaIndex === index && isRunning}}">
-        <text class="zone-timer-num">{{areaRemaining}}</text>
-      </view>
-      <view class="zone-check" wx:if="{{item.state === 'clean'}}">✓</view>
-    </view>
-  </view>
-
-  <!-- ===== 奖励星星 ===== -->
-  <view class="reward-section" wx:if="{{isRunning || isPaused || isCompleted}}">
-    <view class="star-row">
-      <view wx:for="{{rewardStars}}" wx:key="index" class="star-item {{item ? 'earned' : ''}}">
-        <text class="star-emoji">{{item ? '⭐' : '☆'}}</text>
+      <view class="duration-opt {{selectedDuration === 180 ? 'active' : ''}}" bindtap="selectDuration" data-sec="180">
+        <text class="duration-num">3</text><text class="duration-unit">分钟</text>
       </view>
     </view>
-    <text class="reward-text">{{currentRewardText}}</text>
   </view>
 
   <!-- ===== 按钮 ===== -->
   <view class="btn-area">
+    <!-- 开始前 -->
     <view wx:if="{{!isRunning && !isPaused && !isCompleted}}" class="btn-start" bindtap="startTimer">
       <view class="btn-sparkle"></view>
-      <text class="btn-icon">🪥</text>
-      <text class="btn-label">开始刷牙啦！</text>
+      <text class="btn-icon">⚔️</text>
+      <text class="btn-label">开始战斗！</text>
     </view>
+    <!-- 战斗中 -->
     <view wx:if="{{isRunning}}" class="btn-pause" bindtap="pauseTimer">
       <text class="btn-icon">⏸</text>
-      <text class="btn-label">暂停一下</text>
+      <text class="btn-label">暂停战斗</text>
     </view>
+    <view wx:if="{{isRunning}}" class="btn-finish-early" bindtap="finishEarly">
+      <text>✅ 提前结束战斗</text>
+    </view>
+    <!-- 暂停中 -->
     <view wx:if="{{isPaused && !isCompleted}}" class="btn-start" bindtap="resumeTimer">
       <view class="btn-sparkle"></view>
       <text class="btn-icon">▶</text>
-      <text class="btn-label">继续刷！</text>
-    </view>
-    <view wx:if="{{isRunning}}" class="btn-finish-early" bindtap="finishEarly">
-      <text>✅ 刷完啦！</text>
+      <text class="btn-label">继续战斗！</text>
     </view>
     <view wx:if="{{!isRunning && !isCompleted}}" class="btn-retry" bindtap="resetTimer">
       <text>↻ 重新开始</text>
     </view>
-  </view>
-
-  <!-- ===== 完成庆祝（全屏覆盖） ===== -->
-  <view wx:if="{{isCompleted}}" class="celebrate-area">
-    <!-- 全屏撒花层 -->
-    <view class="confetti-fullscreen">
-      <!-- 彩色纸片 -->
-      <view wx:for="{{confetti}}" wx:key="id" wx:if="{{item.type === 'paper'}}"
-            class="confetti-paper"
-            style="left:{{item.x}}%;animation-delay:{{item.delay}}s;background:{{item.color}};width:{{item.w}}rpx;height:{{item.h}}rpx;--rotation:{{item.rotation}}deg;">
+    <!-- 胜利后 -->
+    <view wx:if="{{isCompleted}}" class="victory-actions">
+      <view class="victory-btn primary" bindtap="goCheckIn">
+        <text class="victory-btn-icon">📷</text>
+        <text class="victory-btn-text">拍照打卡</text>
       </view>
-      <!-- emoji表情 -->
-      <view wx:for="{{confetti}}" wx:key="id" wx:if="{{item.type === 'emoji'}}"
-            class="confetti-emoji-item"
-            style="left:{{item.x}}%;animation-delay:{{item.delay}}s;font-size:{{item.size}}rpx;">
-        {{item.emoji}}
+      <view class="victory-btn secondary" bindtap="saveDecoration">
+        <text class="victory-btn-icon">💾</text>
+        <text class="victory-btn-text">保存纪念</text>
       </view>
-      <!-- 大号特效emoji -->
-      <view wx:for="{{confetti}}" wx:key="id" wx:if="{{item.type === 'big'}}"
-            class="confetti-big"
-            style="left:{{item.x}}%;animation-delay:{{item.delay}}s;font-size:{{item.size}}rpx;">
-        {{item.emoji}}
+      <view class="victory-btn outline" bindtap="goBrushingPage">
+        <text class="victory-btn-text">查看统计 →</text>
       </view>
-    </view>
-
-    <!-- 光芒效果 -->
-    <view class="rays-container">
-      <view class="ray ray-1"></view>
-      <view class="ray ray-2"></view>
-      <view class="ray ray-3"></view>
-      <view class="ray ray-4"></view>
-      <view class="ray ray-5"></view>
-      <view class="ray ray-6"></view>
-    </view>
-
-    <!-- 完成弹窗 -->
-    <view class="done-box">
-      <view class="done-close" bindtap="closeCelebration">✕</view>
-      <view class="done-header">
-        <text class="done-emoji-big">🎉</text>
-        <text class="done-emoji-big">🦷</text>
-        <text class="done-emoji-big">🎉</text>
-      </view>
-      <text class="done-title">钰婷太棒啦！</text>
-      <view class="done-stars-row">
-        <text wx:for="{{completedStarsArr}}" wx:key="index" class="done-star"
-              style="animation-delay:{{index * 0.15}}s">⭐</text>
-      </view>
-      <text class="done-msg">{{completedText}}</text>
-      <view class="done-points" wx:if="{{brushPoints > 0}}">
-        <text>🏆 本次积分：{{brushPoints}}</text>
-      </view>
-
-      <!-- 刷牙后贴纸装饰 -->
-      <view class="sticker-section" wx:if="{{showStickerPicker}}">
-        <text class="sticker-title">给牙齿贴个贴纸吧~✨</text>
-        <view class="sticker-row">
-          <view wx:for="{{stickers}}" wx:key="id"
-                class="sticker-btn"
-                bindtap="onTapSticker"
-                data-id="{{item.id}}">
-            <text class="sticker-emoji">{{item.emoji}}</text>
-          </view>
-        </view>
-        <view class="sticker-actions">
-          <view class="btn-save-decoration" bindtap="saveDecoration">💾 保存纪念</view>
-          <view class="btn-checkin" bindtap="goCheckIn">📷 拍照打卡</view>
-        </view>
-      </view>
-
-      <view wx:if="{{!showStickerPicker}}" class="btn-checkin" bindtap="goCheckIn">📷 拍照打卡</view>
     </view>
   </view>
 

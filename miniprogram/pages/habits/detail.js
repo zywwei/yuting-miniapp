@@ -1,4 +1,7 @@
 var util = require('../../utils/util.js')
+var cloud = require('../../utils/cloud.js')
+var { getNavBarInfo, previewImage } = require('../../utils/page-helpers.js')
+var { getHabitConfig } = require('./checkin/habit-config.js')
 
 // 每种习惯的打卡样式配置
 var HABIT_STYLES = {
@@ -122,6 +125,8 @@ var HABIT_STYLES = {
 
 Page({
   data: {
+    statusBarHeight: 20,
+    capsuleRight: 80,
     type: '',
     habit: null,
     records: [],
@@ -133,17 +138,115 @@ Page({
     sleepStats: null,
     style: null,
     // 打卡动画
-    showCheckinAnimation: false
+    showCheckinAnimation: false,
+    // 特色表单
+    habitConfig: null,
+    habitFields: [],
+    formData: {},
+    // 照片
+    images: [],
+    // 留言
+    note: '',
+    // 评分
+    score: 5,
+    scoreLabels: ['加油哦', '还不错', '很好', '非常好', '超级棒！'],
+    scoreLabel: '超级棒！',
+    // 成功提示
+    showSuccess: false,
+    successText: '打卡成功！'
   },
 
   onLoad: function(options) {
+    var navInfo = getNavBarInfo()
     var type = options.type || 'brushing'
-    this.setData({ type: type })
+    var config = getHabitConfig(type)
+
+    this.setData({
+      statusBarHeight: navInfo.statusBarHeight,
+      capsuleRight: navInfo.capsuleRight,
+      type: type,
+      habitConfig: config,
+      habitFields: config.fields || [],
+      formData: this.initFormData(config)
+    })
+
     this.loadHabitDetail(type)
   },
 
   onShow: function() {
-    this.loadHabitDetail(this.data.type)
+    // 只刷新统计数据和记录，不重置表单状态
+    this.loadRecordsAndStats()
+    this.applyEditedPhoto()
+  },
+
+  // 只加载记录和统计（不重置表单）
+  loadRecordsAndStats: function() {
+    var type = this.data.type
+    var records = wx.getStorageSync('habitRecords') || []
+    var habitRecords = records.filter(function(r) { return r.type === type })
+    habitRecords.sort(function(a, b) { return new Date(b.date) - new Date(a.date) })
+
+    var total = habitRecords.length
+    var streak = this.calcStreak(habitRecords)
+    var weekRate = this.calcWeekRate(habitRecords)
+
+    var today = util.getTodayStr()
+    var todayRecords = habitRecords.filter(function(r) { return r.date === today })
+    var done = todayRecords.length
+    var completed = done >= (this.data.habit ? this.data.habit.target : 1)
+
+    this.setData({
+      records: habitRecords.slice(0, 30),
+      stats: { total: total, streak: streak, weekRate: weekRate },
+      todayDone: done,
+      completed: completed
+    })
+  },
+
+  // 初始化表单数据
+  initFormData: function(config) {
+    var formData = {}
+    if (config && config.fields) {
+      var now = new Date()
+      var currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0')
+
+      config.fields.forEach(function(field) {
+        if (field.type === 'counter') {
+          formData[field.key] = field.default || 0
+        } else if (field.type === 'mood' || field.type === 'select') {
+          formData[field.key] = field.multiple ? [] : ''
+        } else if (field.type === 'time' && field.defaultToNow) {
+          formData[field.key] = currentTime
+        } else {
+          formData[field.key] = ''
+        }
+      })
+    }
+    return formData
+  },
+
+  // 从画画编辑器返回时，应用编辑后的照片
+  applyEditedPhoto: function() {
+    var editedPath = wx.getStorageSync('habitEditedPhoto')
+    if (!editedPath) return
+    wx.removeStorageSync('habitEditedPhoto')
+
+    var originalPath = wx.getStorageSync('habitEditPhoto')
+    wx.removeStorageSync('habitEditPhoto')
+
+    var images = this.data.images.slice()
+    if (originalPath) {
+      var index = images.indexOf(originalPath)
+      if (index !== -1) {
+        images[index] = editedPath
+      } else {
+        images.push(editedPath)
+      }
+    } else {
+      images.push(editedPath)
+    }
+    this.setData({ images: images })
+    wx.showToast({ title: '编辑已保存！', icon: 'success' })
   },
 
   // 加载习惯详情
@@ -301,8 +404,138 @@ Page({
     return Math.round((completedDays / 7) * 100)
   },
 
+  // ===== 特色表单处理 =====
+
+  // 文本输入
+  onFieldInput: function(e) {
+    var key = e.currentTarget.dataset.key
+    var formData = this.data.formData
+    formData[key] = e.detail.value
+    this.setData({ formData: formData })
+  },
+
+  // 时间选择
+  onFieldTimeChange: function(e) {
+    var key = e.currentTarget.dataset.key
+    var formData = this.data.formData
+    formData[key] = e.detail.value
+    this.setData({ formData: formData })
+  },
+
+  // 计数器增减
+  onFieldCounter: function(e) {
+    var key = e.currentTarget.dataset.key
+    var action = e.currentTarget.dataset.action
+    var field = this.data.habitFields.find(function(f) { return f.key === key })
+    var formData = this.data.formData
+    var value = formData[key] || 0
+
+    if (action === 'add') {
+      value = Math.min(value + 1, field.max || 99)
+    } else {
+      value = Math.max(value - 1, field.min || 0)
+    }
+
+    formData[key] = value
+    this.setData({ formData: formData })
+  },
+
+  // 单选/多选
+  onFieldSelect: function(e) {
+    var key = e.currentTarget.dataset.key
+    var value = e.currentTarget.dataset.value
+    var field = this.data.habitFields.find(function(f) { return f.key === key })
+    var formData = this.data.formData
+
+    if (field.multiple) {
+      var arr = formData[key] || []
+      var index = arr.indexOf(value)
+      if (index > -1) {
+        arr.splice(index, 1)
+      } else {
+        arr.push(value)
+      }
+      formData[key] = arr
+    } else {
+      formData[key] = value
+    }
+
+    this.setData({ formData: formData })
+  },
+
+  // 心情选择
+  onFieldMood: function(e) {
+    var key = e.currentTarget.dataset.key
+    var value = e.currentTarget.dataset.value
+    var formData = this.data.formData
+    formData[key] = value
+    this.setData({ formData: formData })
+  },
+
+  // 输入备注
+  onNoteInput: function(e) {
+    this.setData({ note: e.detail.value })
+  },
+
+  // 选择评分
+  selectScore: function(e) {
+    var score = e.currentTarget.dataset.score
+    this.setData({
+      score: score,
+      scoreLabel: this.data.scoreLabels[score - 1]
+    })
+  },
+
+  // ===== 照片处理 =====
+
+  // 拍照（支持多张）
+  takePhoto: function() {
+    var remainCount = 9 - this.data.images.length
+    if (remainCount <= 0) {
+      wx.showToast({ title: '最多9张照片', icon: 'none' })
+      return
+    }
+
+    var that = this
+    wx.chooseMedia({
+      count: remainCount,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed'],
+      success: function(res) {
+        var newImages = res.tempFiles.map(function(f) { return f.tempFilePath })
+        var images = that.data.images.concat(newImages)
+        that.setData({ images: images })
+      }
+    })
+  },
+
+  // 删除照片
+  deletePhoto: function(e) {
+    var index = e.currentTarget.dataset.index
+    var images = this.data.images.slice()
+    images.splice(index, 1)
+    this.setData({ images: images })
+  },
+
+  // 编辑照片（跳转画画页）
+  editPhoto: function(e) {
+    var path = e.currentTarget.dataset.path
+    wx.setStorageSync('habitEditPhoto', path)
+    wx.navigateTo({
+      url: '/pages/create/draw/draw?mode=habit&photo=' + encodeURIComponent(path)
+    })
+  },
+
+  // 预览图片
+  previewImage: function(e) {
+    var path = e.currentTarget.dataset.path
+    previewImage(path, this.data.images)
+  },
+
   // 打卡
   checkIn: function() {
+    var that = this
     var type = this.data.type
     var habit = this.data.habit
     var style = this.data.style
@@ -310,6 +543,12 @@ Page({
     var records = wx.getStorageSync('habitRecords') || []
     var now = new Date()
     var currentTime = now.toTimeString().slice(0, 5)
+    var currentHour = now.getHours()
+    var images = this.data.images
+    var note = this.data.note.trim()
+    var score = this.data.score
+    var formData = this.data.formData
+    var config = this.data.habitConfig
 
     // 今日已完成次数
     var todayRecords = records.filter(function(r) { return r.date === today && r.type === type })
@@ -319,50 +558,152 @@ Page({
     }
 
     // 作息类习惯的时间验证
-    if (type === 'early_up') {
-      var hour = now.getHours()
-      if (hour >= 12) {
-        wx.showModal({
-          title: '提示',
-          content: '现在是下午了，早起打卡只能在上午12点前哦~',
-          showCancel: false
-        })
+    if (type === 'early_up' && currentHour >= 12) {
+      wx.showModal({
+        title: '提示',
+        content: '现在是下午了，早起打卡只能在上午12点前哦~',
+        showCancel: false
+      })
+      return
+    }
+
+    if (type === 'nap' && (currentHour < 11 || currentHour >= 16)) {
+      wx.showModal({
+        title: '提示',
+        content: '午睡打卡时间是11:00-16:00哦~',
+        showCancel: false
+      })
+      return
+    }
+
+    // 生成特色摘要
+    var summary = ''
+    if (config && config.summary) {
+      summary = config.summary(formData)
+    }
+
+    wx.showLoading({ title: '保存中...' })
+
+    // 持久化图片（带超时保护）
+    var saveImages = function(callback) {
+      if (images.length === 0) {
+        callback([])
         return
       }
+
+      var savedCount = 0
+      var savedImages = []
+      var timeoutCalled = false
+
+      // 超时保护：10秒后强制回调
+      var timeout = setTimeout(function() {
+        if (!timeoutCalled && savedCount < images.length) {
+          timeoutCalled = true
+          console.warn('图片持久化超时，使用原始路径')
+          // 用原始路径填充未完成的位置
+          images.forEach(function(img, i) {
+            if (!savedImages[i]) savedImages[i] = img
+          })
+          callback(savedImages)
+        }
+      }, 10000)
+
+      images.forEach(function(img, index) {
+        if (timeoutCalled) return
+
+        if (img.startsWith(wx.env.USER_DATA_PATH) || img.startsWith('cloud://')) {
+          savedImages[index] = img
+          savedCount++
+          if (savedCount === images.length) {
+            clearTimeout(timeout)
+            callback(savedImages)
+          }
+        } else {
+          util.saveImageToPersistent(img).then(function(savedPath) {
+            if (timeoutCalled) return
+            savedImages[index] = savedPath
+            savedCount++
+            if (savedCount === images.length) {
+              clearTimeout(timeout)
+              callback(savedImages)
+            }
+          }).catch(function() {
+            if (timeoutCalled) return
+            savedImages[index] = img
+            savedCount++
+            if (savedCount === images.length) {
+              clearTimeout(timeout)
+              callback(savedImages)
+            }
+          })
+        }
+      })
     }
 
-    if (type === 'nap') {
-      var hour = now.getHours()
-      if (hour < 11 || hour >= 16) {
-        wx.showModal({
-          title: '提示',
-          content: '午睡打卡时间是11:00-16:00哦~',
-          showCancel: false
-        })
-        return
+    saveImages(function(savedImages) {
+      var newRecord = {
+        id: util.generateId(),
+        type: type,
+        date: today,
+        time: currentTime,
+        images: savedImages,
+        imagePath: savedImages[0] || '',
+        note: note,
+        score: score,
+        formData: formData,
+        summary: summary,
+        createTime: now.toISOString()
       }
-    }
 
-    var newRecord = {
-      id: util.generateId(),
-      type: type,
-      date: today,
-      time: currentTime,
-      createTime: now.toISOString()
-    }
+      records.unshift(newRecord)
+      wx.setStorageSync('habitRecords', records)
 
-    records.unshift(newRecord)
-    wx.setStorageSync('habitRecords', records)
+      // 尝试同步云端
+      if (cloud.isCloudReady && cloud.isCloudReady()) {
+        cloud.uploadHabitRecord(newRecord).catch(function(err) {
+          console.warn('云端同步失败，已保留本地:', err)
+        })
+      }
 
-    // 显示打卡动画
-    this.setData({ showCheckinAnimation: true })
-    var self = this
-    setTimeout(function() {
-      self.setData({ showCheckinAnimation: false })
-    }, 1500)
+      wx.hideLoading()
 
-    // 显示成功提示
-    wx.showToast({ title: style.successText, icon: 'success' })
-    this.loadHabitDetail(type)
+      // 显示打卡动画
+      that.setData({ showCheckinAnimation: true })
+      setTimeout(function() {
+        that.setData({ showCheckinAnimation: false })
+      }, 1500)
+
+      // 重置表单
+      that.setData({
+        images: [],
+        note: '',
+        score: 5,
+        scoreLabel: '超级棒！',
+        formData: that.initFormData(that.data.habitConfig)
+      })
+
+      // 显示成功提示
+      that.setData({
+        showSuccess: true,
+        successText: style.successText
+      })
+      setTimeout(function() {
+        that.setData({ showSuccess: false })
+      }, 2000)
+
+      that.loadHabitDetail(type)
+    })
+  },
+
+  // 返回
+  goBack: function() {
+    wx.navigateBack()
+  },
+
+  // 跳转到统计页
+  goStats: function() {
+    wx.navigateTo({
+      url: '/pages/habits/habit-stats/habit-stats?type=' + this.data.type
+    })
   },
 })

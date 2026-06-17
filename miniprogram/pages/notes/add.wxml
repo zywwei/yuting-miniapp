@@ -78,6 +78,23 @@
     </view>
   </view>
 
+  <!-- 照片 -->
+  <view class="section">
+    <view class="section-title">照片（可选）</view>
+    <view class="photo-list">
+      <view wx:for="{{images}}" wx:key="*this" class="photo-item">
+        <image src="{{item}}" mode="aspectFill" class="photo-img" bindtap="previewImage" data-path="{{item}}" />
+        <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
+        <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
+      </view>
+      <view wx:if="{{images.length < 9}}" class="photo-add" bindtap="takePhoto">
+        <text class="add-icon">📷</text>
+        <text class="add-text">拍照</text>
+      </view>
+    </view>
+    <view class="photo-hint">支持拍照或从相册选择，最多9张，可画画编辑</view>
+  </view>
+
   <!-- 保存按钮 -->
   <view class="save-btn" bindtap="save">保存笔记</view>
 </view>

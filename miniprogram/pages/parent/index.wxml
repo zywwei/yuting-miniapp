@@ -100,4 +100,35 @@
     </view>
     <view wx:else class="empty-text">暂无笔记</view>
   </view>
+
+  <!-- 数据备份与恢复 -->
+  <view class="section">
+    <view class="section-title">💾 数据备份与恢复</view>
+    <view class="backup-desc">备份所有数据（包括图片、记录、画作等），可随时恢复</view>
+
+    <!-- 导出备份 -->
+    <view class="backup-btn" bindtap="exportData">
+      <view class="backup-btn-icon">📤</view>
+      <view class="backup-btn-info">
+        <view class="backup-btn-title">导出备份</view>
+        <view class="backup-btn-desc">将所有数据导出为备份文件</view>
+      </view>
+      <view class="backup-btn-arrow">›</view>
+    </view>
+
+    <!-- 导入恢复 -->
+    <view class="backup-btn" bindtap="importData">
+      <view class="backup-btn-icon">📥</view>
+      <view class="backup-btn-info">
+        <view class="backup-btn-title">导入恢复</view>
+        <view class="backup-btn-desc">从备份文件恢复数据</view>
+      </view>
+      <view class="backup-btn-arrow">›</view>
+    </view>
+
+    <!-- 备份状态 -->
+    <view wx:if="{{backupStatus}}" class="backup-status {{backupStatusType}}">
+      <text>{{backupStatus}}</text>
+    </view>
+  </view>
 </view>

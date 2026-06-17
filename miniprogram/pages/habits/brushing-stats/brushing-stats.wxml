@@ -68,7 +68,9 @@
       <view
         wx:for="{{calendarDays}}"
         wx:key="date"
-        class="day-cell {{item.isCurrentMonth ? '' : 'other-month'}} {{item.isToday ? 'today' : ''}}"
+        class="day-cell {{item.isCurrentMonth ? '' : 'other-month'}} {{item.isToday ? 'today' : ''}} {{item.date === selectedDate ? 'selected' : ''}}"
+        bindtap="selectDate"
+        data-date="{{item.date}}"
       >
         <text class="day-number">{{item.day}}</text>
         <view wx:if="{{item.morning}}" class="day-mark morning-mark">☀️</view>
@@ -77,15 +79,112 @@
     </view>
   </view>
 
+  <!-- 本周趋势 -->
+  <view class="trend-card">
+    <view class="trend-title">📊 本周趋势</view>
+    <view class="trend-chart">
+      <view wx:for="{{weekTrend}}" wx:key="date" class="trend-bar-wrap">
+        <view class="trend-bar-bg">
+          <view class="trend-bar" style="height: {{item.percent}}%;"></view>
+        </view>
+        <text class="trend-label">{{item.weekday}}</text>
+        <view class="trend-dots">
+          <view wx:if="{{item.morning}}" class="trend-dot morning-dot"></view>
+          <view wx:if="{{item.evening}}" class="trend-dot evening-dot"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 当日摘要卡片 -->
+  <view wx:if="{{daySummary}}" class="day-summary-card">
+    <view class="day-summary-header">
+      <text class="day-summary-date">{{daySummary.date}} {{daySummary.weekday}}</text>
+      <text class="day-summary-badge {{daySummary.isComplete ? 'complete' : ''}}">{{daySummary.isComplete ? '✅ 早晚完成' : '⏳ 进行中'}}</text>
+    </view>
+    <view class="day-summary-row">
+      <view class="day-summary-item">
+        <text class="day-summary-icon">{{daySummary.morning ? '☀️' : '⬜'}}</text>
+        <text class="day-summary-label">早上</text>
+        <text class="day-summary-value">{{daySummary.morning ? '已刷 ' + daySummary.morning.score + '分' : '未刷'}}</text>
+      </view>
+      <view class="day-summary-divider"></view>
+      <view class="day-summary-item">
+        <text class="day-summary-icon">{{daySummary.evening ? '🌙' : '⬜'}}</text>
+        <text class="day-summary-label">晚上</text>
+        <text class="day-summary-value">{{daySummary.evening ? '已刷 ' + daySummary.evening.score + '分' : '未刷'}}</text>
+      </view>
+      <view class="day-summary-divider"></view>
+      <view class="day-summary-item">
+        <text class="day-summary-icon">⭐</text>
+        <text class="day-summary-label">积分</text>
+        <text class="day-summary-value">{{daySummary.totalPoints}}</text>
+      </view>
+    </view>
+    <!-- 补刷按钮：非今天、且有未刷时段 -->
+    <view wx:if="{{daySummary.canCatchUp}}" class="catch-up-row">
+      <view wx:if="{{!daySummary.morning}}" class="catch-up-btn" bindtap="catchUpBrush" data-time="morning">
+        <text>☀️ 补刷早上</text>
+      </view>
+      <view wx:if="{{!daySummary.evening}}" class="catch-up-btn" bindtap="catchUpBrush" data-time="evening">
+        <text>🌙 补刷晚上</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 积分与贴纸 -->
+  <view class="extras-row">
+    <view class="extra-card" bindtap="togglePointsPanel">
+      <text class="extra-icon">🏆</text>
+      <text class="extra-label">总积分</text>
+      <text class="extra-value">{{totalPoints}}</text>
+    </view>
+    <view class="extra-card" bindtap="toggleStickerAlbum">
+      <text class="extra-icon">🎨</text>
+      <text class="extra-label">贴纸册</text>
+      <text class="extra-value">{{decorations.length}}张</text>
+    </view>
+  </view>
+
+  <!-- 贴纸纪念册弹窗 -->
+  <view wx:if="{{showStickerAlbum}}" class="modal-mask" bindtap="toggleStickerAlbum">
+    <view class="sticker-album-modal" catchtap="noop">
+      <view class="detail-close" bindtap="toggleStickerAlbum">✕</view>
+      <view class="detail-header">
+        <text class="detail-emoji">🎨</text>
+        <text class="detail-title">贴纸纪念册</text>
+      </view>
+      <view wx:if="{{decorations.length > 0}}" class="sticker-album-list">
+        <view wx:for="{{decorations}}" wx:key="id" class="sticker-album-item">
+          <view class="sticker-album-date">{{item.date}} {{item.timeOfDay === 'morning' ? '☀️' : '🌙'}}</view>
+          <view class="sticker-album-emojis">
+            <text wx:for="{{item.stickers}}" wx:key="id" wx:for-item="s" class="sticker-album-emoji">{{s.emoji}}</text>
+          </view>
+          <view class="sticker-album-points">⭐ {{item.points}}分</view>
+        </view>
+      </view>
+      <view wx:else class="empty-history">
+        <text class="empty-icon">🎨</text>
+        <text class="empty-text">还没有贴纸哦~</text>
+        <text class="empty-tip">刷牙完成后给牙齿贴吧贴吧！</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 历史记录 -->
   <view class="history-card">
-    <view class="history-title">📝 最近记录</view>
+    <view class="history-title">
+      <text>📝 {{selectedDate ? selectedDate + ' 记录' : '最近记录'}}</text>
+      <text wx:if="{{selectedDate}}" class="history-show-all" bindtap="selectDate" data-date="{{selectedDate}}">查看全部</text>
+    </view>
 
     <view wx:if="{{records.length > 0}}" class="history-list">
       <view
         wx:for="{{records}}"
         wx:key="id"
         class="history-item"
+        bindtap="viewDetail"
+        data-id="{{item.id}}"
       >
         <image
           wx:if="{{item.imagePath}}"
@@ -115,6 +214,101 @@
       <text class="empty-icon">🦷</text>
       <text class="empty-text">还没有刷牙记录哦~</text>
       <text class="empty-tip">从今天开始，帮钰婷养成刷牙好习惯！</text>
+    </view>
+  </view>
+
+  <!-- 详情弹窗 -->
+  <view wx:if="{{showDetail && detailRecord}}" class="modal-mask" bindtap="closeDetail">
+    <view class="detail-modal" catchtap="noop">
+      <view class="detail-close" bindtap="closeDetail">✕</view>
+      <view class="detail-header">
+        <text class="detail-emoji">{{detailRecord.timeOfDay === 'morning' ? '☀️' : '🌙'}}</text>
+        <text class="detail-title">{{detailRecord.timeOfDayText}}刷牙详情</text>
+      </view>
+
+      <!-- 多图展示 -->
+      <scroll-view wx:if="{{detailRecord.images && detailRecord.images.length > 0}}" scroll-x class="detail-photo-scroll">
+        <view class="detail-photo-list">
+          <image wx:for="{{detailRecord.images}}" wx:key="*this" class="detail-photo-img" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" />
+        </view>
+      </scroll-view>
+      <view wx:elif="{{detailRecord.imagePath}}" class="detail-photo">
+        <image class="detail-photo-img" src="{{detailRecord.imagePath}}" mode="aspectFill" bindtap="previewImage" data-path="{{detailRecord.imagePath}}" />
+      </view>
+
+      <view class="detail-rows">
+        <view class="detail-row">
+          <text class="detail-label">📅 日期</text>
+          <text class="detail-value">{{detailRecord.date}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">🕐 时间</text>
+          <text class="detail-value">{{detailRecord.timeStr}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">⏱ 方式</text>
+          <text class="detail-value">{{detailRecord.durationText}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">⭐ 评分</text>
+          <text class="detail-value">{{detailRecord.score}}分 · {{detailRecord.scoreLabel}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detailRecord.points > 0}}">
+          <text class="detail-label">🏆 积分</text>
+          <text class="detail-value">+{{detailRecord.points}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detailRecord.completedAreas.length > 0}}">
+          <text class="detail-label">🦷 刷牙区域</text>
+          <text class="detail-value">{{detailRecord.areasText}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detailRecord.note}}">
+          <text class="detail-label">💬 备注</text>
+          <text class="detail-value">{{detailRecord.note}}</text>
+        </view>
+      </view>
+
+      <!-- 编辑模式 -->
+      <view wx:if="{{editingDetail}}" class="edit-section">
+        <view class="edit-label">修改评分</view>
+        <view class="score-selector">
+          <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this"
+                class="select-star {{editScore >= item ? 'active' : ''}}"
+                bindtap="setEditScore" data-score="{{item}}">⭐</view>
+        </view>
+        <input class="note-input" placeholder="修改备注" value="{{editNote}}" bindinput="onEditNoteInput" />
+        <view class="modal-actions">
+          <view class="modal-btn cancel" bindtap="cancelEdit">取消</view>
+          <view class="modal-btn confirm" bindtap="saveEdit">保存</view>
+        </view>
+      </view>
+
+      <view wx:if="{{!editingDetail}}" class="detail-edit-btn" bindtap="startEdit">
+        <text>✏️ 编辑</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 补刷评分弹窗 -->
+  <view wx:if="{{showScoreModal}}" class="modal-mask">
+    <view class="detail-modal">
+      <view class="detail-header">
+        <text class="detail-emoji">🦷</text>
+        <text class="detail-title">补刷{{modalTime === 'morning' ? '早上' : '晚上'}}刷牙</text>
+      </view>
+
+      <view class="score-selector">
+        <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this"
+              class="select-star {{score >= item ? 'active' : ''}}"
+              bindtap="selectScore" data-score="{{item}}">⭐</view>
+      </view>
+      <view class="score-label-text">{{scoreLabel}}</view>
+
+      <input class="note-input" placeholder="写点鼓励的话吧~（可选）" value="{{note}}" bindinput="onNoteInput" />
+
+      <view class="modal-actions">
+        <view class="modal-btn cancel" bindtap="cancelScore">取消</view>
+        <view class="modal-btn confirm" bindtap="confirmScore">确认补刷</view>
+      </view>
     </view>
   </view>
 

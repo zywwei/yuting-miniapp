@@ -97,6 +97,23 @@ function init() {
       writeTone(view, 0, total, 659, 0.1, 0.35)  // E
       writeTone(view, Math.floor(SAMPLE_RATE * 0.1), total, 784, 0.1, 0.4)  // G
       writeTone(view, Math.floor(SAMPLE_RATE * 0.2), total, 1047, 0.15, 0.45) // C高
+    }},
+    // 贴纸放置 - 轻快的叮声
+    sticker: { duration: 0.25, build: (view, total) => {
+      writeTone(view, 0, total, 1047, 0.08, 0.3)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.08), total, 1318, 0.12, 0.35)
+    }},
+    // 成就解锁 - 华丽的上行
+    achievement: { duration: 1.0, build: (view, total) => {
+      writeTone(view, 0, total, 523, 0.12, 0.3)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.12), total, 659, 0.12, 0.35)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.24), total, 784, 0.12, 0.4)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.36), total, 1047, 0.12, 0.45)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.48), total, 1318, 0.15, 0.5)
+      const s6 = Math.floor(SAMPLE_RATE * 0.65)
+      writeTone(view, s6, total, 1047, 0.3, 0.3)
+      writeTone(view, s6, total, 1318, 0.3, 0.3)
+      writeTone(view, s6, total, 1568, 0.3, 0.25)
     }}
   }
 

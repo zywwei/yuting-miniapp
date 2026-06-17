@@ -1,0 +1,39 @@
+<!-- 故事对话组件 -->
+<view wx:if="{{show}}" class="dialog-mask" bindtap="noop">
+  <!-- 对话框 -->
+  <view class="dialog-container" wx:if="{{showContent}}">
+    <!-- 跳过按钮 -->
+    <view class="skip-btn" catchtap="onSkip">
+      <text>跳过 ▶▶</text>
+    </view>
+
+    <!-- 章节标题 -->
+    <view wx:if="{{chapter && currentDialogueIndex === 0}}" class="chapter-header">
+      <view class="chapter-emoji">{{chapter.emoji}}</view>
+      <view class="chapter-name">{{chapter.name}}</view>
+      <view wx:if="{{chapter.description}}" class="chapter-desc">{{chapter.description}}</view>
+    </view>
+
+    <!-- 对话内容 -->
+    <view wx:if="{{currentDialogue}}" class="dialog-content">
+      <view class="dialog-emoji">{{currentDialogue.emoji}}</view>
+      <view class="dialog-text-box">
+        <text class="dialog-text">{{typingText}}</text>
+        <text wx:if="{{typingComplete}}" class="dialog-cursor">|</text>
+      </view>
+      <!-- 点击继续提示 -->
+      <view wx:if="{{typingComplete}}" class="continue-hint" catchtap="onNextDialogue">
+        <text>点击继续 ▶</text>
+      </view>
+    </view>
+
+    <!-- 进度指示器 -->
+    <view class="dialog-progress">
+      <view
+        wx:for="{{dialogues}}"
+        wx:key="index"
+        class="progress-dot {{index < currentDialogueIndex ? 'completed' : (index === currentDialogueIndex ? 'current' : '')}}"
+      />
+    </view>
+  </view>
+</view>

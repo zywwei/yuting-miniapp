@@ -1,5 +1,25 @@
 <!-- 习惯详情页 -->
 <view class="container" style="background: {{style.bgGradient}};">
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+
+  <!-- 顶部工具栏 -->
+  <view class="toolbar" style="padding-right: {{capsuleRight}}px;">
+    <view class="tool-left">
+      <view class="tool-btn" bindtap="goBack">
+        <text>← 返回</text>
+      </view>
+    </view>
+    <view class="tool-center">
+      <text class="tool-title">{{habit.icon}} {{habit.name}}</text>
+    </view>
+    <view class="tool-right">
+      <view class="tool-btn" bindtap="goStats">
+        <text>📊 统计</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 打卡动画 -->
   <view class="checkin-animation {{showCheckinAnimation ? 'show' : ''}}">
     <view class="animation-icon">{{style.icon}}</view>
@@ -58,21 +78,146 @@
     </view>
   </view>
 
+  <!-- 特色表单区域 -->
+  <view wx:if="{{habitFields.length > 0 && !completed}}" class="section custom-fields">
+    <view class="section-title">打卡详情</view>
+    <view wx:for="{{habitFields}}" wx:key="key" class="field-item">
+      <view class="field-label">
+        <text>{{item.icon}} {{item.label}}</text>
+        <text wx:if="{{item.required}}" class="field-required">*</text>
+      </view>
+
+      <!-- 文本输入 -->
+      <view wx:if="{{item.type === 'text'}}" class="field-input">
+        <input
+          placeholder="{{item.placeholder || '请输入'}}"
+          value="{{formData[item.key]}}"
+          bindinput="onFieldInput"
+          data-key="{{item.key}}"
+        />
+      </view>
+
+      <!-- 时间选择 -->
+      <view wx:if="{{item.type === 'time'}}" class="field-input">
+        <picker mode="time" value="{{formData[item.key] || '00:00'}}" bindchange="onFieldTimeChange" data-key="{{item.key}}">
+          <view class="time-picker {{formData[item.key] ? 'selected' : ''}}">
+            {{formData[item.key] || item.placeholder || '选择时间'}}
+          </view>
+        </picker>
+      </view>
+
+      <!-- 计数器 -->
+      <view wx:if="{{item.type === 'counter'}}" class="field-counter">
+        <view class="counter-btn {{formData[item.key] <= (item.min || 0) ? 'disabled' : ''}}"
+              bindtap="onFieldCounter" data-key="{{item.key}}" data-action="minus">
+          <text>-</text>
+        </view>
+        <view class="counter-value">
+          <text>{{formData[item.key] || 0}}</text>
+        </view>
+        <view class="counter-btn {{formData[item.key] >= (item.max || 99) ? 'disabled' : ''}}"
+              bindtap="onFieldCounter" data-key="{{item.key}}" data-action="add">
+          <text>+</text>
+        </view>
+      </view>
+
+      <!-- 单选/多选 -->
+      <view wx:if="{{item.type === 'select'}}" class="field-options">
+        <view wx:for="{{item.options}}" wx:for-item="opt" wx:key="value"
+              class="option-item {{item.multiple ? (formData[item.key].indexOf(opt.value) > -1 ? 'selected' : '') : (formData[item.key] === opt.value ? 'selected' : '')}}"
+              bindtap="onFieldSelect" data-key="{{item.key}}" data-value="{{opt.value}}">
+          <text class="option-icon">{{opt.icon}}</text>
+          <text class="option-label">{{opt.label}}</text>
+        </view>
+      </view>
+
+      <!-- 心情选择 -->
+      <view wx:if="{{item.type === 'mood'}}" class="field-mood">
+        <view wx:for="{{item.options}}" wx:for-item="opt" wx:key="value"
+              class="mood-item {{formData[item.key] === opt.value ? 'selected' : ''}}"
+              bindtap="onFieldMood" data-key="{{item.key}}" data-value="{{opt.value}}">
+          <text class="mood-icon">{{opt.icon}}</text>
+          <text class="mood-label">{{opt.label}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 照片区域 -->
+  <view wx:if="{{!completed}}" class="section photo-section">
+    <view class="section-title">📷 拍照记录（可选）</view>
+    <view class="photo-list">
+      <view wx:for="{{images}}" wx:key="*this" class="photo-item">
+        <image src="{{item}}" mode="aspectFill" class="photo-img" bindtap="previewImage" data-path="{{item}}" />
+        <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
+        <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
+      </view>
+      <view wx:if="{{images.length < 9}}" class="photo-add" bindtap="takePhoto">
+        <text class="add-icon">📷</text>
+        <text class="add-text">拍照</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 评分区域 -->
+  <view wx:if="{{!completed}}" class="section score-section">
+    <view class="score-label">给今天的{{habit.name}}打分</view>
+    <view class="score-stars">
+      <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this"
+            class="score-star {{score >= item ? 'active' : ''}}"
+            bindtap="selectScore" data-score="{{item}}">
+        ⭐
+      </view>
+    </view>
+    <view class="score-text">{{scoreLabel}}</view>
+  </view>
+
+  <!-- 留言区域 -->
+  <view wx:if="{{!completed}}" class="section note-section">
+    <textarea class="note-input"
+              placeholder="写点什么记录一下吧~（可选）"
+              value="{{note}}"
+              bindinput="onNoteInput"
+              maxlength="200"
+              auto-height />
+  </view>
+
   <!-- 打卡按钮 -->
-  <view class="checkin-btn {{completed ? 'completed' : ''}}" bindtap="checkIn">
-    <view class="btn-icon">{{completed ? '✅' : style.icon}}</view>
-    <view class="btn-text">{{completed ? '今日已完成' : style.checkinText}}</view>
+  <view class="checkin-btn-area">
+    <view class="checkin-btn {{completed ? 'completed' : ''}}" bindtap="checkIn">
+      <view class="btn-icon">{{completed ? '✅' : style.icon}}</view>
+      <view class="btn-text">{{completed ? '今日已完成' : style.checkinText}}</view>
+    </view>
   </view>
 
   <!-- 打卡记录 -->
   <view class="section">
-    <view class="section-title">打卡记录</view>
+    <view class="section-title">📋 打卡记录</view>
     <view class="record-list" wx:if="{{records.length > 0}}">
       <view wx:for="{{records}}" wx:key="id" class="record-item">
-        <view class="record-date">{{item.date}}</view>
-        <view class="record-time">{{item.time}}</view>
+        <view class="record-left">
+          <view class="record-date">{{item.date}}</view>
+          <view class="record-time">{{item.time}}</view>
+        </view>
+        <view class="record-right">
+          <view wx:if="{{item.summary}}" class="record-summary">{{item.summary}}</view>
+          <view wx:elif="{{item.note}}" class="record-note">{{item.note}}</view>
+          <view wx:if="{{item.score}}" class="record-score">
+            <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
+                  class="star {{star <= item.score ? 'active' : ''}}">⭐</text>
+          </view>
+        </view>
       </view>
     </view>
     <view wx:else class="empty">暂无打卡记录</view>
   </view>
+
+  <!-- 成功提示 -->
+  <view wx:if="{{showSuccess}}" class="success-toast">
+    <view class="success-icon">✨</view>
+    <view class="success-text">{{successText}}</view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
 </view>

@@ -4,6 +4,8 @@
     "pages/habits/index",
     "pages/habits/detail",
     "pages/habits/add",
+    "pages/habits/checkin/checkin",
+    "pages/habits/habit-stats/habit-stats",
     "pages/habits/brushing/brushing",
     "pages/habits/brushing-timer/brushing-timer",
     "pages/habits/brushing-stats/brushing-stats",

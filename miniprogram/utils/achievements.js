@@ -4,6 +4,7 @@
  */
 
 var learnData = require('./learn-data.js')
+var util = require('./util.js')
 
 // 成就定义
 var ACHIEVEMENTS = [
@@ -39,13 +40,11 @@ var ACHIEVEMENTS = [
 
 // 获取当前数据
 var getCurrentData = function() {
-  var records = wx.getStorageSync('habitRecords') || []
   var drawings = wx.getStorageSync('drawings') || []
   var notes = wx.getStorageSync('notes') || []
 
-  // 计算连续刷牙天数
-  var brushingRecords = records.filter(function(r) { return r.type === 'brushing' })
-  var brushingStreak = calcStreak(brushingRecords)
+  // 从 brushingRecords 获取刷牙连续天数（与统计页统一）
+  var brushingStats = util.getBrushingStats()
 
   // 学习进度
   var cardsLearned = learnData.getCardsLearnedCount()
@@ -56,40 +55,13 @@ var getCurrentData = function() {
   var unlockedCount = unlocked.length
 
   return {
-    brushingStreak: brushingStreak,
+    brushingStreak: brushingStats.streak,
     cardsLearned: cardsLearned,
     poemsMemorized: poemsMemorized,
     drawingsCount: drawings.length,
     notesCount: notes.length,
     unlockedCount: unlockedCount
   }
-}
-
-// 计算连续天数
-var calcStreak = function(records) {
-  if (records.length === 0) return 0
-
-  var dateSet = {}
-  records.forEach(function(r) { dateSet[r.date] = true })
-  var dates = Object.keys(dateSet).sort().reverse()
-  var streak = 0
-
-  for (var i = 0; i < dates.length; i++) {
-    var expectedDate = new Date()
-    expectedDate.setDate(expectedDate.getDate() - i)
-    var year = expectedDate.getFullYear()
-    var month = String(expectedDate.getMonth() + 1).padStart(2, '0')
-    var day = String(expectedDate.getDate()).padStart(2, '0')
-    var expectedStr = year + '-' + month + '-' + day
-
-    if (dates[i] === expectedStr) {
-      streak++
-    } else {
-      break
-    }
-  }
-
-  return streak
 }
 
 // 获取已解锁成就

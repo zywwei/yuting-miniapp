@@ -184,6 +184,16 @@
   border: 2rpx solid #FF9AAB;
 }
 
+.day-cell.selected {
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  border: 2rpx solid #FF6B8A;
+}
+
+.day-cell.selected .day-number {
+  color: #fff;
+  font-weight: bold;
+}
+
 .day-number {
   font-size: 22rpx;
   color: #333;
@@ -203,6 +213,309 @@
   left: 8rpx;
 }
 
+/* 积分与贴纸入口 */
+.extras-row {
+  display: flex;
+  gap: 20rpx;
+  margin: 0 30rpx 30rpx;
+}
+
+.extra-card {
+  flex: 1;
+  background: white;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(255, 154, 171, 0.1);
+}
+
+.extra-card:active {
+  background: #FFF8F9;
+}
+
+.extra-icon {
+  font-size: 40rpx;
+}
+
+.extra-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.extra-value {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #FF6B8A;
+  margin-left: auto;
+}
+
+/* 贴纸纪念册弹窗 */
+.sticker-album-modal {
+  width: 85%;
+  background: white;
+  border-radius: 32rpx;
+  padding: 40rpx;
+  position: relative;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.sticker-album-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.sticker-album-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFF8F9;
+  border-radius: 16rpx;
+  padding: 16rpx 20rpx;
+}
+
+.sticker-album-date {
+  font-size: 24rpx;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.sticker-album-emojis {
+  display: flex;
+  gap: 8rpx;
+  font-size: 32rpx;
+}
+
+.sticker-album-points {
+  font-size: 22rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+/* 当日摘要卡片 */
+.day-summary-card {
+  background: white;
+  border-radius: 28rpx;
+  margin: 0 30rpx 30rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 16rpx rgba(255, 154, 171, 0.1);
+  border-left: 8rpx solid #FF6B8A;
+}
+
+.day-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.day-summary-date {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.day-summary-badge {
+  font-size: 22rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  background: #FFF3E0;
+  color: #FF9800;
+}
+
+.day-summary-badge.complete {
+  background: #E8F5E9;
+  color: #4CAF50;
+}
+
+.day-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.day-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.day-summary-icon {
+  font-size: 40rpx;
+}
+
+.day-summary-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.day-summary-value {
+  font-size: 24rpx;
+  color: #333;
+  font-weight: bold;
+}
+
+.day-summary-divider {
+  width: 2rpx;
+  height: 60rpx;
+  background: #F0F0F0;
+}
+
+/* 本周趋势 */
+.trend-card {
+  background: white;
+  border-radius: 28rpx;
+  margin: 0 30rpx 30rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 16rpx rgba(255, 154, 171, 0.1);
+}
+
+.trend-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 24rpx;
+}
+
+.trend-chart {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 200rpx;
+}
+
+.trend-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  flex: 1;
+}
+
+.trend-bar-bg {
+  width: 36rpx;
+  height: 140rpx;
+  background: #F5F5F5;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.trend-bar {
+  width: 100%;
+  background: linear-gradient(180deg, #FF9AAB, #FF6B8A);
+  border-radius: 18rpx;
+  transition: height 0.3s;
+  min-height: 0;
+}
+
+.trend-label {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.trend-dots {
+  display: flex;
+  gap: 4rpx;
+}
+
+.trend-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+}
+
+/* 补刷按钮 */
+.catch-up-row {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #F0F0F0;
+}
+
+.catch-up-btn {
+  flex: 1;
+  text-align: center;
+  background: linear-gradient(135deg, #81C784, #4CAF50);
+  color: white;
+  padding: 16rpx 0;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(76, 175, 80, 0.25);
+}
+
+.catch-up-btn:active {
+  transform: scale(0.96);
+}
+
+/* 补刷评分弹窗 */
+.score-selector {
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
+  margin: 30rpx 0;
+}
+
+.select-star {
+  font-size: 48rpx;
+  opacity: 0.25;
+  transition: all 0.2s;
+}
+
+.select-star.active {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.score-label-text {
+  font-size: 28rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+.note-input {
+  width: 90%;
+  height: 72rpx;
+  border: 2rpx solid #EEE;
+  border-radius: 16rpx;
+  padding: 0 20rpx;
+  font-size: 26rpx;
+  margin: 0 auto 24rpx;
+  text-align: left;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 24rpx;
+}
+
+.modal-btn {
+  padding: 16rpx 48rpx;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.modal-btn.cancel {
+  background: #F5F5F5;
+  color: #999;
+}
+
+.modal-btn.confirm {
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  color: white;
+}
+
 /* 历史记录 */
 .history-card {
   background: white;
@@ -217,6 +530,22 @@
   font-weight: bold;
   color: #333;
   margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-show-all {
+  font-size: 24rpx;
+  color: #FF6B8A;
+  font-weight: normal;
+  padding: 8rpx 20rpx;
+  background: rgba(255, 107, 138, 0.1);
+  border-radius: 20rpx;
+}
+
+.history-show-all:active {
+  background: rgba(255, 107, 138, 0.2);
 }
 
 .history-list {
@@ -326,6 +655,138 @@
   color: #999;
   margin-top: 8rpx;
   display: block;
+}
+
+/* 详情弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.detail-modal {
+  width: 85%;
+  background: white;
+  border-radius: 32rpx;
+  padding: 40rpx;
+  position: relative;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.detail-close {
+  position: absolute;
+  top: 24rpx;
+  right: 30rpx;
+  font-size: 36rpx;
+  color: #999;
+  padding: 10rpx;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 30rpx;
+}
+
+.detail-emoji {
+  font-size: 48rpx;
+}
+
+.detail-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.detail-photo {
+  margin-bottom: 24rpx;
+}
+
+.detail-photo-scroll {
+  white-space: nowrap;
+  margin-bottom: 24rpx;
+}
+
+.detail-photo-list {
+  display: inline-flex;
+  gap: 16rpx;
+}
+
+.detail-photo-img {
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 20rpx;
+  background: #F8F8F8;
+  flex-shrink: 0;
+}
+
+.detail-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 26rpx;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: bold;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-all;
+}
+
+/* 编辑按钮 */
+.detail-edit-btn {
+  text-align: center;
+  margin-top: 24rpx;
+  padding: 16rpx 0;
+  border-top: 1rpx solid #F0F0F0;
+  font-size: 28rpx;
+  color: #FF6B8A;
+}
+
+.detail-edit-btn:active {
+  opacity: 0.7;
+}
+
+.edit-section {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #F0F0F0;
+}
+
+.edit-label {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+  text-align: center;
 }
 
 .safe-bottom {

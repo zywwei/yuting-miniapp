@@ -66,13 +66,21 @@ Page({
     colors: [],
     brushSizes: [],
     drawingMusicEnabled: false,
-    // 贴纸选择列表
+    // 贴纸选择列表（emoji）
     stickers: [
       '❤️', '⭐', '🌟', '💖', '🎀', '🌸', '🌻', '🦋',
       '🐝', '🐞', '🌈', '☁️', '☀️', '🌙', '💫', '✨',
       '🍎', '🍓', '🍩', '🧁', '🍰', '🍭', '🎈', '🎉',
       '👑', '👸', '🦄', '🐱', '🐶', '🐰', '🐻', '🦊'
     ],
+    // 文字贴纸
+    textStickers: [
+      '真棒！', '加油！', '好厉害！', '太棒了！',
+      '棒棒哒！', '厉害！', '完美！', '最棒！',
+      '漂亮！', '真厉害！', '好样的！', '继续加油！',
+      '666', 'YYDS', '爱你！', '么么哒！'
+    ],
+    stickerTab: 'emoji', // emoji | text
     selectedSticker: '❤️',
     // 贴纸图层数据
     stickerOverlays: [],
@@ -110,6 +118,7 @@ Page({
     const mode = options.mode || 'free'
     const templateId = options.templateId || ''
     const templateName = options.name || ''
+    const photoPath = options.photo ? decodeURIComponent(options.photo) : ''
     const sysInfo = wx.getSystemInfoSync()
 
     // 获取右上角胶囊按钮位置，计算右侧安全距离
@@ -121,6 +130,13 @@ Page({
       capsuleRight = 80
     }
 
+    const titleMap = {
+      parent: '和爸爸一起画',
+      brushing: '编辑刷牙照片',
+      habit: '编辑打卡照片',
+      note: '编辑笔记照片'
+    }
+
     this.setData({
       statusBarHeight: sysInfo.statusBarHeight || 20,
       capsuleRight: capsuleRight,
@@ -128,16 +144,17 @@ Page({
       brushSizes: app.globalData.brushSizes,
       templateId: templateId,
       templateName: templateName,
-      canvasTitle: mode === 'parent' ? '和爸爸一起画' : (templateName ? '涂色 - ' + templateName : '钰婷的画板'),
+      canvasTitle: titleMap[mode] || (templateName ? '涂色 - ' + templateName : '钰婷的画板'),
+      drawingMode: mode,
       soundEnabled: audio.enabled
     })
 
-    this.initCanvas(templateId)
+    this.initCanvas(templateId, photoPath)
   },
 
   // ========== 画布初始化 ==========
 
-  initCanvas(templateId) {
+  initCanvas(templateId, photoPath) {
     const query = wx.createSelectorQuery()
     query.select('#drawingCanvas')
       .fields({ node: true, size: true })
@@ -171,7 +188,13 @@ Page({
           ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight)
         }
 
-        this.saveHistory()
+        // 刷牙模式：自动加载照片作为背景
+        if (photoPath) {
+          this.loadPhotoAsBackground(photoPath)
+          // loadPhotoAsBackground 内部会调用 saveHistory
+        } else {
+          this.saveHistory()
+        }
       })
   },
 
@@ -382,6 +405,12 @@ Page({
   },
 
   // ========== 贴纸操作 ==========
+
+  // 切换贴纸分类
+  switchStickerTab(e) {
+    const tab = e.currentTarget.dataset.tab
+    this.setData({ stickerTab: tab })
+  },
 
   // 选择贴纸（从底部面板）
   selectSticker(e) {
@@ -665,6 +694,60 @@ Page({
           fail: reject
         })
       })
+
+      // 刷牙模式：保存编辑后的照片到刷牙记录
+      if (this.data.drawingMode === 'brushing') {
+        const editedPath = res.tempFilePath
+        wx.hideLoading()
+
+        // 将编辑后的图片保存到持久化目录
+        const savedPath = await util.saveImageToPersistent(editedPath)
+
+        // 存入 storage 供刷牙页面读取
+        wx.setStorageSync('brushingEditedPhoto', savedPath)
+
+        wx.showToast({ title: '编辑完成！', icon: 'success', duration: 1500 })
+        setTimeout(() => {
+          wx.navigateBack()
+        }, 1500)
+        return
+      }
+
+      // 习惯打卡模式：保存编辑后的照片到习惯打卡记录
+      if (this.data.drawingMode === 'habit') {
+        const editedPath = res.tempFilePath
+        wx.hideLoading()
+
+        // 将编辑后的图片保存到持久化目录
+        const savedPath = await util.saveImageToPersistent(editedPath)
+
+        // 存入 storage 供习惯打卡页面读取
+        wx.setStorageSync('habitEditedPhoto', savedPath)
+
+        wx.showToast({ title: '编辑完成！', icon: 'success', duration: 1500 })
+        setTimeout(() => {
+          wx.navigateBack()
+        }, 1500)
+        return
+      }
+
+      // 笔记模式：保存编辑后的照片到笔记记录
+      if (this.data.drawingMode === 'note') {
+        const editedPath = res.tempFilePath
+        wx.hideLoading()
+
+        // 将编辑后的图片保存到持久化目录
+        const savedPath = await util.saveImageToPersistent(editedPath)
+
+        // 存入 storage 供笔记页面读取
+        wx.setStorageSync('noteEditedPhoto', savedPath)
+
+        wx.showToast({ title: '编辑完成！', icon: 'success', duration: 1500 })
+        setTimeout(() => {
+          wx.navigateBack()
+        }, 1500)
+        return
+      }
 
       const drawing = {
         id: util.generateId(),
