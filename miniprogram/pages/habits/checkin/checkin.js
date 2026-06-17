@@ -1,7 +1,7 @@
-var util = require('../../../utils/util.js')
-var cloud = require('../../../utils/cloud.js')
-var { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
-var { getHabitConfig } = require('./habit-config.js')
+const util = require('../../../utils/util.js')
+const cloud = require('../../../utils/cloud.js')
+const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
+const { getHabitConfig } = require('./habit-config.js')
 
 Page({
   data: {
@@ -198,10 +198,11 @@ Page({
     var value = e.currentTarget.dataset.value
     var field = this.data.habitFields.find(function(f) { return f.key === key })
     var formData = this.data.formData
+    var habitFields = this.data.habitFields
 
     if (field.multiple) {
-      // 多选
-      var arr = formData[key] || []
+      // 多选 - 创建新数组确保 setData 能检测到变化
+      var arr = (formData[key] || []).slice()
       var index = arr.indexOf(value)
       if (index > -1) {
         arr.splice(index, 1)
@@ -214,7 +215,28 @@ Page({
       formData[key] = value
     }
 
-    this.setData({ formData: formData })
+    // 更新 habitFields 中的选项选中状态
+    habitFields = habitFields.map(function(f) {
+      if (f.key === key && f.options) {
+        var selectedValues = formData[key]
+        var updatedOptions = f.options.map(function(opt) {
+          var isSelected = false
+          if (Array.isArray(selectedValues)) {
+            isSelected = selectedValues.indexOf(opt.value) > -1
+          } else {
+            isSelected = selectedValues === opt.value
+          }
+          return Object.assign({}, opt, { selected: isSelected })
+        })
+        return Object.assign({}, f, { options: updatedOptions })
+      }
+      return f
+    })
+
+    this.setData({
+      formData: formData,
+      habitFields: habitFields
+    })
   },
 
   // 心情选择

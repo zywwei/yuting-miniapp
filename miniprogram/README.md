@@ -209,6 +209,293 @@ miniprogram/
 
 ## 📝 更新日志
 
+### 2026-06-17（统计页面日期样式修复）
+- **修复** 非当前月日期初始状态错误
+  - 原因：`selectedDate` 初始值是空字符串 `''`，与非当前月的空 `date` 匹配
+  - 修复：`selectedDate` 初始值改为 `null`
+  - WXML 中添加 `item.date &&` 前置判断
+- **修改** `pages/habits/brushing-stats/brushing-stats.js` —— 修复 selectedDate 初始值
+- **修改** `pages/habits/brushing-stats/brushing-stats.wxml` —— 修复选中状态判断
+
+### 2026-06-17（统计页面优化）
+- **修复** 日历日期样式
+  - 非当前月日期：灰色文字 + 透明背景
+  - 今天日期：淡粉色背景 + 粉色文字（不再过于突出）
+  - 选中日期：粉色渐变背景 + 白色文字
+- **移除** 选择日期后的自动滚动
+  - 不再跳转到记录区域
+  - 保持页面位置不变
+- **修改** `pages/habits/brushing-stats/brushing-stats.js` —— 移除滚动逻辑
+- **修改** `pages/habits/brushing-stats/brushing-stats.wxss` —— 优化日期样式
+
+### 2026-06-17（刷牙首页功能完善）
+- **新增** 打卡后操作按钮
+  - 🔄 重新刷牙：跳转到计时刷牙页面
+  - 📷 补拍照片：添加更多照片
+  - 早上和晚上卡片都有独立的操作按钮
+- **优化** 打卡后布局
+  - 左侧：评分 + 留言 + 时间详情 + 操作按钮
+  - 右侧：照片缩略图
+- **修改** `pages/habits/brushing/brushing.wxml` —— 添加操作按钮
+- **修改** `pages/habits/brushing/brushing.wxss` —— 添加操作按钮样式
+
+### 2026-06-17（简化战斗流程）
+- **移除** 刷牙前点击小怪物的互动
+  - 不再需要先赶走瞌睡细菌
+  - 直接通过刷牙进行战斗
+  - 简化流程，更快进入战斗状态
+- **移除** `initPreGame` 和 `onTapPreGerm` 函数
+- **移除** WXML 中的 `pre-game` 区域
+- **修改** `brushing-timer.js` —— 简化初始化和重置逻辑
+- **修改** `brushing-timer.wxml` —— 移除刷牙前小游戏区域
+
+### 2026-06-17（刷牙卡片布局优化）
+- **重构** 刷牙卡片布局
+  - 采用左右布局：左侧信息 + 右侧图片
+  - 图片放在卡片右侧，不再占用额外垂直空间
+  - 避免图片导致页面变形
+- **优化** 卡片内容结构
+  - 左侧：标题 + 描述 + 按钮/记录信息
+  - 右侧：图片缩略图（160x160）+ 编辑按钮
+  - 支持多张照片显示数量标记
+- **修改** `pages/habits/brushing/brushing.wxml` —— 重构卡片布局
+- **修改** `pages/habits/brushing/brushing.wxss` —— 新增左右布局样式
+
+### 2026-06-17（战斗场景优化）
+- **优化** 敌人居中显示
+  - 敌人移到战斗区域正中央
+  - 敌人 emoji 放大：`200rpx` → `240rpx`
+  - HP 条放大：`220rpx x 20rpx` → `280rpx x 28rpx`
+  - HP 数字和敌人名称字体增大
+- **新增** 牙刷位置动态变化
+  - 根据刷牙区域（左上/上中/右上/右下/下中/左下）变化位置
+  - 牙刷方向随区域旋转
+  - 区域切换时平滑过渡动画
+- **优化** 牙刷样式
+  - 改为绝对定位，支持动态位置
+  - 攻击时放大动画替代位移动画
+- **修改** `brushing-timer.js` —— 新增 `updateToothbrushPosition` 函数
+- **修改** `brushing-timer.wxml` —— 重构战斗区域布局
+- **修改** `brushing-timer.wxss` —— 更新敌人和牙刷样式
+
+### 2026-06-17（刷牙卡片继续调整）
+- **增加** 卡片高度
+  - 上下内边距：`36rpx` → `44rpx`
+- **增大** 字体大小
+  - 图标：`44rpx` → `52rpx`
+  - 标题：`30rpx` → `34rpx`
+  - 描述：`24rpx` → `26rpx`
+  - 按钮：`24rpx` → `26rpx`
+  - 按钮内边距：`16rpx 28rpx` → `18rpx 30rpx`
+- **修改** `pages/habits/brushing/brushing.wxss` —— 调整卡片和字体大小
+
+### 2026-06-17（战斗血条修复 + 卡片尺寸调整）
+- **修复** 战斗页面血条问题
+  - 原因：前3个区域打小怪物，后3个区域打大怪物，大怪物HP=6只打了3下，剩3点
+  - 修复：每个区域完成时都对大怪物造成1点伤害（无论是否有小怪物）
+  - 现在6个区域正好打死HP=6的大怪物
+- **减小** 早晚刷牙卡片尺寸（之前过大显示不全）
+  - 卡片内边距：`44rpx 32rpx` → `28rpx 24rpx`
+  - 图标大小：`60rpx` → `44rpx`
+  - 标题字体：`38rpx` → `30rpx`
+  - 描述字体：`28rpx` → `24rpx`
+  - 按钮大小：`24rpx 40rpx` → `16rpx 28rpx`
+  - 卡片间距：`20rpx` → `12rpx`
+- **修改** `pages/habits/brushing-timer/brushing-timer.js` —— 修复攻击逻辑
+- **修改** `pages/habits/brushing/brushing.wxss` —— 减小卡片尺寸
+
+### 2026-06-17（主页战斗状态优化）
+- **优化** 刷牙主页显示完整战斗状态
+  - 显示小怪物进度（3个小怪物，每2个区域消灭1个）
+  - 小怪物未消灭时：显示小怪物进度点
+  - 小怪物全部消灭后：显示大怪物HP条
+  - 任务提示根据状态变化
+- **新增** `minionDefeated`、`minionTotal`、`areasCompleted` 数据字段
+- **修改** `pages/habits/brushing/brushing.js` —— 计算战斗进度
+- **修改** `pages/habits/brushing/brushing.wxml` —— 显示小怪物和大怪物状态
+- **修改** `pages/habits/brushing/brushing.wxss` —— 添加小怪物进度样式
+
+### 2026-06-17（刷牙卡片继续放大）
+- **继续增加** 早上/晚上刷牙卡片尺寸
+  - 卡片最小高度：`220rpx`
+  - 卡片内边距：`44rpx 32rpx`
+  - 图标大小：`60rpx`
+  - 标题字体：`38rpx`
+  - 描述字体：`28rpx`
+  - 按钮大小：`24rpx 40rpx`，字体 `30rpx`
+- **修改** `pages/habits/brushing/brushing.wxss` —— 继续增加卡片和按钮尺寸
+
+### 2026-06-17（刷牙卡片高度增加）
+- **增加** 早上/晚上刷牙卡片高度
+  - 卡片最小高度：`180rpx`
+  - 卡片内边距：`36rpx 28rpx`
+  - 卡片间距：`20rpx`
+  - 图标大小：`52rpx`
+  - 标题字体：`34rpx`
+  - 描述字体：`26rpx`
+  - 按钮大小：`20rpx 36rpx`，字体 `28rpx`
+- **修改** `pages/habits/brushing/brushing.wxss` —— 增加卡片和按钮尺寸
+
+### 2026-06-17（昨日回顾详细化）
+- **优化** 昨日回顾显示更多信息
+  - 已刷：显示星星评分、刷牙时间、刷牙时长
+  - 未刷：显示「✗ 未刷」
+  - 布局更清晰：标题 + 早上/晚上两个卡片
+- **修改** `pages/habits/brushing/brushing.wxml` —— 优化昨日回顾布局
+- **修改** `pages/habits/brushing/brushing.wxss` —— 更新昨日回顾样式
+
+### 2026-06-17（刷牙卡片放大）
+- **优化** 早上/晚上刷牙卡片尺寸
+  - 增加卡片内边距：`20rpx` → `28rpx`
+  - 增加卡片间距：`12rpx` → `16rpx`
+  - 增大标题字体：`30rpx` → `32rpx`
+  - 增大按钮尺寸：`14rpx 24rpx` → `18rpx 32rpx`
+  - 增大按钮字体：`24rpx` → `26rpx`
+- **优化** 卡片布局
+  - 使用 `card-header` 包裹图标和标题
+  - 更清晰的视觉层次
+- **修改** `pages/habits/brushing/brushing.wxml` —— 优化卡片结构
+- **修改** `pages/habits/brushing/brushing.wxss` —— 放大卡片和按钮尺寸
+
+### 2026-06-17（昨日回顾优化）
+- **优化** 昨日回顾始终显示
+  - 移除 `wx:if` 条件判断，始终显示昨日回顾区域
+  - 已刷：绿色背景 + ✓ 已刷
+  - 未刷：粉色背景 + ✗ 未刷
+  - 即使昨天没有记录也会显示，提醒用户
+- **修改** `pages/habits/brushing/brushing.wxml` —— 移除条件判断
+- **修改** `pages/habits/brushing/brushing.wxss` —— 添加 missed 样式
+
+### 2026-06-17（日期显示美化）
+- **优化** 日期和星期显示样式
+  - 添加 📅 日期图标
+  - 添加星期对应图标（周一💪、周二⚡、周三🌟...）
+  - 优化字体大小和颜色
+  - 连续天数徽章改为粉色渐变背景
+- **修改** `pages/habits/brushing/brushing.js` —— 添加 weekdayIcon
+- **修改** `pages/habits/brushing/brushing.wxml` —— 优化日期布局
+- **修改** `pages/habits/brushing/brushing.wxss` —— 美化日期和徽章样式
+
+### 2026-06-17（昨日刷牙回顾）
+- **新增** 昨日刷牙回顾栏目
+  - 显示昨天早晚刷牙状态（已刷/未刷）
+  - 已刷显示绿色勾号，未刷显示灰色
+  - 放在晚上刷牙卡片下方
+  - 丰富页面内容，增加对比感
+- **修改** `pages/habits/brushing/brushing.js` —— 加载昨日记录
+- **修改** `pages/habits/brushing/brushing.wxml` —— 添加昨日回顾区域
+- **修改** `pages/habits/brushing/brushing.wxss` —— 添加昨日回顾样式
+
+### 2026-06-17（刷牙主页一屏显示）
+- **优化** 页面布局，禁止滚动，刚好满一页
+  - 设置 `height: 100vh` + `overflow: hidden`
+  - 使用 flex 布局自动分配空间
+  - 卡片区域居中显示
+- **新增** 底部牙齿装饰元素
+  - 显示牙齿 emoji + 文字
+  - 轻微弹跳动画
+  - 填充底部空白区域
+- **修改** `pages/habits/brushing/brushing.wxml` —— 添加底部装饰
+- **修改** `pages/habits/brushing/brushing.wxss` —— 优化布局为一屏显示
+
+### 2026-06-17（刷牙主页布局优化）
+- **移除** 刷牙提醒设置区域
+  - 暂不需要提醒功能
+  - 简化页面结构
+- **优化** 页面布局，内容在一屏内显示
+  - 减小头部信息区间距
+  - 减小故事区域间距
+  - 减小卡片内边距和间距
+  - 减小鼓励语区域间距
+  - 优化图标和字体大小
+- **修改** `pages/habits/brushing/brushing.wxml` —— 移除提醒设置区域
+- **修改** `pages/habits/brushing/brushing.wxss` —— 优化布局间距
+
+### 2026-06-17（刷牙主页按钮优化）
+- **优化** 刷牙主页按钮样式
+  - 减小按钮尺寸：padding 从 `24rpx 60rpx` 改为 `14rpx 24rpx`
+  - 减小字体：从 `30rpx` 改为 `24rpx`
+  - 减小圆角：从 `50rpx` 改为 `30rpx`
+  - 添加 `white-space: nowrap` 防止文字换行
+  - 按钮支持自动换行（`flex-wrap: wrap`）
+- **修改** `pages/habits/brushing/brushing.wxss` —— 优化按钮样式
+
+### 2026-06-17（Bug 修复 - 多选标签无法选中）
+- **修复** 多选标签点击后无法选中的问题
+  - 原因：WXML 中使用 `indexOf` 判断选中状态在小程序中不生效
+  - 修复：在 JS 中预先计算每个选项的 `selected` 属性，直接传递给 WXML
+  - 使用 `opt.selected` 替代 `selectedMap[key].indexOf(opt.value)`
+- **优化** 选中状态管理
+  - 点击选项时更新 `habitFields` 中对应选项的 `selected` 属性
+  - WXML 直接使用 `opt.selected` 判断样式
+  - 移除 `selectedMap` 相关代码
+- **修改** `pages/habits/detail.js` —— 重写 onFieldSelect 逻辑
+- **修改** `pages/habits/detail.wxml` —— 使用 opt.selected 判断选中状态
+- **修改** `pages/habits/checkin/checkin.js` —— 重写 onFieldSelect 逻辑
+- **修改** `pages/habits/checkin/checkin.wxml` —— 使用 opt.selected 判断选中状态
+
+### 2026-06-17（Bug 修复 - 多选标签无效）
+- **修复** 多选标签点击无效的问题
+  - 原因：直接修改原数组，`setData` 无法检测到变化
+  - 修复：使用 `.slice()` 创建新数组后再修改
+  - 影响文件：`detail.js` 和 `checkin.js`
+- **修改** `pages/habits/detail.js` —— 修复 `onFieldSelect` 函数
+- **修改** `pages/habits/checkin/checkin.js` —— 修复 `onFieldSelect` 函数
+
+### 2026-06-17（喝水标签多选）
+- **修复** 喝水习惯的「喝了什么」标签支持多选
+  - 添加 `multiple: true` 配置
+  - 更新 summary 函数支持数组格式
+  - 现在可以选择多种饮品（如：白开水 + 牛奶）
+- **确认** 其他习惯的多选标签已正确配置
+  - 吃饭：吃了什么 ✅
+  - 洗手：什么时候洗的 ✅
+  - 整理：整理了什么 ✅
+  - 家务：做了什么家务 ✅
+  - 运动：做了什么运动 ✅
+  - 礼貌：说了什么 ✅
+- **修改** `pages/habits/checkin/habit-config.js` —— 修复 drinkType 多选配置
+
+### 2026-06-17（打卡记录优化）
+- **新增** 打卡记录显示照片缩略图
+  - 有照片的记录左侧显示第一张照片缩略图
+  - 多张照片时显示 "+N" 数量标记
+- **新增** 点击打卡记录弹出详情弹窗
+  - 显示完整信息：日期、时间、评分、详情、留言、照片
+  - 照片支持横向滚动预览
+  - 点击照片可放大查看
+  - 支持删除记录
+- **修改** `pages/habits/detail.wxml` —— 添加照片缩略图和详情弹窗
+- **修改** `pages/habits/detail.js` —— 添加详情弹窗相关函数
+- **修改** `pages/habits/detail.wxss` —— 添加详情弹窗和照片样式
+
+### 2026-06-17（Bug 修复 - 日历选中状态）
+- **修复** 统计页面日历初始化时非当月日期显示为红色的问题
+  - 原因：上月/下月补齐的 `date` 字段是空字符串 `''`，与 `selectedDate` 初始值相同
+  - 修复：在 WXML 条件判断中添加 `item.date &&` 前置检查
+  - 确保只有有效日期才会被标记为选中状态
+- **修改** `pages/habits/habit-stats/habit-stats.wxml` —— 修复日历选中逻辑
+
+### 2026-06-17（代码质量优化 - 完成）
+- **新增** `utils/habit-utils.js` 公共工具函数
+  - 提取 `calcStreak`、`calcWeekRate`、`calcAvgScore` 等重复函数
+  - 新增 `formatDate`、`getWeekday`、`isToday`、`getTodayStr`、`getCurrentTimeStr`
+- **重构** 习惯相关文件使用公共函数
+  - `habit-stats.js` 移除重复的统计计算函数
+  - 修复日期解析时区问题
+- **统一** 变量声明（var → const）
+  - `detail.js`、`habit-stats.js`、`checkin.js`、`habit-config.js`
+  - `habit-utils.js`、`backup.js`
+- **修复** 定时器清理问题
+  - `brushing-timer.js` 的 `onUnload` 新增 `_comboTimer` 清理
+- **清理** CSS 死代码
+  - 移除未使用的公主角色样式（44行）
+  - `brushing-timer.wxss` 从 1546 行减少到 1502 行
+- **优化** 代码可维护性
+  - 减少代码重复约 100 行
+  - 统一统计计算逻辑
+  - 提升代码规范性
+
 ### 2026-06-17（小怪物系统）
 - **新增** 小怪物手下系统
   - 每波生成 3 个小怪物（小细菌、小虫虫、小菌斑、小糖糖等）

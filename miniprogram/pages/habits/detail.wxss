@@ -599,6 +599,177 @@
   opacity: 1;
 }
 
+.record-arrow {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: 10rpx;
+}
+
+/* 照片缩略图 */
+.record-thumb {
+  position: relative;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.thumb-img {
+  width: 100%;
+  height: 100%;
+}
+
+.thumb-count {
+  position: absolute;
+  bottom: 4rpx;
+  right: 4rpx;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  font-size: 18rpx;
+  padding: 2rpx 8rpx;
+  border-radius: 8rpx;
+}
+
+/* 详情弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  width: 85%;
+  max-height: 80vh;
+  background: white;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  position: relative;
+  overflow-y: auto;
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(100rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-close {
+  position: absolute;
+  top: 16rpx;
+  right: 20rpx;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #999;
+}
+
+.modal-close:active {
+  color: #333;
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+.modal-icon {
+  font-size: 60rpx;
+  margin-bottom: 8rpx;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-body {
+  margin-bottom: 24rpx;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.detail-value {
+  font-size: 26rpx;
+  color: #333;
+  text-align: right;
+  max-width: 60%;
+}
+
+.detail-photos {
+  margin-top: 20rpx;
+}
+
+.detail-photos .detail-label {
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.photo-scroll {
+  white-space: nowrap;
+}
+
+.photo-list {
+  display: inline-flex;
+  gap: 12rpx;
+}
+
+.detail-photo {
+  width: 150rpx;
+  height: 150rpx;
+  border-radius: 12rpx;
+}
+
+.modal-footer {
+  text-align: center;
+}
+
+.btn-delete {
+  display: inline-block;
+  padding: 16rpx 32rpx;
+  background: #FFEBEE;
+  color: #F44336;
+  border-radius: 20rpx;
+  font-size: 26rpx;
+}
+
+.btn-delete:active {
+  background: #FFCDD2;
+}
+
 /* 成功提示 */
 .success-toast {
   position: fixed;

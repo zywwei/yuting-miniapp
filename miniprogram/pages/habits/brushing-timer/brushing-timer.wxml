@@ -75,16 +75,6 @@
         <!-- 地面/背景 -->
         <view class="battle-ground"></view>
 
-        <!-- 牙刷（左侧进攻） -->
-        <view class="toothbrush-hero {{isRunning ? 'attacking' : ''}}">
-          <text class="toothbrush-emoji">🪥</text>
-          <view class="attack-lines" wx:if="{{isRunning}}">
-            <view class="line line-1"></view>
-            <view class="line line-2"></view>
-            <view class="line line-3"></view>
-          </view>
-        </view>
-
         <!-- 小怪物 -->
         <view wx:if="{{showMinions}}" class="minions-area">
           <view wx:for="{{minions}}" wx:key="id"
@@ -99,7 +89,7 @@
           </view>
         </view>
 
-        <!-- 敌人（右侧防守） -->
+        <!-- 敌人（中央） -->
         <view class="enemy-hero {{enemyShaking ? 'shake' : ''}} {{isEnemyDefeated ? 'defeated' : ''}} {{enemyAngry ? 'angry' : ''}}">
           <text class="enemy-emoji">{{currentEnemy.emoji}}</text>
           <!-- HP条 -->
@@ -116,6 +106,17 @@
           <!-- 小怪物消灭提示 -->
           <view wx:if="{{minionDefeatEffect && minionDefeatEffect.show}}" class="minion-defeat-text">
             <text>{{minionDefeatEffect.text}}</text>
+          </view>
+        </view>
+
+        <!-- 牙刷（根据区域动态变化位置和方向） -->
+        <view class="toothbrush-hero {{isRunning ? 'attacking' : ''}}"
+              style="left: {{toothbrushX}}%; top: {{toothbrushY}}%; transform: translate(-50%, -50%) rotate({{toothbrushRotation}}deg);">
+          <text class="toothbrush-emoji">🪥</text>
+          <view class="attack-lines" wx:if="{{isRunning}}">
+            <view class="line line-1"></view>
+            <view class="line line-2"></view>
+            <view class="line line-3"></view>
           </view>
         </view>
 
@@ -239,19 +240,6 @@
       <text class="reward-text">{{currentRewardText}}</text>
     </view>
 
-    <!-- 刷牙前小游戏 -->
-    <view wx:if="{{stage === 'pre'}}" class="pre-game">
-      <view wx:for="{{dirtySpots}}" wx:key="id" wx:for-item="germ"
-            class="pre-germ {{germ.fleeing ? 'pre-germ-flee' : 'pre-germ-wiggle'}}"
-            bindtap="onTapPreGerm"
-            data-id="{{germ.id}}"
-            style="left: {{germ.x}}%; top: {{germ.y}}%;">
-        <text class="pre-germ-emoji">{{germ.emoji}}</text>
-      </view>
-      <view wx:if="{{dirtySpots.length === 0}}" class="pre-hint">
-        🎉 细菌都赶走啦，开始刷牙吧！
-      </view>
-    </view>
   </view>
 
   <!-- ===== 时长选择 ===== -->

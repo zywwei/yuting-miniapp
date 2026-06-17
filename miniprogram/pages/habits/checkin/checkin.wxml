@@ -94,7 +94,7 @@
         <!-- 单选/多选 -->
         <view wx:if="{{item.type === 'select'}}" class="field-options">
           <view wx:for="{{item.options}}" wx:for-item="opt" wx:key="value"
-                class="option-item {{item.multiple ? (formData[item.key].indexOf(opt.value) > -1 ? 'selected' : '') : (formData[item.key] === opt.value ? 'selected' : '')}}"
+                class="option-item {{opt.selected ? 'selected' : ''}}"
                 bindtap="onFieldSelect" data-key="{{item.key}}" data-value="{{opt.value}}">
             <text class="option-icon">{{opt.icon}}</text>
             <text class="option-label">{{opt.label}}</text>

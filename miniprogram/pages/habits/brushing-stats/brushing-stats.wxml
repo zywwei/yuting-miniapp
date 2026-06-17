@@ -68,7 +68,7 @@
       <view
         wx:for="{{calendarDays}}"
         wx:key="date"
-        class="day-cell {{item.isCurrentMonth ? '' : 'other-month'}} {{item.isToday ? 'today' : ''}} {{item.date === selectedDate ? 'selected' : ''}}"
+        class="day-cell {{item.isCurrentMonth ? '' : 'other-month'}} {{item.isToday ? 'today' : ''}} {{item.date && item.date === selectedDate ? 'selected' : ''}}"
         bindtap="selectDate"
         data-date="{{item.date}}"
       >

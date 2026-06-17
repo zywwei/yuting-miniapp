@@ -6,7 +6,8 @@ const { getNavBarInfo } = require('../../../utils/page-helpers.js')
 const {
   BRUSH_AREAS, BRUSHING_TIPS, THEMES, REWARD_TEXTS, COMPLETED_TEXTS,
   CHEER_LEFT, CHEER_RIGHT, RING_MODES, BUBBLE_LIST, PRE_GERM_TYPES,
-  STICKERS, GIRL_BUBBLES, ZONE_GERM_TYPES, CHAPTERS, BATTLE_CONFIG
+  STICKERS, GIRL_BUBBLES, ZONE_GERM_TYPES, CHAPTERS, BATTLE_CONFIG,
+  PRINCESS_CHEER
 } = require('./constants.js')
 
 Page({
@@ -88,6 +89,10 @@ Page({
     showCombo: false,          // 是否显示连击
     comboText: '',             // 连击文字
     enemyAngry: false,         // 敌人是否愤怒
+    // 牙刷位置（根据区域动态变化）
+    toothbrushX: 15,           // 牙刷X位置（百分比）
+    toothbrushY: 50,           // 牙刷Y位置（百分比）
+    toothbrushRotation: 0,     // 牙刷旋转角度
     // 小怪物系统
     minions: [],               // 当前小怪物列表
     showMinions: false,        // 是否显示小怪物
@@ -163,7 +168,6 @@ Page({
 
   initFresh() {
     this.initToothZones()
-    this.initPreGame()
 
     // 显示故事开场对话
     this.showStoryStartDialog()
@@ -488,9 +492,11 @@ Page({
       wx.setStorageSync('brushingProgress', progress)
     }
 
+    // 清理所有定时器
     this.clearTimers()
     if (this._ringColorTimer) { clearInterval(this._ringColorTimer); this._ringColorTimer = null }
     if (this._cleanEffectTimer) { clearTimeout(this._cleanEffectTimer); this._cleanEffectTimer = null }
+    if (this._comboTimer) { clearTimeout(this._comboTimer); this._comboTimer = null }
   },
 
   // 生成超级炫酷撒花（满屏效果）
@@ -575,57 +581,6 @@ Page({
       }
       this.setData({ confetti: [...this.data.confetti, ...wave2] })
     }, 1000)
-  },
-
-  // 初始化刷牙前小游戏：生成4个瞌睡细菌
-  initPreGame() {
-    const germs = []
-    for (let i = 0; i < 4; i++) {
-      const type = PRE_GERM_TYPES[Math.floor(Math.random() * PRE_GERM_TYPES.length)]
-      germs.push({
-        id: `pregerm_${i}_${Date.now()}`,
-        emoji: type.emoji,
-        name: type.name,
-        points: type.points,
-        x: 18 + Math.random() * 64,
-        y: 28 + Math.random() * 44,
-        fleeing: false
-      })
-    }
-    this.setData({ dirtySpots: germs, stage: 'pre', showStickerPicker: false, placedStickers: [] })
-  },
-
-  // 点击刷牙前瞌睡细菌
-  onTapPreGerm(e) {
-    if (this.data.stage !== 'pre') return
-    const id = e.currentTarget.dataset.id
-    const spot = this.data.dirtySpots.find(s => s.id === id)
-    if (!spot || spot.fleeing) return
-
-    // 标记为逃跑
-    const spots = this.data.dirtySpots.map(s => s.id === id ? { ...s, fleeing: true } : s)
-    this.setData({ dirtySpots: spots })
-
-    // 显示特效
-    this.setData({
-      showCleanEffect: true,
-      cleanEffectText: '赶走啦！',
-      cleanEffectX: spot.x,
-      cleanEffectY: spot.y
-    })
-    if (this._cleanEffectTimer) clearTimeout(this._cleanEffectTimer)
-    this._cleanEffectTimer = setTimeout(() => {
-      this.setData({ showCleanEffect: false })
-    }, 1200)
-
-    // 700ms 后真正移除
-    setTimeout(() => {
-      const remaining = this.data.dirtySpots.filter(s => s.id !== id)
-      this.setData({ dirtySpots: remaining })
-      if (remaining.length === 0) {
-        wx.showToast({ title: '🎉 细菌都赶走啦！', icon: 'none', duration: 1500 })
-      }
-    }, 700)
   },
 
   // 刷牙后贴纸装饰：点击贴纸按钮放置到牙齿上
@@ -759,6 +714,29 @@ Page({
     this.setData({ companionBubble: bubble })
   },
 
+  // 根据刷牙区域更新牙刷位置和方向
+  updateToothbrushPosition() {
+    const index = this.data.currentAreaIndex
+    // 6个区域对应不同的牙刷位置和角度
+    // 牙刷头始终指向中央敌人
+    // 左上、上中、右上、右下、下中、左下
+    const positions = [
+      { x: 15, y: 25, rotation: 45 },    // 左上 → 牙刷头朝右下
+      { x: 50, y: 15, rotation: 90 },    // 上中 → 牙刷头朝下
+      { x: 85, y: 25, rotation: 135 },   // 右上 → 牙刷头朝左下
+      { x: 85, y: 75, rotation: 225 },   // 右下 → 牙刷头朝左上
+      { x: 50, y: 85, rotation: 270 },   // 下中 → 牙刷头朝上
+      { x: 15, y: 75, rotation: 315 }    // 左下 → 牙刷头朝右上
+    ]
+
+    const pos = positions[index] || positions[0]
+    this.setData({
+      toothbrushX: pos.x,
+      toothbrushY: pos.y,
+      toothbrushRotation: pos.rotation
+    })
+  },
+
   // ===== 计时器 =====
   // 选择刷牙时长
   selectDuration(e) {
@@ -802,10 +780,6 @@ Page({
     }))
     this.setData({ bubbles: girlBubbles })
 
-    // 初始化公主角色显示计数器
-    this._princessCounter = 0
-    this._lastPrincessTime = 0
-
     // 重置颜色模式
     this._ringModeIndex = 0
 
@@ -815,6 +789,8 @@ Page({
     this.updateZoneStates()
     // 陪伴小公主就位
     this.updateCompanion()
+    // 牙刷位置就位
+    this.updateToothbrushPosition()
     // 生成小怪物
     this.generateMinions()
 
@@ -869,14 +845,6 @@ Page({
           leftCheer: CHEER_LEFT[currentIndex],
           rightCheer: CHEER_RIGHT[currentIndex]
         })
-      }
-
-      // 随机显示公主角色（每15-20秒出现一次，持续5秒）
-      // 已改为陪伴小公主常驻指示，随机彩蛋保留但降低频率
-      this._princessCounter++
-      if (this._princessCounter - this._lastPrincessTime >= 25 && Math.random() > 0.85) {
-        this._lastPrincessTime = this._princessCounter
-        this.showRandomPrincess()
       }
 
       beep.playBeep('tick')
@@ -938,32 +906,27 @@ Page({
           // 检查是否还有小怪物
           const aliveMinions = minions.filter(m => !m.defeated && !m.defeating)
 
+          // 攻击小怪物（如果有的话）
           if (showMinions && aliveMinions.length > 0) {
-            // 优先攻击小怪物
             this.attackMinion()
-          } else {
-            // 所有小怪物消灭后，攻击大怪物
-            const damage = 1 // 每完成一个区域造成1点伤害
+          }
 
-            // 更新敌人HP（storage 是唯一数据源）
-            const result = util.damageEnemy(currentEnemy.id, damage)
+          // 每个区域都对大怪物造成1点伤害（无论是否有小怪物）
+          const damage = 1
+          const result = util.damageEnemy(currentEnemy.id, damage)
+          this.triggerAttackAnimation(damage)
 
-            // 触发攻击动画（返回实际伤害，包含暴击和连击加成）
-            const actualDamage = this.triggerAttackAnimation(damage)
+          const newHp = result.newHp
+          this.setData({
+            enemyCurrentHp: newHp,
+            isEnemyDefeated: newHp <= 0
+          })
 
-            // 从 storage 同步 HP 到页面数据
-            const newHp = result.newHp
-            this.setData({
-              enemyCurrentHp: newHp,
-              isEnemyDefeated: newHp <= 0
-            })
-
-            // 如果敌人被击败，显示胜利对话
-            if (newHp <= 0) {
-              setTimeout(() => {
-                this.showVictoryDialog()
-              }, 1500)
-            }
+          // 如果敌人被击败，显示胜利对话
+          if (newHp <= 0) {
+            setTimeout(() => {
+              this.showVictoryDialog()
+            }, 1500)
           }
         }
 
@@ -976,6 +939,7 @@ Page({
           }, () => {
             this.updateZoneStates()
             this.updateCompanion()
+            this.updateToothbrushPosition()
           })
         } else {
           this.setData({ completedAreas, areaRemaining: 0 }, () => {
@@ -1035,7 +999,6 @@ Page({
       rewardStars: [false, false, false, false, false],
       currentRewardText: '准备开始！',
       completedStarsArr: [], completedText: '', confetti: [],
-      showPrincess: false,
       dirtySpots: [], brushPoints: 0, totalDirtyCleaned: 0,
       showCleanEffect: false, showPoints: false, showTip: false,
       toothZones: [],
@@ -1045,9 +1008,8 @@ Page({
     this._areaElapsed = 0
     // 重置小怪物
     this.resetMinions()
-    // 重置后回到刷牙前小游戏状态
+    // 重置牙齿区域
     this.initToothZones()
-    this.initPreGame()
   },
 
   completeTimer() {

@@ -1,5 +1,6 @@
-var util = require('../../../utils/util.js')
-var { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
+const util = require('../../../utils/util.js')
+const habitUtils = require('../../../utils/habit-utils.js')
+const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 
 Page({
   data: {
@@ -94,9 +95,9 @@ Page({
 
     // 计算统计
     var total = typeRecords.length
-    var streak = this.calcStreak(typeRecords)
-    var weekRate = this.calcWeekRate(typeRecords)
-    var avgScore = this.calcAvgScore(typeRecords)
+    var streak = habitUtils.calcStreak(typeRecords)
+    var weekRate = habitUtils.calcWeekRate(typeRecords)
+    var avgScore = habitUtils.calcAvgScore(typeRecords)
 
     this.setData({
       stats: {
@@ -111,71 +112,9 @@ Page({
     })
   },
 
-  // 计算连续天数
-  calcStreak: function(records) {
-    if (records.length === 0) return 0
-
-    var dateSet = {}
-    records.forEach(function(r) { dateSet[r.date] = true })
-    var dates = Object.keys(dateSet).sort().reverse()
-    var streak = 0
-
-    for (var i = 0; i < dates.length; i++) {
-      var expectedDate = new Date()
-      expectedDate.setDate(expectedDate.getDate() - i)
-      var year = expectedDate.getFullYear()
-      var month = String(expectedDate.getMonth() + 1).padStart(2, '0')
-      var day = String(expectedDate.getDate()).padStart(2, '0')
-      var expectedStr = year + '-' + month + '-' + day
-
-      if (dates[i] === expectedStr) {
-        streak++
-      } else {
-        break
-      }
-    }
-
-    return streak
-  },
-
-  // 计算本周完成率
-  calcWeekRate: function(records) {
-    var now = new Date()
-    var startOfWeek = new Date(now)
-    startOfWeek.setDate(now.getDate() - now.getDay())
-    startOfWeek.setHours(0, 0, 0, 0)
-
-    var completedDays = 0
-    for (var i = 0; i < 7; i++) {
-      var d = new Date(startOfWeek)
-      d.setDate(startOfWeek.getDate() + i)
-      var year = d.getFullYear()
-      var month = String(d.getMonth() + 1).padStart(2, '0')
-      var day = String(d.getDate()).padStart(2, '0')
-      var dateStr = year + '-' + month + '-' + day
-      if (records.some(function(r) { return r.date === dateStr })) {
-        completedDays++
-      }
-    }
-
-    return Math.round((completedDays / 7) * 100)
-  },
-
-  // 计算平均分
-  calcAvgScore: function(records) {
-    var scoredRecords = records.filter(function(r) { return r.score })
-    if (scoredRecords.length === 0) return '0.0'
-    var total = scoredRecords.reduce(function(sum, r) { return sum + r.score }, 0)
-    return (total / scoredRecords.length).toFixed(1)
-  },
-
   // 构建当日摘要
   buildDaySummary: function(records, date) {
-    var weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    // 使用 YYYY-MM-DD 解析避免时区问题
-    var parts = date.split('-')
-    var d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
-    var weekday = weekdayNames[d.getDay()]
+    var weekday = habitUtils.getWeekday(date)
 
     var totalScore = records.reduce(function(sum, r) { return sum + (r.score || 0) }, 0)
     var avgScore = records.length > 0 ? Math.round(totalScore / records.length) : 0

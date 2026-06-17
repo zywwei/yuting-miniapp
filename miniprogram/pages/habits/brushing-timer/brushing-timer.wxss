@@ -194,10 +194,7 @@
   width: 100%;
   height: 100%;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 20rpx 40rpx;
+  padding: 20rpx;
 }
 
 /* 地面 */
@@ -212,29 +209,25 @@
 
 /* 牙刷英雄 */
 .toothbrush-hero {
-  position: relative;
-  z-index: 5;
-  animation: heroFloat 2s ease-in-out infinite;
-}
-
-@keyframes heroFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20rpx); }
+  position: absolute;
+  z-index: 10;
+  transition: left 0.5s ease, top 0.5s ease, transform 0.5s ease;
 }
 
 .toothbrush-emoji {
-  font-size: 150rpx;
+  font-size: 120rpx;
   display: block;
+  filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.2));
 }
 
 .attacking .toothbrush-emoji {
-  animation: brushAttack 0.3s ease-in-out infinite;
+  animation: brushAttack 0.4s ease-in-out infinite;
 }
 
 @keyframes brushAttack {
-  0% { transform: rotate(0deg) translateX(0); }
-  50% { transform: rotate(-25deg) translateX(50rpx); }
-  100% { transform: rotate(0deg) translateX(0); }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
 /* 攻击线条 */
@@ -265,21 +258,24 @@
 
 /* 敌人英雄 */
 .enemy-hero {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 5;
   text-align: center;
   filter: drop-shadow(0 10rpx 20rpx rgba(0,0,0,0.15));
 }
 
 .enemy-emoji {
-  font-size: 200rpx;
+  font-size: 240rpx;
   display: block;
   animation: enemyIdle 2s ease-in-out infinite;
 }
 
 @keyframes enemyIdle {
   0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-15rpx) scale(1.08); }
+  50% { transform: translateY(-20rpx) scale(1.1); }
 }
 
 .shake {
@@ -287,9 +283,9 @@
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-30rpx); }
-  75% { transform: translateX(30rpx); }
+  0%, 100% { transform: translate(-50%, -50%); }
+  25% { transform: translate(calc(-50% - 30rpx), -50%); }
+  75% { transform: translate(calc(-50% + 30rpx), -50%); }
 }
 
 .defeated {
@@ -304,16 +300,16 @@
 
 /* 敌人HP */
 .enemy-hp {
-  margin-top: 20rpx;
-  padding: 0 20rpx;
+  margin-top: 24rpx;
+  padding: 0 24rpx;
 }
 
 .hp-bar {
   width: 100%;
-  max-width: 220rpx;
-  height: 20rpx;
+  max-width: 280rpx;
+  height: 28rpx;
   background: #FFD6E0;
-  border-radius: 10rpx;
+  border-radius: 14rpx;
   overflow: hidden;
   margin: 0 auto;
   border: none;
@@ -322,23 +318,23 @@
 .hp-fill {
   height: 100%;
   background: linear-gradient(90deg, #4CAF50, #8BC34A);
-  border-radius: 10rpx;
+  border-radius: 14rpx;
   transition: width 0.5s, background 0.3s;
   border: none;
 }
 
 .hp-num {
-  font-size: 24rpx;
+  font-size: 28rpx;
   color: #E91E63;
-  margin-top: 8rpx;
+  margin-top: 12rpx;
   display: block;
   font-weight: bold;
 }
 
 .enemy-name {
-  font-size: 28rpx;
+  font-size: 32rpx;
   color: #666;
-  margin-top: 12rpx;
+  margin-top: 16rpx;
   display: block;
   font-weight: bold;
 }
@@ -1012,50 +1008,6 @@
   0% { opacity: 0; transform: translateY(40rpx) scale(0.5); }
   20% { opacity: 0.9; }
   100% { opacity: 0; transform: translateY(-80rpx) scale(1.3); }
-}
-
-/* 公主角色 */
-.princess-character {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  animation: princessAppear 0.5s ease-out;
-  z-index: 10;
-}
-
-.princess-character:active {
-  transform: translate(-50%, -50%) scale(0.95);
-}
-
-@keyframes princessAppear {
-  0% { transform: translate(-50%, -50%) scale(0) rotate(-180deg); opacity: 0; }
-  50% { transform: translate(-50%, -50%) scale(1.2) rotate(10deg); }
-  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
-}
-
-.princess-emoji {
-  font-size: 88rpx;
-  animation: princessFloat 2s ease-in-out infinite;
-  filter: drop-shadow(0 6rpx 12rpx rgba(0,0,0,0.2));
-}
-
-@keyframes princessFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12rpx); }
-}
-
-.princess-bubble {
-  font-size: 22rpx;
-  color: white;
-  padding: 10rpx 20rpx;
-  border-radius: 24rpx;
-  margin-top: 6rpx;
-  font-weight: bold;
-  animation: bubblePop 0.3s ease-out;
-  white-space: nowrap;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
 }
 
 /* 刷牙前小游戏：瞌睡细菌 */

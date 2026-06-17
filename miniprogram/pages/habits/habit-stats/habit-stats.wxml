@@ -56,7 +56,7 @@
 
     <view class="calendar-days">
       <view wx:for="{{calendarDays}}" wx:key="index"
-            class="day-item {{item.isCurrentMonth ? 'current' : 'other'}} {{item.isToday ? 'today' : ''}} {{item.date === selectedDate ? 'selected' : ''}} {{item.hasRecord ? 'has-record' : ''}}"
+            class="day-item {{item.isCurrentMonth ? 'current' : 'other'}} {{item.isToday ? 'today' : ''}} {{item.date && item.date === selectedDate ? 'selected' : ''}} {{item.hasRecord ? 'has-record' : ''}}"
             bindtap="selectDate"
             data-date="{{item.date}}">
         <text class="day-num">{{item.day}}</text>

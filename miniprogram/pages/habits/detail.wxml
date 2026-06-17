@@ -124,7 +124,7 @@
       <!-- 单选/多选 -->
       <view wx:if="{{item.type === 'select'}}" class="field-options">
         <view wx:for="{{item.options}}" wx:for-item="opt" wx:key="value"
-              class="option-item {{item.multiple ? (formData[item.key].indexOf(opt.value) > -1 ? 'selected' : '') : (formData[item.key] === opt.value ? 'selected' : '')}}"
+              class="option-item {{opt.selected ? 'selected' : ''}}"
               bindtap="onFieldSelect" data-key="{{item.key}}" data-value="{{opt.value}}">
           <text class="option-icon">{{opt.icon}}</text>
           <text class="option-label">{{opt.label}}</text>
@@ -194,7 +194,12 @@
   <view class="section">
     <view class="section-title">📋 打卡记录</view>
     <view class="record-list" wx:if="{{records.length > 0}}">
-      <view wx:for="{{records}}" wx:key="id" class="record-item">
+      <view wx:for="{{records}}" wx:key="id" class="record-item" bindtap="viewDetail" data-id="{{item.id}}">
+        <!-- 照片缩略图 -->
+        <view wx:if="{{item.images && item.images.length > 0}}" class="record-thumb">
+          <image src="{{item.images[0]}}" mode="aspectFill" class="thumb-img" />
+          <view wx:if="{{item.images.length > 1}}" class="thumb-count">+{{item.images.length - 1}}</view>
+        </view>
         <view class="record-left">
           <view class="record-date">{{item.date}}</view>
           <view class="record-time">{{item.time}}</view>
@@ -207,9 +212,66 @@
                   class="star {{star <= item.score ? 'active' : ''}}">⭐</text>
           </view>
         </view>
+        <view class="record-arrow">›</view>
       </view>
     </view>
     <view wx:else class="empty">暂无打卡记录</view>
+  </view>
+
+  <!-- 详情弹窗 -->
+  <view wx:if="{{showDetail}}" class="modal-mask" bindtap="closeDetail">
+    <view class="modal-content" catchtap="noop">
+      <view class="modal-close" bindtap="closeDetail">✕</view>
+
+      <view class="modal-header">
+        <view class="modal-icon">{{habit.icon}}</view>
+        <view class="modal-title">{{habit.name}}打卡详情</view>
+      </view>
+
+      <view class="modal-body">
+        <view class="detail-row">
+          <text class="detail-label">📅 日期</text>
+          <text class="detail-value">{{detailRecord.date}}</text>
+        </view>
+        <view wx:if="{{detailRecord.time}}" class="detail-row">
+          <text class="detail-label">🕐 时间</text>
+          <text class="detail-value">{{detailRecord.time}}</text>
+        </view>
+        <view wx:if="{{detailRecord.score}}" class="detail-row">
+          <text class="detail-label">⭐ 评分</text>
+          <text class="detail-value">
+            <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
+                  class="star {{star <= detailRecord.score ? 'active' : ''}}">⭐</text>
+          </text>
+        </view>
+        <view wx:if="{{detailRecord.summary}}" class="detail-row">
+          <text class="detail-label">📝 详情</text>
+          <text class="detail-value">{{detailRecord.summary}}</text>
+        </view>
+        <view wx:if="{{detailRecord.note}}" class="detail-row">
+          <text class="detail-label">💬 留言</text>
+          <text class="detail-value">{{detailRecord.note}}</text>
+        </view>
+
+        <!-- 照片展示 -->
+        <view wx:if="{{detailRecord.images && detailRecord.images.length > 0}}" class="detail-photos">
+          <text class="detail-label">📷 照片</text>
+          <scroll-view scroll-x class="photo-scroll">
+            <view class="photo-list">
+              <image wx:for="{{detailRecord.images}}" wx:key="*this"
+                     src="{{item}}" mode="aspectFill" class="detail-photo"
+                     bindtap="previewDetailImage" data-index="{{index}}" />
+            </view>
+          </scroll-view>
+        </view>
+      </view>
+
+      <view class="modal-footer">
+        <view class="btn-delete" bindtap="deleteRecord" data-id="{{detailRecord.id}}">
+          <text>🗑️ 删除记录</text>
+        </view>
+      </view>
+    </view>
   </view>
 
   <!-- 成功提示 -->

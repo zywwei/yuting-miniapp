@@ -1,10 +1,10 @@
-var util = require('../../utils/util.js')
-var cloud = require('../../utils/cloud.js')
-var { getNavBarInfo, previewImage } = require('../../utils/page-helpers.js')
-var { getHabitConfig } = require('./checkin/habit-config.js')
+const util = require('../../utils/util.js')
+const cloud = require('../../utils/cloud.js')
+const { getNavBarInfo, previewImage } = require('../../utils/page-helpers.js')
+const { getHabitConfig } = require('./checkin/habit-config.js')
 
 // 每种习惯的打卡样式配置
-var HABIT_STYLES = {
+const HABIT_STYLES = {
   // 睡眠作息
   early_up: {
     theme: 'sunrise',
@@ -153,7 +153,10 @@ Page({
     scoreLabel: '超级棒！',
     // 成功提示
     showSuccess: false,
-    successText: '打卡成功！'
+    successText: '打卡成功！',
+    // 详情弹窗
+    showDetail: false,
+    detailRecord: null
   },
 
   onLoad: function(options) {
@@ -446,9 +449,11 @@ Page({
     var value = e.currentTarget.dataset.value
     var field = this.data.habitFields.find(function(f) { return f.key === key })
     var formData = this.data.formData
+    var habitFields = this.data.habitFields
 
     if (field.multiple) {
-      var arr = formData[key] || []
+      // 创建新数组，确保 setData 能检测到变化
+      var arr = (formData[key] || []).slice()
       var index = arr.indexOf(value)
       if (index > -1) {
         arr.splice(index, 1)
@@ -460,7 +465,28 @@ Page({
       formData[key] = value
     }
 
-    this.setData({ formData: formData })
+    // 更新 habitFields 中的选项选中状态
+    habitFields = habitFields.map(function(f) {
+      if (f.key === key && f.options) {
+        var selectedValues = formData[key]
+        var updatedOptions = f.options.map(function(opt) {
+          var isSelected = false
+          if (Array.isArray(selectedValues)) {
+            isSelected = selectedValues.indexOf(opt.value) > -1
+          } else {
+            isSelected = selectedValues === opt.value
+          }
+          return Object.assign({}, opt, { selected: isSelected })
+        })
+        return Object.assign({}, f, { options: updatedOptions })
+      }
+      return f
+    })
+
+    this.setData({
+      formData: formData,
+      habitFields: habitFields
+    })
   },
 
   // 心情选择
@@ -692,6 +718,58 @@ Page({
       }, 2000)
 
       that.loadHabitDetail(type)
+    })
+  },
+
+  // ===== 详情弹窗 =====
+
+  // 查看记录详情
+  viewDetail: function(e) {
+    const id = e.currentTarget.dataset.id
+    const record = this.data.records.find(r => r.id === id)
+    if (!record) return
+
+    this.setData({
+      showDetail: true,
+      detailRecord: record
+    })
+  },
+
+  // 关闭详情弹窗
+  closeDetail: function() {
+    this.setData({ showDetail: false, detailRecord: null })
+  },
+
+  // 阻止冒泡
+  noop: function() {},
+
+  // 预览详情中的图片
+  previewDetailImage: function(e) {
+    const index = e.currentTarget.dataset.index
+    const record = this.data.detailRecord
+    if (!record || !record.images) return
+    previewImage(record.images[index], record.images)
+  },
+
+  // 删除记录
+  deleteRecord: function(e) {
+    const that = this
+    const id = e.currentTarget.dataset.id
+    wx.showModal({
+      title: '删除记录',
+      content: '确定要删除这条打卡记录吗？',
+      confirmText: '删除',
+      confirmColor: '#FF4444',
+      success: function(res) {
+        if (res.confirm) {
+          const records = wx.getStorageSync('habitRecords') || []
+          const updated = records.filter(r => r.id !== id)
+          wx.setStorageSync('habitRecords', updated)
+          that.setData({ showDetail: false, detailRecord: null })
+          that.loadHabitDetail(that.data.type)
+          wx.showToast({ title: '已删除', icon: 'success' })
+        }
+      }
     })
   },
 

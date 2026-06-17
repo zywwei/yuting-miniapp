@@ -3,7 +3,7 @@
  * 每种习惯都有自己的特色表单字段
  */
 
-var HABIT_CONFIG = {
+const HABIT_CONFIG = {
   // ===== 睡眠作息 =====
   early_up: {
     name: '早起',
@@ -140,6 +140,7 @@ var HABIT_CONFIG = {
         key: 'drinkType',
         label: '喝了什么',
         type: 'select',
+        multiple: true,
         options: [
           { value: 'water', label: '白开水', icon: '💧' },
           { value: 'milk', label: '牛奶', icon: '🥛' },
@@ -151,9 +152,10 @@ var HABIT_CONFIG = {
     summary: function(data) {
       var parts = []
       if (data.cupCount) parts.push('喝了 ' + data.cupCount + ' 杯')
-      if (data.drinkType) {
+      if (data.drinkType && data.drinkType.length > 0) {
         var typeMap = { water: '白开水', milk: '牛奶', juice: '果汁', soup: '汤' }
-        parts.push('类型：' + (typeMap[data.drinkType] || data.drinkType))
+        var labels = data.drinkType.map(function(v) { return typeMap[v] || v })
+        parts.push('类型：' + labels.join('、'))
       }
       return parts.join('，')
     }
@@ -561,7 +563,7 @@ var HABIT_CONFIG = {
 }
 
 // 默认配置（用于自定义习惯）
-var DEFAULT_CONFIG = {
+const DEFAULT_CONFIG = {
   fields: [
     {
       key: 'note',

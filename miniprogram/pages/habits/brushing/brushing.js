@@ -15,6 +15,8 @@ Page({
     streakDays: 0,
     morningRecord: null,
     eveningRecord: null,
+    yesterdayMorning: null,
+    yesterdayEvening: null,
     encourageText: '今天也要认真刷牙哦~',
     // 弹窗状态
     showScoreModal: false,
@@ -37,7 +39,10 @@ Page({
     currentEnemy: null,
     enemyCurrentHp: 6,
     isEnemyDefeated: false,
-    showStorySection: true
+    showStorySection: true,
+    minionDefeated: 0,
+    minionTotal: 3,
+    areasCompleted: 0
   },
 
   _morningTimer: null,
@@ -76,12 +81,23 @@ Page({
 
     const enemyHp = util.getEnemyCurrentHp(enemy.id, enemy.hp)
 
+    // 计算今日战斗进度
+    const today = util.getTodayStr()
+    const records = wx.getStorageSync('brushingRecords') || []
+    const todayRecords = records.filter(r => r.date === today && r.fromTimer)
+    const areasCompleted = todayRecords.reduce((sum, r) => sum + (r.completedAreas ? r.completedAreas.length : 0), 0)
+    // 每2个区域消灭1个小怪物
+    const minionDefeated = Math.min(Math.floor(areasCompleted / 2), 3)
+
     this.setData({
       round: round,
       currentChapter: chapter,
       currentEnemy: enemy,
       enemyCurrentHp: enemyHp,
-      isEnemyDefeated: enemyHp <= 0
+      isEnemyDefeated: enemyHp <= 0,
+      minionDefeated: minionDefeated,
+      minionTotal: 3,
+      areasCompleted: areasCompleted
     })
 
     // 根据故事进度更新鼓励语
@@ -154,13 +170,15 @@ Page({
   loadTodayInfo() {
     const d = new Date()
     const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    const weekdayIcons = ['😴', '💪', '⚡', '🌟', '🎯', '🎉', '🌈']
     const month = d.getMonth() + 1
     const day = d.getDate()
 
     this.setData({
       todayInfo: {
         day: `${month}月${day}日`,
-        weekday: weekdays[d.getDay()]
+        weekday: weekdays[d.getDay()],
+        weekdayIcon: weekdayIcons[d.getDay()]
       }
     })
   },
@@ -168,6 +186,7 @@ Page({
   // 加载今日记录（云端优先）
   async loadRecords() {
     const today = util.getTodayStr()
+    const yesterday = this.getYesterdayStr()
     const records = await cloud.fetchBrushingRecords()
     const stats = util.getBrushingStats()
 
@@ -182,8 +201,14 @@ Page({
         durationText
       }
     }
+
+    // 今日记录
     const morningRecord = formatRecord(records.find(r => r.date === today && r.timeOfDay === 'morning'))
     const eveningRecord = formatRecord(records.find(r => r.date === today && r.timeOfDay === 'evening'))
+
+    // 昨日记录
+    const yesterdayMorning = formatRecord(records.find(r => r.date === yesterday && r.timeOfDay === 'morning'))
+    const yesterdayEvening = formatRecord(records.find(r => r.date === yesterday && r.timeOfDay === 'evening'))
 
     // 更新鼓励语
     let encourageText = '今天也要认真刷牙哦~'
@@ -198,9 +223,18 @@ Page({
     this.setData({
       morningRecord,
       eveningRecord,
+      yesterdayMorning,
+      yesterdayEvening,
       streakDays: stats.streak,
       encourageText
     })
+  },
+
+  // 获取昨天日期字符串
+  getYesterdayStr() {
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   },
 
   // 拍照打卡（支持多张）

@@ -177,11 +177,21 @@
 
 .day-cell.other-month {
   opacity: 0.3;
+  background: transparent;
+}
+
+.day-cell.other-month .day-number {
+  color: #ccc;
 }
 
 .day-cell.today {
-  background: rgba(255, 107, 138, 0.1);
-  border: 2rpx solid #FF9AAB;
+  background: rgba(255, 107, 138, 0.05);
+  border: 2rpx solid rgba(255, 107, 138, 0.3);
+}
+
+.day-cell.today .day-number {
+  color: #FF6B8A;
+  font-weight: bold;
 }
 
 .day-cell.selected {
@@ -192,6 +202,10 @@
 .day-cell.selected .day-number {
   color: #fff;
   font-weight: bold;
+}
+
+.day-cell.selected.today {
+  border-color: #FF6B8A;
 }
 
 .day-number {

@@ -3,10 +3,10 @@
  * 支持导出所有数据（包括图片）为备份文件，以及从备份文件导入还原
  */
 
-var util = require('./util.js')
+const util = require('./util.js')
 
 // ===== 需要备份的 Storage Keys =====
-var STORAGE_KEYS = [
+const STORAGE_KEYS = [
   'brushingRecords',     // 刷牙记录
   'habitRecords',        // 习惯打卡记录
   'drawings',            // 画作

@@ -17,7 +17,7 @@ Page({
     calendarDays: [],
     allRecords: [],
     records: [],
-    selectedDate: '',
+    selectedDate: null,
     daySummary: null,
     // 详情弹窗
     showDetail: false,
@@ -98,7 +98,7 @@ Page({
     if (!date) return
 
     // 点击已选中的日期则取消筛选
-    const newSelected = this.data.selectedDate === date ? '' : date
+    const newSelected = this.data.selectedDate === date ? null : date
     const filteredRecords = newSelected
       ? this.data.allRecords.filter(r => r.date === newSelected)
       : this.data.allRecords
@@ -111,13 +111,6 @@ Page({
       records: filteredRecords,
       daySummary
     })
-
-    // 自动滚动到记录区域
-    if (newSelected) {
-      setTimeout(() => {
-        wx.pageScrollTo({ selector: '.extras-row', duration: 300 })
-      }, 100)
-    }
   },
 
   // 构建当日摘要
