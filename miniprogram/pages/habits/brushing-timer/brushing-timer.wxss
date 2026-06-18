@@ -284,7 +284,7 @@
 }
 
 .enemy-emoji {
-  font-size: 240rpx;
+  font-size: 320rpx;
   display: block;
   --enemy-scale: 1.3;
   animation: enemyIdle 2s ease-in-out infinite;
