@@ -209,6 +209,28 @@ miniprogram/
 
 ## 📝 更新日志
 
+### 2026-06-18（大怪物击败特效增强）
+- **增强** 刷牙战斗页面大怪物被击败时的消失效果，提升视觉冲击感
+  - 全屏白色闪光：击败瞬间屏幕高亮闪烁
+  - 金色冲击波：从怪物中心向外扩散的光环
+  - KO 大字动画：屏幕中央弹出红色「KO！」+ 怪物名提示
+  - 碎片飞溅：怪物 emoji 碎片向四周炸开并旋转消失
+  - 增强烟花：粒子数量从 24 增加到 48，范围更大、亮度更高，并新增第二波近距离爆发
+  - 敌人消失动画优化：先放大+高亮模糊，再快速缩小+旋转至消失
+- **新增** 数据状态：`showDefeatFlash`、`showShockwave`、`showKoText`、`enemyDebris`
+- **新增** `brushing-timer.js` —— `triggerEnemyDefeatEffects()` 统一触发全套击败特效
+- **修改** `brushing-timer.js` —— `startMainTimer()` / `completeTimer()` 击败时调用新特效，`resetTimer()` / `onUnload()` 清理相关状态与定时器
+- **修改** `brushing-timer.wxml` —— 新增闪光、冲击波、碎片、KO 大字元素
+- **修改** `brushing-timer.wxss` —— 新增击败特效动画与样式，增强烟花和敌人消失动画
+
+### 2026-06-18（暴击敌人动画修复）
+- **修复** 暴击时敌人只会击飞到左上角、其他 9 种暴击动画不生效、概率不均
+  - 根因1：微信小程序内联 `style` 的 `animation-name` 引用 `@keyframes` 不可靠 → 改用 CSS 类（`.enemy-emoji.crit-*`）驱动
+  - 根因2：`critKey % 2` 双 `<text>` 交替渲染在小程序中复用/重建行为不一致，CSS 动画经常不重新触发，导致第一个播出的动画（左上角 crit-knockback）反复"卡"住 → 合并为单个 `<text>`，去掉 `critKey` 切换
+  - 现在每次暴击从 `''` → `crit-xxx` 类名变化自动从头播放，10 种动画概率均等
+- **修改** `brushing-timer.js` —— 移除内联 `critEnemyStyle`/`critAnimName`/`critKey`，改用 `critEnemyAnim` 类名
+- **修改** `brushing-timer.wxml` —— `enemy-emoji` 合并为单个 `<text>`，绑定 `{{isCriticalHit ? critEnemyAnim : ''}}` 类
+
 ### 2026-06-18（刷牙拍照涂鸦功能修复）
 - **修复** 刷牙后拍照涂鸦功能
   - 拍照后跳转到涂鸦编辑页面，支持贴纸拖拽和旋转缩放

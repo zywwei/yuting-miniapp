@@ -287,13 +287,16 @@
   font-size: 320rpx;
   display: block;
   --enemy-scale: 1.3;
-  animation: enemyIdle 2s ease-in-out infinite;
   transition: transform 0.3s ease-out;
 }
 
+.enemy-idle {
+  animation: enemyIdle 2s ease-in-out infinite;
+}
+
 @keyframes enemyIdle {
-  0%, 100% { transform: scale(var(--enemy-scale, 1.3)); }
-  50% { transform: scale(calc(var(--enemy-scale, 1.3) * 1.08)); }
+  0%, 100% { transform: scale(1.3); }
+  50% { transform: scale(1.404); }
 }
 
 .shake {
@@ -307,14 +310,165 @@
 }
 
 .defeated {
-  animation: defeated 0.8s ease-out forwards !important;
+  animation: defeated 1s cubic-bezier(0.25, 1.5, 0.5, 1) forwards !important;
 }
 
 @keyframes defeated {
-  0% { transform: scale(var(--enemy-scale, 0.5)); opacity: 1; }
-  30% { transform: scale(calc(var(--enemy-scale, 0.5) * 1.3)); opacity: 1; }
-  60% { transform: scale(calc(var(--enemy-scale, 0.5) * 0.5)); opacity: 0.5; }
-  100% { transform: scale(0); opacity: 0; }
+  0% { transform: scale(var(--enemy-scale, 1.3)); opacity: 1; filter: brightness(1); }
+  20% { transform: scale(1.6); opacity: 1; filter: brightness(2) blur(2rpx); }
+  45% { transform: scale(0.9) rotate(-10deg); opacity: 0.9; filter: brightness(1.5) blur(0); }
+  70% { transform: scale(0.4) rotate(10deg); opacity: 0.4; filter: brightness(0.8); }
+  100% { transform: scale(0) rotate(0deg); opacity: 0; filter: brightness(0); }
+}
+
+/* 敌人被击败时的屏幕闪光 */
+.defeat-flash-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  z-index: 9999;
+  pointer-events: none;
+  animation: defeatFlash 0.12s ease-out forwards;
+}
+
+@keyframes defeatFlash {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* 敌人被击败时的冲击波 */
+.defeat-shockwave {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100rpx;
+  height: 100rpx;
+  margin-left: -50rpx;
+  margin-top: -50rpx;
+  border-radius: 50%;
+  border: 8rpx solid rgba(255, 215, 0, 0.9);
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 60rpx rgba(255, 215, 0, 0.6), inset 0 0 40rpx rgba(255, 255, 255, 0.4);
+  z-index: 100;
+  pointer-events: none;
+  animation: shockwaveExpand 0.9s ease-out forwards;
+}
+
+@keyframes shockwaveExpand {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; border-width: 16rpx; }
+  100% { transform: translate(-50%, -50%) scale(12); opacity: 0; border-width: 0; }
+}
+
+/* 敌人碎片飞溅 */
+.enemy-debris-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  z-index: 90;
+  pointer-events: none;
+}
+
+.enemy-debris {
+  position: absolute;
+  font-size: var(--deb-size);
+  left: 0;
+  top: 0;
+  opacity: 0;
+  text-shadow: 0 0 10rpx currentColor;
+  animation: debrisFly 1.2s ease-out forwards;
+  animation-delay: var(--deb-delay);
+}
+
+@keyframes debrisFly {
+  0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); opacity: 1; }
+  30% { transform: translate(calc(-50% + var(--deb-x) * 0.5), calc(-50% + var(--deb-y) * 0.5)) rotate(180deg) scale(1.2); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--deb-x)), calc(-50% + var(--deb-y))) rotate(360deg) scale(0.3); opacity: 0; }
+}
+
+/* KO大字 */
+.ko-text-container {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 200;
+  pointer-events: none;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: koContainerPop 1.5s ease-out forwards;
+}
+
+.ko-text {
+  font-size: 160rpx;
+  font-weight: 900;
+  color: #FF1744;
+  text-shadow:
+    0 0 20rpx rgba(255, 23, 68, 0.8),
+    0 0 40rpx rgba(255, 215, 0, 0.6),
+    6rpx 6rpx 0 #fff,
+    -6rpx -6rpx 0 #FFD700;
+  line-height: 1;
+  animation: koTextPop 1.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+}
+
+.ko-sub {
+  font-size: 32rpx;
+  color: #fff;
+  background: linear-gradient(90deg, #FF6B8A, #FFD700);
+  padding: 10rpx 28rpx;
+  border-radius: 30rpx;
+  margin-top: 16rpx;
+  font-weight: bold;
+  box-shadow: 0 8rpx 24rpx rgba(255, 107, 138, 0.4);
+  animation: koSubSlide 1.5s ease-out forwards;
+}
+
+@keyframes koContainerPop {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes koTextPop {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  25% { transform: scale(1.3) rotate(5deg); opacity: 1; }
+  50% { transform: scale(1) rotate(0deg); opacity: 1; }
+  80% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+@keyframes koSubSlide {
+  0% { transform: translateY(40rpx); opacity: 0; }
+  30% { transform: translateY(40rpx); opacity: 0; }
+  55% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+
+/* 战斗场景屏幕震动（敌人被击败时） */
+.battle-arena.enemy-defeated-shake {
+  animation: arenaShake 0.5s ease-in-out;
+}
+
+@keyframes arenaShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-8rpx, 6rpx); }
+  20% { transform: translate(8rpx, -6rpx); }
+  30% { transform: translate(-6rpx, -8rpx); }
+  40% { transform: translate(6rpx, 8rpx); }
+  50% { transform: translate(-4rpx, 4rpx); }
+  60% { transform: translate(4rpx, -4rpx); }
+  70% { transform: translate(-2rpx, 2rpx); }
+  80% { transform: translate(2rpx, -2rpx); }
+  90% { transform: translate(0, 0); }
 }
 
 /* 敌人HP */
@@ -543,23 +697,27 @@
 
 .particle {
   position: absolute;
-  width: 20rpx;
-  height: 20rpx;
-  animation: particleExplode 0.5s ease-out forwards;
+  width: 30rpx;
+  height: 30rpx;
+  font-size: 24rpx;
+  text-align: center;
+  line-height: 30rpx;
+  animation: particleExplode 0.6s ease-out forwards;
   animation-delay: var(--delay, 0s);
 }
 
-.particle::after {
-  content: '';
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
+/* 粒子不使用伪元素，直接显示文本节点 */
+.particle.normal {
+  font-size: 20rpx;
 }
 
-.particle.star::after { content: '⭐'; font-size: 16rpx; }
-.particle.spark::after { content: '✨'; font-size: 14rpx; }
-.particle.fire::after { content: '💥'; font-size: 12rpx; }
+/* 暴击粒子（使用动态emoji） */
+.particle.crit {
+  width: 40rpx;
+  height: 40rpx;
+  font-size: 32rpx;
+  line-height: 40rpx;
+}
 
 @keyframes particleExplode {
   0% {
@@ -568,17 +726,13 @@
   }
   100% {
     opacity: 0;
-    transform: rotate(var(--angle, 0deg)) translateX(80rpx) scale(0.3);
+    transform: rotate(var(--angle, 0deg)) translateX(100rpx) scale(0.5);
   }
 }
 
-/* 暴击粒子（金色，更大范围） */
-.hit-effect.critical .particle::after {
-  filter: brightness(1.5) sepia(1) hue-rotate(10deg);
-}
-
+/* 暴击粒子（更大范围，更持久） */
 .hit-effect.critical .particle {
-  animation: particleExplodeCritical 0.6s ease-out forwards;
+  animation: particleExplodeCritical 0.8s ease-out forwards;
 }
 
 @keyframes particleExplodeCritical {
@@ -592,7 +746,7 @@
   }
 }
 
-/* ===== 暴击专属特效 ===== */
+/* ===== 暴击专属特效（20种随机模式） ===== */
 .critical-effect {
   position: absolute;
   top: 0;
@@ -603,21 +757,37 @@
   pointer-events: none;
 }
 
-.critical-text {
+.critical-emoji {
   position: absolute;
-  top: 50%;
+  top: 35%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 80rpx;
+  font-size: 120rpx;
+  animation: critEmojiAppear 1s ease-out forwards;
+}
+
+@keyframes critEmojiAppear {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(-180deg); }
+  30% { opacity: 1; transform: translate(-50%, -50%) scale(1.5) rotate(10deg); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1) translateY(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2) translateY(-150rpx); }
+}
+
+.critical-text {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 72rpx;
   font-weight: bold;
-  color: #FFD700;
-  text-shadow: 0 4rpx 8rpx rgba(0,0,0,0.5);
+  text-shadow: 0 4rpx 12rpx rgba(0,0,0,0.6);
   animation: critTextAppear 0.8s ease-out forwards;
 }
 
 @keyframes critTextAppear {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
-  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.4); }
   40% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   80% { opacity: 1; transform: translate(-50%, -50%) scale(1) translateY(0); }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1) translateY(-100rpx); }
@@ -629,27 +799,247 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%);
-  animation: critFlashOverlay 0.3s ease-out forwards;
+  opacity: 0.3;
+  animation: critFlashOverlay 0.4s ease-out forwards;
 }
 
 @keyframes critFlashOverlay {
   0% { opacity: 0; }
-  30% { opacity: 1; }
+  20% { opacity: 0.5; }
   100% { opacity: 0; }
 }
 
-/* ===== 敌人受击反应 ===== */
+/* ===== 暴击敌人受击反应（多种动画） ===== */
+
+/* 普通受击 */
 .enemy-emoji.hit-react {
   animation: enemyHitReact 0.3s ease-out;
 }
 
 @keyframes enemyHitReact {
-  0% { transform: translateY(0) scale(var(--enemy-scale, 1.3)); filter: brightness(1); }
-  20% { transform: translateY(20rpx) scaleY(calc(var(--enemy-scale, 1.3) * 0.7)); filter: brightness(2); }
-  40% { transform: translateY(0) scaleY(calc(var(--enemy-scale, 1.3) * 1.1)); filter: brightness(1); }
-  60% { transform: translateY(10rpx) scaleY(calc(var(--enemy-scale, 1.3) * 0.85)); filter: brightness(1.2); }
-  100% { transform: translateY(0) scale(var(--enemy-scale, 1.3)); filter: brightness(1); }
+  0% { transform: translateY(0) scale(1.3); filter: brightness(1); }
+  20% { transform: translateY(20rpx) scaleY(0.91); filter: brightness(2); }
+  40% { transform: translateY(0) scaleY(1.43); filter: brightness(1); }
+  60% { transform: translateY(10rpx) scaleY(1.105); filter: brightness(1.2); }
+  100% { transform: translateY(0) scale(1.3); filter: brightness(1); }
+}
+
+/* 暴击动画类型1：左上角飞旋击飞（大位移+旋转） */
+.enemy-emoji.crit-knockback {
+  animation: critKnockback 0.7s ease-out !important;
+}
+
+@keyframes critKnockback {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1.3); }
+  12% { transform: translate(-20rpx, -15rpx) rotate(30deg) scale(1.56); filter: brightness(2); }
+  30% { transform: translate(-100rpx, -80rpx) rotate(180deg) scale(0.91); }
+  50% { transform: translate(-60rpx, -40rpx) rotate(270deg) scale(1.3); }
+  70% { transform: translate(-20rpx, -10rpx) rotate(330deg) scale(1.3); }
+  100% { transform: translate(0, 0) rotate(360deg) scale(1.3); filter: brightness(1); }
+}
+
+/* 暴击动画类型2：猛烈缩放脉冲（极端大小跳变） */
+.enemy-emoji.crit-shrink-bounce {
+  animation: critShrinkBounce 0.5s ease-in !important;
+}
+
+@keyframes critShrinkBounce {
+  0% { transform: scale(1.3); }
+  10% { transform: scale(0.3); filter: brightness(2.5); }
+  25% { transform: scale(2.2); }
+  40% { transform: scale(0.5); }
+  55% { transform: scale(1.8); }
+  70% { transform: scale(0.8); }
+  85% { transform: scale(1.5); }
+  100% { transform: scale(1.3); }
+}
+
+/* 暴击动画类型3：高速旋转（仅旋转，不位移） */
+.enemy-emoji.crit-spin {
+  animation: critSpin 0.6s linear !important;
+}
+
+@keyframes critSpin {
+  0% { transform: rotate(0deg) scale(1.3); filter: brightness(1); }
+  10% { transform: rotate(120deg) scale(1.5); filter: brightness(2); }
+  30% { transform: rotate(360deg) scale(1.8); }
+  50% { transform: rotate(600deg) scale(1.3); filter: brightness(1.5); }
+  70% { transform: rotate(840deg) scale(1.6); }
+  90% { transform: rotate(1050deg) scale(1.2); filter: brightness(2); }
+  100% { transform: rotate(1080deg) scale(1.3); filter: brightness(1); }
+}
+
+/* 暴击动画类型4：重击砸地（向下压扁+地面弹跳感） */
+.enemy-emoji.crit-squash {
+  animation: critSquash 0.5s ease-in !important;
+}
+
+@keyframes critSquash {
+  0% { transform: scaleX(1) scaleY(1.3); }
+  10% { transform: scaleX(1) scaleY(1.5); filter: brightness(2); }
+  20% { transform: scaleX(2.2) scaleY(0.45); }
+  35% { transform: scaleX(0.7) scaleY(2.0); }
+  50% { transform: scaleX(1.7) scaleY(0.7); }
+  65% { transform: scaleX(0.85) scaleY(1.5); }
+  80% { transform: scaleX(1.3) scaleY(0.9); }
+  100% { transform: scaleX(1) scaleY(1.3); }
+}
+
+/* 暴击动画类型5：瞬移闪烁（消失→位移→闪烁出现） */
+.enemy-emoji.crit-teleport {
+  animation: critTeleport 0.8s ease-out !important;
+}
+
+@keyframes critTeleport {
+  0% { opacity: 1; transform: scale(1.3); }
+  12% { opacity: 0.3; transform: scale(2.0); filter: brightness(4); }
+  20% { opacity: 0; transform: scale(1.0); }
+  35% { opacity: 0; transform: translate(80rpx, 50rpx) scale(1.0); }
+  45% { opacity: 1; transform: translate(80rpx, 50rpx) scale(1.8); filter: brightness(3); }
+  55% { opacity: 0.2; transform: translate(80rpx, 50rpx) scale(1.2); }
+  65% { opacity: 1; transform: translate(30rpx, 20rpx) scale(1.5); filter: brightness(1.5); }
+  80% { opacity: 1; transform: translate(-10rpx, -5rpx) scale(1.2); }
+  100% { opacity: 1; transform: translate(0, 0) scale(1.3); filter: brightness(1); }
+}
+
+/* 暴击动画类型6：剧烈摇晃（高频左右摇+放大闪烁） */
+.enemy-emoji.crit-shake-big {
+  animation: critShakeBig 0.5s ease-out !important;
+}
+
+@keyframes critShakeBig {
+  0% { transform: translate(0, 0) scale(1.3); }
+  8% { transform: translate(-25rpx, 0) scale(1.9); filter: brightness(2.5); }
+  16% { transform: translate(25rpx, 0) scale(1.5); }
+  24% { transform: translate(-20rpx, 0) scale(2.0); filter: brightness(1.5); }
+  32% { transform: translate(20rpx, 0) scale(1.6); }
+  40% { transform: translate(-15rpx, 0) scale(1.8); filter: brightness(2.5); }
+  48% { transform: translate(15rpx, 0) scale(1.4); }
+  56% { transform: translate(-8rpx, 0) scale(1.6); filter: brightness(1.5); }
+  64% { transform: translate(8rpx, 0) scale(1.3); }
+  80% { transform: translate(0, 0) scale(1.35); }
+  100% { transform: translate(0, 0) scale(1.3); }
+}
+
+/* 暴击动画类型7：向右上方抛飞（大位移弧线） */
+.enemy-emoji.crit-knockright {
+  animation: critKnockRight 0.7s ease-out !important;
+}
+
+@keyframes critKnockRight {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1.3); }
+  10% { transform: translate(40rpx, -20rpx) rotate(-15deg) scale(1.56); filter: brightness(2); }
+  30% { transform: translate(120rpx, -70rpx) rotate(-45deg) scale(1.0); }
+  50% { transform: translate(80rpx, -30rpx) rotate(-25deg) scale(1.3); }
+  70% { transform: translate(30rpx, -10rpx) rotate(-10deg) scale(1.3); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1.3); filter: brightness(1); }
+}
+
+/* 暴击动画类型8：弹射上升（快速冲高+重力回落） */
+.enemy-emoji.crit-bounce {
+  animation: critBounce 0.6s cubic-bezier(0.2, 0, 0.8, 1) !important;
+}
+
+@keyframes critBounce {
+  0% { transform: translateY(0) scale(1.3); }
+  8% { transform: translateY(10rpx) scaleY(0.7) scaleX(1.4); filter: brightness(2); }
+  18% { transform: translateY(-120rpx) scaleY(1.4) scaleX(0.8); }
+  35% { transform: translateY(0) scaleY(0.6) scaleX(1.5); }
+  50% { transform: translateY(-50rpx) scaleY(1.2) scaleX(0.9); }
+  65% { transform: translateY(0) scaleY(0.85) scaleX(1.15); }
+  80% { transform: translateY(-10rpx) scale(1.3); }
+  100% { transform: translateY(0) scale(1.3); filter: brightness(1); }
+}
+
+/* 暴击动画类型9：扭曲变形（极端比例拉扯+扭绞） */
+.enemy-emoji.crit-distort {
+  animation: critDistort 0.6s ease-out !important;
+}
+
+@keyframes critDistort {
+  0% { transform: scale(1.3); }
+  10% { transform: scaleX(0.25) scaleY(3.0) rotate(15deg); filter: brightness(2.5); }
+  25% { transform: scaleX(3.0) scaleY(0.25) rotate(-15deg); }
+  40% { transform: scaleX(0.4) scaleY(2.2) rotate(10deg); filter: brightness(1.5); }
+  55% { transform: scaleX(2.2) scaleY(0.4) rotate(-10deg); }
+  70% { transform: scaleX(0.7) scaleY(1.6) rotate(5deg); filter: brightness(2); }
+  85% { transform: scaleX(1.5) scaleY(0.7) rotate(-3deg); }
+  100% { transform: scale(1.3) rotate(0deg); filter: brightness(1); }
+}
+
+/* 暴击动画类型10：高频颤抖（快速微颤+颜色闪烁） */
+.enemy-emoji.crit-tremble {
+  animation: critTremble 0.4s steps(12) !important;
+}
+
+@keyframes critTremble {
+  0% { transform: translate(0, 0) scale(1.3); filter: brightness(1); }
+  8% { transform: translate(-12rpx, -8rpx) scale(1.15); filter: brightness(2.5); }
+  16% { transform: translate(12rpx, 8rpx) scale(1.25); filter: brightness(1); }
+  24% { transform: translate(-10rpx, 6rpx) scale(1.1); filter: brightness(2.5); }
+  32% { transform: translate(10rpx, -6rpx) scale(1.3); filter: brightness(1); }
+  40% { transform: translate(-8rpx, -10rpx) scale(1.05); filter: brightness(2.5); }
+  48% { transform: translate(8rpx, 10rpx) scale(1.35); filter: brightness(1); }
+  56% { transform: translate(-6rpx, 4rpx) scale(1.1); filter: brightness(2.5); }
+  64% { transform: translate(6rpx, -4rpx) scale(1.25); filter: brightness(1); }
+  72% { transform: translate(-4rpx, -6rpx) scale(1.15); filter: brightness(2.5); }
+  80% { transform: translate(4rpx, 6rpx) scale(1.3); filter: brightness(1); }
+  100% { transform: translate(0, 0) scale(1.3); filter: brightness(1); }
+}
+
+/* 暴击名字文字 */
+.crit-name-text {
+  display: block;
+  position: absolute;
+  top: -60rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #FFD700;
+  text-shadow:
+    0 0 10rpx rgba(255, 215, 0, 0.8),
+    0 0 20rpx rgba(255, 165, 0, 0.6),
+    0 0 40rpx rgba(255, 69, 0, 0.4);
+  white-space: nowrap;
+  z-index: 20;
+  animation: critNameAppear 0.8s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes critNameAppear {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.3) rotate(-15deg);
+    text-shadow: 0 0 40rpx rgba(255, 215, 0, 1), 0 0 80rpx rgba(255, 69, 0, 0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.6) rotate(5deg);
+    text-shadow: 0 0 30rpx rgba(255, 215, 0, 0.9), 0 0 60rpx rgba(255, 165, 0, 0.7);
+  }
+  30% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.1) rotate(-3deg);
+  }
+  45% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.3) rotate(2deg);
+  }
+  65% {
+    opacity: 0.9;
+    transform: translateX(-50%) scale(1.15) translateY(-10rpx);
+    text-shadow: 0 0 20rpx rgba(255, 215, 0, 0.7), 0 0 40rpx rgba(255, 165, 0, 0.5);
+  }
+  85% {
+    opacity: 0.5;
+    transform: translateX(-50%) scale(1.05) translateY(-25rpx);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9) translateY(-40rpx);
+    text-shadow: 0 0 10rpx rgba(255, 215, 0, 0.3);
+  }
 }
 
 /* ===== 小怪物系统 ===== */
@@ -789,8 +1179,11 @@
   height: 100%;
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding-top: 20rpx;
+  overflow-y: auto;
 }
 
 /* 撒花 */
@@ -893,10 +1286,10 @@
 
 .victory-stars .star {
   font-size: 36rpx;
-  animation: starPop 0.3s ease-out both;
+  animation: victoryStarPop 0.3s ease-out both;
 }
 
-@keyframes starPop {
+@keyframes victoryStarPop {
   from { transform: scale(0); }
   to { transform: scale(1); }
 }
@@ -911,39 +1304,79 @@
   display: inline-block;
 }
 
-/* 贴纸选择 */
-.sticker-picker {
-  margin-top: 20rpx;
+/* 贴纸选择（内联到胜利画面） */
+.sticker-picker-inline {
+  padding: 20rpx 24rpx;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20rpx;
+  text-align: center;
+  margin-top: 16rpx;
 }
 
 .sticker-hint {
   font-size: 24rpx;
   color: #E91E63;
+  font-weight: bold;
   display: block;
   margin-bottom: 12rpx;
+  text-align: center;
 }
 
 .sticker-list {
   display: flex;
   justify-content: center;
-  gap: 15rpx;
+  gap: 16rpx;
+  flex-wrap: wrap;
 }
 
 .sticker-item {
-  width: 55rpx;
-  height: 55rpx;
+  width: 64rpx;
+  height: 64rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.9);
-  border-radius: 12rpx;
+  background: white;
+  border-radius: 16rpx;
   border: 2rpx solid #FFB6C1;
-  font-size: 28rpx;
-  transition: transform 0.2s;
+  font-size: 32rpx;
+  transition: all 0.2s ease;
+  box-shadow: 0 2rpx 6rpx rgba(255, 107, 138, 0.15);
 }
 
 .sticker-item:active {
   transform: scale(0.9);
+  background: #FFF0F3;
+  border-color: #FF6B8A;
+}
+
+/* 内联牙齿区域（胜利后显示） */
+.tooth-strip-inline {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8rpx;
+  padding: 12rpx;
+  margin-top: 12rpx;
+  width: 100%;
+  max-width: 600rpx;
+}
+
+/* 完成按钮 */
+.done-btn {
+  margin-top: 20rpx;
+  padding: 16rpx 60rpx;
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  color: white;
+  font-size: 28rpx;
+  font-weight: bold;
+  border-radius: 40rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 12rpx rgba(255, 107, 138, 0.3);
+}
+
+.done-btn:active {
+  transform: scale(0.95);
+  opacity: 0.9;
 }
 
 /* ===== 刷牙前小游戏 ===== */
@@ -1288,11 +1721,37 @@
   pointer-events: none;
 }
 
-.zone-sticker {
+.zone-sticker-wrap {
   position: absolute;
-  font-size: 24rpx;
+  pointer-events: auto;
+}
+
+.zone-sticker {
+  font-size: 28rpx;
   animation: stickerPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.15));
+}
+
+.sticker-delete-btn {
+  position: absolute;
+  top: -12rpx;
+  right: -12rpx;
+  width: 28rpx;
+  height: 28rpx;
+  background: #FF4444;
+  color: white;
+  font-size: 16rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.sticker-delete-btn:active {
+  opacity: 1;
+  transform: scale(1.2);
 }
 
 @keyframes stickerPop {
@@ -1631,48 +2090,45 @@
 
 /* ===== 胜利后按钮 ===== */
 .victory-actions {
-  width: 100%;
   display: flex;
-  flex-direction: column;
   gap: 16rpx;
+  padding: 20rpx 30rpx;
+  justify-content: center;
 }
 
 .victory-btn {
-  width: 100%;
-  padding: 24rpx 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
-  border-radius: 50rpx;
-  font-size: 30rpx;
+  gap: 8rpx;
+  padding: 16rpx 28rpx;
+  border-radius: 30rpx;
+  font-size: 28rpx;
   font-weight: bold;
-  transition: transform 0.2s;
+  white-space: nowrap;
+  transition: all 0.2s;
 }
 
 .victory-btn:active {
   transform: scale(0.96);
 }
 
-/* 主要按钮 - 拍照打卡 */
 .victory-btn.primary {
   background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
   color: white;
-  box-shadow: 0 8rpx 24rpx rgba(255, 107, 138, 0.4);
+  box-shadow: 0 4rpx 12rpx rgba(255, 107, 138, 0.3);
 }
 
-/* 次要按钮 - 保存纪念 */
 .victory-btn.secondary {
-  background: linear-gradient(135deg, #81C784, #66BB6A);
+  background: linear-gradient(135deg, #81C784, #4CAF50);
   color: white;
-  box-shadow: 0 8rpx 24rpx rgba(129, 199, 132, 0.4);
+  box-shadow: 0 4rpx 12rpx rgba(76, 175, 80, 0.3);
 }
 
-/* 轮廓按钮 - 查看统计 */
 .victory-btn.outline {
-  background: transparent;
-  color: #E91E63;
-  border: 3rpx solid #FFB6C1;
+  background: rgba(255, 255, 255, 0.9);
+  color: #FF6B8A;
+  border: 2rpx solid #FFD6DE;
 }
 
 .victory-btn-icon {
@@ -1680,7 +2136,7 @@
 }
 
 .victory-btn-text {
-  font-size: 30rpx;
+  font-size: 28rpx;
 }
 
 .safe-bottom { height: 40rpx; }
@@ -1701,6 +2157,54 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ===== 击败烟花 ===== */
+.firework-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 15;
+  pointer-events: none;
+}
+
+.firework-particle {
+  position: absolute;
+  font-size: var(--fw-size, 28rpx);
+  width: var(--fw-size, 28rpx);
+  height: var(--fw-size, 28rpx);
+  line-height: var(--fw-size, 28rpx);
+  text-align: center;
+  opacity: 0;
+  animation: fireworkScatter 1.4s ease-out forwards;
+  animation-delay: var(--fw-delay, 0s);
+  text-shadow: 0 0 12rpx currentColor;
+}
+
+@keyframes fireworkScatter {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--fw-angle, 0deg)) translateX(0) scale(1.8);
+    filter: brightness(2.5);
+  }
+  20% {
+    opacity: 1;
+    transform: rotate(var(--fw-angle, 0deg)) translateX(var(--fw-distance, 100rpx)) scale(1.4);
+    filter: brightness(2);
+  }
+  50% {
+    opacity: 0.9;
+    transform: rotate(var(--fw-angle, 0deg)) translateX(calc(var(--fw-distance, 100rpx) * 0.9)) translateY(20rpx) scale(1.1);
+  }
+  80% {
+    opacity: 0.5;
+    transform: rotate(var(--fw-angle, 0deg)) translateX(calc(var(--fw-distance, 100rpx) * 0.65)) translateY(90rpx) scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--fw-angle, 0deg)) translateX(calc(var(--fw-distance, 100rpx) * 0.4)) translateY(160rpx) scale(0.2);
   }
 }
 

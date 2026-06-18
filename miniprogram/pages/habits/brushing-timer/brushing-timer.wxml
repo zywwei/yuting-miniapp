@@ -90,15 +90,25 @@
         </view>
 
         <!-- 敌人（中央） -->
-        <view class="enemy-hero {{enemyShaking ? 'shake' : ''}} {{isEnemyDefeated ? 'defeated' : ''}} {{enemyAngry ? 'angry' : ''}}">
-          <text class="enemy-emoji {{enemyShaking ? 'shake' : ''}} {{enemyHitReact ? 'hit-react' : ''}} {{isEnemyDefeated ? 'defeated' : ''}}"
-                style="transform: scale({{enemyScale}}); --enemy-scale: {{enemyScale}};">{{currentEnemy.emoji}}</text>
+        <view class="enemy-hero {{enemyShaking && !isCriticalHit ? 'shake' : ''}} {{isEnemyDefeated ? 'defeated' : ''}} {{enemyAngry ? 'angry' : ''}}">
+          <text class="enemy-emoji {{!isCriticalHit ? 'enemy-idle' : ''}} {{enemyShaking && !isCriticalHit ? 'shake' : ''}} {{enemyHitReact && !isCriticalHit ? 'hit-react' : ''}} {{isEnemyDefeated ? 'defeated' : ''}} {{isCriticalHit ? critEnemyAnim : ''}}"
+                style="--enemy-scale: {{enemyScale}};">{{currentEnemy.emoji}}</text>
+          <!-- 击败烟花粒子 -->
+          <view wx:if="{{fireworkParticles.length > 0}}" class="firework-container">
+            <view wx:for="{{fireworkParticles}}" wx:key="id"
+                  class="firework-particle"
+                  style="--fw-angle: {{item.angle}}deg; --fw-distance: {{item.distance}}rpx; --fw-delay: {{item.delay}}s; --fw-size: {{item.size}}rpx; color: {{item.color}};">
+              {{item.emoji}}
+            </view>
+          </view>
+          <!-- 暴击名字 -->
+          <text wx:if="{{isCriticalHit && critName}}" class="crit-name-text">{{critName}}</text>
           <!-- HP条 -->
           <view class="enemy-hp">
             <view class="hp-bar">
               <view class="hp-fill" style="width: {{(enemyCurrentHp / currentEnemy.hp) * 100}}%;"></view>
             </view>
-            <text class="hp-num">HP {{enemyCurrentHp}}/{{currentEnemy.hp}}</text>
+            <text class="hp-num">HP {{enemyCurrentHp > 0 ? enemyCurrentHp : 0}}/{{currentEnemy.hp}}</text>
           </view>
           <!-- 敌人名称 -->
           <text class="enemy-name">{{currentEnemy.name}}</text>
@@ -108,6 +118,26 @@
           <view wx:if="{{minionDefeatEffect && minionDefeatEffect.show}}" class="minion-defeat-text">
             <text>{{minionDefeatEffect.text}}</text>
           </view>
+
+          <!-- 敌人被击败视觉冲击特效 -->
+          <!-- 全屏闪光 -->
+          <view wx:if="{{showDefeatFlash}}" class="defeat-flash-overlay"></view>
+          <!-- 冲击波 -->
+          <view wx:if="{{showShockwave}}" class="defeat-shockwave"></view>
+          <!-- 碎片飞溅 -->
+          <view wx:if="{{enemyDebris.length > 0}}" class="enemy-debris-container">
+            <view wx:for="{{enemyDebris}}" wx:key="id"
+                  class="enemy-debris"
+                  style="--deb-x: {{item.x}}rpx; --deb-y: {{item.y}}rpx; --deb-delay: {{item.delay}}s; --deb-size: {{item.size}}rpx; color: {{item.color}};">
+              {{item.emoji}}
+            </view>
+          </view>
+        </view>
+
+        <!-- KO大字（独立于enemy-hero，确保居中且不被隐藏） -->
+        <view wx:if="{{showKoText}}" class="ko-text-container">
+          <text class="ko-text">KO！</text>
+          <text class="ko-sub">{{currentEnemy.name}} 被击败</text>
         </view>
 
         <!-- 牙刷（根据区域动态变化位置和方向） -->
@@ -138,14 +168,15 @@
           <text class="hit-icon">{{isCritical ? '⚡' : '💥'}}</text>
           <!-- 命中爆炸粒子 -->
           <view class="explosion-particles">
-            <view wx:for="{{explosionParticles}}" wx:key="id" class="particle {{item.type}}" style="--angle: {{item.angle}}deg; --delay: {{item.delay}}s;"></view>
+            <view wx:for="{{explosionParticles}}" wx:key="id" class="particle {{item.type}}" style="--angle: {{item.angle}}deg; --delay: {{item.delay}}s;">{{item.emoji}}</view>
           </view>
         </view>
 
-        <!-- 暴击专属特效 -->
-        <view wx:if="{{showCriticalEffect}}" class="critical-effect">
-          <text class="critical-text">暴击！</text>
-          <view class="critical-flash-overlay"></view>
+        <!-- 暴击专属特效（20种随机模式） -->
+        <view wx:if="{{showCriticalEffect && critAnim}}" class="critical-effect">
+          <text class="critical-emoji" style="color: {{critAnim.color}};">{{critAnim.emoji}}</text>
+          <text class="critical-text" style="color: {{critAnim.color}};">{{critAnim.name}}！</text>
+          <view class="critical-flash-overlay" style="background: {{critAnim.color}};"></view>
         </view>
 
         <!-- 连击计数器 -->
@@ -208,23 +239,51 @@
               <text>🏆 +{{brushPoints}} 积分</text>
             </view>
           </view>
+        </view>
 
+        <!-- 贴纸选择（胜利后显示） -->
+        <view wx:if="{{showStickerPicker}}" class="sticker-picker-inline">
+          <text class="sticker-hint">给牙齿贴个贴纸吧~</text>
+          <view class="sticker-list">
+            <view wx:for="{{stickers}}" wx:key="id" class="sticker-item" bindtap="onTapSticker" data-id="{{item.id}}">
+              <text>{{item.emoji}}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 6区牙齿（胜利后显示，用于贴贴纸） -->
+        <view wx:if="{{toothZones.length > 0}}" class="tooth-strip-inline">
+          <view wx:for="{{toothZones}}" wx:key="index"
+                class="tooth-zone zone-{{item.state}} {{item.state === 'current' ? 'zone-pulse' : ''}}"
+                style="border-color: {{item.color}};">
+            <view class="zone-tooth-body">
+              <text class="zone-tooth-emoji">{{item.state === 'clean' ? '✨' : '🦷'}}</text>
+            </view>
+            <view class="zone-stickers" wx:if="{{placedStickers.length > 0 && item.state === 'clean'}}">
+              <view wx:for="{{placedStickers}}" wx:key="id" wx:for-item="sticker"
+                    wx:if="{{sticker.zoneIndex === index}}"
+                    class="zone-sticker-wrap"
+                    style="left: {{sticker.x}}%; top: {{sticker.y}}%;">
+                <text class="zone-sticker">{{sticker.emoji}}</text>
+                <view class="sticker-delete-btn" catchtap="onDeleteSticker" data-id="{{sticker.id}}">✕</view>
+              </view>
+            </view>
+            <view class="zone-shine" wx:if="{{item.state === 'clean'}}">✨</view>
+            <view class="zone-crown" wx:if="{{item.state === 'clean'}}">👑</view>
+            <view class="zone-label">{{item.name}}</view>
+            <view class="zone-check" wx:if="{{item.state === 'clean'}}">✓</view>
+          </view>
+        </view>
+
+        <!-- 完成按钮 -->
+        <view class="done-btn" bindtap="onDoneBrushing">
+          <text>✓ 完成</text>
         </view>
       </view>
     </view>
 
-    <!-- 贴纸选择（移到 battle-arena 外部，避免 overflow:hidden 裁剪） -->
-    <view class="sticker-picker" wx:if="{{isCompleted && showStickerPicker}}">
-      <text class="sticker-hint">给牙齿贴个贴纸吧~</text>
-      <view class="sticker-list">
-        <view wx:for="{{stickers}}" wx:key="id" class="sticker-item" bindtap="onTapSticker" data-id="{{item.id}}">
-          <text>{{item.emoji}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- ===== 6区牙齿（整合到战斗场景内） ===== -->
-    <view class="tooth-strip" wx:if="{{toothZones.length > 0}}">
+    <!-- ===== 6区牙齿（刷牙时显示） ===== -->
+    <view wx:if="{{toothZones.length > 0 && !isCompleted}}" class="tooth-strip">
       <view wx:for="{{toothZones}}" wx:key="index"
             class="tooth-zone zone-{{item.state}} {{item.state === 'current' ? 'zone-pulse' : ''}}"
             style="border-color: {{item.color}};">
@@ -235,12 +294,6 @@
           <text wx:for="{{item.germs}}" wx:key="id"
                 class="zone-germ {{item.fleeing ? 'germ-flee' : 'germ-wiggle'}}"
                 style="left: {{item.x}}%; top: {{item.y}}%;">{{item.emoji}}</text>
-        </view>
-        <view class="zone-stickers" wx:if="{{placedStickers.length > 0 && item.state === 'clean'}}">
-          <text wx:for="{{placedStickers}}" wx:key="id" wx:for-item="sticker"
-                wx:if="{{sticker.zoneIndex === index}}"
-                class="zone-sticker"
-                style="left: {{sticker.x}}%; top: {{sticker.y}}%;">{{sticker.emoji}}</text>
         </view>
         <view class="zone-shine" wx:if="{{item.state === 'clean'}}">✨</view>
         <view class="zone-crown" wx:if="{{item.state === 'clean'}}">👑</view>
@@ -310,10 +363,6 @@
       <view class="victory-btn primary" bindtap="goCheckIn">
         <text class="victory-btn-icon">📷</text>
         <text class="victory-btn-text">拍照打卡</text>
-      </view>
-      <view class="victory-btn secondary" bindtap="saveDecoration">
-        <text class="victory-btn-icon">💾</text>
-        <text class="victory-btn-text">保存纪念</text>
       </view>
       <view class="victory-btn outline" bindtap="goBrushingPage">
         <text class="victory-btn-text">查看统计 →</text>
