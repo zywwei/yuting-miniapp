@@ -119,11 +119,11 @@
             <view wx:if="{{morningRecord.images.length > 1}}" class="photo-count">
               <text>+{{morningRecord.images.length - 1}}</text>
             </view>
-            <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{morningRecord.images[0]}}">✏️</view>
+            <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{morningRecord.images[0]}}" data-time-of-day="morning">✏️</view>
           </view>
           <view wx:elif="{{morningRecord.imagePath}}" class="photo-area">
             <image class="photo-thumb" src="{{morningRecord.imagePath}}" mode="aspectFill" bindtap="previewImage" data-path="{{morningRecord.imagePath}}" />
-            <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{morningRecord.imagePath}}">✏️</view>
+            <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{morningRecord.imagePath}}" data-time-of-day="morning">✏️</view>
           </view>
           <view wx:else class="photo-area photo-placeholder">
             <text>✅</text>
@@ -186,11 +186,11 @@
             <view wx:if="{{eveningRecord.images.length > 1}}" class="photo-count">
               <text>+{{eveningRecord.images.length - 1}}</text>
             </view>
-            <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{eveningRecord.images[0]}}">✏️</view>
+            <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{eveningRecord.images[0]}}" data-time-of-day="evening">✏️</view>
           </view>
           <view wx:elif="{{eveningRecord.imagePath}}" class="photo-area">
             <image class="photo-thumb" src="{{eveningRecord.imagePath}}" mode="aspectFill" bindtap="previewImage" data-path="{{eveningRecord.imagePath}}" />
-            <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{eveningRecord.imagePath}}">✏️</view>
+            <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{eveningRecord.imagePath}}" data-time-of-day="evening">✏️</view>
           </view>
           <view wx:else class="photo-area photo-placeholder">
             <text>✅</text>

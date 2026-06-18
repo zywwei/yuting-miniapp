@@ -267,12 +267,13 @@
 
 .action-btn {
   flex: 1;
-  padding: 16rpx 0;
+  padding: 16rpx 28rpx;
   background: linear-gradient(135deg, #FFF0F3, #FFE4EC);
   border-radius: 24rpx;
   border: 2rpx solid #FFD6DE;
   text-align: center;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .action-btn:active {
@@ -281,9 +282,9 @@
 }
 
 .action-btn text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #FF6B8A;
-  font-weight: 500;
+  font-weight: bold;
 }
 
 .action-btn:active {

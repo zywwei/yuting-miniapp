@@ -119,6 +119,7 @@ Page({
     const templateId = options.templateId || ''
     const templateName = options.name || ''
     const photoPath = options.photo ? decodeURIComponent(options.photo) : ''
+    const timeOfDay = options.timeOfDay || 'morning'
     const sysInfo = wx.getSystemInfoSync()
 
     // 获取右上角胶囊按钮位置，计算右侧安全距离
@@ -146,6 +147,7 @@ Page({
       templateName: templateName,
       canvasTitle: titleMap[mode] || (templateName ? '涂色 - ' + templateName : '钰婷的画板'),
       drawingMode: mode,
+      drawingTimeOfDay: timeOfDay,
       soundEnabled: audio.enabled
     })
 
@@ -393,6 +395,7 @@ Page({
 
   // 放置新贴纸（预览模式）
   _placeSticker(emoji, x, y) {
+    this._saveStickerBase()
     this.setData({
       stickerPreview: {
         emoji: emoji,
@@ -461,31 +464,6 @@ Page({
     }
   },
 
-  onCanvasTouchMove(e) {
-    if (this.data.currentMode === 'sticker') return
-    if (!this.isDrawing || !this.ctx) return
-
-    const pos = this._getCanvasPos(e)
-    this.ctx.beginPath()
-    this.ctx.moveTo(this.lastX, this.lastY)
-    this.ctx.lineTo(pos.x, pos.y)
-    this.ctx.strokeStyle = this.data.currentMode === 'eraser' ? '#FFFFFF' : this.data.currentColor
-    this.ctx.lineWidth = this.data.currentSize
-    this.ctx.lineCap = 'round'
-    this.ctx.lineJoin = 'round'
-    this.ctx.stroke()
-
-    this.lastX = pos.x
-    this.lastY = pos.y
-  },
-
-  onCanvasTouchEnd(e) {
-    if (this.data.currentMode === 'sticker') return
-    if (!this.isDrawing) return
-    this.isDrawing = false
-    this.saveHistory()
-  },
-
   // ========== 贴纸操作 ==========
 
   // 切换贴纸分类
@@ -503,6 +481,23 @@ Page({
   // 确认贴纸（将预览贴纸真正贴到画布上）
   confirmStickers() {
     if (!this.data.stickerPreview) return
+
+    const preview = this.data.stickerPreview
+
+    if (this.ctx && this._stickerBaseImg) {
+      this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
+      this.ctx.drawImage(this._stickerBaseImg, 0, 0, this.canvasWidth, this.canvasHeight)
+      this.ctx.save()
+      this.ctx.translate(preview.x, preview.y)
+      if (preview.rotation) {
+        this.ctx.rotate(preview.rotation * Math.PI / 180)
+      }
+      this.ctx.font = `${preview.size}px serif`
+      this.ctx.textAlign = 'center'
+      this.ctx.textBaseline = 'middle'
+      this.ctx.fillText(preview.emoji, 0, 0)
+      this.ctx.restore()
+    }
 
     this.setData({ stickerPreview: null })
     this._stickerBase = null
@@ -728,7 +723,7 @@ Page({
       // 刷牙模式：保存编辑后的照片到刷牙记录
       if (this.data.drawingMode === 'brushing') {
         await this._saveEditedPhoto(res.tempFilePath, 'brushingEditedPhoto', {
-          timeOfDay: this.data.brushingTimeOfDay || 'morning'
+          timeOfDay: this.data.drawingTimeOfDay || 'morning'
         })
         return
       }

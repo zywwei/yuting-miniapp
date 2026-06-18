@@ -141,13 +141,10 @@ Page({
 
     wx.showLoading({ title: '保存编辑...' })
     try {
-      const record = targetTimeOfDay === 'morning' ? this.data.morningRecord : this.data.eveningRecord
-      const existingImages = (record && record.images) || []
-      const allImages = [...existingImages, editedPath]
-
+      // 只保存编辑后的图片，替换原有的 imagePath
       await cloud.updateBrushingRecord(targetTimeOfDay, {
-        imagePath: allImages[0] || '',
-        images: allImages
+        imagePath: editedPath,
+        images: [editedPath]
       })
       wx.hideLoading()
       this.loadRecords()
@@ -451,8 +448,9 @@ Page({
   // 跳转画画编辑器编辑照片
   editPhotoInDraw(e) {
     const path = e.currentTarget.dataset.path
+    const timeOfDay = e.currentTarget.dataset.timeOfDay || 'morning'
     wx.navigateTo({
-      url: '/pages/create/draw/draw?mode=brushing&photo=' + encodeURIComponent(path)
+      url: '/pages/create/draw/draw?mode=brushing&photo=' + encodeURIComponent(path) + '&timeOfDay=' + timeOfDay
     })
   },
 

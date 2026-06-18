@@ -1344,29 +1344,16 @@ Page({
 
   goCheckIn() {
     wx.chooseMedia({
-      count: 9,
+      count: 1,
       mediaType: ['image'],
       sourceType: ['camera', 'album'],
       sizeType: ['compressed'],
-      success: async (res) => {
-        const imagePaths = res.tempFiles.map(f => f.tempFilePath)
-        wx.showLoading({ title: '保存中...' })
-        try {
-          await cloud.updateBrushingRecord(this.data.timeOfDay, {
-            imagePath: imagePaths[0] || '',
-            images: imagePaths
-          })
-          wx.hideLoading()
-          wx.showToast({ title: '拍照成功！📷', icon: 'success' })
-          // 跳转到刷牙打卡主页
-          setTimeout(() => {
-            wx.redirectTo({ url: '/pages/habits/brushing/brushing' })
-          }, 1500)
-        } catch (err) {
-          wx.hideLoading()
-          console.error('保存照片失败:', err)
-          wx.showToast({ title: '保存失败', icon: 'none' })
-        }
+      success: (res) => {
+        const photoPath = res.tempFiles[0].tempFilePath
+        // 跳转到涂鸦编辑页面，传递刷牙模式、照片路径和时段信息
+        wx.navigateTo({
+          url: '/pages/create/draw/draw?mode=brushing&photo=' + encodeURIComponent(photoPath) + '&timeOfDay=' + this.data.timeOfDay
+        })
       }
     })
   },
