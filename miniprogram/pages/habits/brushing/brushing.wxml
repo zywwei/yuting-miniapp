@@ -115,9 +115,13 @@
         <!-- 右侧：图片区域 -->
         <view wx:if="{{morningRecord}}" class="card-right">
           <view wx:if="{{morningRecord.images.length > 0}}" class="photo-area">
-            <image class="photo-thumb" src="{{morningRecord.images[0]}}" mode="aspectFill" bindtap="previewImage" data-path="{{morningRecord.images[0]}}" />
+            <swiper class="photo-swiper" indicator-dots="{{morningRecord.images.length > 1}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#FF6B8A" autoplay="false" circular="false">
+              <swiper-item wx:for="{{morningRecord.images}}" wx:key="*this">
+                <image class="photo-thumb" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" data-images="{{morningRecord.images}}" />
+              </swiper-item>
+            </swiper>
             <view wx:if="{{morningRecord.images.length > 1}}" class="photo-count">
-              <text>+{{morningRecord.images.length - 1}}</text>
+              <text>{{morningRecord.images.length}}张</text>
             </view>
             <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{morningRecord.images[0]}}" data-time-of-day="morning">✏️</view>
           </view>
@@ -182,9 +186,13 @@
         <!-- 右侧：图片区域 -->
         <view wx:if="{{eveningRecord}}" class="card-right">
           <view wx:if="{{eveningRecord.images.length > 0}}" class="photo-area">
-            <image class="photo-thumb" src="{{eveningRecord.images[0]}}" mode="aspectFill" bindtap="previewImage" data-path="{{eveningRecord.images[0]}}" />
+            <swiper class="photo-swiper" indicator-dots="{{eveningRecord.images.length > 1}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#FF6B8A" autoplay="false" circular="false">
+              <swiper-item wx:for="{{eveningRecord.images}}" wx:key="*this">
+                <image class="photo-thumb" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" data-images="{{eveningRecord.images}}" />
+              </swiper-item>
+            </swiper>
             <view wx:if="{{eveningRecord.images.length > 1}}" class="photo-count">
-              <text>+{{eveningRecord.images.length - 1}}</text>
+              <text>{{eveningRecord.images.length}}张</text>
             </view>
             <view class="photo-edit" catchtap="editPhotoInDraw" data-path="{{eveningRecord.images[0]}}" data-time-of-day="evening">✏️</view>
           </view>
@@ -282,6 +290,58 @@
       <view class="modal-actions">
         <view class="modal-btn cancel" bindtap="cancelScore">取消</view>
         <view class="modal-btn confirm" bindtap="confirmScore">确认打卡</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 详情弹窗 -->
+  <view wx:if="{{showDetail && detailRecord}}" class="modal-mask" bindtap="closeDetail">
+    <view class="detail-modal" catchtap="noop">
+      <view class="detail-close" bindtap="closeDetail">✕</view>
+      <view class="detail-header">
+        <text class="detail-emoji">{{detailRecord.timeOfDay === 'morning' ? '☀️' : '🌙'}}</text>
+        <text class="detail-title">{{detailRecord.timeOfDay === 'morning' ? '早上' : '晚上'}}刷牙详情</text>
+      </view>
+
+      <view class="detail-rows">
+        <view class="detail-row">
+          <text class="detail-label">📅 日期</text>
+          <text class="detail-value">{{detailRecord.date}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">🕐 时间</text>
+          <text class="detail-value">{{detailRecord.timeStr}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detailRecord.durationText}}">
+          <text class="detail-label">⏱ 方式</text>
+          <text class="detail-value">{{detailRecord.durationText}}</text>
+        </view>
+        <view class="detail-row">
+          <text class="detail-label">⭐ 评分</text>
+          <view class="detail-value">
+            <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
+                  class="detail-star {{star <= detailRecord.score ? 'active' : ''}}">⭐</text>
+            <text class="detail-score-text">{{detailRecord.score}}分</text>
+          </view>
+        </view>
+        <view class="detail-row" wx:if="{{detailRecord.points > 0}}">
+          <text class="detail-label">🏆 积分</text>
+          <text class="detail-value">+{{detailRecord.points}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detailRecord.completedAreas && detailRecord.completedAreas.length > 0}}">
+          <text class="detail-label">🦷 刷牙区域</text>
+          <text class="detail-value">{{detailRecord.completedAreas.join('、')}}</text>
+        </view>
+        <view class="detail-row" wx:if="{{detailRecord.stickers && detailRecord.stickers.length > 0}}">
+          <text class="detail-label">🎨 贴纸</text>
+          <view class="detail-stickers">
+            <text wx:for="{{detailRecord.stickers}}" wx:key="id" class="detail-sticker-emoji">{{item.emoji}}</text>
+          </view>
+        </view>
+        <view class="detail-row" wx:if="{{detailRecord.note}}">
+          <text class="detail-label">💬 备注</text>
+          <text class="detail-value">{{detailRecord.note}}</text>
+        </view>
       </view>
     </view>
   </view>

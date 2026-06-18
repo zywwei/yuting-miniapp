@@ -793,6 +793,17 @@
   font-weight: normal;
 }
 
+.detail-stickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  justify-content: flex-end;
+}
+
+.detail-sticker-emoji {
+  font-size: 32rpx;
+}
+
 /* 编辑按钮 */
 .detail-edit-btn {
   text-align: center;

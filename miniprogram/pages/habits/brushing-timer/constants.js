@@ -231,6 +231,44 @@ const BATTLE_CONFIG = {
   ATTACK_BASE_POINTS: 10,    // 基础攻击积分
   CRIT_ATTACK_POINTS: 20,    // 暴击攻击积分
 
+  // 暴击动画配置（20种模式）
+  CRIT_ANIMATIONS: [
+    { name: '星辰爆发', emoji: '⭐', particleEmoji: '✨', color: '#FFD700', shakeIntensity: 'heavy' },
+    { name: '火焰冲击', emoji: '🔥', particleEmoji: '💥', color: '#FF4500', shakeIntensity: 'heavy' },
+    { name: '冰霜冻结', emoji: '❄️', particleEmoji: '💎', color: '#00BFFF', shakeIntensity: 'medium' },
+    { name: '雷电一击', emoji: '⚡', particleEmoji: '💫', color: '#FFD700', shakeIntensity: 'heavy' },
+    { name: '彩虹绽放', emoji: '🌈', particleEmoji: '🎀', color: '#FF69B4', shakeIntensity: 'medium' },
+    { name: '花瓣飞舞', emoji: '🌸', particleEmoji: '💮', color: '#FFB7C5', shakeIntensity: 'light' },
+    { name: '钻石闪耀', emoji: '💎', particleEmoji: '✨', color: '#87CEEB', shakeIntensity: 'medium' },
+    { name: '旋风斩', emoji: '🌀', particleEmoji: '💨', color: '#20B2AA', shakeIntensity: 'heavy' },
+    { name: '月亮斩', emoji: '🌙', particleEmoji: '⭐', color: '#C0C0C0', shakeIntensity: 'medium' },
+    { name: '太阳拳', emoji: '☀️', particleEmoji: '✨', color: '#FFA500', shakeIntensity: 'heavy' },
+    { name: '爱心暴击', emoji: '💖', particleEmoji: '💕', color: '#FF1493', shakeIntensity: 'light' },
+    { name: '音符冲击', emoji: '🎵', particleEmoji: '🎶', color: '#9370DB', shakeIntensity: 'medium' },
+    { name: '泡泡爆破', emoji: '🫧', particleEmoji: '💫', color: '#87CEEB', shakeIntensity: 'light' },
+    { name: '糖果炸弹', emoji: '🍬', particleEmoji: '🍭', color: '#FF69B4', shakeIntensity: 'medium' },
+    { name: '星星雨', emoji: '🌟', particleEmoji: '⭐', color: '#FFD700', shakeIntensity: 'heavy' },
+    { name: '蝴蝶之舞', emoji: '🦋', particleEmoji: '✨', color: '#DA70D6', shakeIntensity: 'light' },
+    { name: '闪电链', emoji: '⚡', particleEmoji: '💥', color: '#FFD700', shakeIntensity: 'heavy' },
+    { name: '水晶碎裂', emoji: '🔮', particleEmoji: '💎', color: '#8A2BE2', shakeIntensity: 'medium' },
+    { name: '气旋风暴', emoji: '🌪️', particleEmoji: '💨', color: '#708090', shakeIntensity: 'heavy' },
+    { name: '神圣之光', emoji: '✨', particleEmoji: '🌟', color: '#FFD700', shakeIntensity: 'heavy' },
+  ],
+
+  // 暴击敌人动画类型（10种，各带中文名）
+  CRIT_ENEMY_ANIMS: [
+    { id: 'crit-knockback',    name: '🌪️ 飞旋重击' },
+    { id: 'crit-shrink-bounce', name: '💥 极限缩放' },
+    { id: 'crit-spin',         name: '🌀 高速旋转' },
+    { id: 'crit-squash',       name: '🔨 重击砸地' },
+    { id: 'crit-teleport',     name: '✨ 瞬移闪烁' },
+    { id: 'crit-shake-big',    name: '⚡ 剧烈摇晃' },
+    { id: 'crit-knockright',   name: '🚀 右上抛飞' },
+    { id: 'crit-bounce',       name: '🏹 弹射升空' },
+    { id: 'crit-distort',      name: '🌊 极端扭曲' },
+    { id: 'crit-tremble',      name: '🔥 高频颤抖' },
+  ],
+
   // 小怪物配置
   MINION_COUNT: 3,           // 每波小怪物数量
   MINION_HP: 1,              // 小怪物血量（1下打死）
@@ -314,7 +352,7 @@ const CHAPTERS = [
     enemy: {
       id: 'cavity_beast',
       name: '龋齿怪',
-      emoji: '😈',
+      emoji: '🐛',
       hp: 6,
       description: '专门制造蛀牙的坏蛋！',
       defeatText: '龋齿怪被消灭了！牙齿再也不怕蛀牙啦~'
@@ -357,19 +395,245 @@ const CHAPTERS = [
     id: 7,
     name: '终极挑战：牙齿守护者',
     emoji: '🏆',
-    description: '最终挑战！蛀牙魔王亲自出马，证明你是真正的牙齿守护者！',
+    description: '最终挑战！蛀牙大王亲自出马，证明你是真正的牙齿守护者！',
     bg: 'linear-gradient(180deg, #FFD700 0%, #FFA500 100%)',
     enemy: {
       id: 'final_boss',
-      name: '蛀牙魔王',
-      emoji: '👹',
+      name: '蛀牙大王',
+      emoji: '🐲',
       hp: 6,
       description: '所有牙齿敌人的首领！',
-      defeatText: '蛀牙魔王被打败了！你是真正的牙齿守护者！🏆'
+      defeatText: '蛀牙大王被打败了！你是真正的牙齿守护者！🏆'
     },
     rewards: { points: 100, exp: 80 }
   }
 ]
+
+// 隐藏章节主题（随机组合生成100个隐藏章节）
+const HIDDEN_THEMES = [
+  // 场景名称
+  { name: '彩虹糖果屋', emoji: '🌈', bg: 'linear-gradient(180deg, #FF9A9E 0%, #FAD0C4 100%)' },
+  { name: '泡泡水世界', emoji: '🫧', bg: 'linear-gradient(180deg, #A1C4FD 0%, #C2E9FB 100%)' },
+  { name: '星星魔法阵', emoji: '⭐', bg: 'linear-gradient(180deg, #667EEA 0%, #764BA2 100%)' },
+  { name: '云朵城堡', emoji: '☁️', bg: 'linear-gradient(180deg, #E0E5EC 0%, #F5F7FA 100%)' },
+  { name: '花朵花园', emoji: '🌸', bg: 'linear-gradient(180deg, #FFB6C1 0%, #FFC0CB 100%)' },
+  { name: '水果乐园', emoji: '🍓', bg: 'linear-gradient(180deg, #FF6B6B 0%, #FFE66D 100%)' },
+  { name: '冰淇淋山峰', emoji: '🍦', bg: 'linear-gradient(180deg, #FDFCFB 0%, #E2D1C3 100%)' },
+  { name: '巧克力河', emoji: '🍫', bg: 'linear-gradient(180deg, #3E2723 0%, #795548 100%)' },
+  { name: '饼干小屋', emoji: '🍪', bg: 'linear-gradient(180deg, #D4A574 0%, #E8C9A0 100%)' },
+  { name: '蛋糕城堡', emoji: '🎂', bg: 'linear-gradient(180deg, #FFE4E1 0%, #FFF0F5 100%)' },
+  { name: '果汁河流', emoji: '🧃', bg: 'linear-gradient(180deg, #FF9A76 0%, #FFDCB4 100%)' },
+  { name: '棉花糖云', emoji: '🍥', bg: 'linear-gradient(180deg, #FAD0C4 0%, #FFD1FF 100%)' },
+  { name: '果冻海洋', emoji: '🍮', bg: 'linear-gradient(180deg, #43E97B 0%, #38F9D7 100%)' },
+  { name: '蜜糖蜂巢', emoji: '🍯', bg: 'linear-gradient(180deg, #F6D365 0%, #FDA085 100%)' },
+  { name: '奶酪迷宫', emoji: '🧀', bg: 'linear-gradient(180deg, #FFD89B 0%, #19547B 100%)' },
+  { name: '薯片峡谷', emoji: '🥔', bg: 'linear-gradient(180deg, #F093FB 0%, #F5576C 100%)' },
+  { name: '西瓜田地', emoji: '🍉', bg: 'linear-gradient(180deg, #4CAF50 0%, #8BC34A 100%)' },
+  { name: '香蕉滑梯', emoji: '🍌', bg: 'linear-gradient(180deg, #FFE082 0%, #FFD54F 100%)' },
+  { name: '葡萄庄园', emoji: '🍇', bg: 'linear-gradient(180deg, #9C27B0 0%, #CE93D8 100%)' },
+  { name: '橙子果园', emoji: '🍊', bg: 'linear-gradient(180deg, #FF9800 0%, #FFB74D 100%)' },
+  { name: '苹果树林', emoji: '🍎', bg: 'linear-gradient(180deg, #F44336 0%, #EF9A9A 100%)' },
+  { name: '柠檬酸泉', emoji: '🍋', bg: 'linear-gradient(180deg, #FFEB3B 0%, #FFF9C4 100%)' },
+  { name: '桃子仙岛', emoji: '🍑', bg: 'linear-gradient(180deg, #FFAB91 0%, #FFCCBC 100%)' },
+  { name: '樱桃小溪', emoji: '🍒', bg: 'linear-gradient(180deg, #E91E63 0%, #F8BBD0 100%)' },
+  { name: '蓝莓森林', emoji: '🫐', bg: 'linear-gradient(180deg, #3F51B5 0%, #7986CB 100%)' },
+  { name: '芒果沙漠', emoji: '🥭', bg: 'linear-gradient(180deg, #FF6F00 0%, #FFB300 100%)' },
+  { name: '椰子海岛', emoji: '🥥', bg: 'linear-gradient(180deg, #00BCD4 0%, #80DEEA 100%)' },
+  { name: '草莓田园', emoji: '🍓', bg: 'linear-gradient(180deg, #E91E63 0%, #F48FB1 100%)' },
+  { name: '菠萝王国', emoji: '🍍', bg: 'linear-gradient(180deg, #FFC107 0%, #FFD54F 100%)' },
+  { name: '猕猴桃谷', emoji: '🥝', bg: 'linear-gradient(180deg, #4CAF50 0%, #A5D6A7 100%)' },
+  // 动物主题
+  { name: '小兔兔乐园', emoji: '🐰', bg: 'linear-gradient(180deg, #FFB6C1 0%, #FFC0CB 100%)' },
+  { name: '小熊维尼家', emoji: '🐻', bg: 'linear-gradient(180deg, #FFD54F 0%, #FFE082 100%)' },
+  { name: '小猫咪花园', emoji: '🐱', bg: 'linear-gradient(180deg, #F8BBD0 0%, #FCE4EC 100%)' },
+  { name: '小狗乐园', emoji: '🐶', bg: 'linear-gradient(180deg, #FFE0B2 0%, #FFF3E0 100%)' },
+  { name: '小猪农场', emoji: '🐷', bg: 'linear-gradient(180deg, #F48FB1 0%, #F8BBD0 100%)' },
+  { name: '小鸡家园', emoji: '🐥', bg: 'linear-gradient(180deg, #FFF9C4 0%, #FFEE58 100%)' },
+  { name: '小鸭池塘', emoji: '🦆', bg: 'linear-gradient(180deg, #B3E5FC 0%, #81D4FA 100%)' },
+  { name: '小鱼海洋', emoji: '🐟', bg: 'linear-gradient(180deg, #4FC3F7 0%, #29B6F6 100%)' },
+  { name: '蝴蝶花园', emoji: '🦋', bg: 'linear-gradient(180deg, #CE93D8 0%, #E1BEE7 100%)' },
+  { name: '蜜蜂花田', emoji: '🐝', bg: 'linear-gradient(180deg, #FFE082 0%, #FFD54F 100%)' },
+  // 童话主题
+  { name: '公主城堡', emoji: '👸', bg: 'linear-gradient(180deg, #E1BEE7 0%, #F3E5F5 100%)' },
+  { name: '王子宫殿', emoji: '🤴', bg: 'linear-gradient(180deg, #BBDEFB 0%, #E3F2FD 100%)' },
+  { name: '魔法森林', emoji: '🧙', bg: 'linear-gradient(180deg, #81C784 0%, #A5D6A7 100%)' },
+  { name: '精灵小屋', emoji: '🧝', bg: 'linear-gradient(180deg, #C8E6C9 0%, #E8F5E9 100%)' },
+  { name: '龙之洞穴', emoji: '🐉', bg: 'linear-gradient(180deg, #FF8A65 0%, #FFAB91 100%)' },
+  { name: '独角兽草原', emoji: '🦄', bg: 'linear-gradient(180deg, #F8BBD0 0%, #E1BEE7 100%)' },
+  { name: '美人鱼海湾', emoji: '🧜', bg: 'linear-gradient(180deg, #4DD0E1 0%, #80DEEA 100%)' },
+  { name: '海盗宝藏岛', emoji: '🏴‍☠️', bg: 'linear-gradient(180deg, #795548 0%, #A1887F 100%)' },
+  { name: '宇航员太空', emoji: '👨‍🚀', bg: 'linear-gradient(180deg, #263238 0%, #37474F 100%)' },
+  { name: '机器人城市', emoji: '🤖', bg: 'linear-gradient(180deg, #607D8B 0%, #90A4AE 100%)' },
+  // 运动主题
+  { name: '足球赛场', emoji: '⚽', bg: 'linear-gradient(180deg, #4CAF50 0%, #81C784 100%)' },
+  { name: '篮球公园', emoji: '🏀', bg: 'linear-gradient(180deg, #FF9800 0%, #FFB74D 100%)' },
+  { name: '游泳池', emoji: '🏊', bg: 'linear-gradient(180deg, #29B6F6 0%, #4FC3F7 100%)' },
+  { name: '滑雪场', emoji: '⛷️', bg: 'linear-gradient(180deg, #ECEFF1 0%, #CFD8DC 100%)' },
+  { name: '游乐场', emoji: '🎪', bg: 'linear-gradient(180deg, #FF5252 0%, #FF8A80 100%)' },
+  // 节日主题
+  { name: '圣诞节', emoji: '🎄', bg: 'linear-gradient(180deg, #F44336 0%, #4CAF50 100%)' },
+  { name: '万圣节', emoji: '🎃', bg: 'linear-gradient(180deg, #FF9800 0%, #9C27B0 100%)' },
+  { name: '春节', emoji: '🧧', bg: 'linear-gradient(180deg, #F44336 0%, #FFD700 100%)' },
+  { name: '中秋节', emoji: '🥮', bg: 'linear-gradient(180deg, #FFD700 0%, #FF9800 100%)' },
+  { name: '儿童节', emoji: '🎈', bg: 'linear-gradient(180deg, #FF4081 0%, #FF80AB 100%)' },
+  { name: '生日派对', emoji: '🎂', bg: 'linear-gradient(180deg, #FF80AB 0%, #FFB74D 100%)' },
+  // 自然主题
+  { name: '日出山峰', emoji: '🌅', bg: 'linear-gradient(180deg, #FF7043 0%, #FFB74D 100%)' },
+  { name: '月亮湖', emoji: '🌙', bg: 'linear-gradient(180deg, #263238 0%, #37474F 100%)' },
+  { name: '彩虹瀑布', emoji: '🌈', bg: 'linear-gradient(180deg, #FF4081 0%, #536DFE 100%)' },
+  { name: '沙漠绿洲', emoji: '🏜️', bg: 'linear-gradient(180deg, #FFD54F 0%, #FF9800 100%)' },
+  { name: '北极冰川', emoji: '🧊', bg: 'linear-gradient(180deg, #E1F5FE 0%, #B3E5FC 100%)' },
+  { name: '热带雨林', emoji: '🌴', bg: 'linear-gradient(180deg, #2E7D32 0%, #66BB6A 100%)' },
+  { name: '海底世界', emoji: '🐙', bg: 'linear-gradient(180deg, #0277BD 0%, #4FC3F7 100%)' },
+  { name: '火山岛', emoji: '🌋', bg: 'linear-gradient(180deg, #BF360C 0%, #FF8A65 100%)' },
+  { name: '水晶洞穴', emoji: '💎', bg: 'linear-gradient(180deg, #7C4DFF 0%, #B388FF 100%)' },
+  { name: '蘑菇森林', emoji: '🍄', bg: 'linear-gradient(180deg, #8D6E63 0%, #BCAAA4 100%)' },
+  // 音乐主题
+  { name: '音乐厅', emoji: '🎵', bg: 'linear-gradient(180deg, #7B1FA2 0%, #AB47BC 100%)' },
+  { name: '舞蹈教室', emoji: '💃', bg: 'linear-gradient(180deg, #EC407A 0%, #F48FB1 100%)' },
+  { name: '画画工作室', emoji: '🎨', bg: 'linear-gradient(180deg, #42A5F5 0%, #90CAF9 100%)' },
+  { name: '图书馆', emoji: '📚', bg: 'linear-gradient(180deg, #795548 0%, #A1887F 100%)' },
+  { name: '电影院', emoji: '🎬', bg: 'linear-gradient(180deg, #212121 0%, #424242 100%)' },
+  // 科技主题
+  { name: '太空站', emoji: '🚀', bg: 'linear-gradient(180deg, #1A237E 0%, #3F51B5 100%)' },
+  { name: '恐龙世界', emoji: '🦕', bg: 'linear-gradient(180deg, #33691E 0%, #689F38 100%)' },
+  { name: '时光机', emoji: '⏰', bg: 'linear-gradient(180deg, #4E342E 0%, #795548 100%)' },
+  { name: '发明工坊', emoji: '🔧', bg: 'linear-gradient(180deg, #455A64 0%, #78909C 100%)' },
+  { name: '探险队', emoji: '🧭', bg: 'linear-gradient(180deg, #33691E 0%, #558B2F 100%)' },
+  // 梦幻主题
+  { name: '梦之国', emoji: '💭', bg: 'linear-gradient(180deg, #E8EAF6 0%, #C5CAE9 100%)' },
+  { name: '仙境', emoji: '✨', bg: 'linear-gradient(180deg, #F3E5F5 0%, #E1BEE7 100%)' },
+  { name: '精灵森林', emoji: '🧝‍♀️', bg: 'linear-gradient(180deg, #C8E6C9 0%, #DCEDC8 100%)' },
+  { name: '魔法学校', emoji: '🪄', bg: 'linear-gradient(180deg, #7E57C2 0%, #9575CD 100%)' },
+  { name: '糖果王国', emoji: '🍭', bg: 'linear-gradient(180deg, #FF80AB 0%, #FF4081 100%)' },
+  { name: '玩具工厂', emoji: '🧸', bg: 'linear-gradient(180deg, #FFB74D 0%, #FFA726 100%)' },
+  { name: '贴纸世界', emoji: '🏷️', bg: 'linear-gradient(180deg, #4FC3F7 0%, #29B6F6 100%)' },
+  { name: '画画天堂', emoji: '🖌️', bg: 'linear-gradient(180deg, #FF7043 0%, #FF5722 100%)' },
+  { name: '游戏乐园', emoji: '🎮', bg: 'linear-gradient(180deg, #7C4DFF 0%, #651FFF 100%)' },
+  { name: '积木城堡', emoji: '🧱', bg: 'linear-gradient(180deg, #F44336 0%, #E53935 100%)' },
+  { name: '泡泡糖王国', emoji: '🎈', bg: 'linear-gradient(180deg, #F48FB1 0%, #F06292 100%)' },
+  { name: '橡皮泥乐园', emoji: '🎭', bg: 'linear-gradient(180deg, #FFB74D 0%, #FF9800 100%)' },
+  { name: '水彩画廊', emoji: '🖼️', bg: 'linear-gradient(180deg, #81C784 0%, #66BB6A 100%)' },
+  { name: '蜡笔小屋', emoji: '🖍️', bg: 'linear-gradient(180deg, #FF8A65 0%, #FF7043 100%)' },
+  { name: '折纸工坊', emoji: '📄', bg: 'linear-gradient(180deg, #E0E0E0 0%, #BDBDBD 100%)' },
+  { name: '风筝草原', emoji: '🪁', bg: 'linear-gradient(180deg, #4FC3F7 0%, #81D4FA 100%)' },
+  { name: '秋千公园', emoji: '🎠', bg: 'linear-gradient(180deg, #A5D6A7 0%, #C8E6C9 100%)' },
+  { name: '滑梯乐园', emoji: '🛝', bg: 'linear-gradient(180deg, #FF8A80 0%, #FF5252 100%)' },
+  { name: '蹦床中心', emoji: '🤸', bg: 'linear-gradient(180deg, #FFD740 0%, #FFC400 100%)' },
+  { name: '迷宫花园', emoji: '🌿', bg: 'linear-gradient(180deg, #66BB6A 0%, #43A047 100%)' },
+]
+
+// 敌人模板（随机组合）
+const HIDDEN_ENEMIES = [
+  { name: '小蛀虫', emoji: '🐛', description: '偷偷啃牙齿的坏家伙！', defeatText: '小蛀虫被赶跑啦！' },
+  { name: '酸酸怪', emoji: '🍋', description: '用酸性物质腐蚀牙齿！', defeatText: '酸酸怪被中和了！' },
+  { name: '甜甜圈', emoji: '🍩', description: '用甜蜜诱惑牙齿的坏蛋！', defeatText: '甜甜圈的甜蜜陷阱被打破啦！' },
+  { name: '冰淇淋怪', emoji: '🍦', description: '让牙齿冻得发抖的坏家伙！', defeatText: '冰淇淋怪融化了！' },
+  { name: '巧克力兽', emoji: '🍫', description: '黏在牙齿上不走的坏蛋！', defeatText: '巧克力兽被刷掉啦！' },
+  { name: '棒棒糖妖', emoji: '🍭', description: '用棍子戳牙齿的坏家伙！', defeatText: '棒棒糖妖被吃掉了！' },
+  { name: '蛋糕精灵', emoji: '🎂', description: '在牙齿上涂奶油的坏蛋！', defeatText: '蛋糕精灵被清理了！' },
+  { name: '果冻怪', emoji: '🍮', description: '黏糊糊的牙齿敌人！', defeatText: '果冻怪被冲走啦！' },
+  { name: '泡泡糖魔', emoji: '🎈', description: '把牙齿粘在一起的坏蛋！', defeatText: '泡泡糖魔被吹走啦！' },
+  { name: '薯片精', emoji: '🥔', description: '在牙齿缝隙里藏碎片的坏蛋！', defeatText: '薯片精被扫走啦！' },
+  { name: '果汁妖', emoji: '🧃', description: '用糖分攻击牙齿的坏家伙！', defeatText: '果汁妖被稀释了！' },
+  { name: '蜂蜜怪', emoji: '🍯', description: '黏黏的牙齿敌人！', defeatText: '蜂蜜怪被冲走啦！' },
+  { name: '奶酪兽', emoji: '🧀', description: '在牙齿上留下臭味的坏蛋！', defeatText: '奶酪兽被刷掉啦！' },
+  { name: '饼干精', emoji: '🍪', description: '碎成渣渣藏在牙缝的坏蛋！', defeatText: '饼干精被清理了！' },
+  { name: '糖果魔', emoji: '🍬', description: '用甜蜜攻击牙齿的坏家伙！', defeatText: '糖果魔被打败啦！' },
+  { name: '西瓜虫', emoji: '🐛', description: '在牙齿上打洞的坏蛋！', defeatText: '西瓜虫被赶跑啦！' },
+  { name: '香蕉皮', emoji: '🍌', description: '让牙齿滑倒的坏家伙！', defeatText: '香蕉皮被捡走啦！' },
+  { name: '苹果核', emoji: '🍎', description: '在牙齿上留下残渣的坏蛋！', defeatText: '苹果核被清理了！' },
+  { name: '葡萄籽', emoji: '🍇', description: '卡在牙缝里的坏家伙！', defeatText: '葡萄籽被剔出来啦！' },
+  { name: '橙子皮', emoji: '🍊', description: '用酸性物质攻击牙齿的坏蛋！', defeatText: '橙子皮被剥掉啦！' },
+  { name: '草莓酱', emoji: '🍓', description: '黏在牙齿上不走的坏家伙！', defeatText: '草莓酱被擦掉啦！' },
+  { name: '芒果核', emoji: '🥭', description: '在牙齿上留下痕迹的坏蛋！', defeatText: '芒果核被清理了！' },
+  { name: '椰子壳', emoji: '🥥', description: '硬硬的牙齿敌人！', defeatText: '椰子壳被敲碎啦！' },
+  { name: '猕猴桃毛', emoji: '🥝', description: '让牙齿发痒的坏家伙！', defeatText: '猕猴桃毛被刷掉啦！' },
+  { name: '菠萝刺', emoji: '🍍', description: '扎牙齿的坏蛋！', defeatText: '菠萝刺被拔掉啦！' },
+  { name: '樱桃核', emoji: '🍒', description: '卡在牙齿里的坏家伙！', defeatText: '樱桃核被吐出来啦！' },
+  { name: '蓝莓汁', emoji: '🫐', description: '把牙齿染色的坏蛋！', defeatText: '蓝莓汁被洗掉啦！' },
+  { name: '柠檬酸', emoji: '🍋', description: '腐蚀牙齿的坏家伙！', defeatText: '柠檬酸被中和了！' },
+  { name: '桃子毛', emoji: '🍑', description: '让牙齿过敏的坏蛋！', defeatText: '桃子毛被洗掉啦！' },
+  { name: '西瓜汁', emoji: '🍉', description: '用糖分攻击牙齿的坏家伙！', defeatText: '西瓜汁被冲走啦！' },
+]
+
+// 生成隐藏章节（100个，ID从10000开始）
+const generateHiddenChapters = () => {
+  const chapters = []
+  for (let i = 0; i < 100; i++) {
+    const theme = HIDDEN_THEMES[i % HIDDEN_THEMES.length]
+    const enemy = HIDDEN_ENEMIES[i % HIDDEN_ENEMIES.length]
+    // 基于索引的确定化奖励（避免跨页面不一致）
+    const points = 20 + (i * 7) % 40 // 20-59 积分
+    const exp = 10 + (i * 11) % 30   // 10-39 经验
+
+    chapters.push({
+      id: 10000 + i,
+      name: theme.name,
+      emoji: theme.emoji,
+      description: `${enemy.name}在${theme.name}捣乱，快去打败它！`,
+      bg: theme.bg,
+      isHidden: true,
+      enemy: {
+        id: `hidden_${10000 + i}`,
+        name: enemy.name,
+        emoji: enemy.emoji,
+        hp: 6,
+        description: enemy.description,
+        defeatText: enemy.defeatText
+      },
+      rewards: { points, exp }
+    })
+  }
+  return chapters
+}
+
+// 隐藏章节数组
+const HIDDEN_CHAPTERS = generateHiddenChapters()
+
+// 获取随机隐藏章节
+const getRandomHiddenChapter = () => {
+  const index = Math.floor(Math.random() * HIDDEN_CHAPTERS.length)
+  return HIDDEN_CHAPTERS[index]
+}
+
+/**
+ * 获取或选择今天的章节（持久化，避免每次加载页面都换）
+ * @param {number} currentChapterId - 当前主线章节ID
+ * @param {Function} getTodayStr - 获取今天日期字符串的函数
+ * @returns {Object} 章节对象
+ */
+const getOrSelectTodayChapter = (currentChapterId, getTodayStr) => {
+  const today = getTodayStr()
+
+  // 检查今天是否已选择章节
+  const savedChapter = wx.getStorageSync('todayChapter')
+  if (savedChapter && savedChapter.date === today) {
+    if (savedChapter.isHidden) {
+      const found = HIDDEN_CHAPTERS.find(c => c.id === savedChapter.id)
+      if (found) return found
+    }
+    const found = CHAPTERS.find(c => c.id === savedChapter.id)
+    if (found) return found
+  }
+
+  // 80%概率触发隐藏章节
+  let chapter
+  if (Math.random() < 0.8) {
+    chapter = getRandomHiddenChapter()
+  } else {
+    chapter = CHAPTERS.find(c => c.id === currentChapterId) || CHAPTERS[0]
+  }
+
+  // 保存今天的选择
+  wx.setStorageSync('todayChapter', {
+    date: today,
+    id: chapter.id,
+    isHidden: !!chapter.isHidden
+  })
+
+  return chapter
+}
 
 // 故事对话
 const STORY_DIALOGUES = {
@@ -413,6 +677,9 @@ module.exports = {
   GIRL_BUBBLES,
   ZONE_GERM_TYPES,
   CHAPTERS,
+  HIDDEN_CHAPTERS,
+  getRandomHiddenChapter,
+  getOrSelectTodayChapter,
   STORY_DIALOGUES,
   BATTLE_CONFIG
 }

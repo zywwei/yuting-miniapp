@@ -3,7 +3,7 @@ const audio = require('../../../utils/audio.js')
 const cloud = require('../../../utils/cloud.js')
 const achievements = require('../../../utils/achievements.js')
 const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
-const { CHAPTERS } = require('../brushing-timer/constants.js')
+const { CHAPTERS, getOrSelectTodayChapter } = require('../brushing-timer/constants.js')
 
 Page({
   data: {
@@ -31,6 +31,9 @@ Page({
     // 成功提示
     showSuccess: false,
     successText: '打卡成功！',
+    // 详情弹窗
+    showDetail: false,
+    detailRecord: null,
     // ===== 主线故事系统 =====
     currentChapter: null,
     currentEnemy: null,
@@ -65,11 +68,13 @@ Page({
     const storyProgress = util.getStoryProgress()
     const round = storyProgress.round || 1
     const currentChapterId = storyProgress.currentChapter || 1
-    const chapter = CHAPTERS.find(c => c.id === currentChapterId) || CHAPTERS[0]
 
-    // 敌人HP随轮数增加
+    // 获取或选择今天的章节（持久化）
+    const chapter = getOrSelectTodayChapter(currentChapterId, util.getTodayStr)
+
+    // 敌人HP：隐藏章节固定6，主线章节随轮数增加（无上限，通过时间扣血确保击败）
     const baseEnemy = chapter.enemy
-    const enemyHpMax = Math.min(baseEnemy.hp + (round - 1) * 2, 12)
+    const enemyHpMax = chapter.isHidden ? 6 : baseEnemy.hp + (round - 1) * 3
     const enemy = { ...baseEnemy, hp: enemyHpMax }
 
     const enemyHp = util.getEnemyCurrentHp(enemy.id, enemy.hp)
@@ -370,7 +375,7 @@ Page({
 
   // 添加照片（支持多张）
   addPhoto(e) {
-    const timeOfDay = e.currentTarget.dataset.time
+    const timeOfDay = e.currentTarget.dataset.time || 'morning'
     const existingImages = (timeOfDay === 'morning' ? this.data.morningRecord : this.data.eveningRecord)?.images || []
     const remainCount = 9 - existingImages.length
 
@@ -384,15 +389,35 @@ Page({
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       sizeType: ['compressed'],
+      fail: (err) => {
+        console.log('用户取消选择或选择失败:', err)
+      },
       success: async (res) => {
         const newImages = res.tempFiles.map(f => f.tempFilePath)
         const allImages = [...existingImages, ...newImages]
         wx.showLoading({ title: '保存中...' })
         try {
-          await cloud.updateBrushingRecord(timeOfDay, {
-            imagePath: allImages[0] || '',
-            images: allImages
-          })
+          const record = timeOfDay === 'morning' ? this.data.morningRecord : this.data.eveningRecord
+          if (record) {
+            await cloud.updateBrushingRecord(timeOfDay, {
+              imagePath: allImages[0] || '',
+              images: allImages
+            })
+          } else {
+            util.saveBrushingRecord({
+              id: util.generateId(),
+              date: util.getTodayStr(),
+              timeOfDay: timeOfDay,
+              imagePath: allImages[0] || '',
+              images: allImages,
+              score: 1,
+              note: '补拍照片',
+              points: 0,
+              completedAreas: [],
+              duration: 0,
+              createTime: new Date().toISOString()
+            })
+          }
           wx.hideLoading()
           this.loadRecords()
           this.setData({
@@ -456,8 +481,16 @@ Page({
 
   // 预览图片
   previewImage(e) {
-    var path = e.currentTarget.dataset.path
-    previewImage(path)
+    const path = e.currentTarget.dataset.path
+    const images = e.currentTarget.dataset.images
+    if (images && images.length > 0) {
+      wx.previewImage({
+        current: path,
+        urls: images
+      })
+    } else {
+      previewImage(path)
+    }
   },
 
   // 跳转到统计页
@@ -475,11 +508,35 @@ Page({
       wx.showToast({ title: '暂无记录', icon: 'none' })
       return
     }
-    // 跳转到统计页，传递记录 ID 参数
-    wx.navigateTo({
-      url: `/pages/habits/brushing-stats/brushing-stats?recordId=${record.id}`
+
+    // 格式化详情
+    const timeStr = record.createTime ? util.formatDate(record.createTime) : record.date
+    let durationText = '手动打卡'
+    if (record.fromTimer && record.duration) {
+      const min = Math.floor(record.duration / 60)
+      const sec = record.duration % 60
+      durationText = min > 0 ? `计时刷牙 ${min}分${sec}秒` : `计时刷牙 ${sec}秒`
+    } else if (record.fromTimer) {
+      durationText = '计时刷牙'
+    }
+
+    this.setData({
+      showDetail: true,
+      detailRecord: {
+        ...record,
+        timeStr,
+        durationText
+      }
     })
   },
+
+  // 关闭详情弹窗
+  closeDetail() {
+    this.setData({ showDetail: false, detailRecord: null })
+  },
+
+  // 阻止冒泡
+  noop() {},
 
   // 返回首页
   goBack() {

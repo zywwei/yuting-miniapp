@@ -175,6 +175,11 @@
   overflow: hidden;
 }
 
+.photo-swiper {
+  width: 100%;
+  height: 100%;
+}
+
 .photo-thumb {
   width: 100%;
   height: 100%;
@@ -263,6 +268,8 @@
   display: flex;
   gap: 18rpx;
   margin-top: 18rpx;
+  position: relative;
+  z-index: 10;
 }
 
 .action-btn {
@@ -722,6 +729,99 @@
 .modal-btn.confirm {
   background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
   color: white;
+}
+
+/* 详情弹窗 */
+.detail-modal {
+  width: 85%;
+  max-height: 80vh;
+  background: white;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  position: relative;
+  overflow-y: auto;
+}
+
+.detail-close {
+  position: absolute;
+  top: 20rpx;
+  right: 24rpx;
+  font-size: 36rpx;
+  color: #999;
+  z-index: 10;
+}
+
+.detail-header {
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+.detail-emoji {
+  font-size: 48rpx;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.detail-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.detail-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.detail-label {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.detail-value {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: bold;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-all;
+}
+
+.detail-star {
+  font-size: 24rpx;
+  opacity: 0.3;
+  margin-right: 2rpx;
+}
+
+.detail-star.active {
+  opacity: 1;
+}
+
+.detail-score-text {
+  font-size: 24rpx;
+  color: #666;
+  margin-left: 8rpx;
+  font-weight: normal;
+}
+
+.detail-stickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  justify-content: flex-end;
+}
+
+.detail-sticker-emoji {
+  font-size: 32rpx;
 }
 
 /* 成功提示 */

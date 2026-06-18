@@ -265,6 +265,12 @@
           <text class="detail-label">🦷 刷牙区域</text>
           <text class="detail-value">{{detailRecord.areasText}}</text>
         </view>
+        <view class="detail-row" wx:if="{{detailRecord.stickers && detailRecord.stickers.length > 0}}">
+          <text class="detail-label">🎨 贴纸</text>
+          <view class="detail-stickers">
+            <text wx:for="{{detailRecord.stickers}}" wx:key="id" class="detail-sticker-emoji">{{item.emoji}}</text>
+          </view>
+        </view>
         <view class="detail-row" wx:if="{{detailRecord.note}}">
           <text class="detail-label">💬 备注</text>
           <text class="detail-value">{{detailRecord.note}}</text>
