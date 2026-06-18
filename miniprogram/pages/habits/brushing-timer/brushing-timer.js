@@ -71,6 +71,7 @@ Page({
     currentChapter: null,      // 当前章节信息
     currentEnemy: null,        // 当前敌人信息
     enemyCurrentHp: 6,         // 敌人当前HP（从 storage 同步）
+    enemyScale: 1.3,           // 敌人缩放比例（随HP降低而缩小）
     showStoryDialog: false,    // 是否显示故事对话
     storyDialogues: [],        // 故事对话内容
     showEnemyCard: false,      // 是否显示敌人卡片
@@ -80,6 +81,7 @@ Page({
     storyExpGained: 0,         // 故事获得的经验
     // 战斗动画相关
     enemyShaking: false,       // 敌人是否在震动
+    enemyHitReact: false,      // 敌人受击反应
     showAttackEffect: false,   // 是否显示攻击特效
     attackEffectX: 50,         // 攻击特效X位置
     attackEffectY: 50,         // 攻击特效Y位置
@@ -99,7 +101,14 @@ Page({
     showMinions: false,        // 是否显示小怪物
     defeatedMinions: 0,        // 已消灭小怪物数量
     totalMinions: 0,           // 总小怪物数量
-    minionDefeatEffect: null   // 小怪物消灭特效
+    minionDefeatEffect: null,  // 小怪物消灭特效
+    // 新增动画状态
+    isDashing: false,          // 牙刷是否在冲刺
+    showTrail: false,          // 是否显示攻击轨迹
+    trailAngle: 0,             // 轨迹角度
+    explosionParticles: [],    // 爆炸粒子
+    isCriticalHit: false,      // 是否暴击（用于牙刷闪光）
+    showCriticalEffect: false  // 是否显示暴击专属特效
   },
 
   _timer: null,
@@ -107,6 +116,7 @@ Page({
   _areaElapsed: 0,
   _cheerIndex: 0,
   _totalTime: 120,
+  _isDestroyed: false,
 
   onLoad(options) {
     const timeOfDay = options.time || 'morning'
@@ -127,6 +137,9 @@ Page({
     const enemy = { ...baseEnemy, hp: enemyHpMax }
 
     const enemyHp = util.getEnemyCurrentHp(enemy.id, enemy.hp)
+    // 计算敌人初始缩放比例：满血时1.3，空血时0.5
+    const hpRatio = enemyHp > 0 ? Math.max(enemyHp / enemy.hp, 0) : 0
+    const enemyScale = 0.5 + hpRatio * 0.8
 
     this.setData({
       statusBarHeight: navInfo.statusBarHeight,
@@ -140,7 +153,8 @@ Page({
       currentChapter: chapter,
       currentEnemy: enemy,
       enemyCurrentHp: enemyHp,
-      isEnemyDefeated: enemyHp <= 0
+      isEnemyDefeated: enemyHp <= 0,
+      enemyScale: enemyScale
     })
 
     // 检查是否有未完成的进度
@@ -216,12 +230,10 @@ Page({
 
     // 计算暴击
     const isCritical = Math.random() < BATTLE_CONFIG.CRIT_RATE
-    const finalDamage = isCritical ? damage * BATTLE_CONFIG.CRIT_MULTIPLIER : damage
 
     // 更新连击
     const comboCount = this.data.comboCount + 1
     const comboBonus = Math.min(comboCount * BATTLE_CONFIG.COMBO_BONUS_PER_HIT, BATTLE_CONFIG.COMBO_MAX_BONUS)
-    const comboDamage = Math.floor(finalDamage * (1 + comboBonus))
 
     // 随机攻击位置
     const x = 30 + Math.random() * 40
@@ -231,17 +243,39 @@ Page({
     const { currentEnemy, enemyCurrentHp } = this.data
     const enemyAngry = currentEnemy && (enemyCurrentHp / currentEnemy.hp) < BATTLE_CONFIG.ENEMY_ANGER_THRESHOLD
 
+    // 生成爆炸粒子
+    const particleTypes = ['star', 'spark', 'fire']
+    const explosionParticles = []
+    const particleCount = isCritical ? 12 : 8
+    for (let i = 0; i < particleCount; i++) {
+      explosionParticles.push({
+        id: 'p_' + i,
+        type: particleTypes[Math.floor(Math.random() * particleTypes.length)],
+        angle: (360 / particleCount) * i + Math.random() * 30,
+        delay: Math.random() * 0.1
+      })
+    }
+
+    // 计算轨迹角度（从牙刷指向敌人）
+    const trailAngle = Math.atan2(50 - this.data.toothbrushY, 50 - this.data.toothbrushX) * (180 / Math.PI)
+
     this.setData({
       enemyShaking: true,
+      isDashing: true,
       showAttackEffect: true,
+      showTrail: true,
       attackEffectX: x,
       attackEffectY: y,
-      attackDamage: comboDamage,
+      attackDamage: damage,
       isCritical: isCritical,
+      isCriticalHit: isCritical,
       comboCount: comboCount,
       showCombo: comboCount > 1,
       comboText: comboCount > 1 ? `${comboCount}连击！` : '',
-      enemyAngry: enemyAngry
+      enemyAngry: enemyAngry,
+      explosionParticles: explosionParticles,
+      trailAngle: trailAngle,
+      showCriticalEffect: isCritical
     })
 
     // 震动反馈（暴击时更强）
@@ -253,17 +287,52 @@ Page({
       this.setData({ comboCount: 0, showCombo: false })
     }, BATTLE_CONFIG.COMBO_TIMEOUT)
 
-    // 300ms后停止敌人震动
-    setTimeout(() => {
-      this.setData({ enemyShaking: false })
+    // 250ms后停止冲刺
+    this._attackTimer1 = setTimeout(() => {
+      if (this._isDestroyed) return
+      this.setData({ isDashing: false, showTrail: false })
+    }, 250)
+
+    // 300ms后停止敌人震动并添加受击反应
+    this._attackTimer2 = setTimeout(() => {
+      if (this._isDestroyed) return
+      this.setData({
+        enemyShaking: false,
+        enemyHitReact: true
+      })
+      // 300ms后移除受击反应
+      this._attackTimer3 = setTimeout(() => {
+        if (this._isDestroyed) return
+        this.setData({ enemyHitReact: false })
+      }, 300)
     }, 300)
 
+    // 500ms后隐藏爆炸粒子
+    this._attackTimer4 = setTimeout(() => {
+      if (this._isDestroyed) return
+      this.setData({ explosionParticles: [] })
+    }, 500)
+
     // 800ms后隐藏攻击特效
-    setTimeout(() => {
-      this.setData({ showAttackEffect: false, isCritical: false })
+    this._attackTimer5 = setTimeout(() => {
+      if (this._isDestroyed) return
+      this.setData({ showAttackEffect: false, isCritical: false, isCriticalHit: false })
     }, 800)
 
-    return comboDamage
+    // 暴击专属：1秒后隐藏暴击特效
+    if (isCritical) {
+      this._attackTimer6 = setTimeout(() => {
+        if (this._isDestroyed) return
+        this.setData({ showCriticalEffect: false })
+      }, 1000)
+    }
+
+    // 返回暴击和连击信息（用于积分/经验计算）
+    return {
+      isCritical,
+      comboCount,
+      comboBonus
+    }
   },
 
   // 生成小怪物
@@ -334,12 +403,12 @@ Page({
     this.setData({ minions: updatedMinions })
 
     // 播放消灭音效
-    const beep = require('../../../utils/beep.js')
     beep.playBeep('areaChange')
     wx.vibrateShort({ type: 'light' })
 
     // 500ms后完全消灭
-    setTimeout(() => {
+    this._minionDefeatTimer = setTimeout(() => {
+      if (this._isDestroyed) return
       const finalMinions = this.data.minions.map(m => {
         if (m.id === target.id) {
           return { ...m, defeated: true, defeating: false }
@@ -375,7 +444,8 @@ Page({
     })
 
     // 1.5秒后隐藏提示
-    setTimeout(() => {
+    this._minionEffectTimer = setTimeout(() => {
+      if (this._isDestroyed) return
       this.setData({
         minionDefeatEffect: null
       })
@@ -469,6 +539,19 @@ Page({
 
     this._areaDuration = Math.floor(this._totalTime / BRUSH_AREAS.length)
 
+    // 恢复牙刷位置（使用与 updateToothbrushPosition 相同的坐标）
+    const toothbrushPositions = [
+      { x: 15, y: 25, rotation: 135 },   // 左上
+      { x: 50, y: 15, rotation: 180 },   // 上中
+      { x: 85, y: 25, rotation: 225 },   // 右上
+      { x: 85, y: 75, rotation: 315 },   // 右下
+      { x: 50, y: 85, rotation: 0 },     // 下中
+      { x: 15, y: 75, rotation: 45 }     // 左下
+    ]
+    const toothbrushPos = toothbrushPositions[progress.currentAreaIndex] || toothbrushPositions[0]
+
+    const currentArea = BRUSH_AREAS[progress.currentAreaIndex]
+
     this.setData({
       isRunning: false,
       isPaused: true,
@@ -479,18 +562,36 @@ Page({
       seconds: (progress.remainingTime % 60).toString().padStart(2, '0'),
       overallProgress: Math.round(((this._totalTime - progress.remainingTime) / this._totalTime) * 100),
       currentAreaIndex: progress.currentAreaIndex,
-      currentArea: BRUSH_AREAS[progress.currentAreaIndex],
-      areaColor: BRUSH_AREAS[progress.currentAreaIndex].color,
+      currentArea: currentArea,
+      areaColor: currentArea.color,
       areaRemaining: progress.areaRemaining || this._areaDuration,
       completedAreas: progress.completedAreas,
       brushPoints: progress.brushPoints || 0,
       stage: 'brushing',
       toothZones: progress.toothZones || [],
-      companionBubble: `刷${BRUSH_AREAS[progress.currentAreaIndex].name}~`
+      companionBubble: `刷${currentArea.name}~`,
+      // 牙刷位置
+      toothbrushX: progress.toothbrushX || toothbrushPos.x,
+      toothbrushY: progress.toothbrushY || toothbrushPos.y,
+      toothbrushRotation: progress.toothbrushRotation || toothbrushPos.rotation,
+      // 故事状态
+      enemyCurrentHp: progress.enemyCurrentHp,
+      isEnemyDefeated: progress.isEnemyDefeated || false,
+      // 小怪物状态
+      minions: progress.minions || [],
+      showMinions: progress.showMinions || false,
+      defeatedMinions: progress.defeatedMinions || 0,
+      totalMinions: progress.totalMinions || 0,
+      // 积分
+      totalDirtyCleaned: progress.totalDirtyCleaned || 0
     })
+
+    // 更新牙齿区域状态显示
+    this.updateZoneStates()
   },
 
   onUnload() {
+    this._isDestroyed = true
     // 如果正在刷牙，保存进度
     if (this.data.isRunning || this.data.isPaused) {
       const progress = {
@@ -505,6 +606,20 @@ Page({
         areaElapsed: this._areaElapsed,
         brushPoints: this.data.brushPoints,
         toothZones: this.data.toothZones,
+        // 牙刷位置
+        toothbrushX: this.data.toothbrushX,
+        toothbrushY: this.data.toothbrushY,
+        toothbrushRotation: this.data.toothbrushRotation,
+        // 故事状态
+        enemyCurrentHp: this.data.enemyCurrentHp,
+        isEnemyDefeated: this.data.isEnemyDefeated,
+        // 小怪物状态
+        minions: this.data.minions,
+        showMinions: this.data.showMinions,
+        defeatedMinions: this.data.defeatedMinions,
+        totalMinions: this.data.totalMinions,
+        // 积分
+        totalDirtyCleaned: this.data.totalDirtyCleaned,
         savedAt: Date.now()
       }
       wx.setStorageSync('brushingProgress', progress)
@@ -515,6 +630,20 @@ Page({
     if (this._ringColorTimer) { clearInterval(this._ringColorTimer); this._ringColorTimer = null }
     if (this._cleanEffectTimer) { clearTimeout(this._cleanEffectTimer); this._cleanEffectTimer = null }
     if (this._comboTimer) { clearTimeout(this._comboTimer); this._comboTimer = null }
+    if (this._princessTimer) { clearTimeout(this._princessTimer); this._princessTimer = null }
+    // 清理攻击动画定时器
+    const attackTimers = ['_attackTimer1', '_attackTimer2', '_attackTimer3', '_attackTimer4', '_attackTimer5', '_attackTimer6']
+    attackTimers.forEach(key => {
+      if (this[key]) { clearTimeout(this[key]); this[key] = null }
+    })
+    // 清理区域清洁定时器
+    if (this._zoneCleanTimers) { this._zoneCleanTimers.forEach(t => clearTimeout(t)); this._zoneCleanTimers = null }
+    // 清理小怪物和积分相关定时器
+    if (this._minionDefeatTimer) { clearTimeout(this._minionDefeatTimer); this._minionDefeatTimer = null }
+    if (this._minionEffectTimer) { clearTimeout(this._minionEffectTimer); this._minionEffectTimer = null }
+    if (this._pointsTipTimer) { clearTimeout(this._pointsTipTimer); this._pointsTipTimer = null }
+    if (this._attackPointsTimer) { clearTimeout(this._attackPointsTimer); this._attackPointsTimer = null }
+    if (this._victoryDialogTimer) { clearTimeout(this._victoryDialogTimer); this._victoryDialogTimer = null }
   },
 
   // 生成超级炫酷撒花（满屏效果）
@@ -703,14 +832,19 @@ Page({
     this.setData({ toothZones: zones })
 
     // 逃跑动画结束后清除细菌
+    if (!this._zoneCleanTimers) this._zoneCleanTimers = []
+    this._zoneCleanTimers.forEach(t => clearTimeout(t))
+    this._zoneCleanTimers = []
     zones.forEach((zone, index) => {
       if (zone.state === 'clean' && zone.germs.length > 0) {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
+          if (this._isDestroyed) return
           const fresh = this.data.toothZones.map((z, i) =>
             i === index ? { ...z, germs: [] } : z
           )
           this.setData({ toothZones: fresh })
         }, 700)
+        this._zoneCleanTimers.push(timer)
       }
     })
   },
@@ -850,19 +984,17 @@ Page({
       // 动物加油文字轮换
       this._cheerIndex = (this._cheerIndex + 1) % CHEER_LEFT.length
       const currentIndex = this._cheerIndex
+      let leftCheer = CHEER_LEFT[currentIndex]
+      let rightCheer = CHEER_RIGHT[currentIndex]
 
       // 随机触发公主鼓励（每6秒有概率出现）
       if (currentIndex === 0 && Math.random() > 0.5) {
         const princess = PRINCESS_CHEER[Math.floor(Math.random() * PRINCESS_CHEER.length)]
-        this.setData({ leftCheer: princess.text })
-        setTimeout(() => {
+        leftCheer = princess.text
+        if (this._princessTimer) clearTimeout(this._princessTimer)
+        this._princessTimer = setTimeout(() => {
           this.setData({ leftCheer: CHEER_LEFT[currentIndex] })
         }, 2000)
-      } else {
-        this.setData({
-          leftCheer: CHEER_LEFT[currentIndex],
-          rightCheer: CHEER_RIGHT[currentIndex]
-        })
       }
 
       beep.playBeep('tick')
@@ -874,7 +1006,8 @@ Page({
       this.setData({
         remainingTime: remaining, minutes: min, seconds: sec,
         overallProgress, ringColor, rewardStars,
-        currentRewardText: REWARD_TEXTS[Math.min(starIndex, REWARD_TEXTS.length - 1)]
+        currentRewardText: REWARD_TEXTS[Math.min(starIndex, REWARD_TEXTS.length - 1)],
+        leftCheer, rightCheer
       })
     }, 1000)
   },
@@ -890,12 +1023,13 @@ Page({
         const nextIndex = this.data.currentAreaIndex + 1
         this._areaElapsed = 0
 
-        // 增加积分：区域完成 +10，该区域内所有细菌每个 +5
+        // 增加积分：区域完成 + 基础分，该区域内所有细菌每个 + 额外分
         const finishedZone = this.data.toothZones.find(z => z.index === this.data.currentAreaIndex)
-        const germBonus = finishedZone ? finishedZone.germs.length * 5 : 0
-        const newPoints = this.data.brushPoints + 10 + germBonus
+        const germBonus = finishedZone ? finishedZone.germs.length * BATTLE_CONFIG.GERM_BONUS_POINTS : 0
+        const areaPoints = BATTLE_CONFIG.AREA_COMPLETE_POINTS + germBonus
+        const newPoints = this.data.brushPoints + areaPoints
         const newCleaned = this.data.totalDirtyCleaned + (finishedZone ? finishedZone.germs.length : 0)
-        const pointsText = germBonus > 0 ? `+${10 + germBonus} 积分！` : '+10 积分！'
+        const pointsText = germBonus > 0 ? `+${areaPoints} 积分！` : `+${BATTLE_CONFIG.AREA_COMPLETE_POINTS} 积分！`
 
         // 显示刷牙小知识
         const tipIndex = completedAreas.length - 1
@@ -914,7 +1048,8 @@ Page({
         })
 
         // 2秒后隐藏积分和提示
-        setTimeout(() => {
+        this._pointsTipTimer = setTimeout(() => {
+          if (this._isDestroyed) return
           this.setData({ showPoints: false, showTip: false })
         }, 2500)
 
@@ -931,18 +1066,48 @@ Page({
 
           // 每个区域都对大怪物造成1点伤害（无论是否有小怪物）
           const damage = 1
-          const result = util.damageEnemy(currentEnemy.id, damage)
-          this.triggerAttackAnimation(damage)
+          const result = util.damageEnemy(currentEnemy.id, damage, currentEnemy.hp)
+          const attackResult = this.triggerAttackAnimation(damage)
+
+          // 根据暴击和连击计算积分奖励
+          let bonusPoints = BATTLE_CONFIG.ATTACK_BASE_POINTS
+          if (attackResult.isCritical) bonusPoints = BATTLE_CONFIG.CRIT_ATTACK_POINTS
+          bonusPoints = Math.floor(bonusPoints * (1 + attackResult.comboBonus)) // 连击加成
+
+          // 更新积分并显示（累加攻击奖励到区域完成积分之上）
+          const attackPoints = newPoints + bonusPoints
+          const bonusText = attackResult.isCritical
+            ? `暴击！+${bonusPoints}积分！`
+            : attackResult.comboCount > 1
+              ? `${attackResult.comboCount}连击！+${bonusPoints}积分！`
+              : `+${bonusPoints}积分！`
+
+          this.setData({
+            brushPoints: attackPoints,
+            showPoints: true,
+            pointsText: bonusText
+          })
+
+          // 2秒后隐藏积分
+          this._attackPointsTimer = setTimeout(() => {
+            if (this._isDestroyed) return
+            this.setData({ showPoints: false })
+          }, 2000)
 
           const newHp = result.newHp
+          // 计算敌人缩放比例：满血时1.3，空血时0.5
+          const hpRatio = this.data.currentEnemy ? Math.max(newHp / this.data.currentEnemy.hp, 0) : 1
+          const enemyScale = 0.5 + hpRatio * 0.8
           this.setData({
             enemyCurrentHp: newHp,
-            isEnemyDefeated: newHp <= 0
+            isEnemyDefeated: newHp <= 0,
+            enemyScale: enemyScale
           })
 
           // 如果敌人被击败，显示胜利对话
           if (newHp <= 0) {
-            setTimeout(() => {
+            this._victoryDialogTimer = setTimeout(() => {
+              if (this._isDestroyed) return
               this.showVictoryDialog()
             }, 1500)
           }
@@ -1072,9 +1237,12 @@ Page({
     // 陪伴公主完成语
     this.setData({ companionBubble: '太棒啦！🎉' })
 
+    // 确保所有已刷区域状态为 clean
+    this.updateZoneStates()
+
     // 清除所有脏东西
     this.setData({
-      isRunning: false, isCompleted: true, overallProgress: 100,
+      isRunning: false, isPaused: false, isCompleted: true, overallProgress: 100,
       ringColor: '#81C784',
       completedStarsArr: Array(stars).fill(0),
       completedText: completedText,
@@ -1137,29 +1305,26 @@ Page({
       expGained: expGained
     }
 
-    // 先存本地，确保不丢数据
+    // 先保存到本地，确保数据不丢失
     util.saveBrushingRecord(record)
-
-    // 累积总积分
-    const totalPoints = (wx.getStorageSync('totalBrushPoints') || 0) + this.data.brushPoints
-    wx.setStorageSync('totalBrushPoints', totalPoints)
-
-    // 后台尝试同步云端（失败自动降级本地）
+    // 后台尝试同步云端（失败不影响本地数据）
     cloud.uploadBrushingRecord(record).catch(err => {
       console.warn('刷牙记录云端同步失败，已保留本地:', err)
     })
 
-    // 检查成就解锁
-    var newAchievements = achievements.checkAchievements()
-    if (newAchievements.length > 0) {
-      setTimeout(function() {
-        wx.showToast({
-          title: '🎉 解锁: ' + newAchievements[0].title,
-          icon: 'success',
-          duration: 2000
-        })
-      }, 3000)
-    }
+    // 检查成就解锁（异步版本，确保读取最新数据）
+    achievements.checkAchievementsAsync().then(newAchievements => {
+      if (newAchievements && newAchievements.length > 0) {
+        setTimeout(() => {
+          var popup = this.selectComponent('#achievementPopup')
+          if (popup) {
+            popup.showAchievements(newAchievements)
+          }
+        }, 3000)
+      }
+    }).catch(err => {
+      console.warn('成就检查失败:', err)
+    })
   },
 
   clearTimers() {
@@ -1273,7 +1438,23 @@ Page({
   },
 
   goBack() {
-    wx.navigateBack()
+    // 如果正在刷牙或暂停中，显示确认对话框
+    if (this.data.isRunning || this.data.isPaused) {
+      wx.showModal({
+        title: '确定返回吗？',
+        content: '刷牙进度会保存，下次可以继续',
+        confirmText: '返回',
+        cancelText: '继续刷牙',
+        success: (res) => {
+          if (res.confirm) {
+            // onUnload 会自动保存进度
+            wx.navigateBack()
+          }
+        }
+      })
+    } else {
+      wx.navigateBack()
+    }
   },
 
   // 分享给家人

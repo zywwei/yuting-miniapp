@@ -5,6 +5,9 @@
  * 云开发不可用时自动降级到本地存储
  */
 
+// 并发锁，防止 fetchBrushingRecords 竞态条件
+let _fetchBrushingLock = null
+
 // 检查云开发是否可用
 const isCloudReady = () => {
   try {
@@ -147,7 +150,17 @@ async function uploadBrushingRecord(record) {
         images: cloudImageIDs,
         score: record.score,
         note: record.note,
-        createTime: record.createTime
+        createTime: record.createTime,
+        // 计时器专属字段
+        points: record.points || 0,
+        completedAreas: record.completedAreas || [],
+        duration: record.duration || 0,
+        fromTimer: record.fromTimer || false,
+        // 故事系统字段
+        chapterId: record.chapterId || null,
+        enemyId: record.enemyId || null,
+        damageDealt: record.damageDealt || 0,
+        expGained: record.expGained || 0
       }
     })
 
@@ -176,12 +189,24 @@ async function uploadBrushingRecord(record) {
 }
 
 /**
- * 从云端获取刷牙记录
+ * 从云端获取刷牙记录（带并发锁，防止竞态条件）
  */
 async function fetchBrushingRecords() {
+  // 云端不可用时直接返回本地数据，不走锁逻辑
   if (!isCloudReady() || !db()) {
     return wx.getStorageSync('brushingRecords') || []
   }
+
+  // 如果已有请求在进行中，等待其完成后返回缓存结果
+  if (_fetchBrushingLock) {
+    await _fetchBrushingLock
+    return wx.getStorageSync('brushingRecords') || []
+  }
+
+  // 创建锁
+  let releaseLock
+  _fetchBrushingLock = new Promise(resolve => { releaseLock = resolve })
+
   try {
     const res = await db().collection('brushingRecords')
       .orderBy('createTime', 'desc')
@@ -219,6 +244,10 @@ async function fetchBrushingRecords() {
   } catch (err) {
     console.warn('云端读取失败，使用本地缓存:', err)
     return wx.getStorageSync('brushingRecords') || []
+  } finally {
+    // 释放锁
+    _fetchBrushingLock = null
+    releaseLock()
   }
 }
 
@@ -473,6 +502,10 @@ async function localOnlyHabit(record) {
       savedImages.push(img)
     }
   }
+  const localRecord = { ...record, imagePath: savedPath, images: savedImages.length > 0 ? savedImages : record.images }
+  const records = wx.getStorageSync('habitRecords') || []
+  records.unshift(localRecord)
+  wx.setStorageSync('habitRecords', records)
   return savedPath
 }
 

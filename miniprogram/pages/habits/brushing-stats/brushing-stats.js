@@ -41,7 +41,7 @@ Page({
     showStickerAlbum: false
   },
 
-  onLoad() {
+  onLoad(options) {
     const navInfo = getNavBarInfo()
     const now = new Date()
     this.setData({
@@ -51,6 +51,8 @@ Page({
       currentMonth: now.getMonth() + 1
     })
 
+    // 保存传入的记录 ID，加载数据后自动打开详情
+    this._pendingRecordId = options.recordId || null
     this.loadData()
   },
 
@@ -90,6 +92,48 @@ Page({
       decorations,
       weekTrend
     })
+
+    // 如果有传入的记录 ID，自动打开详情弹窗
+    if (this._pendingRecordId) {
+      const recordId = this._pendingRecordId
+      this._pendingRecordId = null
+      this._openDetailById(recordId)
+    }
+  },
+
+  // 根据 ID 打开详情（数据已加载后调用）
+  _openDetailById(id) {
+    const record = this.data.allRecords.find(r => r.id === id)
+    if (!record) return
+    this.setData({
+      showDetail: true,
+      detailRecord: this._formatDetail(record)
+    })
+  },
+
+  // 格式化记录详情（公共方法，避免重复）
+  _formatDetail(record) {
+    const timeStr = record.createTime ? util.formatDate(record.createTime) : record.date
+    let durationText = '手动打卡'
+    if (record.fromTimer && record.duration) {
+      const min = Math.floor(record.duration / 60)
+      const sec = record.duration % 60
+      durationText = min > 0 ? `计时刷牙 ${min}分${sec}秒` : `计时刷牙 ${sec}秒`
+    } else if (record.fromTimer) {
+      durationText = '计时刷牙'
+    }
+    const areas = record.completedAreas || []
+    const scoreLabels = ['加油哦', '还不错', '很好', '非常好', '超级棒！']
+    const safeScore = Math.min(Math.max(record.score || 1, 1), 5)
+    const scoreLabel = scoreLabels[safeScore - 1] || ''
+    return {
+      ...record,
+      timeStr,
+      durationText,
+      areasText: areas.length > 0 ? areas.join('、') : '无',
+      scoreLabel,
+      timeOfDayText: record.timeOfDay === 'morning' ? '☀️ 早上' : '🌙 晚上'
+    }
   },
 
   // 点击日历日期筛选记录
@@ -175,31 +219,9 @@ Page({
     const record = this.data.allRecords.find(r => r.id === id)
     if (!record) return
 
-    // 格式化详情
-    const timeStr = record.createTime ? util.formatDate(record.createTime) : record.date
-    let durationText = '手动打卡'
-    if (record.fromTimer && record.duration) {
-      const min = Math.floor(record.duration / 60)
-      const sec = record.duration % 60
-      durationText = min > 0 ? `计时刷牙 ${min}分${sec}秒` : `计时刷牙 ${sec}秒`
-    } else if (record.fromTimer) {
-      durationText = '计时刷牙'
-    }
-    const areas = record.completedAreas || []
-    const scoreLabels = ['加油哦', '还不错', '很好', '非常好', '超级棒！']
-    const safeScore = Math.min(Math.max(record.score || 1, 1), 5)
-    const scoreLabel = scoreLabels[safeScore - 1] || ''
-
     this.setData({
       showDetail: true,
-      detailRecord: {
-        ...record,
-        timeStr,
-        durationText,
-        areasText: areas.length > 0 ? areas.join('、') : '无',
-        scoreLabel,
-        timeOfDayText: record.timeOfDay === 'morning' ? '☀️ 早上' : '🌙 晚上'
-      }
+      detailRecord: this._formatDetail(record)
     })
   },
 
@@ -317,6 +339,8 @@ Page({
     const { modalTime, score, note, catchUpDate } = this.data
     wx.showLoading({ title: '保存中...' })
     try {
+      // 补刷记录使用补刷日期的时间，保持时间排序正确
+      const catchTime = modalTime === 'morning' ? 'T08:00:00' : 'T21:00:00'
       const record = {
         id: util.generateId(),
         date: catchUpDate,
@@ -324,7 +348,8 @@ Page({
         imagePath: '',
         score: score,
         note: note.trim(),
-        createTime: new Date(catchUpDate + 'T23:59:59').toISOString()
+        createTime: new Date(catchUpDate + catchTime).toISOString(),
+        isCatchUp: true
       }
       await cloud.uploadBrushingRecord(record)
       wx.hideLoading()

@@ -99,6 +99,9 @@
               <view class="detail-tag" wx:if="{{morningRecord.durationText}}">⏱ {{morningRecord.durationText}}</view>
             </view>
             <view class="record-actions">
+              <view class="action-btn" bindtap="viewDetail" data-time="morning">
+                <text>📋 查看详情</text>
+              </view>
               <view class="action-btn" bindtap="goTimer" data-time="morning">
                 <text>🔄 重新刷牙</text>
               </view>
@@ -163,6 +166,9 @@
               <view class="detail-tag" wx:if="{{eveningRecord.durationText}}">⏱ {{eveningRecord.durationText}}</view>
             </view>
             <view class="record-actions">
+              <view class="action-btn" bindtap="viewDetail" data-time="evening">
+                <text>📋 查看详情</text>
+              </view>
               <view class="action-btn" bindtap="goTimer" data-time="evening">
                 <text>🔄 重新刷牙</text>
               </view>

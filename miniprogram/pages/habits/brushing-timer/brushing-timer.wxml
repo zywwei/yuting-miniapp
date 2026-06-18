@@ -91,7 +91,8 @@
 
         <!-- 敌人（中央） -->
         <view class="enemy-hero {{enemyShaking ? 'shake' : ''}} {{isEnemyDefeated ? 'defeated' : ''}} {{enemyAngry ? 'angry' : ''}}">
-          <text class="enemy-emoji">{{currentEnemy.emoji}}</text>
+          <text class="enemy-emoji {{enemyShaking ? 'shake' : ''}} {{enemyHitReact ? 'hit-react' : ''}} {{isEnemyDefeated ? 'defeated' : ''}}"
+                style="transform: scale({{enemyScale}}); --enemy-scale: {{enemyScale}};">{{currentEnemy.emoji}}</text>
           <!-- HP条 -->
           <view class="enemy-hp">
             <view class="hp-bar">
@@ -110,15 +111,23 @@
         </view>
 
         <!-- 牙刷（根据区域动态变化位置和方向） -->
-        <view class="toothbrush-hero {{isRunning ? 'attacking' : ''}}"
-              style="left: {{toothbrushX}}%; top: {{toothbrushY}}%;">
+        <view class="toothbrush-hero {{isRunning ? 'attacking' : ''}} {{isDashing ? 'dashing' : ''}}"
+              style="left: {{toothbrushX}}%; top: {{toothbrushY}}%; --rotation: {{toothbrushRotation}}deg;">
           <view class="toothbrush-wrapper" style="transform: translate(-50%, -50%) rotate({{toothbrushRotation}}deg);">
-            <text class="toothbrush-emoji">🪥</text>
+            <text class="toothbrush-emoji {{isCriticalHit ? 'critical-flash' : ''}}">🪥</text>
+            <!-- 牙刷残影（暴击时显示） -->
+            <view wx:if="{{isCriticalHit}}" class="toothbrush-afterimage"></view>
           </view>
           <view class="attack-lines" wx:if="{{isRunning}}">
             <view class="line line-1"></view>
             <view class="line line-2"></view>
             <view class="line line-3"></view>
+          </view>
+          <!-- 攻击轨迹 -->
+          <view wx:if="{{showTrail}}" class="attack-trail" style="--trail-angle: {{trailAngle}}deg;">
+            <view class="trail-line trail-1"></view>
+            <view class="trail-line trail-2"></view>
+            <view class="trail-line trail-3"></view>
           </view>
         </view>
 
@@ -127,6 +136,16 @@
           <text class="hit-text">-{{attackDamage}}</text>
           <text wx:if="{{isCritical}}" class="crit-text">暴击！</text>
           <text class="hit-icon">{{isCritical ? '⚡' : '💥'}}</text>
+          <!-- 命中爆炸粒子 -->
+          <view class="explosion-particles">
+            <view wx:for="{{explosionParticles}}" wx:key="id" class="particle {{item.type}}" style="--angle: {{item.angle}}deg; --delay: {{item.delay}}s;"></view>
+          </view>
+        </view>
+
+        <!-- 暴击专属特效 -->
+        <view wx:if="{{showCriticalEffect}}" class="critical-effect">
+          <text class="critical-text">暴击！</text>
+          <view class="critical-flash-overlay"></view>
         </view>
 
         <!-- 连击计数器 -->
@@ -190,15 +209,16 @@
             </view>
           </view>
 
-          <!-- 贴纸选择 -->
-          <view class="sticker-picker" wx:if="{{showStickerPicker}}">
-            <text class="sticker-hint">给牙齿贴个贴纸吧~</text>
-            <view class="sticker-list">
-              <view wx:for="{{stickers}}" wx:key="id" class="sticker-item" bindtap="onTapSticker" data-id="{{item.id}}">
-                <text>{{item.emoji}}</text>
-              </view>
-            </view>
-          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 贴纸选择（移到 battle-arena 外部，避免 overflow:hidden 裁剪） -->
+    <view class="sticker-picker" wx:if="{{isCompleted && showStickerPicker}}">
+      <text class="sticker-hint">给牙齿贴个贴纸吧~</text>
+      <view class="sticker-list">
+        <view wx:for="{{stickers}}" wx:key="id" class="sticker-item" bindtap="onTapSticker" data-id="{{item.id}}">
+          <text>{{item.emoji}}</text>
         </view>
       </view>
     </view>
@@ -302,4 +322,7 @@
   </view>
 
   <view class="safe-bottom"></view>
+
+  <!-- 成就解锁弹窗 -->
+  <achievement-popup id="achievementPopup" />
 </view>

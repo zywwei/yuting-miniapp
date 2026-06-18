@@ -83,9 +83,8 @@ Page({
     ],
     stickerTab: 'emoji', // emoji | text
     selectedSticker: '❤️',
-    // 贴纸图层数据
-    stickerOverlays: [],
-    activeStickerId: '',
+    // 贴纸预览数据（当前正在放置的贴纸）
+    stickerPreview: null,
     templateId: '',
     templateName: ''
   },
@@ -239,11 +238,14 @@ Page({
   },
 
   onCanvasTouchStart(e) {
-    if (this.data.currentMode === 'sticker') return
     if (!this.ctx) return
-
-    // 刷新画布位置缓存
     this._refreshCanvasRect()
+
+    // 贴纸模式：处理贴纸交互
+    if (this.data.currentMode === 'sticker') {
+      this._onStickerTouchStart(e)
+      return
+    }
 
     const pos = this._getCanvasPos(e)
     this.isDrawing = true
@@ -259,6 +261,203 @@ Page({
       audio.eraserTouch()
     } else {
       audio.drawTouch()
+    }
+  },
+
+  onCanvasTouchMove(e) {
+    if (this.data.currentMode === 'sticker') {
+      this._onStickerTouchMove(e)
+      return
+    }
+    if (!this.isDrawing || !this.ctx) return
+
+    const pos = this._getCanvasPos(e)
+    this.ctx.beginPath()
+    this.ctx.moveTo(this.lastX, this.lastY)
+    this.ctx.lineTo(pos.x, pos.y)
+    this.ctx.strokeStyle = this.data.currentMode === 'eraser' ? '#FFFFFF' : this.data.currentColor
+    this.ctx.lineWidth = this.data.currentSize
+    this.ctx.lineCap = 'round'
+    this.ctx.lineJoin = 'round'
+    this.ctx.stroke()
+
+    this.lastX = pos.x
+    this.lastY = pos.y
+  },
+
+  onCanvasTouchEnd(e) {
+    if (this.data.currentMode === 'sticker') {
+      this._onStickerTouchEnd(e)
+      return
+    }
+    if (!this.isDrawing) return
+    this.isDrawing = false
+    this.saveHistory()
+  },
+
+  // ========== 贴纸系统（Canvas 绘制，支持拖拽/缩放） ==========
+
+  // 进入贴纸模式时保存画布底图
+  _saveStickerBase() {
+    if (!this.canvas) return
+    this._stickerBase = this.canvas.toDataURL()
+    this._stickerBaseImg = null // 清除缓存
+  },
+
+  // 贴纸触摸开始
+  _onStickerTouchStart(e) {
+    // 如果已有预览贴纸，处理拖拽/缩放
+    if (this.data.stickerPreview) {
+      if (e.touches.length === 2) {
+        // 双指：开始缩放/旋转
+        this._isPinching = true
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        this._pinchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+        this._pinchStartAngle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI
+        this._pinchStartSize = this.data.stickerPreview.size
+        this._pinchStartRotation = this.data.stickerPreview.rotation || 0
+        return
+      }
+
+      // 单指：检测是否点击在贴纸范围内（扩大检测范围）
+      const pos = this._getCanvasPos(e)
+      const preview = this.data.stickerPreview
+      const hitSize = Math.max(preview.size, 60) // 最小60px检测范围
+      const halfSize = hitSize / 2 + 10 // 额外10px边距
+      if (pos.x >= preview.x - halfSize && pos.x <= preview.x + halfSize &&
+          pos.y >= preview.y - halfSize && pos.y <= preview.y + halfSize) {
+        // 点击在贴纸范围内，开始拖拽
+        this._stickerTouching = true
+        this._stickerTouchOffsetX = pos.x - preview.x
+        this._stickerTouchOffsetY = pos.y - preview.y
+        return
+      }
+      // 点击在范围外，忽略
+      return
+    }
+
+    // 没有预览贴纸，点击放置新贴纸
+    if (this.data.selectedSticker) {
+      const pos = this._getCanvasPos(e)
+      this._placeSticker(this.data.selectedSticker, pos.x, pos.y)
+    }
+  },
+
+  // 贴纸触摸移动
+  _onStickerTouchMove(e) {
+    if (!this.data.stickerPreview) return
+
+    if (e.touches.length === 2 && this._isPinching) {
+      const t1 = e.touches[0]
+      const t2 = e.touches[1]
+
+      // 缩放
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
+      const scale = dist / this._pinchStartDist
+      let newSize = Math.round(this._pinchStartSize * scale)
+      newSize = Math.max(30, Math.min(200, newSize))
+
+      // 旋转
+      const currentAngle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI
+      const newRotation = this._pinchStartRotation + (currentAngle - this._pinchStartAngle)
+
+      this.setData({
+        stickerPreview: { ...this.data.stickerPreview, size: newSize, rotation: newRotation }
+      }, () => {
+        this._redrawStickers()
+      })
+      return
+    }
+
+    // 单指拖拽
+    if (e.touches.length === 1 && this._stickerTouching) {
+      const pos = this._getCanvasPos(e)
+      this.setData({
+        stickerPreview: {
+          ...this.data.stickerPreview,
+          x: pos.x - this._stickerTouchOffsetX,
+          y: pos.y - this._stickerTouchOffsetY
+        }
+      }, () => {
+        this._redrawStickers()
+      })
+    }
+  },
+
+  // 贴纸触摸结束
+  _onStickerTouchEnd(e) {
+    this._stickerTouching = false
+    this._isPinching = false
+  },
+
+  // 放置新贴纸（预览模式）
+  _placeSticker(emoji, x, y) {
+    this.setData({
+      stickerPreview: {
+        emoji: emoji,
+        x: x,
+        y: y,
+        size: 60,
+        rotation: 0
+      }
+    }, () => {
+      this._redrawStickers()
+    })
+    audio.stickerPlace()
+  },
+
+  // 重绘贴纸（基于底图 + 预览贴纸）
+  _redrawStickers() {
+    if (!this.ctx || !this._stickerBase) return
+
+    // 如果已经有缓存的底图，直接使用
+    if (this._stickerBaseImg) {
+      this._drawStickersOnCanvas(this._stickerBaseImg)
+      return
+    }
+
+    // 首次加载底图
+    const img = this.canvas.createImage()
+    img.onload = () => {
+      this._stickerBaseImg = img
+      this._drawStickersOnCanvas(img)
+    }
+    img.src = this._stickerBase
+  },
+
+  // 在画布上绘制底图 + 贴纸
+  _drawStickersOnCanvas(baseImg) {
+    // 清空画布，绘制底图
+    this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
+    this.ctx.drawImage(baseImg, 0, 0, this.canvasWidth, this.canvasHeight)
+
+    // 绘制预览贴纸
+    const preview = this.data.stickerPreview
+    if (preview) {
+      this.ctx.save()
+      this.ctx.translate(preview.x, preview.y)
+      if (preview.rotation) {
+        this.ctx.rotate(preview.rotation * Math.PI / 180)
+      }
+      this.ctx.font = `${preview.size}px serif`
+      this.ctx.textAlign = 'center'
+      this.ctx.textBaseline = 'middle'
+      this.ctx.fillText(preview.emoji, 0, 0)
+      this.ctx.restore()
+
+      // 绘制选中框
+      this.ctx.save()
+      this.ctx.strokeStyle = '#FF6B8A'
+      this.ctx.lineWidth = 2
+      this.ctx.setLineDash([5, 5])
+      this.ctx.strokeRect(
+        preview.x - preview.size / 2 - 8,
+        preview.y - preview.size / 2 - 8,
+        preview.size + 16,
+        preview.size + 16
+      )
+      this.ctx.restore()
     }
   },
 
@@ -287,124 +486,6 @@ Page({
     this.saveHistory()
   },
 
-  // ========== 贴纸图层触摸事件 ==========
-
-  // 获取触摸点所在的贴纸（坐标为百分比 0-1）
-  _findStickerAtPoint(px, py, overlayW, overlayH) {
-    const stickers = this.data.stickerOverlays
-    for (let i = stickers.length - 1; i >= 0; i--) {
-      const s = stickers[i]
-      // 将贴纸像素大小转换为百分比距离
-      const halfW = (s.size / 2) / overlayW
-      const halfH = (s.size / 2) / overlayH
-      if (px >= s.x - halfW && px <= s.x + halfW &&
-          py >= s.y - halfH && py <= s.y + halfH) {
-        return s
-      }
-    }
-    return null
-  },
-
-  // 贴纸图层触摸开始
-  onStickerTouchStart(e) {
-    this._refreshCanvasRect()
-
-    if (e.touches.length === 2) {
-      this._isPinching = true
-      const t1 = e.touches[0]
-      const t2 = e.touches[1]
-      this._pinchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
-      this._pinchStartAngle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI
-
-      const activeSticker = this.data.stickerOverlays.find(s => s.id === this.data.activeStickerId)
-      if (activeSticker) {
-        this._pinchStartSize = activeSticker.size
-        this._pinchStartRotation = activeSticker.rotation || 0
-      }
-      return
-    }
-
-    if (e.touches.length === 1) {
-      const touch = e.touches[0]
-      const rect = this._canvasRect
-      if (!rect) return
-
-      // 转换为百分比坐标
-      const px = (touch.clientX - rect.left) / rect.width
-      const py = (touch.clientY - rect.top) / rect.height
-
-      const hitSticker = this._findStickerAtPoint(px, py, rect.width, rect.height)
-      if (hitSticker) {
-        this._stickerTouching = true
-        this._stickerTouchId = hitSticker.id
-        this._stickerTouchOffsetX = px - hitSticker.x
-        this._stickerTouchOffsetY = py - hitSticker.y
-        this.setData({ activeStickerId: hitSticker.id })
-      }
-    }
-  },
-
-  // 贴纸图层触摸移动
-  onStickerTouchMove(e) {
-    if (e.touches.length === 2 && this._isPinching) {
-      // 双指缩放 + 旋转
-      const t1 = e.touches[0]
-      const t2 = e.touches[1]
-
-      // 计算缩放
-      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY)
-      const scale = dist / this._pinchStartDist
-      let newSize = Math.round(this._pinchStartSize * scale)
-      newSize = Math.max(30, Math.min(200, newSize))
-
-      // 计算旋转角度
-      const currentAngle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI
-      const angleDiff = currentAngle - this._pinchStartAngle
-      const newRotation = this._pinchStartRotation + angleDiff
-
-      const activeId = this.data.activeStickerId
-      const stickers = this.data.stickerOverlays.map(s => {
-        if (s.id === activeId) {
-          return { ...s, size: newSize, rotation: newRotation }
-        }
-        return s
-      })
-      this.setData({ stickerOverlays: stickers })
-      return
-    }
-
-    if (e.touches.length === 1 && this._stickerTouching) {
-      const touch = e.touches[0]
-      const rect = this._canvasRect
-      if (!rect) return
-
-      // 转换为百分比坐标（减去偏移量）
-      const px = (touch.clientX - rect.left) / rect.width - this._stickerTouchOffsetX
-      const py = (touch.clientY - rect.top) / rect.height - this._stickerTouchOffsetY
-
-      const stickers = this.data.stickerOverlays.map(s => {
-        if (s.id === this._stickerTouchId) {
-          return { ...s, x: px, y: py }
-        }
-        return s
-      })
-      this.setData({ stickerOverlays: stickers })
-    }
-  },
-
-  // 贴纸图层触摸结束
-  onStickerTouchEnd(e) {
-    this._stickerTouching = false
-    this._stickerTouchId = ''
-    this._isPinching = false
-  },
-
-  // 点击贴纸选中
-  onStickerTap(e) {
-    const id = e.currentTarget.dataset.id
-    this.setData({ activeStickerId: id })
-  },
-
   // ========== 贴纸操作 ==========
 
   // 切换贴纸分类
@@ -417,92 +498,37 @@ Page({
   selectSticker(e) {
     const sticker = e.currentTarget.dataset.sticker
     this.setData({ selectedSticker: sticker })
-
-    // 在画布中心添加一个新的贴纸图层
-    this._addStickerOverlay(sticker)
   },
 
-  // 添加贴纸到图层（位置用百分比 0-1，size 用像素）
-  _addStickerOverlay(emoji) {
-    this._stickerIdCounter++
-    const newSticker = {
-      id: 'sticker_' + this._stickerIdCounter,
-      emoji: emoji,
-      x: 0.5,       // 居中（百分比）
-      y: 0.5,       // 居中（百分比）
-      size: 60,
-      rotation: 0
-    }
-
-    const overlays = [...this.data.stickerOverlays, newSticker]
-    this.setData({
-      stickerOverlays: overlays,
-      activeStickerId: newSticker.id
-    })
-    audio.stickerPlace()
-  },
-
-  // 确认所有贴纸（合并到画布）
+  // 确认贴纸（将预览贴纸真正贴到画布上）
   confirmStickers() {
-    if (!this.ctx || this.data.stickerOverlays.length === 0) return
+    if (!this.data.stickerPreview) return
 
-    const canvasW = this.canvasWidth
-    const canvasH = this.canvasHeight
-    const stickers = this.data.stickerOverlays
-
-    stickers.forEach(s => {
-      // 百分比坐标转画布坐标
-      const drawX = s.x * canvasW
-      const drawY = s.y * canvasH
-      const rotation = s.rotation || 0
-
-      if (rotation !== 0) {
-        this.ctx.save()
-        this.ctx.translate(drawX, drawY)
-        this.ctx.rotate(rotation * Math.PI / 180)
-        this.ctx.font = `${s.size}px serif`
-        this.ctx.textAlign = 'center'
-        this.ctx.textBaseline = 'middle'
-        this.ctx.fillText(s.emoji, 0, 0)
-        this.ctx.restore()
-      } else {
-        this.ctx.font = `${s.size}px serif`
-        this.ctx.textAlign = 'center'
-        this.ctx.textBaseline = 'middle'
-        this.ctx.fillText(s.emoji, drawX, drawY)
-      }
-    })
-
-    this.setData({
-      stickerOverlays: [],
-      activeStickerId: ''
-    })
+    this.setData({ stickerPreview: null })
+    this._stickerBase = null
+    this._stickerBaseImg = null
     this.saveHistory()
     audio.saveSuccess()
     wx.showToast({ title: '贴纸已贴上', icon: 'success' })
   },
 
-  // 取消所有贴纸
-  cancelAllStickers() {
-    this.setData({
-      stickerOverlays: [],
-      activeStickerId: ''
-    })
-  },
+  // 取消贴纸（恢复到底图）
+  cancelSticker() {
+    if (!this._stickerBase) return
 
-  // 删除选中的贴纸
-  deleteActiveSticker() {
-    const activeId = this.data.activeStickerId
-    if (!activeId) {
-      wx.showToast({ title: '先点击选中要删除的贴纸', icon: 'none' })
-      return
+    // 恢复底图
+    if (this._stickerBaseImg) {
+      this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
+      this.ctx.drawImage(this._stickerBaseImg, 0, 0, this.canvasWidth, this.canvasHeight)
     }
 
-    const overlays = this.data.stickerOverlays.filter(s => s.id !== activeId)
-    this.setData({
-      stickerOverlays: overlays,
-      activeStickerId: ''
-    })
+    this.setData({ stickerPreview: null })
+    this._stickerBaseImg = null
+  },
+
+  // 删除贴纸（同取消）
+  deleteSticker() {
+    this.cancelSticker()
   },
 
   // ========== 通用功能 ==========
@@ -513,13 +539,17 @@ Page({
 
     // 离开贴纸模式时，自动确认未完成的贴纸
     if (this.data.currentMode === 'sticker' && mode !== 'sticker') {
-      if (this.data.stickerOverlays.length > 0) {
+      if (this.data.stickerPreview) {
         this.confirmStickers()
       }
     }
 
+    // 进入贴纸模式时，保存画布底图
+    if (mode === 'sticker' && this.data.currentMode !== 'sticker') {
+      this._saveStickerBase()
+    }
+
     this.setData({ currentMode: mode })
-    // 切换模式时刷新 rect
     this._refreshCanvasRect()
   },
 
@@ -649,10 +679,9 @@ Page({
       confirmColor: '#FF6B8A',
       success: (res) => {
         if (res.confirm && this.ctx) {
-          // 同时清除贴纸图层
+          // 同时清除贴纸预览
           this.setData({
-            stickerOverlays: [],
-            activeStickerId: ''
+            stickerPreview: null
           })
 
           this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
@@ -680,8 +709,8 @@ Page({
       return
     }
 
-    // 如果有未确认的贴纸，先合并
-    if (this.data.stickerOverlays.length > 0) {
+    // 如果有未确认的贴纸，先确认
+    if (this.data.stickerPreview) {
       this.confirmStickers()
     }
 
@@ -698,55 +727,21 @@ Page({
 
       // 刷牙模式：保存编辑后的照片到刷牙记录
       if (this.data.drawingMode === 'brushing') {
-        const editedPath = res.tempFilePath
-        wx.hideLoading()
-
-        // 将编辑后的图片保存到持久化目录
-        const savedPath = await util.saveImageToPersistent(editedPath)
-
-        // 存入 storage 供刷牙页面读取
-        wx.setStorageSync('brushingEditedPhoto', savedPath)
-
-        wx.showToast({ title: '编辑完成！', icon: 'success', duration: 1500 })
-        setTimeout(() => {
-          wx.navigateBack()
-        }, 1500)
+        await this._saveEditedPhoto(res.tempFilePath, 'brushingEditedPhoto', {
+          timeOfDay: this.data.brushingTimeOfDay || 'morning'
+        })
         return
       }
 
       // 习惯打卡模式：保存编辑后的照片到习惯打卡记录
       if (this.data.drawingMode === 'habit') {
-        const editedPath = res.tempFilePath
-        wx.hideLoading()
-
-        // 将编辑后的图片保存到持久化目录
-        const savedPath = await util.saveImageToPersistent(editedPath)
-
-        // 存入 storage 供习惯打卡页面读取
-        wx.setStorageSync('habitEditedPhoto', savedPath)
-
-        wx.showToast({ title: '编辑完成！', icon: 'success', duration: 1500 })
-        setTimeout(() => {
-          wx.navigateBack()
-        }, 1500)
+        await this._saveEditedPhoto(res.tempFilePath, 'habitEditedPhoto')
         return
       }
 
       // 笔记模式：保存编辑后的照片到笔记记录
       if (this.data.drawingMode === 'note') {
-        const editedPath = res.tempFilePath
-        wx.hideLoading()
-
-        // 将编辑后的图片保存到持久化目录
-        const savedPath = await util.saveImageToPersistent(editedPath)
-
-        // 存入 storage 供笔记页面读取
-        wx.setStorageSync('noteEditedPhoto', savedPath)
-
-        wx.showToast({ title: '编辑完成！', icon: 'success', duration: 1500 })
-        setTimeout(() => {
-          wx.navigateBack()
-        }, 1500)
+        await this._saveEditedPhoto(res.tempFilePath, 'noteEditedPhoto')
         return
       }
 
@@ -762,9 +757,6 @@ Page({
       await cloud.uploadDrawing(res.tempFilePath, drawing)
       audio.saveSuccess()
 
-      // 检查成就解锁
-      var newAchievements = achievements.checkAchievements()
-
       wx.hideLoading()
       wx.showToast({
         title: '保存成功！',
@@ -772,21 +764,49 @@ Page({
         duration: 2000
       })
 
-      // 显示成就解锁提示
-      if (newAchievements.length > 0) {
-        setTimeout(function() {
-          wx.showToast({
-            title: '🎉 解锁: ' + newAchievements[0].title,
-            icon: 'success',
-            duration: 2000
-          })
-        }, 2500)
-      }
+      // 检查成就解锁（异步版本，确保读取最新数据）
+      achievements.checkAchievementsAsync().then(newAchievements => {
+        if (newAchievements && newAchievements.length > 0) {
+          setTimeout(() => {
+            const popup = this.selectComponent('#achievementPopup')
+            if (popup) {
+              popup.showAchievements(newAchievements)
+            }
+          }, 2500)
+        }
+      }).catch(err => {
+        console.warn('成就检查失败:', err)
+      })
     } catch (err) {
       wx.hideLoading()
       console.error('保存失败:', err)
       wx.showToast({ title: '保存失败', icon: 'none' })
     }
+  },
+
+  // 保存编辑后的照片到指定 storage key
+  async _saveEditedPhoto(tempFilePath, storageKey, extraData) {
+    // 将编辑后的图片保存到持久化目录
+    const savedPath = await util.saveImageToPersistent(tempFilePath)
+
+    // 存入 storage
+    if (extraData && typeof extraData === 'object') {
+      // 对象形式（如刷牙模式包含 timeOfDay）
+      wx.setStorageSync(storageKey, { ...extraData, path: savedPath })
+    } else {
+      // 简单路径形式
+      wx.setStorageSync(storageKey, savedPath)
+    }
+
+    wx.hideLoading()
+    wx.showToast({ title: '编辑完成！', icon: 'success', duration: 1500 })
+    setTimeout(() => {
+      wx.navigateBack()
+    }, 1500)
+  },
+
+  onUnload() {
+    drawingMusic.stop()
   },
 
   // 返回

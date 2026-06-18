@@ -34,11 +34,12 @@ const saveStoryProgress = (progress) => {
  * 对敌人造成伤害
  * @param {string} enemyId - 敌人ID
  * @param {number} damage - 伤害值（默认1）
+ * @param {number} defaultHp - 默认HP（轮数缩放后的值）
  * @returns {Object} { defeated: boolean, newHp: number }
  */
-const damageEnemy = (enemyId, damage = 1) => {
+const damageEnemy = (enemyId, damage = 1, defaultHp = 6) => {
   const progress = getStoryProgress()
-  const currentHp = progress.enemyCurrentHp[enemyId] ?? 6 // 默认6血
+  const currentHp = progress.enemyCurrentHp[enemyId] ?? defaultHp
   const newHp = Math.max(0, currentHp - damage)
 
   progress.enemyCurrentHp[enemyId] = newHp
@@ -224,6 +225,13 @@ const getTodayStr = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// 获取昨天的日期字符串 YYYY-MM-DD
+const getYesterdayStr = () => {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 /**
  * 保存刷牙打卡记录到本地存储
  */
@@ -258,9 +266,10 @@ const deleteBrushingRecord = (id) => {
 
 /**
  * 获取刷牙打卡统计数据
+ * @param {Array} records - 可选，传入记录数组（云端合并数据），不传则读本地
  */
-const getBrushingStats = () => {
-  const records = getBrushingRecords()
+const getBrushingStats = (records) => {
+  if (!records) records = getBrushingRecords()
   const today = getTodayStr()
 
   // 今日完成次数
@@ -286,7 +295,7 @@ const getBrushingStats = () => {
   }
 }
 
-// 计算连续刷牙天数（完成早晚两次才算一天）
+// 计算连续刷牙天数（至少刷一次就算一天）
 const calcBrushingStreak = (records) => {
   if (records.length === 0) return 0
 
@@ -298,9 +307,9 @@ const calcBrushingStreak = (records) => {
     const dayRecords = records.filter(r => r.date === currentDate)
 
     if (i === 0) {
-      // 第一天可以是今天或昨天
-      streak = dayRecords.length >= 2 ? 1 : 0
-      if (dayRecords.length < 2) break
+      // 第一天可以是今天或昨天，至少刷一次就算
+      streak = dayRecords.length >= 1 ? 1 : 0
+      if (dayRecords.length < 1) break
     } else {
       // 检查是否与前一天连续
       const prevDate = dates[i - 1]
@@ -308,7 +317,7 @@ const calcBrushingStreak = (records) => {
       const prev = new Date(prevDate)
       const diff = (prev - cur) / (1000 * 60 * 60 * 24)
 
-      if (diff === 1 && dayRecords.length >= 2) {
+      if (diff === 1 && dayRecords.length >= 1) {
         streak++
       } else {
         break
@@ -418,6 +427,7 @@ module.exports = {
   formatDate,
   generateId,
   getTodayStr,
+  getYesterdayStr,
   saveImageToPersistent,
   saveDrawing,
   getDrawings,

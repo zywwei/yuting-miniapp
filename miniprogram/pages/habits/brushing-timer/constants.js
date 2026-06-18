@@ -225,6 +225,12 @@ const BATTLE_CONFIG = {
   // 怪物状态
   ENEMY_ANGER_THRESHOLD: 0.3, // 血量低于30%进入愤怒状态
 
+  // 积分配置
+  AREA_COMPLETE_POINTS: 10,  // 区域完成基础积分
+  GERM_BONUS_POINTS: 5,      // 每个细菌额外积分
+  ATTACK_BASE_POINTS: 10,    // 基础攻击积分
+  CRIT_ATTACK_POINTS: 20,    // 暴击攻击积分
+
   // 小怪物配置
   MINION_COUNT: 3,           // 每波小怪物数量
   MINION_HP: 1,              // 小怪物血量（1下打死）
@@ -265,7 +271,6 @@ const CHAPTERS = [
       description: '用甜食攻击牙齿的坏家伙！',
       defeatText: '糖糖怪被打败啦！牙齿们开心地跳舞~'
     },
-    unlockCondition: null,
     rewards: { points: 50, exp: 30 }
   },
   {
@@ -282,7 +287,6 @@ const CHAPTERS = [
       description: '统领所有细菌的首领！',
       defeatText: '细菌大王逃跑了！沼泽恢复了平静~'
     },
-    unlockCondition: { chapterId: 1, defeated: true },
     rewards: { points: 60, exp: 40 }
   },
   {
@@ -299,7 +303,6 @@ const CHAPTERS = [
       description: '顽固的牙菌斑军团首领！',
       defeatText: '牙菌斑将军投降了！牙菌王国恢复和平~'
     },
-    unlockCondition: { chapterId: 2, defeated: true },
     rewards: { points: 70, exp: 50 }
   },
   {
@@ -316,7 +319,6 @@ const CHAPTERS = [
       description: '专门制造蛀牙的坏蛋！',
       defeatText: '龋齿怪被消灭了！牙齿再也不怕蛀牙啦~'
     },
-    unlockCondition: { chapterId: 3, defeated: true },
     rewards: { points: 80, exp: 60 }
   },
   {
@@ -333,7 +335,6 @@ const CHAPTERS = [
       description: '用臭气攻击的恶龙！',
       defeatText: '口气恶龙飞走了！牙齿们又能自由呼吸啦~'
     },
-    unlockCondition: { chapterId: 4, defeated: true },
     rewards: { points: 90, exp: 70 }
   },
   {
@@ -350,7 +351,6 @@ const CHAPTERS = [
       description: '用甜蜜诱惑牙齿的狡猾家伙！',
       defeatText: '棒棒糖精的陷阱被打破啦！牙齿们不再被诱惑~'
     },
-    unlockCondition: { chapterId: 5, defeated: true },
     rewards: { points: 95, exp: 75 }
   },
   {
@@ -367,7 +367,6 @@ const CHAPTERS = [
       description: '所有牙齿敌人的首领！',
       defeatText: '蛀牙魔王被打败了！你是真正的牙齿守护者！🏆'
     },
-    unlockCondition: { chapterId: 6, defeated: true },
     rewards: { points: 100, exp: 80 }
   }
 ]

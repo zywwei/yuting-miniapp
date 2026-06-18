@@ -46,41 +46,26 @@
       bindtouchend="onCanvasTouchEnd"
     />
 
-    <!-- 贴纸图层（仅贴纸模式下拦截触摸，其他模式穿透） -->
-    <view
-      wx:if="{{stickerOverlays.length > 0 && currentMode === 'sticker'}}"
-      class="sticker-overlay"
-      catchtouchstart="onStickerTouchStart"
-      catchtouchmove="onStickerTouchMove"
-      catchtouchend="onStickerTouchEnd"
-    >
-      <view
-        wx:for="{{stickerOverlays}}"
-        wx:key="id"
-        class="sticker-layer-item {{activeStickerId === item.id ? 'sticker-active' : ''}}"
-        style="left: {{item.x * 100}}%; top: {{item.y * 100}}%; font-size: {{item.size}}px; transform: translate(-50%, -50%) rotate({{item.rotation || 0}}deg);"
-        data-id="{{item.id}}"
-        catchtap="onStickerTap"
-      >
-        {{item.emoji}}
-      </view>
+    <!-- 贴纸操作提示（贴纸模式下无预览时显示） -->
+    <view wx:if="{{currentMode === 'sticker' && !stickerPreview}}" class="sticker-hint">
+      <text>👆 选择贴纸后点击画布放置</text>
     </view>
 
-    <!-- 贴纸操作提示 -->
-    <view wx:if="{{stickerOverlays.length > 0 && currentMode === 'sticker'}}" class="sticker-hint">
-      <text>👆 拖拽移动 · 双指缩放/旋转 · 点击选中</text>
+    <!-- 贴纸操作提示（有预览贴纸时显示） -->
+    <view wx:if="{{stickerPreview && currentMode === 'sticker'}}" class="sticker-hint">
+      <text>👆 拖拽移动 · 双指缩放旋转</text>
     </view>
 
-    <!-- 确认贴纸按钮 -->
-    <view wx:if="{{stickerOverlays.length > 0 && currentMode === 'sticker'}}" class="sticker-confirm-bar">
-      <view class="sticker-confirm-btn" bindtap="cancelAllStickers">
+    <!-- 确认贴纸按钮（有预览贴纸时显示） -->
+    <view wx:if="{{stickerPreview && currentMode === 'sticker'}}" class="sticker-confirm-bar">
+      <view class="sticker-confirm-btn" bindtap="cancelSticker">
         <text>✕ 取消</text>
       </view>
-      <view class="sticker-confirm-btn" bindtap="deleteActiveSticker">
-        <text>🗑️ 删除选中</text>
+      <view class="sticker-confirm-btn" bindtap="deleteSticker">
+        <text>🗑️ 删除</text>
       </view>
       <view class="sticker-confirm-btn primary" bindtap="confirmStickers">
-        <text>✓ 确认贴纸</text>
+        <text>✓ 确认贴上</text>
       </view>
     </view>
   </view>
@@ -177,4 +162,7 @@
       </view>
     </scroll-view>
   </view>
+
+  <!-- 成就解锁弹窗 -->
+  <achievement-popup id="achievementPopup" />
 </view>

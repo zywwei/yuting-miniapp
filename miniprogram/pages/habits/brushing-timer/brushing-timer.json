@@ -2,6 +2,7 @@
   "navigationBarTitleText": "刷牙计时",
   "navigationStyle": "custom",
   "usingComponents": {
-    "story-dialog": "/components/story-dialog/story-dialog"
+    "story-dialog": "/components/story-dialog/story-dialog",
+    "achievement-popup": "/components/achievement-popup/achievement-popup"
   }
 }

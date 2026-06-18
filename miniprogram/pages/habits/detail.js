@@ -182,6 +182,10 @@ Page({
     this.applyEditedPhoto()
   },
 
+  onUnload: function() {
+    if (this._persistTimeout) { clearTimeout(this._persistTimeout); this._persistTimeout = null }
+  },
+
   // 只加载记录和统计（不重置表单）
   loadRecordsAndStats: function() {
     var type = this.data.type
@@ -622,7 +626,8 @@ Page({
       var timeoutCalled = false
 
       // 超时保护：10秒后强制回调
-      var timeout = setTimeout(function() {
+      var self = this
+      this._persistTimeout = setTimeout(function() {
         if (!timeoutCalled && savedCount < images.length) {
           timeoutCalled = true
           console.warn('图片持久化超时，使用原始路径')
@@ -641,7 +646,7 @@ Page({
           savedImages[index] = img
           savedCount++
           if (savedCount === images.length) {
-            clearTimeout(timeout)
+            clearTimeout(self._persistTimeout)
             callback(savedImages)
           }
         } else {
@@ -650,7 +655,7 @@ Page({
             savedImages[index] = savedPath
             savedCount++
             if (savedCount === images.length) {
-              clearTimeout(timeout)
+              clearTimeout(self._persistTimeout)
               callback(savedImages)
             }
           }).catch(function() {
@@ -658,7 +663,7 @@ Page({
             savedImages[index] = img
             savedCount++
             if (savedCount === images.length) {
-              clearTimeout(timeout)
+              clearTimeout(self._persistTimeout)
               callback(savedImages)
             }
           })

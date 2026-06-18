@@ -274,17 +274,26 @@
   z-index: 5;
   text-align: center;
   filter: drop-shadow(0 10rpx 20rpx rgba(0,0,0,0.15));
+  transition: opacity 0.3s ease-out;
+}
+
+.enemy-hero.defeated {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.8s ease-out 0.5s;
 }
 
 .enemy-emoji {
   font-size: 240rpx;
   display: block;
+  --enemy-scale: 1.3;
   animation: enemyIdle 2s ease-in-out infinite;
+  transition: transform 0.3s ease-out;
 }
 
 @keyframes enemyIdle {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-20rpx) scale(1.1); }
+  0%, 100% { transform: scale(var(--enemy-scale, 1.3)); }
+  50% { transform: scale(calc(var(--enemy-scale, 1.3) * 1.08)); }
 }
 
 .shake {
@@ -298,13 +307,14 @@
 }
 
 .defeated {
-  animation: defeated 0.5s ease-out forwards !important;
+  animation: defeated 0.8s ease-out forwards !important;
 }
 
 @keyframes defeated {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.3); }
-  100% { transform: scale(0.8) rotate(20deg); opacity: 0.5; }
+  0% { transform: scale(var(--enemy-scale, 0.5)); opacity: 1; }
+  30% { transform: scale(calc(var(--enemy-scale, 0.5) * 1.3)); opacity: 1; }
+  60% { transform: scale(calc(var(--enemy-scale, 0.5) * 0.5)); opacity: 0.5; }
+  100% { transform: scale(0); opacity: 0; }
 }
 
 /* 敌人HP */
@@ -451,6 +461,195 @@
   padding: 8rpx 20rpx;
   border-radius: 20rpx;
   border: 3rpx solid #FF4081;
+}
+
+/* ===== 牙刷冲刺动画 ===== */
+.dashing .toothbrush-wrapper {
+  animation: dashForward 0.25s ease-out;
+}
+
+@keyframes dashForward {
+  0% { transform: translate(-50%, -50%) rotate(var(--rotation, 0deg)); }
+  40% { transform: translate(calc(-50% + 30rpx), calc(-50% - 30rpx)) rotate(var(--rotation, 0deg)) scale(1.2); }
+  100% { transform: translate(-50%, -50%) rotate(var(--rotation, 0deg)) scale(1); }
+}
+
+/* 牙刷暴击闪光 */
+.critical-flash {
+  animation: critFlashEmoji 0.3s ease-out;
+}
+
+@keyframes critFlashEmoji {
+  0% { filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.2)); }
+  50% { filter: drop-shadow(0 0 20rpx #FFD700) brightness(2); }
+  100% { filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.2)); }
+}
+
+/* 牙刷残影 */
+.toothbrush-afterimage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.5;
+  animation: afterimage 0.5s ease-out forwards;
+}
+
+.toothbrush-afterimage::after {
+  content: '🪥';
+  font-size: 100rpx;
+  filter: brightness(2) sepia(1) hue-rotate(10deg);
+}
+
+@keyframes afterimage {
+  0% { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* ===== 攻击轨迹 ===== */
+.attack-trail {
+  position: absolute;
+  top: 50%;
+  right: -100rpx;
+  transform: translateY(-50%) rotate(var(--trail-angle, 0deg));
+  transform-origin: left center;
+}
+
+.trail-line {
+  position: absolute;
+  height: 4rpx;
+  background: linear-gradient(90deg, rgba(255,107,138,0.8), transparent);
+  animation: trailFade 0.3s ease-out forwards;
+}
+
+.trail-1 { width: 80rpx; top: -10rpx; animation-delay: 0s; }
+.trail-2 { width: 60rpx; top: 0; animation-delay: 0.05s; }
+.trail-3 { width: 40rpx; top: 10rpx; animation-delay: 0.1s; }
+
+@keyframes trailFade {
+  0% { opacity: 0; transform: translateX(-20rpx); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(30rpx); }
+}
+
+/* ===== 命中爆炸粒子 ===== */
+.explosion-particles {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.particle {
+  position: absolute;
+  width: 20rpx;
+  height: 20rpx;
+  animation: particleExplode 0.5s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+.particle::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.particle.star::after { content: '⭐'; font-size: 16rpx; }
+.particle.spark::after { content: '✨'; font-size: 14rpx; }
+.particle.fire::after { content: '💥'; font-size: 12rpx; }
+
+@keyframes particleExplode {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--angle, 0deg)) translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle, 0deg)) translateX(80rpx) scale(0.3);
+  }
+}
+
+/* 暴击粒子（金色，更大范围） */
+.hit-effect.critical .particle::after {
+  filter: brightness(1.5) sepia(1) hue-rotate(10deg);
+}
+
+.hit-effect.critical .particle {
+  animation: particleExplodeCritical 0.6s ease-out forwards;
+}
+
+@keyframes particleExplodeCritical {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--angle, 0deg)) translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle, 0deg)) translateX(120rpx) scale(0.2);
+  }
+}
+
+/* ===== 暴击专属特效 ===== */
+.critical-effect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.critical-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 80rpx;
+  font-weight: bold;
+  color: #FFD700;
+  text-shadow: 0 4rpx 8rpx rgba(0,0,0,0.5);
+  animation: critTextAppear 0.8s ease-out forwards;
+}
+
+@keyframes critTextAppear {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+  40% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1) translateY(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1) translateY(-100rpx); }
+}
+
+.critical-flash-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%);
+  animation: critFlashOverlay 0.3s ease-out forwards;
+}
+
+@keyframes critFlashOverlay {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ===== 敌人受击反应 ===== */
+.enemy-emoji.hit-react {
+  animation: enemyHitReact 0.3s ease-out;
+}
+
+@keyframes enemyHitReact {
+  0% { transform: translateY(0) scale(var(--enemy-scale, 1.3)); filter: brightness(1); }
+  20% { transform: translateY(20rpx) scaleY(calc(var(--enemy-scale, 1.3) * 0.7)); filter: brightness(2); }
+  40% { transform: translateY(0) scaleY(calc(var(--enemy-scale, 1.3) * 1.1)); filter: brightness(1); }
+  60% { transform: translateY(10rpx) scaleY(calc(var(--enemy-scale, 1.3) * 0.85)); filter: brightness(1.2); }
+  100% { transform: translateY(0) scale(var(--enemy-scale, 1.3)); filter: brightness(1); }
 }
 
 /* ===== 小怪物系统 ===== */

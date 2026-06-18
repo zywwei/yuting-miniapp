@@ -70,34 +70,7 @@
   z-index: 1;
 }
 
-/* ========== 贴纸图层 ========== */
-.sticker-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 10;
-}
-
-.sticker-layer-item {
-  position: absolute;
-  cursor: grab;
-  user-select: none;
-  -webkit-user-select: none;
-  transform-origin: center center;
-  transition: box-shadow 0.15s;
-  line-height: 1;
-  pointer-events: auto;
-}
-
-.sticker-layer-item.sticker-active {
-  border: 3rpx dashed #FF6B8A;
-  border-radius: 8rpx;
-  box-shadow: 0 0 12rpx rgba(255, 107, 138, 0.4);
-}
-
-/* 贴纸操作提示 */
+/* ========== 贴纸操作提示 ========== */
 .sticker-hint {
   position: absolute;
   top: 12rpx;

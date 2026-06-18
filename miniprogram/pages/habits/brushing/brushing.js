@@ -31,11 +31,6 @@ Page({
     // 成功提示
     showSuccess: false,
     successText: '打卡成功！',
-    // 提醒设置
-    reminderMorning: false,
-    reminderMorningTime: '07:30',
-    reminderEvening: false,
-    reminderEveningTime: '20:30',
     // ===== 主线故事系统 =====
     currentChapter: null,
     currentEnemy: null,
@@ -47,9 +42,6 @@ Page({
     areasCompleted: 0
   },
 
-  _morningTimer: null,
-  _eveningTimer: null,
-
   onLoad() {
     const navInfo = getNavBarInfo()
     this.setData({
@@ -59,12 +51,11 @@ Page({
 
     this.loadTodayInfo()
     this.loadRecords()
-    this.loadReminderSettings()
     this.loadStoryProgress()
   },
 
-  onShow() {
-    this.loadRecords()
+  async onShow() {
+    await this.loadRecords()
     this.applyEditedPhoto()
     this.loadStoryProgress()
   },
@@ -136,21 +127,25 @@ Page({
 
   // 从画画编辑器返回时，应用编辑后的照片
   async applyEditedPhoto() {
-    const editedPath = wx.getStorageSync('brushingEditedPhoto')
-    if (!editedPath) return
+    const editedData = wx.getStorageSync('brushingEditedPhoto')
+    if (!editedData) return
     wx.removeStorageSync('brushingEditedPhoto')
 
-    // 判断是早上还是晚上（根据当前时间）
+    // 获取时段信息（兼容旧格式）
+    const editedPath = typeof editedData === 'string' ? editedData : editedData.path
+    const timeOfDay = typeof editedData === 'string' ? null : editedData.timeOfDay
+
+    // 如果没有时段信息，根据当前时间判断
     const hour = new Date().getHours()
-    const timeOfDay = hour < 14 ? 'morning' : 'evening'
+    const targetTimeOfDay = timeOfDay || (hour < 14 ? 'morning' : 'evening')
 
     wx.showLoading({ title: '保存编辑...' })
     try {
-      const record = timeOfDay === 'morning' ? this.data.morningRecord : this.data.eveningRecord
+      const record = targetTimeOfDay === 'morning' ? this.data.morningRecord : this.data.eveningRecord
       const existingImages = (record && record.images) || []
       const allImages = [...existingImages, editedPath]
 
-      await cloud.updateBrushingRecord(timeOfDay, {
+      await cloud.updateBrushingRecord(targetTimeOfDay, {
         imagePath: allImages[0] || '',
         images: allImages
       })
@@ -161,11 +156,6 @@ Page({
       wx.hideLoading()
       console.error('保存编辑失败:', err)
     }
-  },
-
-  onUnload() {
-    this.clearReminder('morning')
-    this.clearReminder('evening')
   },
 
   // 加载今日信息
@@ -188,9 +178,9 @@ Page({
   // 加载今日记录（云端优先）
   async loadRecords() {
     const today = util.getTodayStr()
-    const yesterday = this.getYesterdayStr()
+    const yesterday = util.getYesterdayStr()
     const records = await cloud.fetchBrushingRecords()
-    const stats = util.getBrushingStats()
+    const stats = util.getBrushingStats(records)
 
     // 格式化时间和时长
     const formatRecord = (r) => {
@@ -241,13 +231,6 @@ Page({
     })
   },
 
-  // 获取昨天日期字符串
-  getYesterdayStr() {
-    const d = new Date()
-    d.setDate(d.getDate() - 1)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  },
-
   // 拍照打卡（支持多张）
   checkIn(e) {
     const timeOfDay = e.currentTarget.dataset.time
@@ -263,8 +246,8 @@ Page({
           showScoreModal: true,
           modalTime: timeOfDay,
           tempImagePaths: imagePaths,
-          score: 5,
-          scoreLabel: '超级棒！',
+          score: 4,
+          scoreLabel: '非常好',
           note: ''
         })
       }
@@ -312,9 +295,21 @@ Page({
     wx.showLoading({ title: '保存中...' })
 
     try {
+      const today = util.getTodayStr()
+
+      // 检查是否已有同日同时段记录
+      const existingRecords = wx.getStorageSync('brushingRecords') || []
+      const duplicate = existingRecords.find(r => r.date === today && r.timeOfDay === modalTime)
+      if (duplicate) {
+        wx.hideLoading()
+        wx.showToast({ title: '今天已经打过卡了', icon: 'none' })
+        this.setData({ showScoreModal: false })
+        return
+      }
+
       const record = {
         id: util.generateId(),
-        date: util.getTodayStr(),
+        date: today,
         timeOfDay: modalTime,
         imagePath: images[0] || '',
         images: images,
@@ -327,8 +322,8 @@ Page({
       await cloud.uploadBrushingRecord(record)
       audio.brushingSuccess()
 
-      // 检查成就解锁
-      var newAchievements = achievements.checkAchievements()
+      // 检查成就解锁（使用云端合并数据）
+      var newAchievements = await achievements.checkAchievementsAsync()
 
       wx.hideLoading()
       this.setData({ showScoreModal: false })
@@ -474,6 +469,20 @@ Page({
     })
   },
 
+  // 查看详情（跳转到统计页）
+  viewDetail(e) {
+    const timeOfDay = e.currentTarget.dataset.time
+    const record = timeOfDay === 'morning' ? this.data.morningRecord : this.data.eveningRecord
+    if (!record) {
+      wx.showToast({ title: '暂无记录', icon: 'none' })
+      return
+    }
+    // 跳转到统计页，传递记录 ID 参数
+    wx.navigateTo({
+      url: `/pages/habits/brushing-stats/brushing-stats?recordId=${record.id}`
+    })
+  },
+
   // 返回首页
   goBack() {
     wx.navigateBack()
@@ -502,105 +511,5 @@ Page({
       current: current,
       urls: imageList
     })
-  },
-
-  // ===== 提醒设置 =====
-  loadReminderSettings() {
-    const settings = wx.getStorageSync('brushingReminder') || {}
-    this.setData({
-      reminderMorning: settings.morning || false,
-      reminderMorningTime: settings.morningTime || '07:30',
-      reminderEvening: settings.evening || false,
-      reminderEveningTime: settings.eveningTime || '20:30'
-    })
-    if (settings.morning) this.scheduleReminder('morning', settings.morningTime)
-    if (settings.evening) this.scheduleReminder('evening', settings.eveningTime)
-  },
-
-  saveReminderSettings() {
-    wx.setStorageSync('brushingReminder', {
-      morning: this.data.reminderMorning,
-      morningTime: this.data.reminderMorningTime,
-      evening: this.data.reminderEvening,
-      eveningTime: this.data.reminderEveningTime
-    })
-  },
-
-  toggleMorningReminder(e) {
-    this.setData({ reminderMorning: e.detail.value })
-    this.saveReminderSettings()
-    if (e.detail.value) {
-      this.scheduleReminder('morning', this.data.reminderMorningTime)
-      wx.showToast({ title: '早上提醒已开启', icon: 'none' })
-    } else {
-      this.clearReminder('morning')
-      wx.showToast({ title: '早上提醒已关闭', icon: 'none' })
-    }
-  },
-
-  toggleEveningReminder(e) {
-    this.setData({ reminderEvening: e.detail.value })
-    this.saveReminderSettings()
-    if (e.detail.value) {
-      this.scheduleReminder('evening', this.data.reminderEveningTime)
-      wx.showToast({ title: '晚上提醒已开启', icon: 'none' })
-    } else {
-      this.clearReminder('evening')
-      wx.showToast({ title: '晚上提醒已关闭', icon: 'none' })
-    }
-  },
-
-  setMorningTime(e) {
-    this.setData({ reminderMorningTime: e.detail.value })
-    this.saveReminderSettings()
-    if (this.data.reminderMorning) {
-      this.scheduleReminder('morning', e.detail.value)
-    }
-  },
-
-  setEveningTime(e) {
-    this.setData({ reminderEveningTime: e.detail.value })
-    this.saveReminderSettings()
-    if (this.data.reminderEvening) {
-      this.scheduleReminder('evening', e.detail.value)
-    }
-  },
-
-  scheduleReminder(type, timeStr) {
-    const [hour, minute] = timeStr.split(':').map(Number)
-    const now = new Date()
-    const target = new Date()
-    target.setHours(hour, minute, 0, 0)
-    if (target <= now) target.setDate(target.getDate() + 1)
-    const delay = target - now
-
-    const timer = setTimeout(() => {
-      wx.showModal({
-        title: type === 'morning' ? '☀️ 早上好！' : '🌙 晚上好！',
-        content: type === 'morning' ? '该起床刷牙啦，钰婷！' : '睡前记得刷牙哦，钰婷！',
-        confirmText: '去刷牙',
-        success: (res) => {
-          if (res.confirm) {
-            wx.navigateTo({ url: '/pages/habits/brushing-timer/brushing-timer?time=' + type })
-          }
-        }
-      })
-      // 安排明天的提醒
-      this.scheduleReminder(type, timeStr)
-    }, delay)
-
-    if (type === 'morning') this._morningTimer = timer
-    else this._eveningTimer = timer
-  },
-
-  clearReminder(type) {
-    if (type === 'morning' && this._morningTimer) {
-      clearTimeout(this._morningTimer)
-      this._morningTimer = null
-    }
-    if (type === 'evening' && this._eveningTimer) {
-      clearTimeout(this._eveningTimer)
-      this._eveningTimer = null
-    }
   }
 })

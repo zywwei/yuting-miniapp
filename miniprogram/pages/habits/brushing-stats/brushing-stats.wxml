@@ -251,7 +251,11 @@
         </view>
         <view class="detail-row">
           <text class="detail-label">⭐ 评分</text>
-          <text class="detail-value">{{detailRecord.score}}分 · {{detailRecord.scoreLabel}}</text>
+          <view class="detail-value">
+            <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
+                  class="detail-star {{star <= detailRecord.score ? 'active' : ''}}">⭐</text>
+            <text class="detail-score-text">{{detailRecord.score}}分 · {{detailRecord.scoreLabel}}</text>
+          </view>
         </view>
         <view class="detail-row" wx:if="{{detailRecord.points > 0}}">
           <text class="detail-label">🏆 积分</text>

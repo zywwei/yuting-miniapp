@@ -49,6 +49,14 @@ Component({
     }
   },
 
+  lifetimes: {
+    detached() {
+      if (this._shakeTimer) { clearTimeout(this._shakeTimer); this._shakeTimer = null }
+      if (this._hideTimer) { clearTimeout(this._hideTimer); this._hideTimer = null }
+      if (this._tauntTimer) { clearTimeout(this._tauntTimer); this._tauntTimer = null }
+    }
+  },
+
   methods: {
     // 显示伤害动画
     showDamageAnimation(damage) {
@@ -61,16 +69,14 @@ Component({
       // 震动反馈
       wx.vibrateShort({ type: 'medium' })
 
-      setTimeout(() => {
-        this.setData({
-          shakeEnemy: false
-        })
+      if (this._shakeTimer) clearTimeout(this._shakeTimer)
+      this._shakeTimer = setTimeout(() => {
+        this.setData({ shakeEnemy: false })
       }, 300)
 
-      setTimeout(() => {
-        this.setData({
-          showDamage: false
-        })
+      if (this._hideTimer) clearTimeout(this._hideTimer)
+      this._hideTimer = setTimeout(() => {
+        this.setData({ showDamage: false })
       }, 800)
     },
 
@@ -91,7 +97,8 @@ Component({
         damageText: taunt
       })
 
-      setTimeout(() => {
+      if (this._tauntTimer) clearTimeout(this._tauntTimer)
+      this._tauntTimer = setTimeout(() => {
         this.setData({ showDamage: false })
       }, 1200)
 

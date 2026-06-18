@@ -107,9 +107,9 @@ Page({
   },
 
   // 加载成就
-  loadAchievements: function() {
-    // 检查并解锁新成就
-    var newAchievements = achievements.checkAchievements()
+  async loadAchievements() {
+    // 检查并解锁新成就（使用云端合并数据）
+    var newAchievements = await achievements.checkAchievementsAsync()
 
     // 使用弹窗组件显示新成就
     if (newAchievements.length > 0) {

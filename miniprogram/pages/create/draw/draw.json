@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "画画",
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "achievement-popup": "/components/achievement-popup/achievement-popup"
+  }
 }

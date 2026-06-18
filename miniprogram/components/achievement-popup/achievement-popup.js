@@ -12,6 +12,13 @@ Component({
     rarityClass: ''
   },
 
+  lifetimes: {
+    detached() {
+      if (this._showTimer) { clearTimeout(this._showTimer); this._showTimer = null }
+      if (this._nextTimer) { clearTimeout(this._nextTimer); this._nextTimer = null }
+    }
+  },
+
   methods: {
     // 显示成就解锁弹窗（外部调用）
     showAchievement: function(achievement) {
@@ -42,18 +49,20 @@ Component({
         return
       }
 
-      var next = queue.shift()
+      var next = queue[0]
+      var remaining = queue.slice(1)
       var rarityClass = 'rarity-' + (next.rarity || 'common')
 
       this.setData({
         show: true,
         current: next,
-        queue: queue,
+        queue: remaining,
         rarityClass: rarityClass
       })
 
       var that = this
-      setTimeout(function() {
+      if (this._showTimer) clearTimeout(this._showTimer)
+      this._showTimer = setTimeout(function() {
         that._closeAndNext()
       }, 2500)
     },
@@ -62,7 +71,8 @@ Component({
     _closeAndNext: function() {
       var that = this
       this.setData({ show: false })
-      setTimeout(function() {
+      if (this._nextTimer) clearTimeout(this._nextTimer)
+      this._nextTimer = setTimeout(function() {
         that._showNext()
       }, 300)
     },

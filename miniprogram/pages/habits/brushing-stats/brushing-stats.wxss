@@ -776,6 +776,23 @@
   word-break: break-all;
 }
 
+.detail-star {
+  font-size: 24rpx;
+  opacity: 0.3;
+  margin-right: 2rpx;
+}
+
+.detail-star.active {
+  opacity: 1;
+}
+
+.detail-score-text {
+  font-size: 24rpx;
+  color: #666;
+  margin-left: 8rpx;
+  font-weight: normal;
+}
+
 /* 编辑按钮 */
 .detail-edit-btn {
   text-align: center;

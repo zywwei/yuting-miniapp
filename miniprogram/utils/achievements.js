@@ -264,12 +264,12 @@ var getStoryExtraData = function() {
 }
 
 // 获取当前完整数据
-var getCurrentData = function() {
+var getCurrentData = function(records) {
   var drawings = wx.getStorageSync('drawings') || []
   var notes = wx.getStorageSync('notes') || []
 
-  // 刷牙连续天数
-  var brushingStats = util.getBrushingStats()
+  // 刷牙连续天数（使用传入的记录或本地记录）
+  var brushingStats = util.getBrushingStats(records)
 
   // 学习进度
   var cardsLearned = learnData.getCardsLearnedCount()
@@ -316,8 +316,8 @@ var getUnlockedAchievements = function() {
 }
 
 // 检查并解锁新成就
-var checkAchievements = function() {
-  var data = getCurrentData()
+var checkAchievements = function(records) {
+  var data = getCurrentData(records)
   var unlocked = getUnlockedAchievements()
   var unlockedIds = {}
   unlocked.forEach(function(a) { unlockedIds[a.id] = true })
@@ -405,10 +405,18 @@ var getRarityInfo = function(rarity) {
   return RARITY[rarity] || RARITY.common
 }
 
+// 异步版本：先同步云端数据再检查成就
+var checkAchievementsAsync = async function() {
+  var cloud = require('./cloud.js')
+  var records = await cloud.fetchBrushingRecords()
+  return checkAchievements(records)
+}
+
 module.exports = {
   RARITY: RARITY,
   ACHIEVEMENTS: ACHIEVEMENTS,
   checkAchievements: checkAchievements,
+  checkAchievementsAsync: checkAchievementsAsync,
   getUnlockedAchievements: getUnlockedAchievements,
   getAllAchievements: getAllAchievements,
   getAchievementsByCategory: getAchievementsByCategory,
