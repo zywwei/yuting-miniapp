@@ -1,11 +1,4 @@
 <view class="container">
-  <view class="header" style="background: linear-gradient(135deg, #FF6B8A 0%, #FF9AAB 100%);">
-    <view class="header-content">
-      <text class="header-title">🎪 奇趣屋</text>
-      <text class="header-desc">探索无限可能，创造精彩世界</text>
-    </view>
-  </view>
-
   <view class="category-grid">
     <view class="category-card draw-card" bindtap="goDraw">
       <view class="card-bg" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);"></view>
