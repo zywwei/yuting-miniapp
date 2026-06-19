@@ -17,7 +17,10 @@ var CHILD_KEYS = [
   'brushingAvatar',
   'totalBrushPoints',
   'toothDecorations',
-  'brushingReminder'
+  'brushingReminder',
+  'stallProducts',
+  'stallSales',
+  'stallSettings'
 ]
 
 function getKey(key) {
