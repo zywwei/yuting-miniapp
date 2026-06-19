@@ -1,4 +1,4 @@
-var stallManager = require('../../../utils/stall-manager.js')
+var stallManager = require('../../../../utils/stall-manager.js')
 
 Page({
   data: {

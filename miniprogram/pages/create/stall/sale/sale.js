@@ -1,5 +1,5 @@
-var stallManager = require('../../../utils/stall-manager.js')
-var achievements = require('../../../utils/achievements.js')
+var stallManager = require('../../../../utils/stall-manager.js')
+var achievements = require('../../../../utils/achievements.js')
 
 Page({
   data: {
