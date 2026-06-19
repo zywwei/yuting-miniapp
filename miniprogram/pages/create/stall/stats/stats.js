@@ -540,6 +540,8 @@ Page({
         try {
           wx.canvasToTempFilePath({
             canvas: canvas,
+            destWidth: width * 2,
+            destHeight: height * 2,
             success: function(res) {
               that.setData({ posterPath: res.tempFilePath })
               wx.hideLoading()
