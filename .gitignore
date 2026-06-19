@@ -36,17 +36,18 @@ miniprogram/node_modules/
 miniprogram/.miniprogram_npm/
 project.private.config.json
 
-### ±¾µØÍ¼Æ¬ÎÄ¼ş£¨²»ÉÏ´«µ½git£©###
+### æœ¬åœ°å›¾ç‰‡æ–‡ä»¶ ###
 *.jpg
 *.jpeg
 *.png
 *.svg
 
-# Ö»±£ÁôÏîÄ¿Éè¼ÆÍ¼
+# ä¿ç•™é¡¹ç›®è®¾è®¡å›¾
 !miniprogram/images/avatar.png
 !miniprogram/images/avatar.jpg
 
-### ÁÙÊ±ÎÄ¼ş ###
+### ä¸´æ—¶æ–‡ä»¶ ###
 .review_diff.txt
 .review_target.txt
+.mimocode/
 miniprogram/.mimocode/
