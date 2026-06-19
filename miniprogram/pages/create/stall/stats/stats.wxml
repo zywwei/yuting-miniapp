@@ -22,6 +22,21 @@
     </view>
   </view>
 
+  <!-- 销售趋势图 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">📊 销售趋势</text>
+      <view class="tab-bar">
+        <view class="tab-item {{currentTab === 'week' ? 'active' : ''}}" bindtap="switchTab" data-tab="week">近7天</view>
+        <view class="tab-item {{currentTab === 'month' ? 'active' : ''}}" bindtap="switchTab" data-tab="month">近30天</view>
+      </view>
+    </view>
+    <view class="chart-container">
+      <canvas type="2d" id="salesChart" class="sales-chart"></canvas>
+    </view>
+  </view>
+
+  <!-- 热销商品 -->
   <view class="section">
     <view class="section-title">🏆 热销商品 Top5</view>
     <view class="top-list">
@@ -44,6 +59,51 @@
     </view>
   </view>
 
+  <!-- 分类统计 -->
+  <view class="section" wx:if="{{categoryStats.length > 0}}">
+    <view class="section-title">📦 分类统计</view>
+    <view class="category-list">
+      <view class="category-item" wx:for="{{categoryStats}}" wx:key="name">
+        <view class="category-name">{{item.name}}</view>
+        <view class="category-bar">
+          <view class="category-progress" style="width: {{item.percent}}%;"></view>
+        </view>
+        <view class="category-stats">
+          <text class="category-revenue">¥{{item.revenue}}</text>
+          <text class="category-qty">x{{item.quantity}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 利润率 -->
+  <view class="section">
+    <view class="section-title">💹 利润分析</view>
+    <view class="profit-section">
+      <view class="profit-circle">
+        <view class="profit-ring">
+          <text class="profit-value">{{profitMargin}}%</text>
+          <text class="profit-label">利润率</text>
+        </view>
+      </view>
+      <view class="profit-details">
+        <view class="profit-row">
+          <text class="profit-key">累计销售额</text>
+          <text class="profit-val">¥{{stats.totalRevenue}}</text>
+        </view>
+        <view class="profit-row">
+          <text class="profit-key">累计利润</text>
+          <text class="profit-val profit-green">¥{{stats.totalProfit}}</text>
+        </view>
+        <view class="profit-row">
+          <text class="profit-key">平均客单价</text>
+          <text class="profit-val">{{avgOrder}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 营业数据 -->
   <view class="section">
     <view class="section-title">🔥 营业数据</view>
     <view class="data-cards">
@@ -65,6 +125,7 @@
     </view>
   </view>
 
+  <!-- 今日概况 -->
   <view class="section">
     <view class="section-title">📅 今日概况</view>
     <view class="today-stats">
