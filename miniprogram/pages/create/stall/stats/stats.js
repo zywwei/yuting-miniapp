@@ -339,19 +339,25 @@ Page({
 
       // Convert to image
       setTimeout(function() {
-        wx.canvasToTempFilePath({
-          canvas: canvas,
-          success: function(res) {
-            that.setData({ posterPath: res.tempFilePath })
-            wx.hideLoading()
-          },
-          fail: function(err) {
-            console.warn('生成海报失败:', err)
-            wx.hideLoading()
-            wx.showToast({ title: '生成失败', icon: 'none' })
-          }
-        })
-      }, 100)
+        try {
+          wx.canvasToTempFilePath({
+            canvas: canvas,
+            success: function(res) {
+              that.setData({ posterPath: res.tempFilePath })
+              wx.hideLoading()
+            },
+            fail: function(err) {
+              console.warn('生成海报失败:', err)
+              wx.hideLoading()
+              wx.showToast({ title: '生成失败: ' + (err.errMsg || ''), icon: 'none', duration: 2000 })
+            }
+          })
+        } catch (e) {
+          console.warn('canvasToTempFilePath异常:', e)
+          wx.hideLoading()
+          wx.showToast({ title: '生成异常', icon: 'none' })
+        }
+      }, 300)
     })
   },
 
