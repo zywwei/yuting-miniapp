@@ -6,7 +6,7 @@
 
 .header {
   position: relative;
-  margin-bottom: 0;
+  margin-bottom: -16rpx;
   z-index: 1;
 }
 
@@ -62,7 +62,7 @@
 .section {
   position: relative;
   z-index: 3;
-  margin: 24rpx;
+  margin: 16rpx 24rpx;
   background: #fff;
   border-radius: 16rpx;
   overflow: hidden;
