@@ -576,6 +576,27 @@ Page({
   loadPhotoAsBackground(filePath) {
     if (!this.ctx || !this.canvas) return
 
+    // 如果是云文件ID，先转为临时URL
+    if (filePath.startsWith('cloud://')) {
+      wx.cloud.getTempFileURL({
+        fileList: [filePath],
+        success: (res) => {
+          if (res.fileList && res.fileList[0] && res.fileList[0].tempFileURL) {
+            this._loadImageToCanvas(res.fileList[0].tempFileURL)
+          } else {
+            wx.showToast({ title: '图片加载失败', icon: 'none' })
+          }
+        },
+        fail: () => {
+          wx.showToast({ title: '图片加载失败', icon: 'none' })
+        }
+      })
+    } else {
+      this._loadImageToCanvas(filePath)
+    }
+  },
+
+  _loadImageToCanvas(filePath) {
     const img = this.canvas.createImage()
     img.onload = () => {
       this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
@@ -807,6 +828,22 @@ Page({
   // 返回
   goBack() {
     drawingMusic.stop()
-    wx.navigateBack()
+    if (this.history && this.history.length > 0) {
+      wx.showModal({
+        title: '提示',
+        content: '当前有未保存的编辑，是否保存？',
+        confirmText: '保存',
+        cancelText: '不保存',
+        success: (res) => {
+          if (res.confirm) {
+            this.saveDrawing()
+          } else {
+            wx.navigateBack()
+          }
+        }
+      })
+    } else {
+      wx.navigateBack()
+    }
   }
 })

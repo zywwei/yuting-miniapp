@@ -174,6 +174,7 @@ Page({
     })
 
     this.loadHabitDetail(type)
+    this.restoreDraft(type)
   },
 
   onShow: function() {
@@ -615,6 +616,7 @@ Page({
     wx.showLoading({ title: '保存中...' })
 
     // 持久化图片（带超时保护）
+    var that = this
     var saveImages = function(callback) {
       if (images.length === 0) {
         callback([])
@@ -626,8 +628,7 @@ Page({
       var timeoutCalled = false
 
       // 超时保护：10秒后强制回调
-      var self = this
-      this._persistTimeout = setTimeout(function() {
+      that._persistTimeout = setTimeout(function() {
         if (!timeoutCalled && savedCount < images.length) {
           timeoutCalled = true
           console.warn('图片持久化超时，使用原始路径')
@@ -646,7 +647,7 @@ Page({
           savedImages[index] = img
           savedCount++
           if (savedCount === images.length) {
-            clearTimeout(self._persistTimeout)
+            clearTimeout(that._persistTimeout)
             callback(savedImages)
           }
         } else {
@@ -655,7 +656,7 @@ Page({
             savedImages[index] = savedPath
             savedCount++
             if (savedCount === images.length) {
-              clearTimeout(self._persistTimeout)
+              clearTimeout(that._persistTimeout)
               callback(savedImages)
             }
           }).catch(function() {
@@ -663,7 +664,7 @@ Page({
             savedImages[index] = img
             savedCount++
             if (savedCount === images.length) {
-              clearTimeout(self._persistTimeout)
+              clearTimeout(that._persistTimeout)
               callback(savedImages)
             }
           })
@@ -780,7 +781,61 @@ Page({
 
   // 返回
   goBack: function() {
-    wx.navigateBack()
+    var hasChanges = this.data.images.length > 0 ||
+                     (this.data.note && this.data.note.trim().length > 0) ||
+                     this.data.score !== 5
+
+    // 检查表单数据是否有填写
+    if (!hasChanges && this.data.formData) {
+      var keys = Object.keys(this.data.formData)
+      for (var i = 0; i < keys.length; i++) {
+        var val = this.data.formData[keys[i]]
+        if (val && val !== '' && val !== 0 && !(Array.isArray(val) && val.length === 0)) {
+          hasChanges = true
+          break
+        }
+      }
+    }
+
+    if (hasChanges) {
+      wx.showModal({
+        title: '提示',
+        content: '当前有未保存的内容，是否暂存？',
+        confirmText: '暂存',
+        cancelText: '不保存',
+        success: function(res) {
+          if (res.confirm) {
+            wx.setStorageSync('habitDraft_' + this.data.type, {
+              images: this.data.images,
+              note: this.data.note,
+              score: this.data.score,
+              formData: this.data.formData,
+              time: new Date().toISOString()
+            })
+            wx.showToast({ title: '已暂存', icon: 'success' })
+            setTimeout(function() { wx.navigateBack() }, 1000)
+          } else {
+            wx.navigateBack()
+          }
+        }.bind(this)
+      })
+    } else {
+      wx.navigateBack()
+    }
+  },
+
+  // 恢复暂存数据
+  restoreDraft: function(type) {
+    var draft = wx.getStorageSync('habitDraft_' + type)
+    if (!draft) return
+    wx.removeStorageSync('habitDraft_' + type)
+    this.setData({
+      images: draft.images || [],
+      note: draft.note || '',
+      score: draft.score || 5,
+      formData: draft.formData || this.data.formData
+    })
+    wx.showToast({ title: '已恢复暂存内容', icon: 'success' })
   },
 
   // 跳转到统计页

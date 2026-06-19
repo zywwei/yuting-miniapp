@@ -217,86 +217,13 @@
     </view>
   </view>
 
-  <!-- 详情弹窗 -->
-  <view wx:if="{{showDetail && detailRecord}}" class="modal-mask" bindtap="closeDetail">
-    <view class="detail-modal" catchtap="noop">
-      <view class="detail-close" bindtap="closeDetail">✕</view>
-      <view class="detail-header">
-        <text class="detail-emoji">{{detailRecord.timeOfDay === 'morning' ? '☀️' : '🌙'}}</text>
-        <text class="detail-title">{{detailRecord.timeOfDayText}}刷牙详情</text>
-      </view>
-
-      <!-- 多图展示 -->
-      <scroll-view wx:if="{{detailRecord.images && detailRecord.images.length > 0}}" scroll-x class="detail-photo-scroll">
-        <view class="detail-photo-list">
-          <image wx:for="{{detailRecord.images}}" wx:key="*this" class="detail-photo-img" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" />
-        </view>
-      </scroll-view>
-      <view wx:elif="{{detailRecord.imagePath}}" class="detail-photo">
-        <image class="detail-photo-img" src="{{detailRecord.imagePath}}" mode="aspectFill" bindtap="previewImage" data-path="{{detailRecord.imagePath}}" />
-      </view>
-
-      <view class="detail-rows">
-        <view class="detail-row">
-          <text class="detail-label">📅 日期</text>
-          <text class="detail-value">{{detailRecord.date}}</text>
-        </view>
-        <view class="detail-row">
-          <text class="detail-label">🕐 时间</text>
-          <text class="detail-value">{{detailRecord.timeStr}}</text>
-        </view>
-        <view class="detail-row">
-          <text class="detail-label">⏱ 方式</text>
-          <text class="detail-value">{{detailRecord.durationText}}</text>
-        </view>
-        <view class="detail-row">
-          <text class="detail-label">⭐ 评分</text>
-          <view class="detail-value">
-            <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
-                  class="detail-star {{star <= detailRecord.score ? 'active' : ''}}">⭐</text>
-            <text class="detail-score-text">{{detailRecord.score}}分 · {{detailRecord.scoreLabel}}</text>
-          </view>
-        </view>
-        <view class="detail-row" wx:if="{{detailRecord.points > 0}}">
-          <text class="detail-label">🏆 积分</text>
-          <text class="detail-value">+{{detailRecord.points}}</text>
-        </view>
-        <view class="detail-row" wx:if="{{detailRecord.completedAreas.length > 0}}">
-          <text class="detail-label">🦷 刷牙区域</text>
-          <text class="detail-value">{{detailRecord.areasText}}</text>
-        </view>
-        <view class="detail-row" wx:if="{{detailRecord.stickers && detailRecord.stickers.length > 0}}">
-          <text class="detail-label">🎨 贴纸</text>
-          <view class="detail-stickers">
-            <text wx:for="{{detailRecord.stickers}}" wx:key="id" class="detail-sticker-emoji">{{item.emoji}}</text>
-          </view>
-        </view>
-        <view class="detail-row" wx:if="{{detailRecord.note}}">
-          <text class="detail-label">💬 备注</text>
-          <text class="detail-value">{{detailRecord.note}}</text>
-        </view>
-      </view>
-
-      <!-- 编辑模式 -->
-      <view wx:if="{{editingDetail}}" class="edit-section">
-        <view class="edit-label">修改评分</view>
-        <view class="score-selector">
-          <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this"
-                class="select-star {{editScore >= item ? 'active' : ''}}"
-                bindtap="setEditScore" data-score="{{item}}">⭐</view>
-        </view>
-        <input class="note-input" placeholder="修改备注" value="{{editNote}}" bindinput="onEditNoteInput" />
-        <view class="modal-actions">
-          <view class="modal-btn cancel" bindtap="cancelEdit">取消</view>
-          <view class="modal-btn confirm" bindtap="saveEdit">保存</view>
-        </view>
-      </view>
-
-      <view wx:if="{{!editingDetail}}" class="detail-edit-btn" bindtap="startEdit">
-        <text>✏️ 编辑</text>
-      </view>
-    </view>
-  </view>
+  <!-- 详情弹窗（组件化） -->
+  <brushing-detail
+    show="{{showDetail}}"
+    record="{{detailRecord}}"
+    bind:close="closeDetail"
+    bind:updated="onDetailUpdated"
+  />
 
   <!-- 补刷评分弹窗 -->
   <view wx:if="{{showScoreModal}}" class="modal-mask">

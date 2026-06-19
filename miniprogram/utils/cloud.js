@@ -160,7 +160,9 @@ async function uploadBrushingRecord(record) {
         chapterId: record.chapterId || null,
         enemyId: record.enemyId || null,
         damageDealt: record.damageDealt || 0,
-        expGained: record.expGained || 0
+        expGained: record.expGained || 0,
+        // 贴纸数据
+        stickers: record.stickers || []
       }
     })
 
@@ -245,9 +247,9 @@ async function fetchBrushingRecords() {
     console.warn('云端读取失败，使用本地缓存:', err)
     return wx.getStorageSync('brushingRecords') || []
   } finally {
-    // 释放锁
-    _fetchBrushingLock = null
+    // 释放锁（先释放Promise再清引用）
     releaseLock()
+    _fetchBrushingLock = null
   }
 }
 
@@ -293,7 +295,7 @@ async function updateBrushingRecord(timeOfDay, updates) {
   let savedImages = updates.images || []
   for (let i = 0; i < savedImages.length; i++) {
     const img = savedImages[i]
-    if (img && !img.startsWith(wx.env.USER_DATA_PATH) && !img.startsWith('cloud://')) {
+    if (img && !img.startsWith('cloud://')) {
       savedImages[i] = await util.saveImageToPersistent(img)
     }
   }
@@ -314,7 +316,7 @@ async function updateBrushingRecord(timeOfDay, updates) {
       for (let i = 0; i < savedImages.length; i++) {
         const img = savedImages[i]
         if (img && !img.startsWith('cloud://')) {
-          const cloudPath = `brushing/${target.id}_${i}.jpg`
+          const cloudPath = `brushing/${target.id}_${i}_${Date.now()}.jpg`
           const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: img })
           cloudImageIDs.push(uploadRes.fileID)
         } else if (img) {
@@ -348,12 +350,198 @@ async function updateBrushingRecord(timeOfDay, updates) {
  * @param {object} updates - 要更新的字段
  */
 async function updateBrushingRecordById(id, updates) {
+  // 先更新本地
+  const localRecords = wx.getStorageSync('brushingRecords') || []
+  const updatedRecords = localRecords.map(r => {
+    if (r.id === id) {
+      return { ...r, ...updates }
+    }
+    return r
+  })
+  wx.setStorageSync('brushingRecords', updatedRecords)
+
+  // 再同步云端
   if (isCloudReady() && db()) {
     try {
       await db().collection('brushingRecords').doc(id).update({ data: updates })
     } catch (err) {
       console.warn('云端更新失败:', err)
     }
+  }
+}
+
+// ===== 笔记相关 =====
+
+/**
+ * 上传笔记到云端（含图片）
+ */
+async function uploadNote(note) {
+  if (!isCloudReady() || !db()) {
+    return localOnlyNote(note)
+  }
+  try {
+    const cloudImageIDs = []
+    const images = note.images || []
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i]
+      if (img && !img.startsWith('cloud://')) {
+        const cloudPath = `notes/${note.id}_${i}.jpg`
+        const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: img })
+        cloudImageIDs.push(uploadRes.fileID)
+      } else if (img) {
+        cloudImageIDs.push(img)
+      }
+    }
+
+    // 上传语音
+    let cloudVoiceID = note.voice || ''
+    if (note.voice && !note.voice.startsWith('cloud://')) {
+      const voicePath = `notes/${note.id}_voice.aac`
+      const voiceRes = await wx.cloud.uploadFile({ cloudPath: voicePath, filePath: note.voice })
+      cloudVoiceID = voiceRes.fileID
+    }
+
+    await db().collection('notes').add({
+      data: {
+        _id: note.id,
+        type: note.type || 'diary',
+        title: note.title,
+        content: note.content || '',
+        mood: note.mood || 'happy',
+        tags: note.tags || [],
+        images: cloudImageIDs,
+        voice: cloudVoiceID,
+        createTime: note.createTime
+      }
+    })
+
+    return cloudImageIDs
+  } catch (err) {
+    console.warn('笔记云端上传失败，使用本地存储:', err)
+    return localOnlyNote(note)
+  }
+}
+
+/**
+ * 从云端获取笔记列表
+ */
+async function fetchNotes() {
+  if (!isCloudReady() || !db()) {
+    return wx.getStorageSync('notes') || []
+  }
+  try {
+    const res = await db().collection('notes')
+      .orderBy('createTime', 'desc')
+      .limit(200)
+      .get()
+
+    wx.setStorageSync('notes', res.data)
+    return res.data
+  } catch (err) {
+    console.warn('笔记云端读取失败，使用本地缓存:', err)
+    return wx.getStorageSync('notes') || []
+  }
+}
+
+/**
+ * 更新云端笔记
+ */
+async function updateNoteInCloud(id, updates) {
+  if (!isCloudReady() || !db()) return
+  try {
+    const data = {}
+    if (updates.title !== undefined) data.title = updates.title
+    if (updates.content !== undefined) data.content = updates.content
+    if (updates.mood !== undefined) data.mood = updates.mood
+    if (updates.tags !== undefined) data.tags = updates.tags
+    if (updates.type !== undefined) data.type = updates.type
+
+    // 处理图片上传
+    if (updates.images) {
+      const cloudImageIDs = []
+      for (let i = 0; i < updates.images.length; i++) {
+        const img = updates.images[i]
+        if (img && !img.startsWith('cloud://')) {
+          const cloudPath = `notes/${id}_${i}.jpg`
+          const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: img })
+          cloudImageIDs.push(uploadRes.fileID)
+        } else if (img) {
+          cloudImageIDs.push(img)
+        }
+      }
+      data.images = cloudImageIDs
+    }
+
+    await db().collection('notes').doc(id).update({ data })
+  } catch (err) {
+    console.warn('笔记云端更新失败:', err)
+  }
+}
+
+/**
+ * 删除云端笔记
+ */
+async function removeNote(id) {
+  if (isCloudReady() && db()) {
+    try {
+      const doc = await db().collection('notes').doc(id).get().catch(() => null)
+      const images = (doc && doc.data && doc.data.images) || []
+      const fileList = images.filter(img => img && img.startsWith('cloud://'))
+      if (doc && doc.data && doc.data.voice && doc.data.voice.startsWith('cloud://')) {
+        fileList.push(doc.data.voice)
+      }
+
+      await db().collection('notes').doc(id).remove()
+      if (fileList.length > 0) {
+        await wx.cloud.deleteFile({ fileList })
+      }
+    } catch (err) {
+      console.warn('笔记云端删除失败:', err)
+    }
+  }
+}
+
+// 笔记本地保存
+async function localOnlyNote(note) {
+  return []
+}
+
+// ===== 成就相关 =====
+
+/**
+ * 保存成就到云端
+ */
+async function uploadAchievements(achievements) {
+  if (!isCloudReady() || !db()) return
+  try {
+    await db().collection('achievements').doc('user_achievements').set({
+      data: {
+        list: achievements,
+        updateTime: new Date().toISOString()
+      }
+    })
+  } catch (err) {
+    console.warn('成就云端保存失败:', err)
+  }
+}
+
+/**
+ * 从云端获取成就
+ */
+async function fetchAchievements() {
+  if (!isCloudReady() || !db()) {
+    return wx.getStorageSync('achievements') || []
+  }
+  try {
+    const res = await db().collection('achievements').doc('user_achievements').get()
+    if (res.data && res.data.list) {
+      wx.setStorageSync('achievements', res.data.list)
+      return res.data.list
+    }
+    return wx.getStorageSync('achievements') || []
+  } catch (err) {
+    console.warn('成就云端读取失败，使用本地缓存:', err)
+    return wx.getStorageSync('achievements') || []
   }
 }
 
@@ -395,6 +583,7 @@ async function localOnlyBrushing(record) {
  * 同步本地数据到云端（首次连接时用）
  */
 async function syncLocalToCloud() {
+  if (!isCloudReady() || !db()) return
   try {
     // 同步画作
     const localDrawings = wx.getStorageSync('drawings') || []
@@ -402,13 +591,7 @@ async function syncLocalToCloud() {
       if (!d.cloudFileID && d.imagePath) {
         try {
           await db().collection('drawings').doc(d.id).set({
-            data: {
-              _id: d.id,
-              cloudFileID: d.imagePath,
-              name: d.name,
-              mode: d.mode,
-              createTime: d.createTime
-            }
+            data: { cloudFileID: d.imagePath, name: d.name, mode: d.mode, createTime: d.createTime }
           })
         } catch (e) {}
       }
@@ -419,19 +602,82 @@ async function syncLocalToCloud() {
     for (const r of localRecords) {
       try {
         await db().collection('brushingRecords').doc(r.id).set({
-          data: {
-            _id: r.id,
-            date: r.date,
-            timeOfDay: r.timeOfDay,
-            cloudFileID: r.imagePath || '',
-            images: r.images || [],
-            score: r.score,
-            note: r.note,
-            createTime: r.createTime
-          }
+          data: { date: r.date, timeOfDay: r.timeOfDay, cloudFileID: r.imagePath || '', images: r.images || [], score: r.score, note: r.note, createTime: r.createTime }
         })
       } catch (e) {}
     }
+
+    // 同步笔记
+    const notes = wx.getStorageSync('notes') || []
+    for (const n of notes) {
+      try {
+        await db().collection('notes').doc(n.id).set({
+          data: { type: n.type, title: n.title, content: n.content, mood: n.mood, tags: n.tags, images: n.images || [], voice: n.voice || '', createTime: n.createTime }
+        })
+      } catch (e) {}
+    }
+
+    // 同步成就
+    const achievements = wx.getStorageSync('achievements') || []
+    if (achievements.length > 0) {
+      try {
+        await db().collection('achievements').doc('user_achievements').set({
+          data: { list: achievements, updateTime: new Date().toISOString() }
+        })
+      } catch (e) {}
+    }
+
+    // 同步习惯定义
+    const habits = wx.getStorageSync('habits') || []
+    try {
+      await db().collection('userSettings').doc('habits').set({
+        data: { list: habits, updateTime: new Date().toISOString() }
+      })
+    } catch (e) {}
+
+    // 同步学习进度
+    const learnProgress = wx.getStorageSync('learnProgress') || {}
+    try {
+      await db().collection('userSettings').doc('learnProgress').set({
+        data: { ...learnProgress, updateTime: new Date().toISOString() }
+      })
+    } catch (e) {}
+
+    // 同步设置
+    const settings = wx.getStorageSync('settings') || {}
+    try {
+      await db().collection('userSettings').doc('settings').set({
+        data: { ...settings, updateTime: new Date().toISOString() }
+      })
+    } catch (e) {}
+
+    // 同步故事进度
+    const story = wx.getStorageSync('brushingStory')
+    if (story) {
+      try {
+        await db().collection('userSettings').doc('brushingStory').set({
+          data: { ...story, updateTime: new Date().toISOString() }
+        })
+      } catch (e) {}
+    }
+
+    // 同步积分
+    const points = wx.getStorageSync('totalBrushPoints') || 0
+    try {
+      await db().collection('userSettings').doc('totalBrushPoints').set({
+        data: { value: points, updateTime: new Date().toISOString() }
+      })
+    } catch (e) {}
+
+    // 同步装饰
+    const decorations = wx.getStorageSync('toothDecorations') || []
+    try {
+      await db().collection('userSettings').doc('toothDecorations').set({
+        data: { list: decorations, updateTime: new Date().toISOString() }
+      })
+    } catch (e) {}
+
+    console.log('全量同步完成')
   } catch (err) {
     console.warn('同步失败:', err)
   }
@@ -468,7 +714,6 @@ async function uploadHabitRecord(record) {
     // 写入云数据库
     await db().collection('habitRecords').add({
       data: {
-        _id: record.id,
         type: record.type,
         date: record.date,
         cloudFileID: cloudFileID || record.imagePath,
@@ -509,16 +754,236 @@ async function localOnlyHabit(record) {
   return savedPath
 }
 
+// ===== 习惯定义相关 =====
+
+async function uploadHabits(habits) {
+  if (!isCloudReady() || !db()) return
+  try {
+    await db().collection('userSettings').doc('habits').set({
+      data: { list: habits, updateTime: new Date().toISOString() }
+    })
+  } catch (err) {
+    console.warn('习惯定义云端保存失败:', err)
+  }
+}
+
+async function fetchHabits() {
+  if (!isCloudReady() || !db()) {
+    return wx.getStorageSync('habits') || []
+  }
+  try {
+    const res = await db().collection('userSettings').doc('habits').get()
+    if (res.data && res.data.list) {
+      wx.setStorageSync('habits', res.data.list)
+      return res.data.list
+    }
+    return wx.getStorageSync('habits') || []
+  } catch (err) {
+    console.warn('习惯定义云端读取失败:', err)
+    return wx.getStorageSync('habits') || []
+  }
+}
+
+// ===== 学习进度相关 =====
+
+async function uploadLearnProgress(progress) {
+  if (!isCloudReady() || !db()) return
+  try {
+    await db().collection('userSettings').doc('learnProgress').set({
+      data: { ...progress, updateTime: new Date().toISOString() }
+    })
+  } catch (err) {
+    console.warn('学习进度云端保存失败:', err)
+  }
+}
+
+async function fetchLearnProgress() {
+  if (!isCloudReady() || !db()) {
+    return wx.getStorageSync('learnProgress') || {}
+  }
+  try {
+    const res = await db().collection('userSettings').doc('learnProgress').get()
+    if (res.data) {
+      const { _id, updateTime, ...progress } = res.data
+      wx.setStorageSync('learnProgress', progress)
+      return progress
+    }
+    return wx.getStorageSync('learnProgress') || {}
+  } catch (err) {
+    console.warn('学习进度云端读取失败:', err)
+    return wx.getStorageSync('learnProgress') || {}
+  }
+}
+
+// ===== 设置相关 =====
+
+async function uploadSettings(settings) {
+  if (!isCloudReady() || !db()) return
+  try {
+    await db().collection('userSettings').doc('settings').set({
+      data: { ...settings, updateTime: new Date().toISOString() }
+    })
+  } catch (err) {
+    console.warn('设置云端保存失败:', err)
+  }
+}
+
+async function fetchSettings() {
+  if (!isCloudReady() || !db()) {
+    return wx.getStorageSync('settings') || {}
+  }
+  try {
+    const res = await db().collection('userSettings').doc('settings').get()
+    if (res.data) {
+      const { _id, updateTime, ...settings } = res.data
+      wx.setStorageSync('settings', settings)
+      return settings
+    }
+    return wx.getStorageSync('settings') || {}
+  } catch (err) {
+    console.warn('设置云端读取失败:', err)
+    return wx.getStorageSync('settings') || {}
+  }
+}
+
+// ===== 故事冒险进度 =====
+
+async function uploadBrushingStory(story) {
+  if (!isCloudReady() || !db()) return
+  try {
+    await db().collection('userSettings').doc('brushingStory').set({
+      data: { ...story, updateTime: new Date().toISOString() }
+    })
+  } catch (err) {
+    console.warn('故事进度云端保存失败:', err)
+  }
+}
+
+async function fetchBrushingStory() {
+  if (!isCloudReady() || !db()) {
+    return null
+  }
+  try {
+    const res = await db().collection('userSettings').doc('brushingStory').get()
+    if (res.data) {
+      const { _id, updateTime, ...story } = res.data
+      wx.setStorageSync('brushingStory', story)
+      return story
+    }
+    return null
+  } catch (err) {
+    return null
+  }
+}
+
+// ===== 刷牙角色头像 =====
+
+async function uploadBrushingAvatar(avatar) {
+  if (!isCloudReady() || !db()) return
+  try {
+    let avatarData = avatar
+    if (avatar.imagePath && !avatar.imagePath.startsWith('cloud://')) {
+      const uploadRes = await wx.cloud.uploadFile({
+        cloudPath: `brushing/avatar.png`,
+        filePath: avatar.imagePath
+      })
+      avatarData = { ...avatar, imagePath: uploadRes.fileID }
+    }
+    await db().collection('userSettings').doc('brushingAvatar').set({
+      data: { ...avatarData, updateTime: new Date().toISOString() }
+    })
+  } catch (err) {
+    console.warn('角色头像云端保存失败:', err)
+  }
+}
+
+async function fetchBrushingAvatar() {
+  if (!isCloudReady() || !db()) {
+    return null
+  }
+  try {
+    const res = await db().collection('userSettings').doc('brushingAvatar').get()
+    if (res.data) {
+      const { _id, updateTime, ...avatar } = res.data
+      wx.setStorageSync('brushingAvatar', avatar)
+      return avatar
+    }
+    return null
+  } catch (err) {
+    return null
+  }
+}
+
+// ===== 刷牙积分和装饰 =====
+
+async function uploadBrushPoints(points) {
+  if (!isCloudReady() || !db()) return
+  try {
+    await db().collection('userSettings').doc('totalBrushPoints').set({
+      data: { value: points, updateTime: new Date().toISOString() }
+    })
+  } catch (err) {
+    console.warn('积分云端保存失败:', err)
+  }
+}
+
+async function fetchBrushPoints() {
+  if (!isCloudReady() || !db()) {
+    return wx.getStorageSync('totalBrushPoints') || 0
+  }
+  try {
+    const res = await db().collection('userSettings').doc('totalBrushPoints').get()
+    if (res.data && res.data.value !== undefined) {
+      wx.setStorageSync('totalBrushPoints', res.data.value)
+      return res.data.value
+    }
+    return 0
+  } catch (err) {
+    return wx.getStorageSync('totalBrushPoints') || 0
+  }
+}
+
+async function uploadToothDecorations(decorations) {
+  if (!isCloudReady() || !db()) return
+  try {
+    await db().collection('userSettings').doc('toothDecorations').set({
+      data: { list: decorations, updateTime: new Date().toISOString() }
+    })
+  } catch (err) {
+    console.warn('装饰云端保存失败:', err)
+  }
+}
+
+async function fetchToothDecorations() {
+  if (!isCloudReady() || !db()) {
+    return wx.getStorageSync('toothDecorations') || []
+  }
+  try {
+    const res = await db().collection('userSettings').doc('toothDecorations').get()
+    if (res.data && res.data.list) {
+      wx.setStorageSync('toothDecorations', res.data.list)
+      return res.data.list
+    }
+    return []
+  } catch (err) {
+    return wx.getStorageSync('toothDecorations') || []
+  }
+}
+
 module.exports = {
   isCloudReady,
-  uploadDrawing,
-  fetchDrawings,
-  removeDrawing,
-  uploadBrushingRecord,
-  fetchBrushingRecords,
-  removeBrushingRecord,
-  updateBrushingRecord,
-  updateBrushingRecordById,
+  uploadDrawing, fetchDrawings, removeDrawing,
+  uploadBrushingRecord, fetchBrushingRecords, removeBrushingRecord,
+  updateBrushingRecord, updateBrushingRecordById,
   uploadHabitRecord,
+  uploadNote, fetchNotes, updateNoteInCloud, removeNote,
+  uploadAchievements, fetchAchievements,
+  uploadHabits, fetchHabits,
+  uploadLearnProgress, fetchLearnProgress,
+  uploadSettings, fetchSettings,
+  uploadBrushingStory, fetchBrushingStory,
+  uploadBrushingAvatar, fetchBrushingAvatar,
+  uploadBrushPoints, fetchBrushPoints,
+  uploadToothDecorations, fetchToothDecorations,
   syncLocalToCloud
 }

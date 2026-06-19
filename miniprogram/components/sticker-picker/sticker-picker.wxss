@@ -1,0 +1,105 @@
+/* 贴纸选择器组件样式 */
+.sticker-picker {
+  padding: 20rpx 24rpx;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20rpx;
+  text-align: center;
+}
+
+.sticker-title {
+  font-size: 26rpx;
+  color: #E91E63;
+  font-weight: bold;
+  margin-bottom: 16rpx;
+}
+
+.sticker-list {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.sticker-item {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 16rpx;
+  border: 2rpx solid #FFB6C1;
+  transition: all 0.2s ease;
+  box-shadow: 0 2rpx 6rpx rgba(255, 107, 138, 0.15);
+}
+
+.sticker-item.selected {
+  border-color: #FF6B8A;
+  background: #FFF0F3;
+  transform: scale(1.1);
+}
+
+.sticker-item:active {
+  transform: scale(0.9);
+  background: #FFF0F3;
+  border-color: #FF6B8A;
+}
+
+.sticker-emoji {
+  font-size: 32rpx;
+}
+
+/* 已选贴纸展示 */
+.placed-stickers {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+  flex-wrap: wrap;
+  padding: 16rpx 24rpx;
+  margin-top: 12rpx;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 20rpx;
+}
+
+.placed-sticker-item {
+  position: relative;
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #FFF0F5, #FFE4EC);
+  border-radius: 16rpx;
+  border: 2rpx solid #FFB6C1;
+  animation: stickerPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.placed-sticker-emoji {
+  font-size: 36rpx;
+}
+
+.placed-sticker-delete {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  width: 28rpx;
+  height: 28rpx;
+  background: #FF4444;
+  color: white;
+  font-size: 18rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.placed-sticker-delete:active {
+  background: #CC0000;
+}
+
+@keyframes stickerPop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}

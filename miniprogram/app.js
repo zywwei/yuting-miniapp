@@ -1,16 +1,12 @@
 App({
   onLaunch() {
-    // 初始化云开发（失败不影响小程序运行）
-    try {
-      if (wx.cloud) {
-        wx.cloud.init({
-          env: 'your-env-id',  // TODO: 替换为你的云开发环境 ID
-          traceUser: true
-        })
-        this.globalData.cloudEnabled = true
-      }
-    } catch (e) {
-      console.warn('云开发初始化失败，使用本地存储:', e)
+    if (wx.cloud) {
+      wx.cloud.init({
+        env: 'cloudbase-d8gyw6k3f5ac78f76',
+        traceUser: true
+      })
+      this.globalData.cloudEnabled = true
+    } else {
       this.globalData.cloudEnabled = false
     }
 

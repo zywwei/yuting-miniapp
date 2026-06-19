@@ -1,0 +1,9 @@
+<!-- 评分选择器组件 -->
+<view class="score-selector">
+  <view wx:for="{{[1,2,3,4,5]}}" wx:key="*this"
+        class="score-star {{value >= item ? 'active' : ''}}"
+        bindtap="selectScore" data-score="{{item}}">
+    <text>{{value >= item ? '⭐' : '☆'}}</text>
+  </view>
+</view>
+<view wx:if="{{showLabel}}" class="score-label">{{scoreLabel}}</view>

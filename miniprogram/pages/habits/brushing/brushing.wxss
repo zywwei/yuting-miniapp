@@ -58,18 +58,13 @@
 
 .date-display {
   display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.date-main {
-  display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 4rpx;
+  gap: 8rpx;
 }
 
 .date-icon {
-  font-size: 20rpx;
+  font-size: 22rpx;
 }
 
 .date-day {
@@ -78,18 +73,12 @@
   color: #333;
 }
 
-.date-sub {
-  display: flex;
-  align-items: center;
-  gap: 4rpx;
-}
-
 .date-week-icon {
-  font-size: 16rpx;
+  font-size: 18rpx;
 }
 
 .date-week {
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: #666;
 }
 
@@ -247,6 +236,21 @@
   padding: 6rpx 14rpx;
   border-radius: 12rpx;
   white-space: nowrap;
+}
+
+.record-stickers {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+  margin-top: 8rpx;
+}
+
+.record-sticker-emoji {
+  font-size: 28rpx;
+  background: linear-gradient(135deg, #FFF0F5, #FFE4EC);
+  padding: 4rpx 8rpx;
+  border-radius: 8rpx;
+  border: 1rpx solid #FFB6C1;
 }
 
 .record-detail {
@@ -731,99 +735,6 @@
   color: white;
 }
 
-/* 详情弹窗 */
-.detail-modal {
-  width: 85%;
-  max-height: 80vh;
-  background: white;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  position: relative;
-  overflow-y: auto;
-}
-
-.detail-close {
-  position: absolute;
-  top: 20rpx;
-  right: 24rpx;
-  font-size: 36rpx;
-  color: #999;
-  z-index: 10;
-}
-
-.detail-header {
-  text-align: center;
-  margin-bottom: 24rpx;
-}
-
-.detail-emoji {
-  font-size: 48rpx;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.detail-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-}
-
-.detail-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12rpx 0;
-  border-bottom: 1rpx solid #F5F5F5;
-}
-
-.detail-label {
-  font-size: 26rpx;
-  color: #666;
-}
-
-.detail-value {
-  font-size: 26rpx;
-  color: #333;
-  font-weight: bold;
-  text-align: right;
-  max-width: 60%;
-  word-break: break-all;
-}
-
-.detail-star {
-  font-size: 24rpx;
-  opacity: 0.3;
-  margin-right: 2rpx;
-}
-
-.detail-star.active {
-  opacity: 1;
-}
-
-.detail-score-text {
-  font-size: 24rpx;
-  color: #666;
-  margin-left: 8rpx;
-  font-weight: normal;
-}
-
-.detail-stickers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-  justify-content: flex-end;
-}
-
-.detail-sticker-emoji {
-  font-size: 32rpx;
-}
-
 /* 成功提示 */
 .success-toast {
   position: fixed;
@@ -904,10 +815,10 @@
 
 /* ===== 主线故事区域 ===== */
 .story-section {
-  margin: 8rpx 16rpx;
+  margin: 12rpx 16rpx;
   background: linear-gradient(135deg, #FFF5F8 0%, #FFE4EC 100%);
-  border-radius: 12rpx;
-  padding: 8rpx 10rpx;
+  border-radius: 16rpx;
+  padding: 24rpx 16rpx;
   box-shadow: 0 2rpx 8rpx rgba(255, 107, 138, 0.15);
   animation: fadeIn 0.5s ease-out;
 }
@@ -920,22 +831,104 @@
 .story-header {
   display: flex;
   align-items: center;
-  gap: 6rpx;
-  margin-bottom: 2rpx;
+  gap: 10rpx;
+  margin-bottom: 6rpx;
 }
 
 .story-chapter-emoji {
-  font-size: 22rpx;
+  font-size: 32rpx;
 }
 
 .story-chapter-name {
-  font-size: 22rpx;
+  font-size: 30rpx;
+  color: #E91E63;
+  font-weight: bold;
+}
+
+.story-mission {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+}
+
+.mission-icon {
+  font-size: 24rpx;
+}
+
+.mission-text {
+  font-size: 24rpx;
+  color: #E91E63;
+  font-weight: 500;
+}
+
+/* 进度条区域 */
+.progress-area {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  padding: 14rpx 16rpx;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 14rpx;
+  margin-top: 10rpx;
+}
+
+.enemy-info {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-shrink: 0;
+}
+
+.enemy-emoji {
+  font-size: 48rpx;
+  animation: enemyBounce 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.enemy-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.enemy-name-text {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: bold;
+}
+
+.enemy-state {
+  font-size: 20rpx;
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+.enemy-state.angry {
+  color: #F44336;
+  animation: angryPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes angryPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.story-chapter-emoji {
+  font-size: 28rpx;
+}
+
+.story-chapter-name {
+  font-size: 28rpx;
   color: #E91E63;
   font-weight: bold;
 }
 
 .story-mission-text {
-  font-size: 22rpx;
+  font-size: 26rpx;
   color: #E91E63;
   font-weight: 500;
   margin-left: auto;
@@ -949,14 +942,15 @@
 .progress-area {
   display: flex;
   align-items: center;
-  gap: 6rpx;
-  padding: 3rpx 6rpx;
+  gap: 12rpx;
+  padding: 12rpx 14rpx;
   background: rgba(255, 255, 255, 0.5);
-  border-radius: 8rpx;
+  border-radius: 12rpx;
+  margin-top: 8rpx;
 }
 
 .enemy-emoji {
-  font-size: 30rpx;
+  font-size: 42rpx;
   animation: enemyBounce 2s ease-in-out infinite;
   flex-shrink: 0;
 }
@@ -969,29 +963,27 @@
 .hp-bar-wrap {
   flex: 1;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6rpx;
 }
 
 .hp-bg {
-  flex: 1;
-  height: 10rpx;
+  width: 100%;
+  height: 18rpx;
   background: #FFD6E0;
-  border-radius: 5rpx;
+  border-radius: 9rpx;
   overflow: hidden;
 }
 
 .hp-fill {
   height: 100%;
-  border-radius: 5rpx;
+  border-radius: 9rpx;
   transition: width 0.5s ease-out, background 0.3s ease;
 }
 
 .hp-text {
-  font-size: 18rpx;
+  font-size: 22rpx;
   color: #E91E63;
   font-weight: 500;
-  min-width: 90rpx;
-  text-align: right;
-  flex-shrink: 0;
+  text-align: center;
 }

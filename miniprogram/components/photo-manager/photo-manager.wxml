@@ -1,0 +1,15 @@
+<!-- 通用图片管理组件 -->
+<view class="photo-section">
+  <view wx:if="{{title}}" class="photo-section-title">{{title}}</view>
+  <view class="photo-list">
+    <view wx:for="{{photos}}" wx:key="*this" class="photo-item">
+      <image src="{{item}}" mode="aspectFill" class="photo-thumb" bindtap="previewPhoto" data-index="{{index}}" />
+      <view wx:if="{{editable}}" class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
+      <view wx:if="{{deletable}}" class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
+    </view>
+    <view wx:if="{{addable && photos.length < maxCount}}" class="photo-add" bindtap="addPhoto">
+      <text class="add-icon">📷</text>
+      <text class="add-text">{{addText}}</text>
+    </view>
+  </view>
+</view>

@@ -10,6 +10,8 @@ const {
   STICKERS, GIRL_BUBBLES, ZONE_GERM_TYPES, CHAPTERS, BATTLE_CONFIG,
   PRINCESS_CHEER, getOrSelectTodayChapter
 } = require('./constants.js')
+const StoryManager = require('./story-manager.js')
+const BattleManager = require('./battle-manager.js')
 
 Page({
   data: {
@@ -67,6 +69,8 @@ Page({
     stickers: STICKERS,
     placedStickers: [],
     showStickerPicker: false,
+    // 拍照相关
+    photos: [],
     // ===== 主线故事系统 =====
     currentChapter: null,      // 当前章节信息
     currentEnemy: null,        // 当前敌人信息
@@ -118,6 +122,9 @@ Page({
     showShockwave: false,      // 冲击波
     showKoText: false,         // KO大字
     enemyDebris: [],           // 敌人碎片飞溅
+    // 敌人威胁话语
+    showEnemyTaunt: false,     // 是否显示威胁话语
+    enemyTauntText: '',        // 威胁话语内容
   },
 
   _timer: null,
@@ -149,9 +156,9 @@ Page({
   },
 
   onLoad(options) {
-    // 初始化暴击动画轮转（原型属性需显式挂载到 this）
-    this._critAnimCycle = []
-    this._critAnimIndex = 0
+    // 初始化管理器
+    this.storyManager = new StoryManager(this)
+    this.battleManager = new BattleManager(this)
 
     const timeOfDay = options.time || 'morning'
     const navInfo = getNavBarInfo()
@@ -160,22 +167,7 @@ Page({
     const theme = THEMES[timeOfDay] || THEMES.morning
 
     // 加载故事进度
-    const storyProgress = util.getStoryProgress()
-    const round = storyProgress.round || 1
-    const currentChapterId = storyProgress.currentChapter || 1
-
-    // 获取或选择今天的章节（持久化）
-    const chapter = getOrSelectTodayChapter(currentChapterId, util.getTodayStr)
-
-    // 敌人HP：隐藏章节固定6，主线章节随轮数增加（无上限，通过时间扣血确保击败）
-    const baseEnemy = chapter.enemy
-    const enemyHpMax = chapter.isHidden ? 6 : baseEnemy.hp + (round - 1) * 3
-    const enemy = { ...baseEnemy, hp: enemyHpMax }
-
-    const enemyHp = util.getEnemyCurrentHp(enemy.id, enemy.hp)
-    // 计算敌人初始缩放比例：满血时1.3，空血时0.5
-    const hpRatio = enemyHp > 0 ? Math.max(enemyHp / enemy.hp, 0) : 0
-    const enemyScale = 0.5 + hpRatio * 0.8
+    const { chapter, enemy, enemyHp } = this.storyManager.loadProgress(timeOfDay)
 
     this.setData({
       statusBarHeight: navInfo.statusBarHeight,
@@ -183,14 +175,7 @@ Page({
       timeOfDay,
       teethArea: BRUSH_AREAS,
       soundEnabled: audio.enabled,
-      themeBg: theme.bg,
-      // 故事相关
-      round: round,
-      currentChapter: chapter,
-      currentEnemy: enemy,
-      enemyCurrentHp: enemyHp,
-      isEnemyDefeated: enemyHp <= 0,
-      enemyScale: enemyScale
+      themeBg: theme.bg
     })
 
     // 检查是否有未完成的进度
@@ -215,6 +200,35 @@ Page({
     }
 
     beep.preload()
+  },
+
+  onShow() {
+    this.applyEditedPhoto()
+  },
+
+  // 从画画编辑器返回时，应用编辑后的照片
+  applyEditedPhoto() {
+    const editedData = wx.getStorageSync('brushingEditedPhoto')
+    if (!editedData) return
+    wx.removeStorageSync('brushingEditedPhoto')
+
+    const editedPath = typeof editedData === 'string' ? editedData : editedData.path
+    const originalPath = wx.getStorageSync('brushingEditOriginalPath')
+    wx.removeStorageSync('brushingEditOriginalPath')
+
+    const photos = this.data.photos.slice()
+    if (originalPath) {
+      const index = photos.indexOf(originalPath)
+      if (index !== -1) {
+        photos[index] = editedPath
+      } else {
+        photos.push(editedPath)
+      }
+    } else {
+      photos.push(editedPath)
+    }
+    this.setData({ photos })
+    wx.showToast({ title: '编辑已保存！', icon: 'success' })
   },
 
   initFresh() {
@@ -262,136 +276,7 @@ Page({
 
   // 触发攻击动画（支持暴击和连击）
   triggerAttackAnimation(damage) {
-    const { BATTLE_CONFIG } = require('./constants.js')
-
-    // 计算暴击
-    const isCritical = Math.random() < BATTLE_CONFIG.CRIT_RATE
-
-    // 更新连击
-    const comboCount = this.data.comboCount + 1
-    const comboBonus = Math.min(comboCount * BATTLE_CONFIG.COMBO_BONUS_PER_HIT, BATTLE_CONFIG.COMBO_MAX_BONUS)
-
-    // 随机攻击位置
-    const x = 30 + Math.random() * 40
-    const y = 30 + Math.random() * 40
-
-    // 检查敌人是否愤怒
-    const { currentEnemy, enemyCurrentHp } = this.data
-    const enemyAngry = currentEnemy && (enemyCurrentHp / currentEnemy.hp) < BATTLE_CONFIG.ENEMY_ANGER_THRESHOLD
-
-    // 选择暴击动画模式（20种随机）
-    const critAnim = isCritical
-      ? BATTLE_CONFIG.CRIT_ANIMATIONS[Math.floor(Math.random() * BATTLE_CONFIG.CRIT_ANIMATIONS.length)]
-      : null
-
-    // 暴击时选择敌人动画类型（10种轮转，保证每种恰好出现1次/轮）
-    // 用 CSS 类（.enemy-emoji.crit-xxx，见 wxss）驱动；暴击结束后 critEnemyAnim 清空，
-    // 下次暴击 '' → 'crit-xxx' 类名变化会自动从头播放。
-    const critInfo = isCritical ? this._nextCritAnim() : null
-    const critEnemyAnim = critInfo ? critInfo.id : ''
-    const critName = critInfo ? critInfo.name : ''
-
-    // 生成爆炸粒子
-    const explosionParticles = []
-    const particleCount = isCritical ? 16 : 8
-    const defaultParticle = { particleEmoji: '💥', color: '#FF6B8A' }
-    const anim = critAnim || defaultParticle
-    for (let i = 0; i < particleCount; i++) {
-      explosionParticles.push({
-        id: 'p_' + i,
-        type: isCritical ? 'crit' : 'normal',
-        emoji: anim.particleEmoji,
-        angle: (360 / particleCount) * i + Math.random() * 30,
-        delay: Math.random() * 0.15,
-        color: anim.color
-      })
-    }
-
-    // 计算轨迹角度（从牙刷指向敌人）
-    const trailAngle = Math.atan2(50 - this.data.toothbrushY, 50 - this.data.toothbrushX) * (180 / Math.PI)
-
-    this.setData({
-      enemyShaking: true,
-      isDashing: true,
-      showAttackEffect: true,
-      showTrail: true,
-      attackEffectX: x,
-      attackEffectY: y,
-      attackDamage: damage,
-      isCritical: isCritical,
-      isCriticalHit: isCritical,
-      comboCount: comboCount,
-      showCombo: comboCount > 1,
-      comboText: comboCount > 1 ? `${comboCount}连击！` : '',
-      enemyAngry: enemyAngry,
-      explosionParticles: explosionParticles,
-      trailAngle: trailAngle,
-      showCriticalEffect: isCritical,
-      critAnim: critAnim,
-      critEnemyAnim: critEnemyAnim,
-      critName: critName
-    })
-
-    // 震动反馈（暴击时更强）
-    wx.vibrateShort({ type: isCritical ? 'heavy' : 'medium' })
-
-    // 重置连击计时器
-    if (this._comboTimer) clearTimeout(this._comboTimer)
-    this._comboTimer = setTimeout(() => {
-      this.setData({ comboCount: 0, showCombo: false })
-    }, BATTLE_CONFIG.COMBO_TIMEOUT)
-
-    // 清理上一轮攻击的定时器，避免快速连击时旧定时器提前触发、截断本次动画
-    ;[1, 2, 3, 4, 5, 6].forEach(i => {
-      if (this['_attackTimer' + i]) clearTimeout(this['_attackTimer' + i])
-    })
-
-    // 250ms后停止冲刺
-    this._attackTimer1 = setTimeout(() => {
-      if (this._isDestroyed) return
-      this.setData({ isDashing: false, showTrail: false })
-    }, 250)
-
-    // 300ms后停止敌人震动并添加受击反应
-    this._attackTimer2 = setTimeout(() => {
-      if (this._isDestroyed) return
-      this.setData({
-        enemyShaking: false,
-        enemyHitReact: true
-      })
-      // 300ms后移除受击反应
-      this._attackTimer3 = setTimeout(() => {
-        if (this._isDestroyed) return
-        this.setData({ enemyHitReact: false })
-      }, 300)
-    }, 300)
-
-    // 500ms后隐藏爆炸粒子
-    this._attackTimer4 = setTimeout(() => {
-      if (this._isDestroyed) return
-      this.setData({ explosionParticles: [] })
-    }, 500)
-
-    // 800ms后隐藏攻击特效
-    this._attackTimer5 = setTimeout(() => {
-      if (this._isDestroyed) return
-      this.setData({ showAttackEffect: false, isCritical: false, isCriticalHit: false, critEnemyAnim: '', critName: '' })
-    }, 800)
-
-    // 暴击专属：1秒后隐藏暴击特效
-    if (isCritical) {
-      this._attackTimer6 = setTimeout(() => {
-        if (this._isDestroyed) return
-        this.setData({ showCriticalEffect: false })
-      }, 1000)
-    }
-
-    // 返回暴击和连击信息（用于积分/经验计算）
-    return {
-      isCritical,
-      comboCount,
-      comboBonus
-    }
+    return this.battleManager.triggerAttack(damage)
   },
 
   // 敌人被击败时的烟花爆炸效果（增强版：更多粒子、更大范围、多波次）
@@ -632,11 +517,7 @@ Page({
     const { currentChapter, currentEnemy } = this.data
     if (!currentChapter || !currentEnemy) return
 
-    const dialogues = [
-      { emoji: '🎉', text: '太棒啦！', delay: 0 },
-      { emoji: currentEnemy.emoji, text: `${currentEnemy.name}被打败了！`, delay: 600 },
-      { emoji: '⭐', text: currentEnemy.defeatText || '胜利啦！', delay: 600 }
-    ]
+    const dialogues = this.storyManager.getVictoryDialogues()
 
     this.setData({
       showVictoryDialog: true,
@@ -908,38 +789,23 @@ Page({
     }, 1000)
   },
 
-  // 刷牙后贴纸装饰：点击贴纸按钮预览并放置
+  // 刷牙后贴纸装饰：点击贴纸按钮添加
   onTapSticker(e) {
     if (this.data.stage !== 'post') return
     const stickerId = e.currentTarget.dataset.id
     const sticker = STICKERS.find(s => s.id === stickerId)
     if (!sticker) return
 
-    // 随机选择一个已刷干净的区域
-    const cleanZones = this.data.toothZones
-      .map((z, i) => ({ ...z, originalIndex: i }))
-      .filter(z => z.state === 'clean')
-
-    if (cleanZones.length === 0) {
-      wx.showToast({ title: '先刷牙才能贴贴纸哦~', icon: 'none' })
-      return
-    }
-
-    const zone = cleanZones[Math.floor(Math.random() * cleanZones.length)]
     const newSticker = {
       id: `sticker_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       stickerId: sticker.id,
-      emoji: sticker.emoji,
-      zoneIndex: zone.originalIndex,
-      x: 20 + Math.random() * 60,
-      y: 20 + Math.random() * 60
+      emoji: sticker.emoji
     }
 
     this.setData({
       placedStickers: [...this.data.placedStickers, newSticker]
     })
 
-    // 可爱反馈
     wx.vibrateShort({ type: 'light' })
   },
 
@@ -949,6 +815,51 @@ Page({
     const placedStickers = this.data.placedStickers.filter(s => s.id !== stickerId)
     this.setData({ placedStickers })
     wx.vibrateShort({ type: 'light' })
+  },
+
+  // 拍照（支持多张，最多6张）
+  takePhoto() {
+    const remainCount = 6 - this.data.photos.length
+    if (remainCount <= 0) {
+      wx.showToast({ title: '最多6张照片', icon: 'none' })
+      return
+    }
+    wx.chooseMedia({
+      count: remainCount,
+      mediaType: ['image'],
+      sourceType: ['camera', 'album'],
+      sizeType: ['compressed'],
+      success: (res) => {
+        const newPhotos = res.tempFiles.map(f => f.tempFilePath)
+        this.setData({ photos: [...this.data.photos, ...newPhotos] })
+      }
+    })
+  },
+
+  // 删除照片
+  deletePhoto(e) {
+    const index = e.currentTarget.dataset.index
+    const photos = this.data.photos.slice()
+    photos.splice(index, 1)
+    this.setData({ photos })
+  },
+
+  // 预览照片
+  previewPhoto(e) {
+    const index = e.currentTarget.dataset.index
+    wx.previewImage({
+      current: this.data.photos[index],
+      urls: this.data.photos
+    })
+  },
+
+  // 编辑照片
+  editPhoto(e) {
+    const path = e.currentTarget.dataset.path
+    wx.setStorageSync('brushingEditOriginalPath', path)
+    wx.navigateTo({
+      url: '/pages/create/draw/draw?mode=brushing&photo=' + encodeURIComponent(path) + '&timeOfDay=' + this.data.timeOfDay
+    })
   },
 
 
@@ -1443,8 +1354,8 @@ Page({
       this.saveBrushingRecord()
       this._recordSaved = true
     }
-    // 跳转到统计页
-    wx.navigateTo({
+    // 跳转到统计页（用 redirectTo 替换当前页，返回时直接回主页）
+    wx.redirectTo({
       url: '/pages/habits/brushing-stats/brushing-stats'
     })
   },
@@ -1486,7 +1397,8 @@ Page({
       id: util.generateId(),
       date: util.getTodayStr(),
       timeOfDay: this.data.timeOfDay,
-      imagePath: null,
+      imagePath: this.data.photos[0] || null,
+      images: this.data.photos || [],
       score: score,
       note: areaCount >= 6 ? '完成全部6区刷牙' : `完成${areaCount}区刷牙`,
       points: this.data.brushPoints,

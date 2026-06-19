@@ -1,0 +1,17 @@
+<!-- 贴纸选择器组件 -->
+<view class="sticker-picker">
+  <view wx:if="{{title}}" class="sticker-title">{{title}}</view>
+  <view class="sticker-list">
+    <view wx:for="{{stickers}}" wx:key="id" class="sticker-item {{selectedId === item.id ? 'selected' : ''}}" bindtap="selectSticker" data-id="{{item.id}}">
+      <text class="sticker-emoji">{{item.emoji}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- 已选贴纸展示 -->
+<view wx:if="{{placedStickers.length > 0}}" class="placed-stickers">
+  <view wx:for="{{placedStickers}}" wx:key="id" class="placed-sticker-item">
+    <text class="placed-sticker-emoji">{{item.emoji}}</text>
+    <view wx:if="{{deletable}}" class="placed-sticker-delete" catchtap="deleteSticker" data-id="{{item.id}}">✕</view>
+  </view>
+</view>

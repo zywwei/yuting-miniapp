@@ -1,0 +1,25 @@
+/* 评分选择器组件样式 */
+.score-selector {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+  padding: 16rpx 0;
+}
+
+.score-star {
+  font-size: 40rpx;
+  opacity: 0.3;
+  transition: all 0.2s;
+}
+
+.score-star.active {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.score-label {
+  text-align: center;
+  font-size: 24rpx;
+  color: #FF6B8A;
+  margin-top: 8rpx;
+}

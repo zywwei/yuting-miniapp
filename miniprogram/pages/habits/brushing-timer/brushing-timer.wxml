@@ -114,6 +114,10 @@
           <text class="enemy-name">{{currentEnemy.name}}</text>
           <!-- 愤怒标记 -->
           <view wx:if="{{enemyAngry}}" class="angry-mark">😤</view>
+          <!-- 敌人威胁话语 -->
+          <view wx:if="{{showEnemyTaunt}}" class="enemy-taunt-bubble">
+            <text class="enemy-taunt-text">{{enemyTauntText}}</text>
+          </view>
           <!-- 小怪物消灭提示 -->
           <view wx:if="{{minionDefeatEffect && minionDefeatEffect.show}}" class="minion-defeat-text">
             <text>{{minionDefeatEffect.text}}</text>
@@ -251,33 +255,35 @@
           </view>
         </view>
 
-        <!-- 6区牙齿（胜利后显示，用于贴贴纸） -->
-        <view wx:if="{{toothZones.length > 0}}" class="tooth-strip-inline">
-          <view wx:for="{{toothZones}}" wx:key="index"
-                class="tooth-zone zone-{{item.state}} {{item.state === 'current' ? 'zone-pulse' : ''}}"
-                style="border-color: {{item.color}};">
-            <view class="zone-tooth-body">
-              <text class="zone-tooth-emoji">{{item.state === 'clean' ? '✨' : '🦷'}}</text>
+        <!-- 已贴贴纸展示（独立一行） -->
+        <view wx:if="{{placedStickers.length > 0}}" class="placed-stickers-row">
+          <view wx:for="{{placedStickers}}" wx:key="id" class="placed-sticker-item">
+            <text class="placed-sticker-emoji">{{item.emoji}}</text>
+            <view class="placed-sticker-delete" catchtap="onDeleteSticker" data-id="{{item.id}}">✕</view>
+          </view>
+        </view>
+
+        <!-- 拍照区域（胜利后显示，最多6张） -->
+        <view wx:if="{{showStickerPicker}}" class="photo-section">
+          <view class="photo-section-title">📷 拍照记录（可选）</view>
+          <view class="photo-list">
+            <view wx:for="{{photos}}" wx:key="*this" class="photo-item">
+              <image src="{{item}}" mode="aspectFill" class="photo-thumb" bindtap="previewPhoto" data-index="{{index}}" />
+              <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
+              <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
             </view>
-            <view class="zone-stickers" wx:if="{{placedStickers.length > 0 && item.state === 'clean'}}">
-              <view wx:for="{{placedStickers}}" wx:key="id" wx:for-item="sticker"
-                    wx:if="{{sticker.zoneIndex === index}}"
-                    class="zone-sticker-wrap"
-                    style="left: {{sticker.x}}%; top: {{sticker.y}}%;">
-                <text class="zone-sticker">{{sticker.emoji}}</text>
-                <view class="sticker-delete-btn" catchtap="onDeleteSticker" data-id="{{sticker.id}}">✕</view>
-              </view>
+            <view wx:if="{{photos.length < 6}}" class="photo-add" bindtap="takePhoto">
+              <text class="add-icon">📷</text>
+              <text class="add-text">拍照</text>
             </view>
-            <view class="zone-shine" wx:if="{{item.state === 'clean'}}">✨</view>
-            <view class="zone-crown" wx:if="{{item.state === 'clean'}}">👑</view>
-            <view class="zone-label">{{item.name}}</view>
-            <view class="zone-check" wx:if="{{item.state === 'clean'}}">✓</view>
           </view>
         </view>
 
         <!-- 完成按钮 -->
-        <view class="done-btn" bindtap="onDoneBrushing">
-          <text>✓ 完成</text>
+        <view class="action-btns" wx:if="{{showStickerPicker}}">
+          <view class="action-btn done-btn" bindtap="onDoneBrushing">
+            <text>✓ 完成</text>
+          </view>
         </view>
       </view>
     </view>
@@ -360,10 +366,6 @@
     </view>
     <!-- 胜利后 -->
     <view wx:if="{{isCompleted}}" class="victory-actions">
-      <view class="victory-btn primary" bindtap="goCheckIn">
-        <text class="victory-btn-icon">📷</text>
-        <text class="victory-btn-text">拍照打卡</text>
-      </view>
       <view class="victory-btn outline" bindtap="goBrushingPage">
         <text class="victory-btn-text">查看统计 →</text>
       </view>

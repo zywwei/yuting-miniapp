@@ -2,7 +2,7 @@ const util = require('../../../utils/util.js')
 const audio = require('../../../utils/audio.js')
 const cloud = require('../../../utils/cloud.js')
 const achievements = require('../../../utils/achievements.js')
-const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
+const { getNavBarInfo, previewImage, getTodayStr, getYesterdayStr } = require('../../../utils/page-helpers.js')
 const { CHAPTERS, getOrSelectTodayChapter } = require('../brushing-timer/constants.js')
 
 Page({
@@ -16,6 +16,8 @@ Page({
     streakDays: 0,
     morningRecord: null,
     eveningRecord: null,
+    morningSwiperIndex: 0,
+    eveningSwiperIndex: 0,
     yesterdayMorning: null,
     yesterdayEvening: null,
     yesterdayDate: '',
@@ -72,8 +74,10 @@ Page({
     // 获取或选择今天的章节（持久化）
     const chapter = getOrSelectTodayChapter(currentChapterId, util.getTodayStr)
 
-    // 敌人HP：隐藏章节固定6，主线章节随轮数增加（无上限，通过时间扣血确保击败）
-    const baseEnemy = chapter.enemy
+    // 根据早晚选择不同敌人
+    const hour = new Date().getHours()
+    const isEvening = hour >= 14
+    const baseEnemy = isEvening && chapter.eveningEnemy ? chapter.eveningEnemy : chapter.enemy
     const enemyHpMax = chapter.isHidden ? 6 : baseEnemy.hp + (round - 1) * 3
     const enemy = { ...baseEnemy, hp: enemyHpMax }
 
@@ -136,28 +140,70 @@ Page({
     if (!editedData) return
     wx.removeStorageSync('brushingEditedPhoto')
 
-    // 获取时段信息（兼容旧格式）
     const editedPath = typeof editedData === 'string' ? editedData : editedData.path
     const timeOfDay = typeof editedData === 'string' ? null : editedData.timeOfDay
-
-    // 如果没有时段信息，根据当前时间判断
     const hour = new Date().getHours()
     const targetTimeOfDay = timeOfDay || (hour < 14 ? 'morning' : 'evening')
 
+    const originalPath = wx.getStorageSync('brushingEditOriginalPath')
+    wx.removeStorageSync('brushingEditOriginalPath')
+
+    const today = util.getTodayStr()
+    const records = wx.getStorageSync('brushingRecords') || []
+    const index = records.findIndex(r => r.date === today && r.timeOfDay === targetTimeOfDay)
+    if (index === -1) return
+
+    const record = records[index]
+    let images = (record.images || []).slice()
+
+    // 替换被编辑的那张图
+    if (originalPath) {
+      const imgIndex = images.indexOf(originalPath)
+      if (imgIndex !== -1) {
+        images[imgIndex] = editedPath
+      } else {
+        images.push(editedPath)
+      }
+    } else {
+      images = [editedPath]
+    }
+
+    // 上传编辑后的图片到云端
     wx.showLoading({ title: '保存编辑...' })
     try {
-      // 只保存编辑后的图片，替换原有的 imagePath
-      await cloud.updateBrushingRecord(targetTimeOfDay, {
-        imagePath: editedPath,
-        images: [editedPath]
-      })
-      wx.hideLoading()
-      this.loadRecords()
-      wx.showToast({ title: '编辑已保存！', icon: 'success' })
+      if (cloud.isCloudReady && cloud.isCloudReady()) {
+        const cloudPath = `brushing/${record.id}_edit_${Date.now()}.jpg`
+        const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: editedPath })
+        const cloudImageIDs = images.map(img => img === editedPath ? uploadRes.fileID : img)
+        records[index] = { ...record, images: cloudImageIDs, imagePath: cloudImageIDs[0] }
+        wx.setStorageSync('brushingRecords', records)
+        try {
+          await wx.cloud.database().collection('brushingRecords').doc(record.id).update({
+            data: { images: cloudImageIDs, cloudFileID: cloudImageIDs[0] }
+          })
+        } catch (e) {}
+      } else {
+        records[index] = { ...record, images, imagePath: images[0] }
+        wx.setStorageSync('brushingRecords', records)
+      }
     } catch (err) {
-      wx.hideLoading()
       console.error('保存编辑失败:', err)
+      records[index] = { ...record, images, imagePath: images[0] }
+      wx.setStorageSync('brushingRecords', records)
     }
+
+    wx.hideLoading()
+
+    // 更新 detailRecord 以刷新详情弹窗
+    if (this.data.showDetail && this.data.detailRecord) {
+      const updated = records.find(r => r.date === today && r.timeOfDay === targetTimeOfDay)
+      if (updated) {
+        this.setData({ detailRecord: updated })
+      }
+    }
+
+    this.loadRecords()
+    wx.showToast({ title: '编辑已保存！', icon: 'success' })
   },
 
   // 加载今日信息
@@ -225,6 +271,8 @@ Page({
     this.setData({
       morningRecord,
       eveningRecord,
+      morningSwiperIndex: 0,
+      eveningSwiperIndex: 0,
       yesterdayMorning,
       yesterdayEvening,
       yesterdayDate: yesterdayDateStr,
@@ -474,9 +522,18 @@ Page({
   editPhotoInDraw(e) {
     const path = e.currentTarget.dataset.path
     const timeOfDay = e.currentTarget.dataset.timeOfDay || 'morning'
+    wx.setStorageSync('brushingEditOriginalPath', path)
     wx.navigateTo({
       url: '/pages/create/draw/draw?mode=brushing&photo=' + encodeURIComponent(path) + '&timeOfDay=' + timeOfDay
     })
+  },
+
+  // swiper切换事件
+  onMorningSwiperChange(e) {
+    this.setData({ morningSwiperIndex: e.detail.current })
+  },
+  onEveningSwiperChange(e) {
+    this.setData({ eveningSwiperIndex: e.detail.current })
   },
 
   // 预览图片
@@ -509,24 +566,9 @@ Page({
       return
     }
 
-    // 格式化详情
-    const timeStr = record.createTime ? util.formatDate(record.createTime) : record.date
-    let durationText = '手动打卡'
-    if (record.fromTimer && record.duration) {
-      const min = Math.floor(record.duration / 60)
-      const sec = record.duration % 60
-      durationText = min > 0 ? `计时刷牙 ${min}分${sec}秒` : `计时刷牙 ${sec}秒`
-    } else if (record.fromTimer) {
-      durationText = '计时刷牙'
-    }
-
     this.setData({
       showDetail: true,
-      detailRecord: {
-        ...record,
-        timeStr,
-        durationText
-      }
+      detailRecord: record
     })
   },
 
@@ -535,12 +577,41 @@ Page({
     this.setData({ showDetail: false, detailRecord: null })
   },
 
-  // 阻止冒泡
-  noop() {},
+  // 详情更新后刷新数据
+  onDetailUpdated() {
+    this.loadRecords()
+    // 重新读取当前详情记录，确保组件数据同步
+    const records = wx.getStorageSync('brushingRecords') || []
+    const timeOfDay = this.data.detailRecord ? this.data.detailRecord.timeOfDay : null
+    if (timeOfDay) {
+      const today = util.getTodayStr()
+      const updated = records.find(r => r.date === today && r.timeOfDay === timeOfDay)
+      if (updated) {
+        this.setData({ detailRecord: updated })
+      }
+    }
+  },
 
   // 返回首页
   goBack() {
-    wx.navigateBack()
+    var hasChanges = this.data.tempImagePaths.length > 0 ||
+                     (this.data.note && this.data.note.trim().length > 0) ||
+                     this.data.score !== 5
+    if (hasChanges) {
+      wx.showModal({
+        title: '提示',
+        content: '当前有未保存的打卡内容，确定退出吗？',
+        confirmText: '退出',
+        cancelText: '取消',
+        success: function(res) {
+          if (res.confirm) {
+            wx.navigateBack()
+          }
+        }
+      })
+    } else {
+      wx.navigateBack()
+    }
   },
 
   // 预览昨日照片

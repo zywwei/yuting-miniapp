@@ -31,10 +31,6 @@ Page({
     scoreLabels: ['加油哦', '还不错', '很好', '非常好', '超级棒！'],
     scoreLabel: '超级棒！',
     catchUpDate: '',
-    // 编辑详情
-    editingDetail: false,
-    editScore: 5,
-    editNote: '',
     // 积分与贴纸
     totalPoints: 0,
     decorations: [],
@@ -107,33 +103,8 @@ Page({
     if (!record) return
     this.setData({
       showDetail: true,
-      detailRecord: this._formatDetail(record)
+      detailRecord: record
     })
-  },
-
-  // 格式化记录详情（公共方法，避免重复）
-  _formatDetail(record) {
-    const timeStr = record.createTime ? util.formatDate(record.createTime) : record.date
-    let durationText = '手动打卡'
-    if (record.fromTimer && record.duration) {
-      const min = Math.floor(record.duration / 60)
-      const sec = record.duration % 60
-      durationText = min > 0 ? `计时刷牙 ${min}分${sec}秒` : `计时刷牙 ${sec}秒`
-    } else if (record.fromTimer) {
-      durationText = '计时刷牙'
-    }
-    const areas = record.completedAreas || []
-    const scoreLabels = ['加油哦', '还不错', '很好', '非常好', '超级棒！']
-    const safeScore = Math.min(Math.max(record.score || 1, 1), 5)
-    const scoreLabel = scoreLabels[safeScore - 1] || ''
-    return {
-      ...record,
-      timeStr,
-      durationText,
-      areasText: areas.length > 0 ? areas.join('、') : '无',
-      scoreLabel,
-      timeOfDayText: record.timeOfDay === 'morning' ? '☀️ 早上' : '🌙 晚上'
-    }
   },
 
   // 点击日历日期筛选记录
@@ -221,70 +192,31 @@ Page({
 
     this.setData({
       showDetail: true,
-      detailRecord: this._formatDetail(record)
+      detailRecord: record
     })
   },
 
   // 关闭详情弹窗
   closeDetail() {
-    this.setData({ showDetail: false, detailRecord: null, editingDetail: false })
+    this.setData({ showDetail: false, detailRecord: null })
+  },
+
+  // 详情更新后刷新数据
+  onDetailUpdated() {
+    this.loadData()
+    // 重新读取当前详情记录，确保组件数据同步
+    const record = this.data.detailRecord
+    if (record && record.id) {
+      const records = wx.getStorageSync('brushingRecords') || []
+      const updated = records.find(r => r.id === record.id)
+      if (updated) {
+        this.setData({ detailRecord: updated })
+      }
+    }
   },
 
   // 阻止事件冒泡（弹窗内容区域点击不关闭）
   noop() {},
-
-  // 开始编辑
-  startEdit() {
-    const record = this.data.detailRecord
-    this.setData({
-      editingDetail: true,
-      editScore: record.score || 5,
-      editNote: record.note || ''
-    })
-  },
-
-  setEditScore(e) {
-    this.setData({ editScore: e.currentTarget.dataset.score })
-  },
-
-  onEditNoteInput(e) {
-    this.setData({ editNote: e.detail.value })
-  },
-
-  cancelEdit() {
-    this.setData({ editingDetail: false })
-  },
-
-  async saveEdit() {
-    const { detailRecord, editScore, editNote } = this.data
-    wx.showLoading({ title: '保存中...' })
-    try {
-      // 更新本地 storage
-      const records = wx.getStorageSync('brushingRecords') || []
-      const updated = records.map(r => {
-        if (r.id === detailRecord.id) {
-          return { ...r, score: editScore, note: editNote.trim() }
-        }
-        return r
-      })
-      wx.setStorageSync('brushingRecords', updated)
-
-      // 同步云端
-      if (detailRecord.id) {
-        try {
-          await cloud.updateBrushingRecordById(detailRecord.id, { score: editScore, note: editNote.trim() })
-        } catch (e) { /* 云端更新失败不影响本地 */ }
-      }
-
-      wx.hideLoading()
-      this.setData({ editingDetail: false })
-      this.loadData()
-      wx.showToast({ title: '已更新 ✅', icon: 'none' })
-    } catch (err) {
-      wx.hideLoading()
-      wx.showToast({ title: '保存失败', icon: 'none' })
-    }
-  },
 
   // 切换贴纸纪念册
   toggleStickerAlbum() {

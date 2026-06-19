@@ -374,6 +374,45 @@ Page({
 
   // 返回
   goBack: function() {
-    wx.navigateBack()
+    var hasChanges = this.data.images.length > 0 ||
+                     (this.data.note && this.data.note.trim().length > 0) ||
+                     this.data.score !== 5
+
+    if (!hasChanges && this.data.formData) {
+      var keys = Object.keys(this.data.formData)
+      for (var i = 0; i < keys.length; i++) {
+        var val = this.data.formData[keys[i]]
+        if (val && val !== '' && val !== 0 && !(Array.isArray(val) && val.length === 0)) {
+          hasChanges = true
+          break
+        }
+      }
+    }
+
+    if (hasChanges) {
+      wx.showModal({
+        title: '提示',
+        content: '当前有未保存的内容，是否暂存？',
+        confirmText: '暂存',
+        cancelText: '不保存',
+        success: function(res) {
+          if (res.confirm) {
+            wx.setStorageSync('checkinDraft_' + this.data.habitType, {
+              images: this.data.images,
+              note: this.data.note,
+              score: this.data.score,
+              formData: this.data.formData,
+              time: new Date().toISOString()
+            })
+            wx.showToast({ title: '已暂存', icon: 'success' })
+            setTimeout(function() { wx.navigateBack() }, 1000)
+          } else {
+            wx.navigateBack()
+          }
+        }.bind(this)
+      })
+    } else {
+      wx.navigateBack()
+    }
   }
 })

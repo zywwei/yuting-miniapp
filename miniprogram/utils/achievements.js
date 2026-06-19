@@ -342,6 +342,8 @@ var checkAchievements = function(records) {
     var allUnlocked = unlocked.concat(newAchievements)
     try {
       wx.setStorageSync('achievements', allUnlocked)
+      var cloud = require('./cloud.js')
+      cloud.uploadAchievements(allUnlocked).catch(function() {})
     } catch (e) {
       console.error('保存成就数据失败:', e)
     }

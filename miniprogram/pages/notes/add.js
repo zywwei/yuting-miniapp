@@ -26,6 +26,22 @@ Page({
 
   onShow: function() {
     this.applyEditedPhoto()
+    this.checkUnsaved()
+  },
+
+  // 检查是否有未保存内容，启用返回确认
+  checkUnsaved: function() {
+    var hasChanges = (this.data.title && this.data.title.trim().length > 0) ||
+                     (this.data.content && this.data.content.trim().length > 0) ||
+                     this.data.images.length > 0 ||
+                     this.data.tags.length > 0
+    if (hasChanges) {
+      wx.enableAlertBeforeUnload({
+        message: '当前有未保存的笔记内容，确定退出吗？'
+      })
+    } else {
+      wx.disableAlertBeforeUnload()
+    }
   },
 
   // 从画画编辑器返回时，应用编辑后的照片
@@ -219,6 +235,7 @@ Page({
       notes.unshift(newNote)
       wx.setStorageSync('notes', notes)
 
+      wx.disableAlertBeforeUnload()
       wx.hideLoading()
       wx.showToast({ title: '保存成功', icon: 'success' })
 

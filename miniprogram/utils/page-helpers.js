@@ -30,7 +30,26 @@ function previewImage(path, images) {
   }
 }
 
+/**
+ * 获取今日日期字符串 YYYY-MM-DD
+ */
+function getTodayStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
+}
+
+/**
+ * 获取昨日日期字符串 YYYY-MM-DD
+ */
+function getYesterdayStr() {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
+}
+
 module.exports = {
   getNavBarInfo,
-  previewImage
+  previewImage,
+  getTodayStr,
+  getYesterdayStr
 }

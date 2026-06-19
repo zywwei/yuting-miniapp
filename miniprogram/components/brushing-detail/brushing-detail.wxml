@@ -1,0 +1,100 @@
+<!-- 刷牙详情弹窗组件 -->
+<view wx:if="{{show && formattedRecord}}" class="modal-mask" bindtap="onClose">
+  <view class="detail-modal" catchtap="noop">
+    <view class="detail-close" bindtap="onClose">✕</view>
+    <view class="detail-header">
+      <text class="detail-emoji">{{formattedRecord.timeOfDay === 'morning' ? '☀️' : '🌙'}}</text>
+      <text class="detail-title">{{formattedRecord.timeOfDay === 'morning' ? '早上' : '晚上'}}刷牙详情</text>
+    </view>
+
+    <!-- 查看模式 -->
+    <view wx:if="{{!editing}}" class="detail-rows">
+      <view class="detail-row">
+        <text class="detail-label">📅 日期</text>
+        <text class="detail-value">{{formattedRecord.date}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">🕐 时间</text>
+        <text class="detail-value">{{formattedRecord.timeStr}}</text>
+      </view>
+      <view class="detail-row" wx:if="{{formattedRecord.durationText}}">
+        <text class="detail-label">⏱ 方式</text>
+        <text class="detail-value">{{formattedRecord.durationText}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">⭐ 评分</text>
+        <view class="detail-value">
+          <text wx:for="{{[1,2,3,4,5]}}" wx:key="*this" wx:for-item="star"
+                class="detail-star {{star <= formattedRecord.score ? 'active' : ''}}">⭐</text>
+          <text class="detail-score-text">{{formattedRecord.score}}分</text>
+        </view>
+      </view>
+      <view class="detail-row" wx:if="{{formattedRecord.points > 0}}">
+        <text class="detail-label">🏆 积分</text>
+        <text class="detail-value">+{{formattedRecord.points}}</text>
+      </view>
+      <view class="detail-row" wx:if="{{formattedRecord.areasText}}">
+        <text class="detail-label">🦷 刷牙区域</text>
+        <text class="detail-value">{{formattedRecord.areasText}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">🎨 贴纸</text>
+        <view class="detail-stickers" wx:if="{{formattedRecord.stickers && formattedRecord.stickers.length > 0}}">
+          <text wx:for="{{formattedRecord.stickers}}" wx:key="id" class="detail-sticker-emoji">{{item.emoji}}</text>
+        </view>
+        <text class="detail-value" wx:else>暂无贴纸</text>
+      </view>
+      <!-- 照片展示（支持编辑删除） -->
+      <view class="detail-row" wx:if="{{formattedRecord.images && formattedRecord.images.length > 0}}">
+        <text class="detail-label">📷 照片</text>
+        <view class="detail-images">
+          <view wx:for="{{formattedRecord.images}}" wx:key="*this" class="detail-image-item">
+            <image src="{{item}}" mode="aspectFill" class="detail-image-thumb" bindtap="previewImage" data-index="{{index}}" />
+            <view class="detail-image-edit" catchtap="editImage" data-path="{{item}}">✏️</view>
+            <view class="detail-image-delete" catchtap="deleteImage" data-index="{{index}}">✕</view>
+          </view>
+        </view>
+      </view>
+      <view class="detail-row" wx:if="{{formattedRecord.note}}">
+        <text class="detail-label">💬 备注</text>
+        <text class="detail-value">{{formattedRecord.note}}</text>
+      </view>
+    </view>
+
+    <!-- 编辑模式 -->
+    <view wx:if="{{editing}}" class="edit-section">
+      <view class="edit-group">
+        <view class="edit-label">修改评分</view>
+        <score-selector value="{{editScore}}" showLabel="{{true}}" bind:change="onScoreChange" />
+      </view>
+
+      <view class="edit-group">
+        <view class="edit-label">修改备注</view>
+        <textarea class="note-textarea" placeholder="写点什么吧~" value="{{editNote}}" bindinput="onEditNoteInput" maxlength="200" auto-height />
+      </view>
+
+      <view class="edit-group">
+        <view class="edit-label">📷 照片管理</view>
+        <view class="edit-images">
+          <view wx:for="{{editImages}}" wx:key="*this" class="edit-image-item">
+            <image src="{{item}}" mode="aspectFill" class="edit-image-thumb" bindtap="previewEditImage" data-index="{{index}}" />
+            <view class="edit-image-delete" catchtap="deleteEditImage" data-index="{{index}}">✕</view>
+          </view>
+          <view wx:if="{{editImages.length < 6}}" class="edit-image-add" bindtap="addEditImage">
+            <text class="add-icon">+</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="modal-actions">
+        <view class="modal-btn cancel" bindtap="cancelEdit">取消</view>
+        <view class="modal-btn confirm" bindtap="saveEdit">保存</view>
+      </view>
+    </view>
+
+    <!-- 编辑按钮 -->
+    <view wx:if="{{!editing}}" class="detail-edit-btn" bindtap="startEdit">
+      <text>✏️ 编辑</text>
+    </view>
+  </view>
+</view>

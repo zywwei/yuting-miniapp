@@ -38,13 +38,11 @@ const BRUSHING_TIPS = [
 const THEMES = {
   morning: {
     bg: 'linear-gradient(180deg, #FFE4EC 0%, #FFF0F5 30%, #FFF5F8 60%, #FFEEF2 100%)',
-    greeting: '☀️ 早上好，钰婷！',
     emoji: '🌞',
     tip: '新的一天从刷牙开始~'
   },
   evening: {
     bg: 'linear-gradient(180deg, #F8E8EE 0%, #FFF0F5 30%, #FFF5F8 60%, #F5E6EE 100%)',
-    greeting: '🌙 晚上好，钰婷！',
     emoji: '🌜',
     tip: '刷完牙睡觉，牙齿更健康~'
   }
@@ -309,6 +307,14 @@ const CHAPTERS = [
       description: '用甜食攻击牙齿的坏家伙！',
       defeatText: '糖糖怪被打败啦！牙齿们开心地跳舞~'
     },
+    eveningEnemy: {
+      id: 'candy_bat',
+      name: '糖果蝙蝠',
+      emoji: '🦇',
+      hp: 6,
+      description: '夜里偷吃糖果的坏蝙蝠！',
+      defeatText: '糖果蝙蝠飞走啦！牙齿们可以安心睡觉了~'
+    },
     rewards: { points: 50, exp: 30 }
   },
   {
@@ -324,6 +330,14 @@ const CHAPTERS = [
       hp: 6,
       description: '统领所有细菌的首领！',
       defeatText: '细菌大王逃跑了！沼泽恢复了平静~'
+    },
+    eveningEnemy: {
+      id: 'germ_ghost',
+      name: '细菌幽灵',
+      emoji: '👻',
+      hp: 6,
+      description: '夜晚出没的幽灵细菌！',
+      defeatText: '细菌幽灵消散了！沼泽恢复了宁静~'
     },
     rewards: { points: 60, exp: 40 }
   },
@@ -341,6 +355,14 @@ const CHAPTERS = [
       description: '顽固的牙菌斑军团首领！',
       defeatText: '牙菌斑将军投降了！牙菌王国恢复和平~'
     },
+    eveningEnemy: {
+      id: 'plaque_ninja',
+      name: '牙菌斑忍者',
+      emoji: '🥷',
+      hp: 6,
+      description: '趁你睡觉时偷袭的忍者！',
+      defeatText: '牙菌斑忍者被发现了！牙齿王国安全了~'
+    },
     rewards: { points: 70, exp: 50 }
   },
   {
@@ -356,6 +378,14 @@ const CHAPTERS = [
       hp: 6,
       description: '专门制造蛀牙的坏蛋！',
       defeatText: '龋齿怪被消灭了！牙齿再也不怕蛀牙啦~'
+    },
+    eveningEnemy: {
+      id: 'cavity_spider',
+      name: '蛀牙蜘蛛',
+      emoji: '🕷️',
+      hp: 6,
+      description: '在黑暗洞穴里织网的坏蜘蛛！',
+      defeatText: '蛀牙蜘蛛的网被打破了！洞穴恢复光明~'
     },
     rewards: { points: 80, exp: 60 }
   },
@@ -373,6 +403,14 @@ const CHAPTERS = [
       description: '用臭气攻击的恶龙！',
       defeatText: '口气恶龙飞走了！牙齿们又能自由呼吸啦~'
     },
+    eveningEnemy: {
+      id: 'breath_wolf',
+      name: '口气灰狼',
+      emoji: '🐺',
+      hp: 6,
+      description: '夜晚嚎叫释放臭气的灰狼！',
+      defeatText: '口气灰狼跑远了！森林空气清新了~'
+    },
     rewards: { points: 90, exp: 70 }
   },
   {
@@ -389,6 +427,14 @@ const CHAPTERS = [
       description: '用甜蜜诱惑牙齿的狡猾家伙！',
       defeatText: '棒棒糖精的陷阱被打破啦！牙齿们不再被诱惑~'
     },
+    eveningEnemy: {
+      id: 'candy_witch',
+      name: '糖果女巫',
+      emoji: '🧙‍♀️',
+      hp: 6,
+      description: '用魔法糖果施咒的女巫！',
+      defeatText: '糖果女巫的魔法失效了！牙齿们清醒过来~'
+    },
     rewards: { points: 95, exp: 75 }
   },
   {
@@ -404,6 +450,14 @@ const CHAPTERS = [
       hp: 6,
       description: '所有牙齿敌人的首领！',
       defeatText: '蛀牙大王被打败了！你是真正的牙齿守护者！🏆'
+    },
+    eveningEnemy: {
+      id: 'final_boss_night',
+      name: '暗夜蛀牙魔王',
+      emoji: '😈',
+      hp: 6,
+      description: '黑暗中觉醒的终极魔王！',
+      defeatText: '暗夜蛀牙魔王被封印了！你是最勇敢的牙齿勇士！🌟'
     },
     rewards: { points: 100, exp: 80 }
   }
@@ -563,6 +617,7 @@ const generateHiddenChapters = () => {
   for (let i = 0; i < 100; i++) {
     const theme = HIDDEN_THEMES[i % HIDDEN_THEMES.length]
     const enemy = HIDDEN_ENEMIES[i % HIDDEN_ENEMIES.length]
+    const eveningEnemy = HIDDEN_ENEMIES[(i + 33) % HIDDEN_ENEMIES.length]
     // 基于索引的确定化奖励（避免跨页面不一致）
     const points = 20 + (i * 7) % 40 // 20-59 积分
     const exp = 10 + (i * 11) % 30   // 10-39 经验
@@ -581,6 +636,14 @@ const generateHiddenChapters = () => {
         hp: 6,
         description: enemy.description,
         defeatText: enemy.defeatText
+      },
+      eveningEnemy: {
+        id: `hidden_evening_${10000 + i}`,
+        name: eveningEnemy.name,
+        emoji: eveningEnemy.emoji,
+        hp: 6,
+        description: eveningEnemy.description,
+        defeatText: eveningEnemy.defeatText
       },
       rewards: { points, exp }
     })
@@ -656,6 +719,45 @@ const STORY_DIALOGUES = {
     '嘿嘿，我可不怕你！',
     '放弃吧！',
     '牙齿们是我的！'
+  ],
+  enemy_crit_taunt: [
+    '哼！这点伤害算什么！',
+    '你激怒我了！🔥',
+    '不痛不痒！再来！',
+    '哈哈哈，太弱了！',
+    '我要加倍还击！',
+    '你以为这样就能赢？',
+    '我可是无敌的！💪',
+    '牙齿注定是我的！😈',
+    '就这？给我挠痒痒吗？',
+    '你的牙刷是棉花做的吧！',
+    '太慢了太慢了！',
+    '嘿嘿，打不中我！',
+    '再来再来，我还没热身呢！',
+    '你的攻击对我无效！',
+    '可笑！这点力气也想打败我？',
+    '我可是黑暗军团的精英！',
+    '哈哈哈，继续挣扎吧！',
+    '你越打我越强！💪',
+    '这就是你的全部实力吗？',
+    '我可不会手下留情！'
+  ],
+  enemy_low_hp_taunt: [
+    '不...不可能！',
+    '我还没输！',
+    '可恶...我不会认输的！',
+    '你逼我的...我要爆发了！💥',
+    '这不可能！我可是大魔王！',
+    '别高兴得太早！',
+    '我还有最后一招！',
+    '就算倒下也要拉你垫背！',
+    '可恶的牙刷...我恨你！',
+    '这一定是做梦...',
+    '我不会就这样被打败的！',
+    '我的力量...在消失...',
+    '最后的反击！⚡',
+    '你以为赢了吗？还早呢！',
+    '我的主人会为我报仇的！'
   ]
 }
 

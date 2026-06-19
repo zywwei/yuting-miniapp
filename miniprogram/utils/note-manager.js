@@ -1,16 +1,16 @@
 /**
  * 笔记管理工具
  * 管理成长笔记的增删改查
+ * 支持云同步，离线可用
  */
 
 var util = require('./util.js')
+var cloud = require('./cloud.js')
 
-// 获取所有笔记
 var getAllNotes = function() {
   return wx.getStorageSync('notes') || []
 }
 
-// 获取笔记列表（按时间倒序）
 var getNotes = function(limit) {
   limit = limit || 20
   var notes = getAllNotes()
@@ -20,13 +20,11 @@ var getNotes = function(limit) {
   return sorted.slice(0, limit)
 }
 
-// 获取单个笔记
 var getNote = function(id) {
   var notes = getAllNotes()
   return notes.find(function(n) { return n.id === id })
 }
 
-// 添加笔记
 var addNote = function(note) {
   var notes = getAllNotes()
   var newNote = {
@@ -42,10 +40,12 @@ var addNote = function(note) {
   }
   notes.unshift(newNote)
   wx.setStorageSync('notes', notes)
+
+  cloud.uploadNote(newNote).catch(function() {})
+
   return newNote
 }
 
-// 更新笔记
 var updateNote = function(id, updates) {
   var notes = getAllNotes()
   var index = -1
@@ -65,19 +65,22 @@ var updateNote = function(id, updates) {
     }
     notes[index] = updated
     wx.setStorageSync('notes', notes)
+
+    cloud.updateNoteInCloud(id, updated).catch(function() {})
+
     return notes[index]
   }
   return null
 }
 
-// 删除笔记
 var deleteNote = function(id) {
   var notes = getAllNotes()
   var filtered = notes.filter(function(n) { return n.id !== id })
   wx.setStorageSync('notes', filtered)
+
+  cloud.removeNote(id).catch(function() {})
 }
 
-// 按标签获取笔记
 var getNotesByTag = function(tag) {
   var notes = getAllNotes()
   return notes.filter(function(n) {
@@ -85,7 +88,6 @@ var getNotesByTag = function(tag) {
   })
 }
 
-// 获取所有标签
 var getAllTags = function() {
   var notes = getAllNotes()
   var tagSet = {}
@@ -97,7 +99,6 @@ var getAllTags = function() {
   return Object.keys(tagSet)
 }
 
-// 搜索笔记
 var searchNotes = function(keyword) {
   var notes = getAllNotes()
   var lowerKeyword = keyword.toLowerCase()
