@@ -1071,12 +1071,30 @@ async function removeStallSale(id) {
 async function uploadStallSettings(settings) {
   if (!isCloudReady()) return
   try {
+    // 先尝试更新，如果不存在则添加
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'update', collection: 'stallSettings', data: settings }
+      data: {
+        action: 'update',
+        collection: 'stallSettings',
+        id: 'stall_settings',
+        data: settings
+      }
     })
   } catch (err) {
-    console.warn('云端同步摊位设置失败:', err)
+    // 如果更新失败（文档不存在），则添加
+    try {
+      await wx.cloud.callFunction({
+        name: 'record',
+        data: {
+          action: 'add',
+          collection: 'stallSettings',
+          data: { _id: 'stall_settings', ...settings }
+        }
+      })
+    } catch (addErr) {
+      console.warn('云端同步摊位设置失败:', addErr)
+    }
   }
 }
 
