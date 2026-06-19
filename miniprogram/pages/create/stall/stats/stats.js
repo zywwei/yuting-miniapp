@@ -218,11 +218,26 @@ Page({
     var that = this
     wx.showLoading({ title: '生成中...' })
 
+    // 绘制圆角矩形
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath()
+      ctx.moveTo(x + r, y)
+      ctx.lineTo(x + w - r, y)
+      ctx.arcTo(x + w, y, x + w, y + r, r)
+      ctx.lineTo(x + w, y + h - r)
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+      ctx.lineTo(x + r, y + h)
+      ctx.arcTo(x, y + h, x, y + h - r, r)
+      ctx.lineTo(x, y + r)
+      ctx.arcTo(x, y, x + r, y, r)
+      ctx.closePath()
+    }
+
     var query = this.createSelectorQuery()
     query.select('#posterCanvas').fields({ node: true, size: true }).exec(function(res) {
       if (!res || !res[0] || !res[0].node) {
         wx.hideLoading()
-        wx.showToast({ title: '生成失败', icon: 'none' })
+        wx.showToast({ title: '获取画布失败', icon: 'none' })
         return
       }
 
@@ -245,8 +260,7 @@ Page({
 
       // White card
       ctx.fillStyle = '#fff'
-      ctx.beginPath()
-      ctx.roundRect(16, 16, width - 32, height - 32, 16)
+      roundRect(ctx, 16, 16, width - 32, height - 32, 16)
       ctx.fill()
 
       // Title
@@ -270,8 +284,7 @@ Page({
 
       // Revenue card
       ctx.fillStyle = '#FFF5F7'
-      ctx.beginPath()
-      ctx.roundRect(16, cardY, cardW, cardH, 8)
+      roundRect(ctx, 16, cardY, cardW, cardH, 8)
       ctx.fill()
       ctx.fillStyle = '#FF6B8A'
       ctx.font = 'bold 18px sans-serif'
@@ -283,8 +296,7 @@ Page({
 
       // Profit card
       ctx.fillStyle = '#E8F5E9'
-      ctx.beginPath()
-      ctx.roundRect(16 + cardW + cardGap, cardY, cardW, cardH, 8)
+      roundRect(ctx, 16 + cardW + cardGap, cardY, cardW, cardH, 8)
       ctx.fill()
       ctx.fillStyle = '#4CAF50'
       ctx.font = 'bold 18px sans-serif'
@@ -296,8 +308,7 @@ Page({
 
       // Orders card
       ctx.fillStyle = '#E3F2FD'
-      ctx.beginPath()
-      ctx.roundRect(16 + (cardW + cardGap) * 2, cardY, cardW, cardH, 8)
+      roundRect(ctx, 16 + (cardW + cardGap) * 2, cardY, cardW, cardH, 8)
       ctx.fill()
       ctx.fillStyle = '#2196F3'
       ctx.font = 'bold 18px sans-serif'
