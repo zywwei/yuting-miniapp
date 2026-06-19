@@ -403,11 +403,12 @@
 
 .poster-canvas {
   position: fixed;
-  left: -1000px;
-  top: -1000px;
-  width: 300px;
-  height: 500px;
+  left: 0;
+  top: 0;
+  width: 375px;
+  height: 812px;
   visibility: hidden;
+  z-index: -9999;
 }
 
 .poster-modal {
