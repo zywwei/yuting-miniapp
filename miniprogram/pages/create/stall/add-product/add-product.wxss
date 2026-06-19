@@ -70,6 +70,17 @@
   font-size: 48rpx;
 }
 
+.upload-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
 .category-select {
   display: flex;
   flex-wrap: wrap;

@@ -9,6 +9,9 @@
       <text class="label">商品图片</text>
       <view class="image-upload" bindtap="chooseImage">
         <image wx:if="{{imagePath}}" src="{{imagePath}}" mode="aspectFill" class="preview-img" />
+        <view wx:elif="{{uploading}}" class="upload-loading">
+          <text class="loading-text">上传中...</text>
+        </view>
         <text wx:else class="upload-icon">📷</text>
       </view>
     </view>
