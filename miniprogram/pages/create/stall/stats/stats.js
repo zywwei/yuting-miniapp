@@ -137,7 +137,14 @@ Page({
       dailySales.forEach(function(d) {
         if (d.revenue > maxVal) maxVal = d.revenue
       })
-      if (maxVal === 0) maxVal = 1
+      // Round up to nice number
+      if (maxVal <= 0) maxVal = 10
+      else if (maxVal <= 10) maxVal = 10
+      else if (maxVal <= 50) maxVal = 50
+      else if (maxVal <= 100) maxVal = 100
+      else if (maxVal <= 500) maxVal = 500
+      else if (maxVal <= 1000) maxVal = 1000
+      else maxVal = Math.ceil(maxVal / 1000) * 1000
 
       var padding = { top: 20, right: 10, bottom: 30, left: 40 }
       var chartW = width - padding.left - padding.right
@@ -145,7 +152,7 @@ Page({
       var barW = chartW / dailySales.length * 0.6
       var gap = chartW / dailySales.length * 0.4
 
-      // Draw grid lines (lighter)
+      // Draw grid lines
       ctx.strokeStyle = '#f5f5f5'
       ctx.lineWidth = 0.5
       for (var i = 0; i <= 4; i++) {
@@ -157,10 +164,12 @@ Page({
         ctx.stroke()
         ctx.setLineDash([])
 
+        var labelVal = maxVal * i / 4
+        var labelText = labelVal >= 1000 ? (labelVal / 1000).toFixed(1) + 'k' : Math.round(labelVal)
         ctx.fillStyle = '#bbb'
         ctx.font = '9px sans-serif'
         ctx.textAlign = 'right'
-        ctx.fillText('¥' + Math.round(maxVal * i / 4), padding.left - 5, gy + 3)
+        ctx.fillText('¥' + labelText, padding.left - 5, gy + 3)
       }
 
       // Draw bars
