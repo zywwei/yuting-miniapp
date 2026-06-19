@@ -70,16 +70,21 @@ App({
           }
 
           // 进入目标家庭
-          auth.setFamily(targetFamily.family)
+          var familyObj = targetFamily.family || {
+            _id: targetFamily.familyId,
+            name: targetFamily.familyName,
+            avatar: targetFamily.familyAvatar
+          }
+          auth.setFamily(familyObj)
           auth.setMember(targetFamily.member)
           auth.setChildren(targetFamily.children || [])
-          if (targetFamily.children.length > 0 && !auth.getCurrentChildId()) {
+          if (targetFamily.children && targetFamily.children.length > 0 && !auth.getCurrentChildId()) {
             auth.switchChild(targetFamily.children[0].childId)
           }
 
           this.globalData.member = targetFamily.member
-          this.globalData.family = targetFamily.family
-          this.globalData.children = targetFamily.children
+          this.globalData.family = familyObj
+          this.globalData.children = targetFamily.children || []
           this.globalData.currentChildId = auth.getCurrentChildId()
           this.globalData.myFamilies = families
           this.calcGrowthDays()
