@@ -1,36 +1,366 @@
 /* 首页样式 */
 .container {
   min-height: 100vh;
-  background: linear-gradient(180deg, #FFF0F3 0%, #FFF5F0 50%, #FFF8F0 100%);
+  background: #f5f5f5;
   padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 }
 
 .status-bar {
   width: 100%;
-  background: transparent;
 }
 
 /* 头部欢迎区 */
 .header {
-  padding: 40rpx 40rpx 20rpx;
+  padding: 0 32rpx 20rpx;
+  border-radius: 0 0 32rpx 32rpx;
 }
 
-.greeting {
-  font-size: 44rpx;
-  font-weight: bold;
-  color: #333;
+.header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 100rpx;
+  position: relative;
 }
 
-.date-info {
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  min-width: 180rpx;
+}
+
+.header-date {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.85);
+}
+
+.header-greeting {
   font-size: 28rpx;
-  color: #666;
-  margin-top: 8rpx;
+  color: rgba(255,255,255,0.9);
 }
 
-.growth-info {
-  font-size: 26rpx;
-  color: #999;
-  margin-top: 4rpx;
+/* 孩子选择 - 垂直居中 */
+.header-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: rgba(255,255,255,0.25);
+  border-radius: 32rpx;
+  padding: 12rpx 28rpx 12rpx 12rpx;
+}
+
+.child-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-emoji {
+  font-size: 32rpx;
+}
+
+.child-current {
+  font-size: 30rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.select-arrow {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.8);
+  transition: transform 0.2s;
+}
+
+.select-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* 天数区域 */
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4rpx;
+  min-width: 100rpx;
+}
+
+.days-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+}
+
+.days-big {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1;
+}
+
+.days-unit {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.85);
+}
+
+.days-detail {
+  font-size: 18rpx;
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+}
+
+/* 孩子下拉列表 */
+.child-dropdown {
+  margin: 0 80rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 12rpx 40rpx rgba(0,0,0,0.15);
+  padding: 8rpx 0;
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s;
+}
+
+.child-dropdown.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.child-option {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 32rpx;
+  transition: background 0.2s;
+}
+
+.child-option:active {
+  background: #f5f5f5;
+}
+
+.child-option.active {
+  background: #FFF5F7;
+}
+
+.option-emoji {
+  font-size: 32rpx;
+}
+
+.option-name {
+  font-size: 30rpx;
+  color: #333;
+  flex: 1;
+  font-weight: 500;
+}
+
+.option-check {
+  font-size: 32rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+.status-bar {
+  width: 100%;
+}
+
+/* 头部欢迎区 */
+.header {
+  padding: 0 32rpx 16rpx;
+  border-radius: 0 0 32rpx 32rpx;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 88rpx;
+  position: relative;
+}
+
+.header-date {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.85);
+  align-self: center;
+}
+
+/* 孩子选择 */
+.child-select {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: rgba(255,255,255,0.25);
+  border-radius: 32rpx;
+  padding: 12rpx 28rpx 12rpx 12rpx;
+  backdrop-filter: blur(10px);
+  align-self: center;
+}
+
+.header-days {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  min-width: 100rpx;
+  justify-content: flex-end;
+  align-self: center;
+}
+
+/* 孩子选择 */
+.child-select {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: rgba(255,255,255,0.25);
+  border-radius: 32rpx;
+  padding: 12rpx 28rpx 12rpx 12rpx;
+  backdrop-filter: blur(10px);
+}
+
+.child-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3rpx solid rgba(255,255,255,0.5);
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-emoji {
+  font-size: 32rpx;
+}
+
+.child-current {
+  font-size: 30rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.select-arrow {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.8);
+  transition: transform 0.2s;
+}
+
+.select-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* 孩子下拉列表 */
+.child-dropdown {
+  margin: 0 80rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 12rpx 40rpx rgba(0,0,0,0.15);
+  padding: 8rpx 0;
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s;
+}
+
+.child-dropdown.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.child-option {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 32rpx;
+  transition: background 0.2s;
+}
+
+.child-option:active {
+  background: #f5f5f5;
+}
+
+.child-option.active {
+  background: #FFF5F7;
+}
+
+.option-emoji {
+  font-size: 32rpx;
+}
+
+.option-name {
+  font-size: 30rpx;
+  color: #333;
+  flex: 1;
+  font-weight: 500;
+}
+
+.option-check {
+  font-size: 32rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+/* 天数区域 */
+.header-days {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  min-width: 120rpx;
+}
+
+.days-big {
+  font-size: 52rpx;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1;
+}
+
+.days-sub {
+  display: flex;
+  flex-direction: column;
+}
+
+.days-unit {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+}
+
+.days-detail {
+  font-size: 20rpx;
+  color: rgba(255,255,255,0.7);
+  white-space: nowrap;
+}
+
+/* 问候语 */
+.header-greeting {
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.9);
+  position: relative;
+  z-index: 1;
+  padding-left: 4rpx;
 }
 
 /* 通用区块 */

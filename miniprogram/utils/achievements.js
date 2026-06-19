@@ -7,6 +7,7 @@
 var learnData = require('./learn-data.js')
 var util = require('./util.js')
 var habitManager = require('./habit-manager.js')
+var childStorage = require('./child-storage.js')
 
 // 成就总数常量（用于 legend 成就的 maxProgress）
 var TOTAL_ACHIEVEMENTS = 40
@@ -169,7 +170,7 @@ var ACHIEVEMENTS = [
 
 // 计算习惯打卡相关数据
 var getHabitExtraData = function() {
-  var records = wx.getStorageSync('habitRecords') || []
+  var records = childStorage.get('habitRecords') || []
   var today = util.getTodayStr()
 
   // 获取所有习惯类型
@@ -248,7 +249,7 @@ var calcStreakFromRecords = function(records) {
 
 // 获取故事系统数据（累计击败敌人数跨轮次计算）
 var getStoryExtraData = function() {
-  var story = wx.getStorageSync('brushingStory') || {}
+  var story = childStorage.get('brushingStory') || {}
   var CHAPTER_COUNT = 7
 
   // 计算累计击败敌人数：已完成轮次 * 每轮章节数 + 当前轮已击败数
@@ -265,8 +266,8 @@ var getStoryExtraData = function() {
 
 // 获取当前完整数据
 var getCurrentData = function(records) {
-  var drawings = wx.getStorageSync('drawings') || []
-  var notes = wx.getStorageSync('notes') || []
+  var drawings = childStorage.get('drawings') || []
+  var notes = childStorage.get('notes') || []
 
   // 刷牙连续天数（使用传入的记录或本地记录）
   var brushingStats = util.getBrushingStats(records)
@@ -312,7 +313,7 @@ var getCurrentData = function(records) {
 
 // 获取已解锁成就
 var getUnlockedAchievements = function() {
-  return wx.getStorageSync('achievements') || []
+  return childStorage.get('achievements') || []
 }
 
 // 检查并解锁新成就
@@ -341,7 +342,7 @@ var checkAchievements = function(records) {
   if (newAchievements.length > 0) {
     var allUnlocked = unlocked.concat(newAchievements)
     try {
-      wx.setStorageSync('achievements', allUnlocked)
+      childStorage.set('achievements', allUnlocked)
       var cloud = require('./cloud.js')
       cloud.uploadAchievements(allUnlocked).catch(function() {})
     } catch (e) {

@@ -156,9 +156,11 @@ var POEMS = [
   { id: 'p25', title: '芙蓉楼送辛渐', author: '王昌龄', dynasty: '唐', content: '寒雨连江夜入吴，\n平明送客楚山孤。\n洛阳亲友如相问，\n一片冰心在玉壶。' }
 ]
 
+var childStorage = require('./child-storage.js')
+
 // ===== 进度管理 =====
 var getProgress = function() {
-  var learnProgress = wx.getStorageSync('learnProgress') || {}
+  var learnProgress = childStorage.get('learnProgress') || {}
   return {
     cards: learnProgress.cards || {},
     poems: learnProgress.poems || {},
@@ -188,9 +190,9 @@ var markCardLearned = function(cardId) {
   var progress = getProgress()
   if (!progress.cards[cardId]) {
     progress.cards[cardId] = { learnedAt: new Date().toISOString() }
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     learnProgress.cards = progress.cards
-    wx.setStorageSync('learnProgress', learnProgress)
+    childStorage.set('learnProgress', learnProgress)
   }
 }
 
@@ -199,9 +201,9 @@ var markPoemMemorized = function(poemId) {
   var progress = getProgress()
   if (!progress.poems[poemId]) {
     progress.poems[poemId] = { memorizedAt: new Date().toISOString() }
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     learnProgress.poems = progress.poems
-    wx.setStorageSync('learnProgress', learnProgress)
+    childStorage.set('learnProgress', learnProgress)
   }
 }
 
@@ -210,9 +212,9 @@ var markNumberLearned = function(number) {
   var progress = getProgress()
   if (!progress.numbers[number]) {
     progress.numbers[number] = { learnedAt: new Date().toISOString() }
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     learnProgress.numbers = progress.numbers
-    wx.setStorageSync('learnProgress', learnProgress)
+    childStorage.set('learnProgress', learnProgress)
   }
 }
 
@@ -221,9 +223,9 @@ var markEnglishLearned = function(id) {
   var progress = getProgress()
   if (!progress.english[id]) {
     progress.english[id] = { learnedAt: new Date().toISOString() }
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     learnProgress.english = progress.english
-    wx.setStorageSync('learnProgress', learnProgress)
+    childStorage.set('learnProgress', learnProgress)
   }
 }
 
@@ -279,7 +281,7 @@ var getRecommendations = function() {
   }
 
   // 创作推荐
-  var drawings = wx.getStorageSync('drawings') || []
+  var drawings = childStorage.get('drawings') || []
   if (drawings.length < 10) {
     recommendations.push({
       type: 'create',
@@ -290,7 +292,7 @@ var getRecommendations = function() {
   }
 
   // 笔记推荐
-  var notes = wx.getStorageSync('notes') || []
+  var notes = childStorage.get('notes') || []
   if (notes.length < 5) {
     recommendations.push({
       type: 'notes',

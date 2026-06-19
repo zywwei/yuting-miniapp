@@ -1,0 +1,141 @@
+<view class="page" style="background: {{childGender === 'boy' ? '#E8F0FE' : childGender === 'girl' ? '#FFF5F7' : '#FFF5F7'}};">
+  <view class="header" wx:if="{{!created}}">
+    <view class="header-bg" style="background: {{childGender === 'boy' ? 'linear-gradient(135deg, #4A90D9 0%, #6BB3F0 100%)' : 'linear-gradient(135deg, #FF9AAB 0%, #FFB6C1 100%)'}};"></view>
+    <view class="header-content">
+      <text class="header-icon">👨‍👩‍👧‍👦</text>
+      <text class="title">创建家庭</text>
+      <text class="subtitle">记录宝宝成长的每一刻</text>
+    </view>
+  </view>
+
+  <view class="content" wx:if="{{!created}}">
+    <view class="avatar-card" style="box-shadow: 0 8rpx 32rpx {{childGender === 'boy' ? 'rgba(74,144,217,0.15)' : 'rgba(255,154,171,0.15)'}}; background: {{childGender === 'boy' ? '#E8F0FE' : '#fff'}};">
+      <view class="avatar-group">
+        <view class="avatar-wrapper" bindtap="chooseFamilyAvatar">
+          <view class="avatar-ring" style="background: {{childGender === 'boy' ? 'linear-gradient(135deg, #4A90D9, #6BB3F0)' : 'linear-gradient(135deg, #FF9AAB, #FFB6C1)'}};">
+            <image class="avatar-img" wx:if="{{familyAvatar}}" src="{{familyAvatar}}" mode="aspectFill" />
+            <view class="avatar-default" wx:else>
+              <text class="avatar-emoji">🏠</text>
+            </view>
+          </view>
+          <text class="avatar-label">家庭</text>
+        </view>
+        <view class="avatar-connector">
+          <text>+</text>
+        </view>
+        <view class="avatar-wrapper" bindtap="chooseChildAvatar">
+          <view class="avatar-ring child" style="background: {{childGender === 'boy' ? 'linear-gradient(135deg, #4A90D9, #6BB3F0)' : 'linear-gradient(135deg, #FFD1DC, #FFE4E9)'}};">
+            <image class="avatar-img" wx:if="{{childAvatar}}" src="{{childAvatar}}" mode="aspectFill" />
+            <view class="avatar-default" wx:else>
+              <text class="avatar-emoji">{{childGender === 'boy' ? '👦' : childGender === 'girl' ? '👧' : '📷'}}</text>
+            </view>
+          </view>
+          <text class="avatar-label">宝宝</text>
+        </view>
+      </view>
+      <text class="avatar-hint">点击上传头像</text>
+    </view>
+
+    <view class="form-card" style="box-shadow: 0 8rpx 32rpx {{childGender === 'boy' ? 'rgba(74,144,217,0.1)' : 'rgba(255,154,171,0.1)'}}; background: {{childGender === 'boy' ? '#EDF3FC' : '#fff'}};">
+      <view class="form-group">
+        <view class="form-item">
+          <view class="form-icon">🏠</view>
+          <view class="form-content">
+            <text class="form-label">家庭名称</text>
+            <input class="form-input" placeholder="{{childName ? childName + '的家' : '宝宝的家'}}" value="{{familyName}}" bindinput="onFamilyNameInput" />
+          </view>
+        </view>
+
+        <view class="form-divider" style="background: {{childGender === 'boy' ? '#D0E0F5' : '#FFE4E9'}};"></view>
+
+        <view class="form-item">
+          <view class="form-icon">👶</view>
+          <view class="form-content">
+            <text class="form-label">宝宝姓名</text>
+            <input class="form-input" placeholder="请输入宝宝姓名" value="{{childName}}" bindinput="onChildNameInput" />
+          </view>
+        </view>
+
+        <view class="form-divider" style="background: {{childGender === 'boy' ? '#D0E0F5' : '#FFE4E9'}};"></view>
+
+        <view class="form-item">
+          <view class="form-icon">💕</view>
+          <view class="form-content">
+            <text class="form-label">宝宝昵称</text>
+            <input class="form-input" placeholder="如：小宝、妞妞" value="{{childNickname}}" bindinput="onChildNicknameInput" />
+          </view>
+        </view>
+
+        <view class="form-divider" style="background: {{childGender === 'boy' ? '#D0E0F5' : '#FFE4E9'}};"></view>
+
+        <view class="form-item">
+          <view class="form-icon">🎀</view>
+          <view class="form-content">
+            <text class="form-label">宝宝性别</text>
+            <view class="gender-options">
+              <view class="gender-btn {{childGender === 'boy' ? 'active-boy' : ''}}" style="{{childGender !== 'boy' ? 'background: #EDF3FC; border-color: #D0E0F5;' : ''}}" bindtap="selectGender" data-gender="boy">
+                <text class="gender-emoji">👦</text>
+                <text class="gender-text">男孩</text>
+              </view>
+              <view class="gender-btn {{childGender === 'girl' ? 'active-girl' : ''}}" style="{{childGender !== 'girl' ? 'background: #FFF5F7; border-color: #FFE4E9;' : ''}}" bindtap="selectGender" data-gender="girl">
+                <text class="gender-emoji">👧</text>
+                <text class="gender-text">女孩</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="form-divider" style="background: {{childGender === 'boy' ? '#D0E0F5' : '#FFE4E9'}};"></view>
+
+        <view class="form-item">
+          <view class="form-icon">🎂</view>
+          <view class="form-content">
+            <text class="form-label">出生日期</text>
+            <picker mode="date" value="{{childBirthday}}" bindchange="onChildBirthdayChange">
+              <view class="form-input picker {{childBirthday ? '' : 'placeholder'}}">
+                {{childBirthday || '请选择生日'}}
+              </view>
+            </picker>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <button class="btn-create" style="background: {{childGender === 'boy' ? 'linear-gradient(135deg, #4A90D9 0%, #6BB3F0 100%)' : 'linear-gradient(135deg, #FF9AAB 0%, #FFB6C1 100%)'}}; box-shadow: 0 12rpx 32rpx {{childGender === 'boy' ? 'rgba(74,144,217,0.4)' : 'rgba(255,154,171,0.4)'}};" bindtap="createFamily" loading="{{loading}}">
+      <text class="btn-icon">✨</text>
+      <text class="btn-text">创建家庭</text>
+    </button>
+  </view>
+
+  <view class="content success-panel" wx:if="{{created}}">
+    <view class="success-bg"></view>
+    <view class="success-content">
+      <view class="success-icon">🎉</view>
+      <text class="success-title">创建成功！</text>
+      <text class="success-subtitle">您的专属邀请码</text>
+
+      <view class="code-card">
+        <view class="code-box">
+          <text class="code">{{inviteCode}}</text>
+        </view>
+        <view class="code-decor">🎊</view>
+      </view>
+
+      <text class="code-hint">分享此邀请码给家人，他们可以加入家庭</text>
+
+      <view class="btn-group">
+        <button class="btn-action" bindtap="copyCode">
+          <text class="btn-action-icon">📋</text>
+          <text>复制邀请码</text>
+        </button>
+        <button class="btn-action share" open-type="share">
+          <text class="btn-action-icon">💌</text>
+          <text>分享给好友</text>
+        </button>
+        <button class="btn-home" bindtap="goHome">
+          <text>进入首页 →</text>
+        </button>
+      </view>
+    </view>
+  </view>
+</view>

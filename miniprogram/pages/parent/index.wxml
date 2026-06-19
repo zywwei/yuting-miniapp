@@ -2,8 +2,26 @@
 <view class="container">
   <!-- 头部 -->
   <view class="header">
-    <view class="header-title">👨‍👩‍👧 家长中心</view>
+    <view class="header-title">👨‍👩‍👧 家庭中心</view>
     <view class="header-desc">钰婷已成长 {{stats.growthDays}} 天</view>
+  </view>
+
+  <!-- 我的角色 -->
+  <view class="section" wx:if="{{member}}" bindtap="goFamilySettings">
+    <view class="section-title">👤 我的角色</view>
+    <view class="role-card">
+      <view class="role-left">
+        <text class="role-icon">{{member.role === 'father' ? '👨' : member.role === 'mother' ? '👩' : member.role === 'child' ? '🧒' : member.role === 'grandpa' ? '👴' : member.role === 'grandma' ? '👵' : '👤'}}</text>
+        <view class="role-info">
+          <text class="role-name">{{member.roleName}}</text>
+          <text class="role-nickname">{{member.nickname || '未设置昵称'}}</text>
+        </view>
+      </view>
+      <view class="role-right">
+        <text class="admin-badge" wx:if="{{isAdmin}}">管理员</text>
+        <text class="card-arrow">›</text>
+      </view>
+    </view>
   </view>
 
   <!-- 数据概览 -->

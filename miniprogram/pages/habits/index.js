@@ -1,4 +1,8 @@
 var util = require('../../utils/util.js')
+var auth = require('../../utils/auth.js')
+var childStorage = require('../../utils/child-storage.js')
+
+var app = getApp()
 
 Page({
   data: {
@@ -10,35 +14,51 @@ Page({
     streak: 0,
     todayDone: 0,
     todayTotal: 14,
-    // 折叠状态
     collapsed: {
       sleep: false,
       health: false,
       life: false,
       learn: false,
       other: false
-    }
+    },
+    children: [],
+    currentChildId: ''
   },
 
   onLoad: function() {
+    this.setData({
+      children: app.globalData.children || [],
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+    })
     this.loadHabits()
   },
 
   onShow: function() {
+    this.setData({
+      children: app.globalData.children || [],
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+    })
+
     this.loadHabits()
 
-    // 更新 tabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
   },
 
+  onChildChanged: function(e) {
+    var childId = e.detail.childId
+    app.globalData.currentChildId = childId
+    this.setData({ currentChildId: childId })
+    this.loadHabits()
+  },
+
   // 加载习惯列表
   loadHabits: function() {
     var today = util.getTodayStr()
-    var habits = wx.getStorageSync('habits') || []
-    var records = wx.getStorageSync('habitRecords') || []
-    var brushingRecords = wx.getStorageSync('brushingRecords') || []
+    var habits = childStorage.get('habits') || []
+    var records = childStorage.get('habitRecords') || []
+    var brushingRecords = childStorage.get('brushingRecords') || []
 
     // 默认习惯
     var defaultHabits = [

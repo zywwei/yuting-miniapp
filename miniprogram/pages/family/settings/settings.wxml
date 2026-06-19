@@ -1,0 +1,221 @@
+<view class="page" style="background: {{themeBg}};">
+  <view class="page-header" style="background: {{themeGradient}};">
+    <view class="page-header-content">
+      <text class="page-title">家庭设置</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">我的角色</view>
+    <view class="card" bindtap="updateNickname">
+      <view class="card-left">
+        <text class="card-icon">{{member ? (member.role === 'father' ? '👨' : member.role === 'mother' ? '👩' : member.role === 'child' ? '🧒' : member.role === 'grandpa' ? '👴' : member.role === 'grandma' ? '👵' : '👤') : '👤'}}</text>
+        <view class="card-info">
+          <text class="card-title">{{member.roleName}}</text>
+          <text class="card-desc">{{member.nickname || '点击设置昵称'}}</text>
+        </view>
+      </view>
+      <text class="card-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{isAdmin}}">
+    <view class="section-title">🎨 主题配色</view>
+    <view class="theme-grid">
+      <view
+        class="theme-item {{currentTheme === item.id ? 'active' : ''}}"
+        wx:for="{{themes}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="selectTheme"
+      >
+        <view class="theme-preview" style="background: {{item.gradient}};">
+          <view class="theme-dot" style="background: {{item.color}};"></view>
+        </view>
+        <text class="theme-name">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{isAdmin}}">
+    <view class="section-title">邀请码</view>
+    <view class="card">
+      <view class="code-display">
+        <text class="code">{{inviteCode}}</text>
+        <view class="code-actions">
+          <view class="code-btn" bindtap="copyCode">复制</view>
+          <view class="code-btn primary" bindtap="refreshInviteCode" loading="{{loading}}">刷新</view>
+        </view>
+      </view>
+      <text class="code-hint">分享此邀请码给家人，有效期7天</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">
+      孩子管理
+      <view class="add-btn" wx:if="{{isAdmin}}" bindtap="showAddChildPanel">+ 添加</view>
+    </view>
+
+    <view class="card" wx:for="{{children}}" wx:key="childId">
+      <view class="card-left" bindtap="showEditChildPanel" data-id="{{item.childId}}">
+        <view class="child-avatar-small">
+          <image wx:if="{{item.avatar}}" src="{{item.avatar}}" mode="aspectFill" class="child-avatar-img" />
+          <text wx:else>{{item.gender === 'boy' ? '👦' : item.gender === 'girl' ? '👧' : '👶'}}</text>
+        </view>
+        <view class="card-info">
+          <text class="card-title">{{item.name}}</text>
+          <text class="card-desc">{{item.nickname || item.birthday || '点击编辑信息'}}</text>
+        </view>
+      </view>
+      <view class="card-actions" wx:if="{{isAdmin}}">
+        <view class="card-action" bindtap="showEditChildPanel" data-id="{{item.childId}}">
+          <text class="edit-text">编辑</text>
+        </view>
+        <view class="card-action" data-id="{{item.childId}}" data-name="{{item.name}}" catchtap="removeChild">
+          <text class="delete-text">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{isAdmin}}">
+    <view class="section-title">成员管理</view>
+    <view class="card" wx:if="{{family}}">
+      <view class="card-left">
+        <text class="card-icon">👨‍👩‍👧</text>
+        <view class="card-info">
+          <text class="card-title">家庭成员</text>
+          <text class="card-desc">管理家庭成员权限</text>
+        </view>
+      </view>
+      <text class="card-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="section danger-section">
+    <view class="card danger-card" bindtap="leaveFamily">
+      <text class="danger-text">退出家庭</text>
+    </view>
+  </view>
+
+  <!-- 添加孩子面板 -->
+  <view class="add-child-panel" wx:if="{{showAddChild}}">
+    <view class="panel-mask" bindtap="hideAddChildPanel"></view>
+    <view class="panel-content">
+      <view class="panel-title">添加孩子</view>
+
+      <view class="panel-avatar-section">
+        <view class="panel-avatar" bindtap="chooseNewChildAvatar">
+          <image class="panel-avatar-img" wx:if="{{newChildAvatar}}" src="{{newChildAvatar}}" mode="aspectFill" />
+          <view class="panel-avatar-default" wx:else>
+            <text>{{newChildGender === 'boy' ? '👦' : newChildGender === 'girl' ? '👧' : '📷'}}</text>
+          </view>
+        </view>
+        <text class="panel-avatar-hint">点击上传头像</text>
+      </view>
+
+      <view class="panel-form">
+        <view class="panel-form-item">
+          <text class="panel-label">姓名</text>
+          <input class="panel-input" placeholder="请输入孩子姓名" value="{{newChildName}}" bindinput="onNewChildNameInput" />
+        </view>
+
+        <view class="panel-form-item">
+          <text class="panel-label">昵称</text>
+          <input class="panel-input" placeholder="如：小宝、妞妞" value="{{newChildNickname}}" bindinput="onNewChildNicknameInput" />
+        </view>
+
+        <view class="panel-form-item">
+          <text class="panel-label">性别</text>
+          <view class="panel-gender-options">
+            <view class="panel-gender-btn {{newChildGender === 'boy' ? 'active-boy' : ''}}" bindtap="selectNewChildGender" data-gender="boy">
+              <text>👦 男孩</text>
+            </view>
+            <view class="panel-gender-btn {{newChildGender === 'girl' ? 'active-girl' : ''}}" bindtap="selectNewChildGender" data-gender="girl">
+              <text>👧 女孩</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="panel-form-item">
+          <text class="panel-label">生日</text>
+          <picker mode="date" value="{{newChildBirthday}}" bindchange="onNewChildBirthdayChange">
+            <view class="panel-input picker {{newChildBirthday ? '' : 'placeholder'}}">{{newChildBirthday || '请选择生日'}}</view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="panel-btns">
+        <view class="panel-btn cancel" bindtap="hideAddChildPanel">取消</view>
+        <view class="panel-btn confirm" style="background: {{newChildGender === 'boy' ? '#4A90D9' : '#FF9AAB'}};" bindtap="addChild" loading="{{loading}}">确定</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 编辑孩子面板 -->
+  <view class="add-child-panel" wx:if="{{showEditChild}}">
+    <view class="panel-mask" bindtap="hideEditChildPanel"></view>
+    <view class="panel-content">
+      <view class="panel-title">编辑孩子信息</view>
+
+      <view class="panel-avatar-section">
+        <view class="panel-avatar" bindtap="chooseEditChildAvatar">
+          <image class="panel-avatar-img" wx:if="{{editChildAvatar}}" src="{{editChildAvatar}}" mode="aspectFill" />
+          <view class="panel-avatar-default" wx:else>
+            <text>{{editChildGender === 'boy' ? '👦' : editChildGender === 'girl' ? '👧' : '📷'}}</text>
+          </view>
+        </view>
+        <text class="panel-avatar-hint">点击修改头像</text>
+      </view>
+
+      <view class="panel-form">
+        <view class="panel-form-item">
+          <text class="panel-label">姓名</text>
+          <input class="panel-input" placeholder="请输入孩子姓名" value="{{editChildName}}" bindinput="onEditChildNameInput" />
+        </view>
+
+        <view class="panel-form-item">
+          <text class="panel-label">昵称</text>
+          <input class="panel-input" placeholder="如：小宝、妞妞" value="{{editChildNickname}}" bindinput="onEditChildNicknameInput" />
+        </view>
+
+        <view class="panel-form-item">
+          <text class="panel-label">性别</text>
+          <view class="panel-gender-options">
+            <view class="panel-gender-btn {{editChildGender === 'boy' ? 'active-boy' : ''}}" bindtap="selectEditChildGender" data-gender="boy">
+              <text>👦 男孩</text>
+            </view>
+            <view class="panel-gender-btn {{editChildGender === 'girl' ? 'active-girl' : ''}}" bindtap="selectEditChildGender" data-gender="girl">
+              <text>👧 女孩</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="panel-form-item">
+          <text class="panel-label">生日</text>
+          <picker mode="date" value="{{editChildBirthday}}" bindchange="onEditChildBirthdayChange">
+            <view class="panel-input picker {{editChildBirthday ? '' : 'placeholder'}}">{{editChildBirthday || '请选择生日'}}</view>
+          </picker>
+        </view>
+
+        <view class="panel-form-item">
+          <text class="panel-label">主题色</text>
+          <view class="panel-theme-options">
+            <view class="panel-theme-btn {{editChildTheme === 'pink' ? 'active' : ''}}" style="background: #FF9AAB;" bindtap="selectEditChildTheme" data-theme="pink"></view>
+            <view class="panel-theme-btn {{editChildTheme === 'blue' ? 'active' : ''}}" style="background: #4A90D9;" bindtap="selectEditChildTheme" data-theme="blue"></view>
+            <view class="panel-theme-btn {{editChildTheme === 'purple' ? 'active' : ''}}" style="background: #9B59B6;" bindtap="selectEditChildTheme" data-theme="purple"></view>
+            <view class="panel-theme-btn {{editChildTheme === 'green' ? 'active' : ''}}" style="background: #27AE60;" bindtap="selectEditChildTheme" data-theme="green"></view>
+            <view class="panel-theme-btn {{editChildTheme === 'orange' ? 'active' : ''}}" style="background: #F39C12;" bindtap="selectEditChildTheme" data-theme="orange"></view>
+            <view class="panel-theme-btn {{editChildTheme === 'mint' ? 'active' : ''}}" style="background: #1ABC9C;" bindtap="selectEditChildTheme" data-theme="mint"></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="panel-btns">
+        <view class="panel-btn cancel" bindtap="hideEditChildPanel">取消</view>
+        <view class="panel-btn confirm" style="background: {{editChildGender === 'boy' ? '#4A90D9' : '#FF9AAB'}};" bindtap="saveEditChild" loading="{{loading}}">保存</view>
+      </view>
+    </view>
+  </view>
+</view>

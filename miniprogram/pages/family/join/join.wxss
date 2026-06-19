@@ -1,0 +1,85 @@
+.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFE8EE 100%);
+  padding: 0 40rpx;
+}
+
+.header {
+  text-align: center;
+  padding: 80rpx 0 40rpx;
+}
+
+.title {
+  display: block;
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.subtitle {
+  display: block;
+  font-size: 28rpx;
+  color: #888;
+}
+
+.content {
+  padding: 20rpx 0;
+}
+
+.input-group {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx 32rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
+}
+
+.label {
+  display: block;
+  font-size: 24rpx;
+  color: #888;
+  margin-bottom: 12rpx;
+}
+
+.input {
+  font-size: 32rpx;
+  color: #333;
+}
+
+.code-input {
+  font-size: 48rpx;
+  font-weight: bold;
+  letter-spacing: 8rpx;
+  text-align: center;
+}
+
+.hint {
+  padding: 16rpx 0 40rpx;
+}
+
+.hint text {
+  font-size: 24rpx;
+  color: #aaa;
+}
+
+.btn-primary {
+  background: #FF6B8A;
+  color: #fff;
+  border: none;
+  border-radius: 48rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-top: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.btn-primary[disabled] {
+  background: #FFB6C1;
+  color: #fff;
+}

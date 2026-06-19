@@ -1,0 +1,10 @@
+<view class="like-bar" bindtap="toggleLike">
+  <view class="like-info" wx:if="{{likes.length > 0}}">
+    <text class="like-icon">❤️</text>
+    <text class="like-names">{{likeNames}}</text>
+  </view>
+  <view class="like-btn {{liked ? 'liked' : ''}}">
+    <text class="heart">{{liked ? '❤️' : '🤍'}}</text>
+    <text class="count">{{likes.length > 0 ? likes.length : ''}}</text>
+  </view>
+</view>

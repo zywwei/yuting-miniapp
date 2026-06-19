@@ -1,13 +1,48 @@
 <!-- 首页 - 钰婷成长小助手 -->
 <view class="container">
   <!-- 状态栏占位 -->
-  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+  <view class="status-bar" style="height: {{statusBarHeight}}px; background: {{themeColor}};"></view>
 
   <!-- 顶部欢迎区 -->
-  <view class="header">
-    <view class="greeting">👋 钰婷，{{greeting}}！</view>
-    <view class="date-info">{{dateStr}} {{weekdayStr}}</view>
-    <view class="growth-info">今天是你成长的第 {{growthDays}} 天</view>
+  <view class="header" style="background: {{themeGradient}};">
+    <view class="header-main">
+      <view class="header-left">
+        <text class="header-date">{{weekdayStr}} {{dateStr}}</text>
+        <text class="header-greeting">👋 {{greeting}}！</text>
+      </view>
+
+      <view class="header-center" wx:if="{{children.length > 0}}" bindtap="{{children.length > 1 ? 'toggleChildList' : ''}}">
+        <view class="child-avatar">
+          <image wx:if="{{currentChild.avatar}}" src="{{currentChild.avatar}}" mode="aspectFill" class="avatar-img" />
+          <text wx:else class="avatar-emoji">{{currentChild.gender === 'boy' ? '👦' : currentChild.gender === 'girl' ? '👧' : '👶'}}</text>
+        </view>
+        <text class="child-current">{{currentChild.nickname || currentChild.name}}</text>
+        <text class="select-arrow {{showChildList ? 'open' : ''}}" wx:if="{{children.length > 1}}">▾</text>
+      </view>
+
+      <view class="header-right">
+        <view class="days-row">
+          <text class="days-big">{{growthDays}}</text>
+          <text class="days-unit">天</text>
+        </view>
+        <text class="days-detail">{{growthYears}}年{{growthMonths}}月{{growthDaysRemain}}天</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 孩子下拉列表（放到header外面避免层级问题） -->
+  <view class="child-dropdown {{showChildList ? 'show' : ''}}" wx:if="{{children.length > 1}}">
+    <view
+      class="child-option {{item.childId === currentChildId ? 'active' : ''}}"
+      wx:for="{{children}}"
+      wx:key="childId"
+      data-id="{{item.childId}}"
+      bindtap="onSwitchChild"
+    >
+      <text class="option-emoji">{{item.gender === 'boy' ? '👦' : item.gender === 'girl' ? '👧' : '👶'}}</text>
+      <text class="option-name">{{item.nickname || item.name}}</text>
+      <text class="option-check" wx:if="{{item.childId === currentChildId}}">✓</text>
+    </view>
   </view>
 
   <!-- 今日习惯 -->

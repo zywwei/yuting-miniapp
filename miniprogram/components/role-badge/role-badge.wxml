@@ -1,0 +1,4 @@
+<view class="role-badge {{size}}">
+  <text class="badge-icon">{{icon}}</text>
+  <text class="badge-name" wx:if="{{name}}">{{name}}</text>
+</view>

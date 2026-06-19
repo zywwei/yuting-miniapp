@@ -1,6 +1,8 @@
 var util = require('../../utils/util.js')
 var learnData = require('../../utils/learn-data.js')
 var achievements = require('../../utils/achievements.js')
+var auth = require('../../utils/auth.js')
+var childStorage = require('../../utils/child-storage.js')
 
 var app = getApp()
 
@@ -11,29 +13,172 @@ Page({
     dateStr: '',
     weekdayStr: '',
     growthDays: 0,
+    growthYears: 0,
+    growthMonths: 0,
+    growthDaysRemain: 0,
     todayHabits: [],
     achievements: [],
-    recommendations: []
+    recommendations: [],
+    children: [],
+    currentChildId: '',
+    currentChild: null,
+    showChildList: false,
+    themeColor: '#FF9AAB',
+    themeBg: '#FFF5F7',
+    themeGradient: 'linear-gradient(135deg, #FF9AAB 0%, #FFB6C1 100%)'
   },
 
   onLoad: function() {
     var sysInfo = wx.getSystemInfoSync()
     this.setData({
-      statusBarHeight: sysInfo.statusBarHeight || 20,
-      growthDays: app.globalData.growthDays || 0
+      statusBarHeight: sysInfo.statusBarHeight || 20
+    })
+
+    // 等待 app 数据加载完成
+    this.waitForAppData()
+
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: app.globalData.themeColor || '#FF9AAB',
+      animation: { duration: 0 }
     })
   },
 
   onShow: function() {
+    // 每次显示时刷新数据
+    this.updateFromApp()
+
     this.setGreeting()
     this.loadTodayHabits()
     this.loadAchievements()
     this.loadRecommendations()
 
-    // 更新 tabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 })
     }
+  },
+
+  waitForAppData: function() {
+    var that = this
+    var checkCount = 0
+    var timer = setInterval(function() {
+      checkCount++
+      if (app.globalData.children.length > 0 || checkCount > 30) {
+        clearInterval(timer)
+        that.updateFromApp()
+        that.setGreeting()
+        that.loadTodayHabits()
+        that.loadAchievements()
+        that.loadRecommendations()
+      }
+    }, 100)
+  },
+
+  updateFromApp: function() {
+    var children = app.globalData.children || []
+    var currentChildId = app.globalData.currentChildId || auth.getCurrentChildId()
+    var currentChild = null
+
+    for (var i = 0; i < children.length; i++) {
+      if (children[i].childId === currentChildId) {
+        currentChild = children[i]
+        break
+      }
+    }
+    if (!currentChild && children.length > 0) {
+      currentChild = children[0]
+      currentChildId = children[0].childId
+    }
+
+    // 调试日志
+    console.log('当前孩子数据:', currentChild)
+
+    this.setData({
+      growthDays: app.globalData.growthDays || 0,
+      children: children,
+      currentChildId: currentChildId,
+      currentChild: currentChild,
+      themeColor: app.globalData.themeColor,
+      themeBg: app.globalData.themeBg,
+      themeGradient: app.globalData.themeGradient
+    })
+
+    this.calcGrowthDetail()
+
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: app.globalData.themeColor || '#FF9AAB',
+      animation: { duration: 0 }
+    })
+  },
+
+  onChildChanged: function(e) {
+    var childId = e.detail.childId
+    this.switchToChild(childId)
+  },
+
+  onSwitchChild: function(e) {
+    var childId = e.currentTarget.dataset.id
+    if (childId === this.data.currentChildId) return
+    this.switchToChild(childId)
+  },
+
+  switchToChild: function(childId) {
+    var app = getApp()
+    app.globalData.currentChildId = childId
+    auth.switchChild(childId)
+
+    wx.cloud.callFunction({
+      name: 'family',
+      data: { action: 'saveCurrentChild', childId: childId }
+    }).catch(function(err) {
+      console.warn('保存当前孩子失败:', err)
+    })
+
+    app.calcGrowthDays()
+    this.setData({
+      showChildList: false
+    })
+    this.updateFromApp()
+    this.loadTodayHabits()
+    this.loadAchievements()
+    this.loadRecommendations()
+  },
+
+  toggleChildList: function() {
+    this.setData({ showChildList: !this.data.showChildList })
+  },
+
+  calcGrowthDetail: function() {
+    var child = auth.getCurrentChild()
+    if (!child || !child.birthday) {
+      this.setData({ growthYears: 0, growthMonths: 0, growthDaysRemain: 0 })
+      return
+    }
+
+    var birthday = new Date(child.birthday)
+    var today = new Date()
+
+    var years = today.getFullYear() - birthday.getFullYear()
+    var months = today.getMonth() - birthday.getMonth()
+    var days = today.getDate() - birthday.getDate()
+
+    if (days < 0) {
+      months--
+      var lastMonth = new Date(today.getFullYear(), today.getMonth(), 0)
+      days += lastMonth.getDate()
+    }
+
+    if (months < 0) {
+      years--
+      months += 12
+    }
+
+    this.setData({
+      growthYears: years,
+      growthMonths: months,
+      growthDaysRemain: days
+    })
   },
 
   // 设置问候语和日期
@@ -59,9 +204,9 @@ Page({
   // 加载今日习惯
   loadTodayHabits: function() {
     var today = util.getTodayStr()
-    var habits = wx.getStorageSync('habits') || []
-    var records = wx.getStorageSync('habitRecords') || []
-    var brushingRecords = wx.getStorageSync('brushingRecords') || []
+    var habits = childStorage.get('habits') || []
+    var records = childStorage.get('habitRecords') || []
+    var brushingRecords = childStorage.get('brushingRecords') || []
 
     // 默认习惯（只显示常用的习惯在首页）
     var defaultHabits = [
@@ -144,7 +289,7 @@ Page({
 
     // 如果推荐不足3条，添加习惯推荐
     if (recommendations.length < 3) {
-      var records = wx.getStorageSync('habitRecords') || []
+      var records = childStorage.get('habitRecords') || []
       var today = util.getTodayStr()
       var todayRecords = records.filter(function(r) { return r.date === today })
 

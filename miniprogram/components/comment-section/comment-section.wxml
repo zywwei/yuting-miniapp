@@ -1,0 +1,50 @@
+<view class="comment-section">
+  <view class="section-header" wx:if="{{comments.length > 0}}">
+    <text class="section-title">评论 ({{comments.length}})</text>
+  </view>
+
+  <view class="comment-list">
+    <view class="comment-item" wx:for="{{comments}}" wx:key="_id">
+      <view class="comment-avatar">{{item.authorRole === 'father' ? '👨' : item.authorRole === 'mother' ? '👩' : item.authorRole === 'child' ? '🧒' : item.authorRole === 'grandpa' ? '👴' : item.authorRole === 'grandma' ? '👵' : '👤'}}</view>
+      <view class="comment-body">
+        <view class="comment-header">
+          <text class="comment-author">{{item.authorName}}</text>
+          <text class="comment-delete" wx:if="{{item._canDelete}}" data-id="{{item._id}}" catchtap="deleteComment">删除</text>
+        </view>
+
+        <text class="comment-text" wx:if="{{item.type === 'text'}}">{{item.content}}</text>
+        <text class="comment-emoji" wx:if="{{item.type === 'emoji'}}">{{item.emoji}}</text>
+        <image
+          class="comment-image"
+          wx:if="{{item.type === 'image' && item.imageFileId}}"
+          src="{{item.imageFileId}}"
+          mode="widthFix"
+          data-url="{{item.imageFileId}}"
+          bindtap="previewImage"
+        />
+      </view>
+    </view>
+  </view>
+
+  <view class="comment-input-area">
+    <view class="input-row">
+      <input
+        class="comment-input"
+        placeholder="写评论..."
+        value="{{inputText}}"
+        bindinput="onInput"
+        confirm-type="send"
+        bindconfirm="submitComment"
+      />
+      <view class="input-actions">
+        <view class="action-btn" bindtap="toggleEmoji">😊</view>
+        <view class="action-btn" bindtap="addImageComment">📷</view>
+        <view class="send-btn {{inputText ? 'active' : ''}}" bindtap="submitComment">发送</view>
+      </view>
+    </view>
+
+    <view class="emoji-panel" wx:if="{{showEmoji}}">
+      <view class="emoji-item" wx:for="{{emojiList}}" wx:key="*this" data-emoji="{{item}}" bindtap="selectEmoji">{{item}}</view>
+    </view>
+  </view>
+</view>

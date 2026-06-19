@@ -1,0 +1,48 @@
+.like-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+}
+
+.like-info {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex: 1;
+  overflow: hidden;
+}
+
+.like-icon {
+  font-size: 28rpx;
+}
+
+.like-names {
+  font-size: 24rpx;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.like-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 24rpx;
+  background: #f5f5f5;
+}
+
+.like-btn.liked {
+  background: #FFF0F0;
+}
+
+.heart {
+  font-size: 28rpx;
+}
+
+.count {
+  font-size: 24rpx;
+  color: #999;
+}

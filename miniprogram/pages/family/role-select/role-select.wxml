@@ -1,0 +1,61 @@
+<view class="page">
+  <view class="header">
+    <text class="title">欢迎来到成长小助手</text>
+    <text class="subtitle">{{step === 1 ? '请选择您的角色' : '请输入昵称'}}</text>
+  </view>
+
+  <view class="content" wx:if="{{step === 1}}">
+    <view class="role-grid">
+      <view
+        class="role-item {{selectedRole === item.role ? 'selected' : ''}}"
+        wx:for="{{roles}}"
+        wx:key="role"
+        data-role="{{item.role}}"
+        data-name="{{item.name}}"
+        bindtap="selectRole"
+      >
+        <text class="role-icon">{{item.icon}}</text>
+        <text class="role-name">{{item.name}}</text>
+      </view>
+    </view>
+
+    <button class="btn-primary" bindtap="nextStep" disabled="{{!selectedRole}}">下一步</button>
+  </view>
+
+  <view class="content" wx:if="{{step === 2}}">
+    <view class="selected-role">
+      <text class="selected-icon">{{roles[selectedRole === 'father' ? 0 : selectedRole === 'mother' ? 1 : selectedRole === 'grandpa' ? 2 : selectedRole === 'grandma' ? 3 : selectedRole === 'uncle' ? 4 : selectedRole === 'aunt' ? 5 : selectedRole === 'child' ? 6 : 7].icon}}</text>
+      <text class="selected-name">{{selectedRoleName}}</text>
+    </view>
+
+    <view class="avatar-section">
+      <view class="avatar-upload" bindtap="chooseAvatar">
+        <image class="avatar-image" wx:if="{{avatar}}" src="{{avatar}}" mode="aspectFill" />
+        <view class="avatar-placeholder" wx:else>
+          <text class="avatar-icon">📷</text>
+          <text class="avatar-text">上传头像</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="input-group">
+      <text class="label">昵称</text>
+      <input
+        class="input"
+        placeholder="请输入您的昵称"
+        value="{{nickname}}"
+        bindinput="onNicknameInput"
+        maxlength="10"
+      />
+    </view>
+
+    <view class="btn-group">
+      <button class="btn-primary" bindtap="goCreate">创建家庭</button>
+      <button class="btn-secondary" bindtap="goJoin">加入家庭</button>
+    </view>
+
+    <view class="back-link" bindtap="goBack">
+      <text>重新选择角色</text>
+    </view>
+  </view>
+</view>

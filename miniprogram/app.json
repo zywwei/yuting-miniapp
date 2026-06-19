@@ -22,7 +22,11 @@
     "pages/notes/add",
     "pages/notes/detail",
     "pages/parent/index",
-    "pages/achievement/index"
+    "pages/achievement/index",
+    "pages/family/role-select/role-select",
+    "pages/family/create/create",
+    "pages/family/join/join",
+    "pages/family/settings/settings"
   ],
   "window": {
     "navigationBarBackgroundColor": "#FF9AAB",

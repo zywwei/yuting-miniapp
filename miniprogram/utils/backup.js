@@ -1,64 +1,48 @@
 /**
- * 数据备份与恢复工具
- * 支持导出所有数据（包括图片）为备份文件，以及从备份文件导入还原
+ * 数据备份与恢复工具（版本2）
+ * 支持家庭角色系统的数据结构
  */
 
-const util = require('./util.js')
+var util = require('./util.js')
+var auth = require('./auth.js')
+var childStorage = require('./child-storage.js')
 
-// ===== 需要备份的 Storage Keys =====
-const STORAGE_KEYS = [
-  'brushingRecords',     // 刷牙记录
-  'habitRecords',        // 习惯打卡记录
-  'drawings',            // 画作
-  'notes',               // 笔记
-  'habits',              // 自定义习惯
-  'achievements',        // 成就
-  'brushingStory',       // 刷牙故事进度
-  'brushingAvatar',      // 刷牙角色
-  'toothDecorations',    // 牙齿贴纸装饰
-  'totalBrushPoints',    // 刷牙积分
-  'brushingReminder',    // 刷牙提醒设置
-  'learnProgress',       // 学习进度（含汉字/古诗/数字/英语）
-  'settings'             // 用户设置（生日、孩子姓名等）
-]
+var STORAGE_KEYS = childStorage.CHILD_KEYS
 
-/**
- * 导出所有数据
- * @returns {Promise<Object>} 备份数据对象
- */
 function exportAllData() {
   return new Promise(function(resolve, reject) {
     try {
+      var member = auth.getMember()
+      var family = auth.getFamily()
+      var children = auth.getChildren()
+
       var backupData = {
-        version: 1,
+        version: 2,
         exportTime: new Date().toISOString(),
         deviceInfo: {
           platform: wx.getSystemInfoSync().platform,
           model: wx.getSystemInfoSync().model
         },
+        family: family || null,
+        member: member || null,
+        children: children || [],
         storage: {},
         images: []
       }
 
-      // 1. 读取所有 storage 数据
       STORAGE_KEYS.forEach(function(key) {
-        var value = wx.getStorageSync(key)
+        var value = childStorage.get(key)
         if (value !== '' && value !== undefined && value !== null) {
           backupData.storage[key] = value
         }
       })
 
-      // 2. 收集所有图片路径
       var imagePaths = collectImagePaths(backupData.storage)
 
-      // 3. 将图片转为 base64
       var failedImages = []
       var imagePromises = imagePaths.map(function(imgPath) {
         return imageToBase64(imgPath).then(function(base64) {
-          return {
-            path: imgPath,
-            base64: base64
-          }
+          return { path: imgPath, base64: base64 }
         }).catch(function(err) {
           console.warn('图片转换失败:', imgPath, err)
           failedImages.push(imgPath)
@@ -79,11 +63,6 @@ function exportAllData() {
   })
 }
 
-/**
- * 导入数据
- * @param {Object} backupData - 备份数据对象
- * @returns {Promise<Object>} 导入结果
- */
 function importAllData(backupData) {
   return new Promise(function(resolve, reject) {
     try {
@@ -92,13 +71,11 @@ function importAllData(backupData) {
         return
       }
 
-      // 版本兼容性检查
-      if (backupData.version > 1) {
-        reject(new Error('备份文件版本过高，请更新应用后再导入'))
+      if (backupData.version !== 2) {
+        reject(new Error('不支持此备份版本，请使用版本2的备份文件'))
         return
       }
 
-      // 结构完整性校验
       if (backupData.storage && typeof backupData.storage !== 'object') {
         reject(new Error('备份文件数据格式错误'))
         return
@@ -114,7 +91,6 @@ function importAllData(backupData) {
         errors: []
       }
 
-      // 1. 恢复图片（base64 转文件）
       var imagePromises = (backupData.images || []).map(function(img) {
         return base64ToImage(img.base64, img.path).then(function(savedPath) {
           result.importedImages++
@@ -126,7 +102,6 @@ function importAllData(backupData) {
       })
 
       Promise.all(imagePromises).then(function(imageMappings) {
-        // 2. 构建路径映射
         var pathMap = {}
         imageMappings.forEach(function(mapping) {
           if (mapping) {
@@ -134,12 +109,11 @@ function importAllData(backupData) {
           }
         })
 
-        // 3. 恢复 storage 数据（替换图片路径）
         Object.keys(backupData.storage).forEach(function(key) {
           try {
             var value = backupData.storage[key]
             var replaced = replaceImagePaths(value, pathMap)
-            wx.setStorageSync(key, replaced)
+            childStorage.set(key, replaced)
             result.importedKeys++
           } catch (err) {
             result.errors.push('恢复 ' + key + ' 失败: ' + err.message)
@@ -156,11 +130,6 @@ function importAllData(backupData) {
   })
 }
 
-/**
- * 将备份数据保存到文件
- * @param {Object} backupData - 备份数据
- * @returns {Promise<string>} 文件路径
- */
 function saveBackupToFile(backupData) {
   return new Promise(function(resolve, reject) {
     try {
@@ -187,11 +156,6 @@ function saveBackupToFile(backupData) {
   })
 }
 
-/**
- * 从文件读取备份数据
- * @param {string} filePath - 文件路径
- * @returns {Promise<Object>} 备份数据
- */
 function loadBackupFromFile(filePath) {
   return new Promise(function(resolve, reject) {
     try {
@@ -218,11 +182,6 @@ function loadBackupFromFile(filePath) {
   })
 }
 
-// ===== 内部工具函数 =====
-
-/**
- * 收集数据中所有图片路径
- */
 function collectImagePaths(data) {
   var paths = []
 
@@ -245,31 +204,22 @@ function collectImagePaths(data) {
 
   findPaths(data)
 
-  // 去重
   return paths.filter(function(path, index, self) {
     return self.indexOf(path) === index
   })
 }
 
-/**
- * 判断是否为图片路径
- */
 function isImagePath(str) {
   if (typeof str !== 'string') return false
-  // 本地文件路径或云存储路径
   return str.startsWith(wx.env.USER_DATA_PATH) ||
          str.startsWith('cloud://') ||
          str.match(/\.(jpg|jpeg|png|gif|webp)$/i) !== null
 }
 
-/**
- * 图片转 base64
- */
 function imageToBase64(filePath) {
   return new Promise(function(resolve, reject) {
     var fs = wx.getFileSystemManager()
 
-    // 云存储文件需要先下载
     if (filePath.startsWith('cloud://')) {
       wx.cloud.downloadFile({
         fileID: filePath,
@@ -296,9 +246,6 @@ function readFileAsBase64(filePath, resolve, reject) {
   })
 }
 
-/**
- * base64 转图片文件
- */
 function base64ToImage(base64, originalPath) {
   return new Promise(function(resolve, reject) {
     try {
@@ -323,18 +270,12 @@ function base64ToImage(base64, originalPath) {
   })
 }
 
-/**
- * 从路径获取扩展名
- */
 function getExtensionFromPath(path) {
   if (!path) return 'jpg'
   var match = path.match(/\.([a-zA-Z0-9]+)$/)
   return match ? match[1].toLowerCase() : 'jpg'
 }
 
-/**
- * 递归替换对象中的图片路径
- */
 function replaceImagePaths(obj, pathMap) {
   if (!obj || typeof obj !== 'object') return obj
 
@@ -356,12 +297,9 @@ function replaceImagePaths(obj, pathMap) {
   return result
 }
 
-/**
- * 获取备份文件大小（用于显示）
- */
 function getBackupSize(backupData) {
   var jsonStr = JSON.stringify(backupData)
-  var bytes = jsonStr.length * 2 // 粗略估算
+  var bytes = jsonStr.length * 2
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB'

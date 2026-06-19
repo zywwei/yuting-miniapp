@@ -1,0 +1,20 @@
+<view class="child-switcher" wx:if="{{children.length > 0}}">
+  <view class="switcher-bar" bindtap="showSwitcher">
+    <text class="child-avatar">👧</text>
+    <text class="child-name">{{currentChild.name}}</text>
+    <text class="switcher-arrow" wx:if="{{children.length > 1}}">▼</text>
+  </view>
+
+  <view class="switcher-panel" wx:if="{{showPanel && children.length > 1}}">
+    <view
+      class="panel-item {{item.childId === currentChildId ? 'active' : ''}}"
+      wx:for="{{children}}"
+      wx:key="childId"
+      data-id="{{item.childId}}"
+      bindtap="switchChild"
+    >
+      <text class="item-avatar">👧</text>
+      <text class="item-name">{{item.name}}</text>
+    </view>
+  </view>
+</view>

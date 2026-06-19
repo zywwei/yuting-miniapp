@@ -1,6 +1,7 @@
 var learnData = require('../../utils/learn-data.js')
 var achievements = require('../../utils/achievements.js')
 var backup = require('../../utils/backup.js')
+var auth = require('../../utils/auth.js')
 
 Page({
   data: {
@@ -19,7 +20,10 @@ Page({
     },
     recentNotes: [],
     backupStatus: '',
-    backupStatusType: ''
+    backupStatusType: '',
+    member: null,
+    family: null,
+    isAdmin: false
   },
 
   onLoad: function() {
@@ -32,24 +36,25 @@ Page({
 
   loadData: function() {
     var app = getApp()
-    var records = wx.getStorageSync('habitRecords') || []
-    var drawings = wx.getStorageSync('drawings') || []
-    var notes = wx.getStorageSync('notes') || []
+    var childStorage = require('../../utils/child-storage.js')
 
-    // 计算连续刷牙天数（从独立的 brushingRecords 读取）
-    var brushingRecords = wx.getStorageSync('brushingRecords') || []
+    var member = auth.getMember()
+    var family = auth.getFamily()
+
+    var records = childStorage.get('habitRecords') || []
+    var drawings = childStorage.get('drawings') || []
+    var notes = childStorage.get('notes') || []
+
+    var brushingRecords = childStorage.get('brushingRecords') || []
     var brushingStreak = this.calcStreak(brushingRecords)
 
-    // 学习进度
     var cardsLearned = learnData.getCardsLearnedCount()
     var poemsMemorized = learnData.getPoemsMemorizedCount()
     var numbersLearned = learnData.getNumbersLearnedCount()
     var englishLearned = learnData.getEnglishLearnedCount()
 
-    // 成就统计
     var achievementStats = achievements.getAchievementStats()
 
-    // 最近笔记
     var recentNotes = notes.sort(function(a, b) {
       return new Date(b.createTime) - new Date(a.createTime)
     }).slice(0, 5)
@@ -66,7 +71,10 @@ Page({
         notesCount: notes.length
       },
       achievementStats: achievementStats,
-      recentNotes: recentNotes
+      recentNotes: recentNotes,
+      member: member,
+      family: family,
+      isAdmin: auth.isAdmin()
     })
   },
 
@@ -99,6 +107,11 @@ Page({
   // 查看成就详情
   viewAchievements: function() {
     wx.navigateTo({ url: '/pages/achievement/index' })
+  },
+
+  // 家庭设置
+  goFamilySettings: function() {
+    wx.navigateTo({ url: '/pages/family/settings/settings' })
   },
 
   // 查看笔记详情
