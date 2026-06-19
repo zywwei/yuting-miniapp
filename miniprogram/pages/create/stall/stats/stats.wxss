@@ -4,6 +4,11 @@
   padding-bottom: 32rpx;
 }
 
+.container.modal-open {
+  overflow: hidden;
+  height: 100vh;
+}
+
 .header {
   position: relative;
   margin-bottom: -16rpx;
@@ -403,12 +408,10 @@
 
 .poster-canvas {
   position: fixed;
-  left: 0;
-  top: 0;
+  left: -9999rpx;
+  top: -9999rpx;
   width: 375px;
   height: 812px;
-  visibility: hidden;
-  z-index: -9999;
 }
 
 .poster-modal {
@@ -418,6 +421,12 @@
   right: 0;
   bottom: 0;
   z-index: 1000;
+  overflow: hidden;
+}
+
+.poster-modal .container {
+  overflow: hidden;
+  height: 100%;
 }
 
 .poster-mask {

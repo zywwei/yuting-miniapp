@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container {{posterPath ? 'modal-open' : ''}}">
   <view class="header">
     <view class="header-bg"></view>
     <view class="header-content">
