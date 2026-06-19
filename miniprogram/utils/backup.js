@@ -66,14 +66,8 @@ function exportAllData() {
 function importAllData(backupData) {
   return new Promise(function(resolve, reject) {
     try {
-      if (!backupData || !backupData.version) {
-        reject(new Error('无效的备份文件'))
-        return
-      }
-
-      // 支持版本1、2、3
-      if (backupData.version < 1 || backupData.version > 3) {
-        reject(new Error('不支持此备份版本'))
+      if (!backupData || backupData.version !== 3) {
+        reject(new Error('无效的备份文件，请使用最新版本的备份'))
         return
       }
 
@@ -121,19 +115,16 @@ function importAllData(backupData) {
           }
         })
 
-        // 恢复家庭信息（版本2+）
-        if (backupData.version >= 2) {
-          if (backupData.family) {
-            auth.setFamily(backupData.family)
-          }
-          if (backupData.member) {
-            auth.setMember(backupData.member)
-          }
-          if (backupData.children && backupData.children.length > 0) {
-            auth.setChildren(backupData.children)
-            if (!auth.getCurrentChildId()) {
-              auth.switchChild(backupData.children[0].childId)
-            }
+        if (backupData.family) {
+          auth.setFamily(backupData.family)
+        }
+        if (backupData.member) {
+          auth.setMember(backupData.member)
+        }
+        if (backupData.children && backupData.children.length > 0) {
+          auth.setChildren(backupData.children)
+          if (!auth.getCurrentChildId()) {
+            auth.switchChild(backupData.children[0].childId)
           }
         }
 
