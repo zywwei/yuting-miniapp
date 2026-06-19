@@ -1,6 +1,6 @@
 <view class="container {{posterPath ? 'modal-open' : ''}}">
   <view class="header">
-    <view class="header-bg"></view>
+    <view class="header-bg" style="background: {{themeGradient}};"></view>
     <view class="header-content">
       <view class="stats-cards">
         <view class="stat-card">
@@ -154,7 +154,9 @@
   <view class="poster-modal" wx:if="{{posterPath}}">
     <view class="poster-mask" bindtap="closePoster"></view>
     <view class="poster-content">
-      <image src="{{posterPath}}" mode="widthFix" class="poster-image" />
+      <view class="poster-image-wrapper">
+        <image src="{{posterPath}}" mode="aspectFit" class="poster-image" />
+      </view>
       <view class="poster-actions">
         <view class="poster-btn" bindtap="savePoster">保存到相册</view>
         <view class="poster-btn primary" bindtap="sharePoster">分享给好友</view>
