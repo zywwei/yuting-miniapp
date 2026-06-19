@@ -145,18 +145,20 @@ Page({
       var barW = chartW / dailySales.length * 0.6
       var gap = chartW / dailySales.length * 0.4
 
-      // Draw grid lines
-      ctx.strokeStyle = '#f0f0f0'
-      ctx.lineWidth = 1
+      // Draw grid lines (lighter)
+      ctx.strokeStyle = '#f5f5f5'
+      ctx.lineWidth = 0.5
       for (var i = 0; i <= 4; i++) {
         var gy = padding.top + chartH * (1 - i / 4)
         ctx.beginPath()
+        ctx.setLineDash([3, 3])
         ctx.moveTo(padding.left, gy)
         ctx.lineTo(width - padding.right, gy)
         ctx.stroke()
+        ctx.setLineDash([])
 
-        ctx.fillStyle = '#999'
-        ctx.font = '10px sans-serif'
+        ctx.fillStyle = '#bbb'
+        ctx.font = '9px sans-serif'
         ctx.textAlign = 'right'
         ctx.fillText('¥' + Math.round(maxVal * i / 4), padding.left - 5, gy + 3)
       }
