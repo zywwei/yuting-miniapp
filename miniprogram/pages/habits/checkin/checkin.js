@@ -122,9 +122,45 @@ Page({
       sourceType: ['album', 'camera'],
       sizeType: ['compressed'],
       success: function(res) {
-        var newImages = res.tempFiles.map(function(f) { return f.tempFilePath })
-        var images = this.data.images.concat(newImages)
-        this.setData({ images: images })
+        var that = this
+        var tempFiles = res.tempFiles
+        wx.showLoading({ title: '上传中...' })
+
+        var uploadCount = 0
+        var newImages = []
+
+        tempFiles.forEach(function(f, index) {
+          var tempPath = f.tempFilePath
+          if (wx.cloud) {
+            var cloudPath = 'habits/' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.jpg'
+            wx.cloud.uploadFile({
+              cloudPath: cloudPath,
+              filePath: tempPath,
+              success: function(res) {
+                newImages[index] = res.fileID
+              },
+              fail: function() {
+                newImages[index] = tempPath
+              },
+              complete: function() {
+                uploadCount++
+                if (uploadCount === tempFiles.length) {
+                  var images = that.data.images.concat(newImages)
+                  that.setData({ images: images })
+                  wx.hideLoading()
+                }
+              }
+            })
+          } else {
+            newImages[index] = tempPath
+            uploadCount++
+            if (uploadCount === tempFiles.length) {
+              var images = that.data.images.concat(newImages)
+              that.setData({ images: images })
+              wx.hideLoading()
+            }
+          }
+        })
       }.bind(this)
     })
   },
