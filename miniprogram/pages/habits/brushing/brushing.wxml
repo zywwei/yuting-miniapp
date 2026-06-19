@@ -11,7 +11,7 @@
       </view>
     </view>
     <view class="tool-center">
-      <text class="tool-title">🦷 钰婷刷牙打卡</text>
+      <text class="tool-title">🦷 刷牙打卡</text>
     </view>
     <view class="tool-right">
       <view class="tool-btn" bindtap="goStats">
