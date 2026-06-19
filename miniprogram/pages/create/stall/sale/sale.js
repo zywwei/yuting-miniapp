@@ -152,18 +152,19 @@ Page({
 
     stallManager.addSale(sale)
 
-    // Check achievements
+    wx.showToast({ title: '收款成功', icon: 'success' })
+
+    // Check achievements (non-blocking)
     achievements.checkAchievementsAsync().then(function(newAchievements) {
       if (newAchievements && newAchievements.length > 0) {
-        // Show achievement popup
         var popup = this.selectComponent('#achievementPopup')
         if (popup) {
           popup.showAchievements(newAchievements)
         }
       }
-    }.bind(this))
-
-    wx.showToast({ title: '收款成功', icon: 'success' })
+    }.bind(this)).catch(function(err) {
+      console.warn('成就检查失败:', err)
+    })
 
     // Reset
     this.setData({

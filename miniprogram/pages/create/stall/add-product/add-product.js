@@ -40,7 +40,9 @@ Page({
 
   onInput: function(e) {
     var field = e.currentTarget.dataset.field
-    this.setData({ [field]: e.detail.value })
+    var update = {}
+    update[field] = e.detail.value
+    this.setData(update)
     if (field === 'costPrice' || field === 'salePrice') {
       this.calcProfitRate()
     }

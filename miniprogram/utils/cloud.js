@@ -982,6 +982,120 @@ async function fetchToothDecorations() {
   return childStorage.get('toothDecorations') || []
 }
 
+// ===== 摆摊相关 =====
+
+async function uploadStallProduct(product) {
+  if (!isCloudReady()) return
+  try {
+    await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'add', collection: 'stallProducts', data: product }
+    })
+  } catch (err) {
+    console.warn('云端同步摆摊商品失败:', err)
+  }
+}
+
+async function fetchStallProducts() {
+  if (!isCloudReady()) return childStorage.get('stallProducts') || []
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'list', collection: 'stallProducts' }
+    })
+    if (res.result.code === 0) {
+      var list = res.result.data.list || []
+      childStorage.set('stallProducts', list)
+      return list
+    }
+  } catch (err) {
+    console.warn('云端读取摆摊商品失败:', err)
+  }
+  return childStorage.get('stallProducts') || []
+}
+
+async function removeStallProduct(id) {
+  if (!isCloudReady()) return
+  try {
+    await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'remove', collection: 'stallProducts', id: id }
+    })
+  } catch (err) {
+    console.warn('云端删除摆摊商品失败:', err)
+  }
+}
+
+async function uploadStallSale(sale) {
+  if (!isCloudReady()) return
+  try {
+    await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'add', collection: 'stallSales', data: sale }
+    })
+  } catch (err) {
+    console.warn('云端同步销售记录失败:', err)
+  }
+}
+
+async function fetchStallSales() {
+  if (!isCloudReady()) return childStorage.get('stallSales') || []
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'list', collection: 'stallSales' }
+    })
+    if (res.result.code === 0) {
+      var list = res.result.data.list || []
+      childStorage.set('stallSales', list)
+      return list
+    }
+  } catch (err) {
+    console.warn('云端读取销售记录失败:', err)
+  }
+  return childStorage.get('stallSales') || []
+}
+
+async function removeStallSale(id) {
+  if (!isCloudReady()) return
+  try {
+    await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'remove', collection: 'stallSales', id: id }
+    })
+  } catch (err) {
+    console.warn('云端删除销售记录失败:', err)
+  }
+}
+
+async function uploadStallSettings(settings) {
+  if (!isCloudReady()) return
+  try {
+    await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'update', collection: 'stallSettings', data: settings }
+    })
+  } catch (err) {
+    console.warn('云端同步摊位设置失败:', err)
+  }
+}
+
+async function fetchStallSettings() {
+  if (!isCloudReady()) return null
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'get', collection: 'stallSettings' }
+    })
+    if (res.result.code === 0) {
+      return res.result.data
+    }
+  } catch (err) {
+    console.warn('云端读取摊位设置失败:', err)
+  }
+  return null
+}
+
 module.exports = {
   isCloudReady: isCloudReady,
   uploadDrawing: uploadDrawing,
@@ -1012,5 +1126,13 @@ module.exports = {
   uploadBrushPoints: uploadBrushPoints,
   fetchBrushPoints: fetchBrushPoints,
   uploadToothDecorations: uploadToothDecorations,
-  fetchToothDecorations: fetchToothDecorations
+  fetchToothDecorations: fetchToothDecorations,
+  uploadStallProduct: uploadStallProduct,
+  fetchStallProducts: fetchStallProducts,
+  removeStallProduct: removeStallProduct,
+  uploadStallSale: uploadStallSale,
+  fetchStallSales: fetchStallSales,
+  removeStallSale: removeStallSale,
+  uploadStallSettings: uploadStallSettings,
+  fetchStallSettings: fetchStallSettings
 }
