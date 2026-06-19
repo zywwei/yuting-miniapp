@@ -114,8 +114,12 @@ async function fetchDrawings() {
 
     if (res.result.code === 0) {
       var list = res.result.data.list || []
-      childStorage.set('drawings', list)
-      return list
+      // 只有云端有数据时才更新本地缓存，避免覆盖本地数据
+      if (list.length > 0) {
+        childStorage.set('drawings', list)
+      }
+      // 优先返回云端数据，如果为空则返回本地缓存
+      return list.length > 0 ? list : (childStorage.get('drawings') || [])
     }
   } catch (err) {
     console.warn('云端读取失败，使用本地缓存:', err)
