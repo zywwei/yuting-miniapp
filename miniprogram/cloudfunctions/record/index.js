@@ -59,8 +59,21 @@ async function addRecord(member, collection, data) {
     createTime: new Date()
   }
 
-  delete record._id
+  // 如果指定了 _id，则使用指定的 _id（用于设置等单例文档）
+  const id = record._id
+  if (id) {
+    delete record._id
+    try {
+      await db.collection(collection).doc(id).set({ data: record })
+      return { code: 0, data: { _id: id } }
+    } catch (err) {
+      // 如果文档不存在，使用 add
+      const res = await db.collection(collection).add({ data: { _id: id, ...record } })
+      return { code: 0, data: { _id: res._id } }
+    }
+  }
 
+  delete record._id
   const res = await db.collection(collection).add({ data: record })
   return { code: 0, data: { _id: res._id } }
 }
