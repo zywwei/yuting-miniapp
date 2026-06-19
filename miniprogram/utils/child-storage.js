@@ -17,7 +17,7 @@ var CHILD_KEYS = [
   'brushingAvatar',
   'totalBrushPoints',
   'toothDecorations',
-  'brushingReminder',
+  'settings',
   'stallProducts',
   'stallSales',
   'stallSettings'
