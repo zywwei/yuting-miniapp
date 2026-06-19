@@ -14,10 +14,21 @@ Page({
     // 从云端同步数据
     stallManager.syncFromCloud()
     this.loadData()
+    this.setThemeColor()
   },
 
   onShow: function() {
     this.loadData()
+    this.setThemeColor()
+  },
+
+  setThemeColor: function() {
+    var app = getApp()
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: app.globalData.themeColor || '#FF9AAB',
+      animation: { duration: 0 }
+    })
   },
 
   loadData: function() {

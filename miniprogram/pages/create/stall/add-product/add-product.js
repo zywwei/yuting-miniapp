@@ -17,6 +17,7 @@ Page({
 
   onLoad: function(options) {
     this.setData({ categories: stallManager.getCategories() })
+    this.setThemeColor()
     if (options.id) {
       this.setData({ id: options.id })
       this.loadProduct(options.id)
@@ -142,5 +143,14 @@ Page({
     setTimeout(function() {
       wx.navigateBack()
     }, 1000)
+  },
+
+  setThemeColor: function() {
+    var app = getApp()
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: app.globalData.themeColor || '#FF9AAB',
+      animation: { duration: 0 }
+    })
   }
 })
