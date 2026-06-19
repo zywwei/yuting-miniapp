@@ -78,4 +78,26 @@
       </view>
     </view>
   </view>
+
+  <view class="share-actions">
+    <view class="share-btn" bindtap="generatePoster">
+      <text class="share-icon">📊</text>
+      <text class="share-text">生成海报</text>
+    </view>
+  </view>
+
+  <!-- 隐藏的 Canvas 用于生成海报 -->
+  <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
+
+  <!-- 海报预览弹窗 -->
+  <view class="poster-modal" wx:if="{{posterPath}}">
+    <view class="poster-mask" bindtap="closePoster"></view>
+    <view class="poster-content">
+      <image src="{{posterPath}}" mode="widthFix" class="poster-image" />
+      <view class="poster-actions">
+        <view class="poster-btn" bindtap="savePoster">保存到相册</view>
+        <view class="poster-btn primary" bindtap="sharePoster">分享给好友</view>
+      </view>
+    </view>
+  </view>
 </view>
