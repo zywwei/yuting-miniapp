@@ -7,6 +7,7 @@
 .header {
   position: relative;
   margin-bottom: 0;
+  z-index: 1;
 }
 
 .header-bg {
@@ -22,6 +23,7 @@
 .header-content {
   position: relative;
   padding: 32rpx;
+  z-index: 2;
 }
 
 .stats-cards {
@@ -58,6 +60,8 @@
 }
 
 .section {
+  position: relative;
+  z-index: 3;
   margin: 24rpx;
   background: #fff;
   border-radius: 16rpx;
