@@ -156,7 +156,7 @@ Page({
       var gap = chartW / dailySales.length * 0.4
 
       // Draw grid lines
-      ctx.strokeStyle = '#f5f5f5'
+      ctx.strokeStyle = '#e0e0e0'
       ctx.lineWidth = 0.5
       for (var i = 0; i <= 4; i++) {
         var gy = padding.top + chartH * (1 - i / 4)
@@ -242,7 +242,7 @@ Page({
       var ctx = canvas.getContext('2d')
       var dpr = wx.getSystemInfoSync().pixelRatio
       var width = 375
-      var height = 812
+      var height = 667
 
       canvas.width = width * dpr
       canvas.height = height * dpr
@@ -590,9 +590,18 @@ Page({
   },
 
   sharePoster: function() {
-    wx.showShareMenu({
-      withShareTicket: true,
-      menus: ['shareAppMessage']
+    var that = this
+    wx.shareAppMessage({
+      title: '🏪 我的小铺 - 营业报告',
+      path: '/pages/create/stall/stats/stats',
+      imageUrl: that.data.posterPath || '',
+      success: function() {
+        wx.showToast({ title: '分享成功', icon: 'success' })
+        that.closePoster()
+      },
+      fail: function(err) {
+        console.warn('分享失败:', err)
+      }
     })
   },
 
