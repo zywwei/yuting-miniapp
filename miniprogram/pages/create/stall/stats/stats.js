@@ -8,7 +8,9 @@ Page({
     currentTab: 'week',
     dailySales: [],
     categoryStats: [],
-    profitMargin: 0
+    profitMargin: 0,
+    themeColor: '#FF9AAB',
+    themeGradient: 'linear-gradient(135deg, #FF9AAB 0%, #FFB6C1 100%)'
   },
 
   onLoad: function() {
@@ -17,6 +19,14 @@ Page({
 
   onShow: function() {
     this.loadData()
+    // 获取主题颜色
+    var app = getApp()
+    if (app.globalData.themeColor) {
+      this.setData({
+        themeColor: app.globalData.themeColor,
+        themeGradient: app.globalData.themeGradient
+      })
+    }
   },
 
   loadData: function() {
@@ -230,6 +240,20 @@ Page({
       ctx.closePath()
     }
 
+    // 获取主题颜色
+    var app = getApp()
+    var themeColor = app.globalData.themeColor || '#FF9AAB'
+    var themeGradientStart = themeColor
+    var themeGradientEnd = lightenColor(themeColor, 30)
+
+    function lightenColor(hex, percent) {
+      var num = parseInt(hex.replace('#', ''), 16)
+      var r = Math.min(255, (num >> 16) + Math.round(255 * percent / 100))
+      var g = Math.min(255, ((num >> 8) & 0x00FF) + Math.round(255 * percent / 100))
+      var b = Math.min(255, (num & 0x0000FF) + Math.round(255 * percent / 100))
+      return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1)
+    }
+
     var query = this.createSelectorQuery()
     query.select('#posterCanvas').fields({ node: true, size: true }).exec(function(res) {
       if (!res || !res[0] || !res[0].node) {
@@ -251,11 +275,11 @@ Page({
       var stats = that.data.stats
       var categoryStats = that.data.categoryStats
 
-      // Background gradient
+      // Background gradient using theme color
       var bgGradient = ctx.createLinearGradient(0, 0, 0, height)
-      bgGradient.addColorStop(0, '#FF6B8A')
-      bgGradient.addColorStop(0.3, '#FF9AAB')
-      bgGradient.addColorStop(1, '#FFB6C1')
+      bgGradient.addColorStop(0, themeGradientStart)
+      bgGradient.addColorStop(0.3, themeColor)
+      bgGradient.addColorStop(1, themeGradientEnd)
       ctx.fillStyle = bgGradient
       ctx.fillRect(0, 0, width, height)
 
