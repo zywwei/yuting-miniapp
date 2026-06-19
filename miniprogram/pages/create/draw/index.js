@@ -1,3 +1,5 @@
+var childStorage = require('../../../utils/child-storage.js')
+
 Page({
   data: {
     works: [
@@ -18,7 +20,7 @@ Page({
   },
 
   loadStats: function() {
-    var drawings = wx.getStorageSync('drawings') || []
+    var drawings = childStorage.get('drawings') || []
     this.setData({ drawingCount: drawings.length })
   },
 

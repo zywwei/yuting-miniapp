@@ -1,3 +1,5 @@
+var childStorage = require('../../utils/child-storage.js')
+
 Page({
   data: {
     drawingCount: 0,
@@ -29,8 +31,8 @@ Page({
   },
 
   loadStats: function() {
-    var drawings = wx.getStorageSync('drawings') || []
-    var sales = wx.getStorageSync('stallSales') || []
+    var drawings = childStorage.get('drawings') || []
+    var sales = childStorage.get('stallSales') || []
     var today = this.getTodayStr()
     var todaySales = sales.filter(function(s) { return s.date === today })
 
