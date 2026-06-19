@@ -323,9 +323,14 @@ Page({
       habits: '/pages/habits/index',
       learn: '/pages/learn/index',
       create: '/pages/create/index',
-      notes: '/pages/notes/index'
+      notes: '/pages/notes/index',
+      draw: '/pages/create/draw/index',
+      stall: '/pages/create/stall/index'
     }
-    wx.switchTab({ url: urlMap[module] })
+    var url = urlMap[module]
+    if (url) {
+      wx.navigateTo({ url: url })
+    }
   },
 
   // 跳转到推荐
