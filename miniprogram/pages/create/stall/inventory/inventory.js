@@ -10,6 +10,7 @@ Page({
 
   onLoad: function() {
     this.setData({ categories: stallManager.getCategories() })
+    this.setThemeColor()
   },
 
   onShow: function() {
@@ -54,6 +55,15 @@ Page({
           wx.showToast({ title: '已删除', icon: 'success' })
         }
       }.bind(this)
+    })
+  },
+
+  setThemeColor: function() {
+    var app = getApp()
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: app.globalData.themeColor || '#FF9AAB',
+      animation: { duration: 0 }
     })
   }
 })

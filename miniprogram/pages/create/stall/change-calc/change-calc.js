@@ -7,6 +7,10 @@ Page({
     change: 0
   },
 
+  onLoad: function() {
+    this.setThemeColor()
+  },
+
   onTotalInput: function(e) {
     this.setData({ total: e.detail.value })
     this.calcChange()
@@ -34,5 +38,14 @@ Page({
 
   clear: function() {
     this.setData({ total: '', received: '', change: 0 })
+  },
+
+  setThemeColor: function() {
+    var app = getApp()
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: app.globalData.themeColor || '#FF9AAB',
+      animation: { duration: 0 }
+    })
   }
 })

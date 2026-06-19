@@ -10,6 +10,7 @@ Page({
 
   onLoad: function() {
     this.loadData()
+    this.setThemeColor()
   },
 
   onShow: function() {
@@ -104,5 +105,14 @@ Page({
     var m = String(date.getMonth() + 1).padStart(2, '0')
     var d = String(date.getDate()).padStart(2, '0')
     return y + '-' + m + '-' + d
+  },
+
+  setThemeColor: function() {
+    var app = getApp()
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: app.globalData.themeColor || '#FF9AAB',
+      animation: { duration: 0 }
+    })
   }
 })

@@ -15,6 +15,7 @@ Page({
 
   onLoad: function() {
     this.loadData()
+    this.setNavBarColor()
   },
 
   onShow: function() {
@@ -27,6 +28,16 @@ Page({
         themeGradient: app.globalData.themeGradient
       })
     }
+    this.setNavBarColor()
+  },
+
+  setNavBarColor: function() {
+    var app = getApp()
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: app.globalData.themeColor || '#FF9AAB',
+      animation: { duration: 0 }
+    })
   },
 
   loadData: function() {

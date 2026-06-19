@@ -12,6 +12,7 @@ Page({
 
   onLoad: function() {
     this.loadProducts()
+    this.setThemeColor()
   },
 
   onShow: function() {
@@ -179,5 +180,14 @@ Page({
 
   goAddProduct: function() {
     wx.navigateTo({ url: '/pages/create/stall/add-product/add-product' })
+  },
+
+  setThemeColor: function() {
+    var app = getApp()
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: app.globalData.themeColor || '#FF9AAB',
+      animation: { duration: 0 }
+    })
   }
 })
