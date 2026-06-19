@@ -82,8 +82,8 @@
         <view class="quick-text">学习</view>
       </view>
       <view class="quick-item" bindtap="goModule" data-module="create">
-        <view class="quick-icon">🎨</view>
-        <view class="quick-text">创作</view>
+        <view class="quick-icon">🎪</view>
+        <view class="quick-text">奇趣屋</view>
       </view>
       <view class="quick-item" bindtap="goModule" data-module="notes">
         <view class="quick-icon">📝</view>

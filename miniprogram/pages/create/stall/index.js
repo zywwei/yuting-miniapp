@@ -77,5 +77,30 @@ Page({
 
   goChangeCalc: function() {
     wx.navigateTo({ url: '/pages/create/stall/change-calc/change-calc' })
+  },
+
+  editDailyGoal: function() {
+    var that = this
+    var currentGoal = this.data.settings.dailyGoal || 50
+    wx.showModal({
+      title: '设置今日目标',
+      editable: true,
+      placeholderText: '输入目标金额（元）',
+      content: String(currentGoal),
+      success: function(res) {
+        if (res.confirm && res.content) {
+          var goal = parseInt(res.content)
+          if (isNaN(goal) || goal < 0) {
+            wx.showToast({ title: '请输入有效金额', icon: 'none' })
+            return
+          }
+          var settings = stallManager.getSettings()
+          settings.dailyGoal = goal
+          stallManager.saveSettings(settings)
+          that.loadData()
+          wx.showToast({ title: '目标已更新', icon: 'success' })
+        }
+      }
+    })
   }
 })

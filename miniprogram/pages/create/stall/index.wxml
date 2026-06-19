@@ -32,9 +32,9 @@
         <text class="stat-label">今日订单</text>
       </view>
     </view>
-    <view class="goal-bar" wx:if="{{settings.dailyGoal > 0}}">
+    <view class="goal-bar" wx:if="{{settings.dailyGoal > 0}}" bindtap="editDailyGoal">
       <view class="goal-progress" style="width: {{goalPercent}}%;"></view>
-      <text class="goal-text">目标 ¥{{settings.dailyGoal}} ({{goalPercent}}%)</text>
+      <text class="goal-text">目标 ¥{{settings.dailyGoal}} ({{goalPercent}}%)  ✏️</text>
     </view>
   </view>
 
