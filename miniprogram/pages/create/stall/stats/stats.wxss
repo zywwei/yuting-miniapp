@@ -9,6 +9,10 @@
   height: 100vh;
 }
 
+.container.modal-open .chart-container {
+  visibility: hidden;
+}
+
 .header {
   position: relative;
   margin-bottom: -16rpx;
