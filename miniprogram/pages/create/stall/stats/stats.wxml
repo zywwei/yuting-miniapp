@@ -159,7 +159,7 @@
       </view>
       <view class="poster-actions">
         <view class="poster-btn" bindtap="savePoster">保存到相册</view>
-        <view class="poster-btn primary" bindtap="sharePoster">分享给好友</view>
+        <button class="poster-btn primary" open-type="share">分享给好友</button>
       </view>
     </view>
   </view>
