@@ -1,0 +1,26 @@
+<view class="container">
+  <view class="display">
+    <view class="display-row">
+      <text class="display-label">总价</text>
+      <input class="display-input" type="digit" placeholder="0.00" value="{{total}}" bindinput="onTotalInput" />
+    </view>
+    <view class="display-row">
+      <text class="display-label">付款</text>
+      <input class="display-input" type="digit" placeholder="0.00" value="{{received}}" bindinput="onReceivedInput" />
+    </view>
+    <view class="change-row" wx:if="{{change >= 0}}">
+      <text class="change-label">找零</text>
+      <text class="change-value">¥{{change}}</text>
+    </view>
+  </view>
+
+  <view class="quick-amounts">
+    <view class="amount-btn" bindtap="setReceived" data-amount="5">5元</view>
+    <view class="amount-btn" bindtap="setReceived" data-amount="10">10元</view>
+    <view class="amount-btn" bindtap="setReceived" data-amount="20">20元</view>
+    <view class="amount-btn" bindtap="setReceived" data-amount="50">50元</view>
+    <view class="amount-btn" bindtap="setReceived" data-amount="100">100元</view>
+  </view>
+
+  <view class="clear-btn" bindtap="clear">清除</view>
+</view>

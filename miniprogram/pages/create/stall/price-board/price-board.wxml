@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="header">
+    <text class="header-title">{{stallName}}</text>
+    <text class="header-subtitle">价目表</text>
+  </view>
+
+  <view class="product-grid">
+    <view class="product-card" wx:for="{{products}}" wx:key="id">
+      <view class="product-image">
+        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" />
+        <text wx:else class="product-emoji">📦</text>
+      </view>
+      <view class="product-name">{{item.name}}</view>
+      <view class="product-price">¥{{item.salePrice}}</view>
+    </view>
+  </view>
+
+  <view class="footer">
+    <text class="footer-text">欢迎光临！</text>
+  </view>
+</view>

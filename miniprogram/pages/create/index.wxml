@@ -1,27 +1,40 @@
-<!-- 创意天地首页 -->
 <view class="container">
-  <!-- 头部 -->
-  <view class="header">
-    <view class="header-title">🎨 创意天地</view>
-    <view class="header-desc">激发创造力，展现艺术天赋</view>
-    <view class="header-stat">已创作 {{drawingCount}} 幅作品</view>
+  <view class="header" style="background: linear-gradient(135deg, #FF6B8A 0%, #FF9AAB 100%);">
+    <view class="header-content">
+      <text class="header-title">🎪 奇趣屋</text>
+      <text class="header-desc">探索无限可能，创造精彩世界</text>
+    </view>
   </view>
 
-  <!-- 创作入口 -->
-  <view class="work-list">
-    <view
-      wx:for="{{works}}"
-      wx:key="type"
-      class="work-card"
-      bindtap="goCreate"
-      data-url="{{item.url}}"
-    >
-      <view class="work-icon">{{item.icon}}</view>
-      <view class="work-info">
-        <view class="work-name">{{item.name}}</view>
-        <view class="work-desc">{{item.desc}}</view>
+  <view class="category-grid">
+    <view class="category-card draw-card" bindtap="goDraw">
+      <view class="card-bg" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);"></view>
+      <view class="card-content">
+        <view class="card-icon">🎨</view>
+        <view class="card-info">
+          <view class="card-title">画画</view>
+          <view class="card-desc">自由创作、涂色模板</view>
+        </view>
+        <view class="card-stat">
+          <text class="stat-num">{{drawingCount}}</text>
+          <text class="stat-label">幅作品</text>
+        </view>
       </view>
-      <view class="work-arrow">›</view>
+    </view>
+
+    <view class="category-card stall-card" bindtap="goStall">
+      <view class="card-bg" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);"></view>
+      <view class="card-content">
+        <view class="card-icon">🏪</view>
+        <view class="card-info">
+          <view class="card-title">摆摊</view>
+          <view class="card-desc">小小老板、体验经商</view>
+        </view>
+        <view class="card-stat">
+          <text class="stat-num">{{todaySales}}</text>
+          <text class="stat-label">笔今日</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>

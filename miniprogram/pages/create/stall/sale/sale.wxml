@@ -1,0 +1,53 @@
+<view class="container">
+  <view class="product-grid">
+    <view class="product-item {{item.selected ? 'selected' : ''}}" wx:for="{{products}}" wx:key="id" bindtap="selectProduct" data-id="{{item.id}}">
+      <view class="product-image">
+        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" />
+        <text wx:else class="product-emoji">📦</text>
+      </view>
+      <view class="product-name">{{item.name}}</view>
+      <view class="product-price">¥{{item.salePrice}}</view>
+      <view class="product-stock">库存 {{item.quantity}}</view>
+    </view>
+  </view>
+
+  <view class="cart-panel" wx:if="{{cart.length > 0}}">
+    <view class="cart-header">
+      <text class="cart-title">已选商品</text>
+      <text class="cart-count">{{cart.length}}种</text>
+    </view>
+    <view class="cart-list">
+      <view class="cart-item" wx:for="{{cart}}" wx:key="productId">
+        <text class="cart-name">{{item.productName}}</text>
+        <view class="cart-qty">
+          <view class="qty-btn" catchtap="minusQty" data-index="{{index}}">-</view>
+          <text class="qty-num">{{item.quantity}}</text>
+          <view class="qty-btn" catchtap="plusQty" data-index="{{index}}">+</view>
+        </view>
+        <text class="cart-subtotal">¥{{item.subtotal}}</text>
+      </view>
+    </view>
+    <view class="cart-total">
+      <text class="total-label">合计</text>
+      <text class="total-value">¥{{total}}</text>
+    </view>
+  </view>
+
+  <view class="payment-section" wx:if="{{cart.length > 0}}">
+    <view class="payment-row">
+      <text class="payment-label">顾客付款</text>
+      <input class="payment-input" type="digit" placeholder="输入金额" value="{{paymentReceived}}" bindinput="onPaymentInput" />
+    </view>
+    <view class="change-row" wx:if="{{change >= 0}}">
+      <text class="change-label">找零</text>
+      <text class="change-value">¥{{change}}</text>
+    </view>
+    <view class="confirm-btn" bindtap="confirmSale">确认收款</view>
+  </view>
+
+  <view class="empty" wx:if="{{products.length === 0}}">
+    <text class="empty-icon">📦</text>
+    <text class="empty-text">还没有商品，请先添加商品</text>
+    <view class="empty-btn" bindtap="goAddProduct">添加商品</view>
+  </view>
+</view>

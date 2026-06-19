@@ -1,4 +1,3 @@
 {
-  "navigationBarTitleText": "创意天地",
-  "navigationBarBackgroundColor": "#FF9800"
+  "navigationStyle": "custom"
 }

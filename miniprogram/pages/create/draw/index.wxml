@@ -1,0 +1,20 @@
+<view class="container">
+  <view class="header" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);">
+    <view class="header-content">
+      <text class="header-title">🎨 画画</text>
+      <text class="header-desc">发挥想象力，创造无限可能</text>
+    </view>
+  </view>
+
+  <view class="stats-bar">
+    <text class="stats-text">已创作 <text class="stats-num">{{drawingCount}}</text> 幅作品</text>
+  </view>
+
+  <view class="menu-grid">
+    <view class="menu-item" wx:for="{{works}}" wx:key="type" bindtap="goCreate" data-url="{{item.url}}">
+      <view class="menu-icon">{{item.icon}}</view>
+      <view class="menu-name">{{item.name}}</view>
+      <view class="menu-desc">{{item.desc}}</view>
+    </view>
+  </view>
+</view>

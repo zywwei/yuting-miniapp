@@ -3,6 +3,9 @@
   <!-- 状态栏占位 -->
   <view class="status-bar" style="height: {{statusBarHeight}}px; background: {{themeColor}};"></view>
 
+  <!-- 家庭切换组件 -->
+  <family-switcher></family-switcher>
+
   <!-- 顶部欢迎区 -->
   <view class="header" style="background: {{themeGradient}};">
     <view class="header-main">

@@ -1,0 +1,50 @@
+<view class="container">
+  <view class="filter-bar">
+    <view class="filter-item {{currentFilter === 'today' ? 'active' : ''}}" bindtap="setFilter" data-filter="today">今日</view>
+    <view class="filter-item {{currentFilter === 'week' ? 'active' : ''}}" bindtap="setFilter" data-filter="week">本周</view>
+    <view class="filter-item {{currentFilter === 'month' ? 'active' : ''}}" bindtap="setFilter" data-filter="month">本月</view>
+    <view class="filter-item {{currentFilter === 'all' ? 'active' : ''}}" bindtap="setFilter" data-filter="all">全部</view>
+  </view>
+
+  <view class="summary-bar">
+    <view class="summary-item">
+      <text class="summary-value">¥{{filteredTotal}}</text>
+      <text class="summary-label">总金额</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-value">{{filteredCount}}</text>
+      <text class="summary-label">订单数</text>
+    </view>
+  </view>
+
+  <view class="history-list">
+    <view class="date-group" wx:for="{{groupedSales}}" wx:key="date">
+      <view class="date-header">
+        <text class="date-text">{{item.date}}</text>
+        <text class="date-total">¥{{item.total}}</text>
+      </view>
+      <view class="sale-item" wx:for="{{item.sales}}" wx:for-item="sale" wx:key="id">
+        <view class="sale-header">
+          <text class="sale-time">{{sale.time}}</text>
+          <text class="sale-total">¥{{sale.total}}</text>
+        </view>
+        <view class="sale-items">
+          <view class="sale-item-row" wx:for="{{sale.items}}" wx:for-item="item" wx:key="productId">
+            <text class="item-name">{{item.productName}}</text>
+            <text class="item-qty">x{{item.quantity}}</text>
+            <text class="item-price">¥{{item.subtotal}}</text>
+          </view>
+        </view>
+        <view class="sale-footer">
+          <text class="sale-profit">利润 ¥{{sale.profit}}</text>
+          <view class="delete-btn" catchtap="deleteSale" data-id="{{sale.id}}">删除</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{filteredCount === 0}}">
+    <text class="empty-icon">📋</text>
+    <text class="empty-text">暂无销售记录</text>
+  </view>
+</view>

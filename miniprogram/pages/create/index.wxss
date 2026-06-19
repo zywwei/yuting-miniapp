@@ -1,87 +1,100 @@
-/* 创意天地首页样式 */
 .container {
   min-height: 100vh;
-  background: #F5F7FA;
-  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+  background: #FFF5F5;
 }
 
-/* 头部 */
 .header {
-  background: linear-gradient(135deg, #FF9800, #F57C00);
-  padding: 40rpx;
-  color: white;
+  padding: 0 32rpx 32rpx;
+  border-radius: 0 0 32rpx 32rpx;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40rpx;
 }
 
 .header-title {
-  font-size: 44rpx;
-  font-weight: bold;
-}
-
-.header-desc {
-  font-size: 26rpx;
-  opacity: 0.9;
-  margin-top: 8rpx;
-}
-
-.header-stat {
-  font-size: 24rpx;
-  opacity: 0.8;
-  margin-top: 16rpx;
-  background: rgba(255, 255, 255, 0.2);
-  display: inline-block;
-  padding: 8rpx 24rpx;
-  border-radius: 20rpx;
-}
-
-/* 创作入口列表 */
-.work-list {
-  padding: 30rpx;
-}
-
-.work-card {
-  background: white;
-  border-radius: 20rpx;
-  padding: 32rpx;
-  margin-bottom: 20rpx;
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-  transition: all 0.2s;
-}
-
-.work-card:active {
-  transform: scale(0.98);
-}
-
-.work-icon {
-  width: 80rpx;
-  height: 80rpx;
-  background: #FFF3E0;
-  border-radius: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: 40rpx;
-}
-
-.work-info {
-  flex: 1;
-}
-
-.work-name {
-  font-size: 32rpx;
   font-weight: bold;
-  color: #333;
+  color: #fff;
   margin-bottom: 8rpx;
 }
 
-.work-desc {
+.header-desc {
   font-size: 24rpx;
-  color: #999;
+  color: rgba(255,255,255,0.8);
 }
 
-.work-arrow {
-  font-size: 40rpx;
-  color: #CCC;
+.category-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  padding: 32rpx;
+}
+
+.category-card {
+  position: relative;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+
+.category-card:active {
+  transform: scale(0.98);
+}
+
+.card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.card-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 40rpx 32rpx;
+}
+
+.card-icon {
+  font-size: 72rpx;
+  margin-right: 24rpx;
+}
+
+.card-info {
+  flex: 1;
+}
+
+.card-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 8rpx;
+}
+
+.card-desc {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.8);
+}
+
+.card-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.stat-num {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.8);
 }

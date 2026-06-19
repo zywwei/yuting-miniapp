@@ -132,7 +132,7 @@ Page({
     }
 
     const titleMap = {
-      parent: '和爸爸一起画',
+      parent: '一起画画',
       brushing: '编辑刷牙照片',
       habit: '编辑打卡照片',
       note: '编辑笔记照片'

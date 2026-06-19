@@ -1,0 +1,87 @@
+.container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 32rpx;
+}
+
+.display {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
+}
+
+.display-row {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.display-label {
+  font-size: 32rpx;
+  color: #333;
+  width: 100rpx;
+}
+
+.display-input {
+  flex: 1;
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #333;
+  text-align: right;
+}
+
+.change-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx 0;
+}
+
+.change-label {
+  font-size: 36rpx;
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.change-value {
+  font-size: 64rpx;
+  font-weight: bold;
+  color: #4CAF50;
+}
+
+.quick-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 32rpx;
+}
+
+.amount-btn {
+  flex: 1;
+  min-width: calc(33.33% - 12rpx);
+  padding: 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #FF6B8A;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.amount-btn:active {
+  background: #FFF5F7;
+}
+
+.clear-btn {
+  padding: 24rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  text-align: center;
+  font-size: 32rpx;
+  color: #F44336;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}

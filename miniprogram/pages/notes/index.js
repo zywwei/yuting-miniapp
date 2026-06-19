@@ -15,7 +15,7 @@ Page({
 
     // 更新 tabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 4 })
+      this.getTabBar().setData({ selected: 3 })
     }
   },
 
