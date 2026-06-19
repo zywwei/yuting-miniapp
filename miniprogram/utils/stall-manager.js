@@ -143,8 +143,8 @@ function deleteSale(id) {
     for (var j = 0; j < products.length; j++) {
       if (products[j].id === item.productId) {
         products[j].quantity += item.quantity
-        products[j].totalSold -= item.quantity
-        products[j].totalRevenue -= item.subtotal
+        products[j].totalSold = Math.max(0, products[j].totalSold - item.quantity)
+        products[j].totalRevenue = Math.max(0, products[j].totalRevenue - item.subtotal)
         break
       }
     }
