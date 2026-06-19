@@ -445,7 +445,7 @@
 .poster-content {
   position: relative;
   z-index: 10000;
-  width: 90%;
+  width: 85%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
