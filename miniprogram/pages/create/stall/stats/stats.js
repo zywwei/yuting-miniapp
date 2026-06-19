@@ -24,10 +24,8 @@ Page({
     var sales = stallManager.getSales()
     var products = stallManager.getProducts()
 
-    // Calculate average order value
     var avgOrder = stats.totalOrders > 0 ? Math.round(stats.totalRevenue / stats.totalOrders) : 0
 
-    // Calculate percentages for top products
     var maxRevenue = 0
     for (var i = 0; i < stats.topProducts.length; i++) {
       if (stats.topProducts[i].revenue > maxRevenue) {
@@ -38,13 +36,8 @@ Page({
       stats.topProducts[i].percent = maxRevenue > 0 ? Math.round(stats.topProducts[i].revenue / maxRevenue * 100) : 0
     }
 
-    // Calculate profit margin
     var profitMargin = stats.totalRevenue > 0 ? Math.round(stats.totalProfit / stats.totalRevenue * 100) : 0
-
-    // Get daily sales data
     var dailySales = this.getDailySales(sales, this.data.currentTab)
-
-    // Get category stats
     var categoryStats = this.getCategoryStats(sales, products)
 
     this.setData({
@@ -55,7 +48,6 @@ Page({
       categoryStats: categoryStats
     })
 
-    // Draw chart after data is set
     setTimeout(function() {
       this.drawSalesChart(dailySales)
     }.bind(this), 100)
@@ -137,7 +129,6 @@ Page({
       canvas.height = height * dpr
       ctx.scale(dpr, dpr)
 
-      // Clear
       ctx.clearRect(0, 0, width, height)
 
       if (!dailySales || dailySales.length === 0) return
@@ -164,7 +155,6 @@ Page({
         ctx.lineTo(width - padding.right, gy)
         ctx.stroke()
 
-        // Y axis labels
         ctx.fillStyle = '#999'
         ctx.font = '10px sans-serif'
         ctx.textAlign = 'right'
@@ -178,25 +168,19 @@ Page({
         var x = padding.left + (chartW / dailySales.length) * i + gap / 2
         var y = padding.top + chartH - barH
 
-        // Bar gradient
         var gradient = ctx.createLinearGradient(x, y, x, y + barH)
         gradient.addColorStop(0, '#FF6B8A')
         gradient.addColorStop(1, '#FF9AAB')
         ctx.fillStyle = gradient
 
-        // Draw rounded bar
+        // Draw bar without roundRect
         ctx.beginPath()
-        var radius = Math.min(barW / 2, 4)
-        ctx.moveTo(x + radius, y)
-        ctx.lineTo(x + barW - radius, y)
-        ctx.quadraticCurveTo(x + barW, y, x + barW, y + radius)
+        ctx.moveTo(x, y)
+        ctx.lineTo(x + barW, y)
         ctx.lineTo(x + barW, y + barH)
         ctx.lineTo(x, y + barH)
-        ctx.lineTo(x, y + radius)
-        ctx.quadraticCurveTo(x, y, x + radius, y)
         ctx.fill()
 
-        // X axis labels (show every other for readability)
         if (dailySales.length <= 7 || i % 2 === 0) {
           ctx.fillStyle = '#999'
           ctx.font = '10px sans-serif'
@@ -218,7 +202,6 @@ Page({
     var that = this
     wx.showLoading({ title: '生成中...' })
 
-    // 绘制圆角矩形
     function roundRect(ctx, x, y, w, h, r) {
       ctx.beginPath()
       ctx.moveTo(x + r, y)
@@ -244,101 +227,291 @@ Page({
       var canvas = res[0].node
       var ctx = canvas.getContext('2d')
       var dpr = wx.getSystemInfoSync().pixelRatio
-      var width = 300
-      var height = 500
+      var width = 375
+      var height = 812
 
       canvas.width = width * dpr
       canvas.height = height * dpr
       ctx.scale(dpr, dpr)
 
+      var stats = that.data.stats
+      var categoryStats = that.data.categoryStats
+
       // Background gradient
       var bgGradient = ctx.createLinearGradient(0, 0, 0, height)
       bgGradient.addColorStop(0, '#FF6B8A')
+      bgGradient.addColorStop(0.3, '#FF9AAB')
       bgGradient.addColorStop(1, '#FFB6C1')
       ctx.fillStyle = bgGradient
       ctx.fillRect(0, 0, width, height)
 
       // White card
       ctx.fillStyle = '#fff'
-      roundRect(ctx, 16, 16, width - 32, height - 32, 16)
+      roundRect(ctx, 16, 16, width - 32, height - 32, 20)
       ctx.fill()
 
       // Title
       ctx.fillStyle = '#FF6B8A'
-      ctx.font = 'bold 20px sans-serif'
+      ctx.font = 'bold 24px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('🏪 营业报告', width / 2, 55)
+      ctx.fillText('🏪 营业报告', width / 2, 60)
 
       // Date
       ctx.fillStyle = '#999'
-      ctx.font = '12px sans-serif'
+      ctx.font = '13px sans-serif'
       var today = new Date()
-      ctx.fillText(today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日', width / 2, 75)
+      ctx.fillText(today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日', width / 2, 82)
 
-      // Stats cards
-      var stats = that.data.stats
-      var cardY = 95
-      var cardH = 55
-      var cardGap = 8
-      var cardW = (width - 48) / 3
+      // Divider
+      ctx.strokeStyle = '#f0f0f0'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(30, 95)
+      ctx.lineTo(width - 30, 95)
+      ctx.stroke()
+
+      // Stats cards - row 1
+      var cardY = 110
+      var cardH = 70
+      var cardGap = 10
+      var cardW = (width - 52) / 3
 
       // Revenue card
       ctx.fillStyle = '#FFF5F7'
-      roundRect(ctx, 16, cardY, cardW, cardH, 8)
+      roundRect(ctx, 16, cardY, cardW, cardH, 10)
       ctx.fill()
       ctx.fillStyle = '#FF6B8A'
-      ctx.font = 'bold 18px sans-serif'
+      ctx.font = 'bold 22px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('¥' + stats.totalRevenue, 16 + cardW / 2, cardY + 25)
+      ctx.fillText('¥' + stats.totalRevenue, 16 + cardW / 2, cardY + 30)
       ctx.fillStyle = '#999'
-      ctx.font = '10px sans-serif'
-      ctx.fillText('累计销售', 16 + cardW / 2, cardY + 45)
+      ctx.font = '11px sans-serif'
+      ctx.fillText('累计销售', 16 + cardW / 2, cardY + 52)
 
       // Profit card
       ctx.fillStyle = '#E8F5E9'
-      roundRect(ctx, 16 + cardW + cardGap, cardY, cardW, cardH, 8)
+      roundRect(ctx, 16 + cardW + cardGap, cardY, cardW, cardH, 10)
       ctx.fill()
       ctx.fillStyle = '#4CAF50'
-      ctx.font = 'bold 18px sans-serif'
+      ctx.font = 'bold 22px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('¥' + stats.totalProfit, 16 + cardW + cardGap + cardW / 2, cardY + 25)
+      ctx.fillText('¥' + stats.totalProfit, 16 + cardW + cardGap + cardW / 2, cardY + 30)
       ctx.fillStyle = '#999'
-      ctx.font = '10px sans-serif'
-      ctx.fillText('累计利润', 16 + cardW + cardGap + cardW / 2, cardY + 45)
+      ctx.font = '11px sans-serif'
+      ctx.fillText('累计利润', 16 + cardW + cardGap + cardW / 2, cardY + 52)
 
       // Orders card
       ctx.fillStyle = '#E3F2FD'
-      roundRect(ctx, 16 + (cardW + cardGap) * 2, cardY, cardW, cardH, 8)
+      roundRect(ctx, 16 + (cardW + cardGap) * 2, cardY, cardW, cardH, 10)
       ctx.fill()
       ctx.fillStyle = '#2196F3'
-      ctx.font = 'bold 18px sans-serif'
+      ctx.font = 'bold 22px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(stats.totalOrders + '', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY + 25)
+      ctx.fillText(stats.totalOrders + '', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY + 30)
+      ctx.fillStyle = '#999'
+      ctx.font = '11px sans-serif'
+      ctx.fillText('总订单', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY + 52)
+
+      // Stats cards - row 2
+      var cardY2 = cardY + cardH + 12
+
+      // Streak card
+      ctx.fillStyle = '#FFF3E0'
+      roundRect(ctx, 16, cardY2, cardW, cardH, 10)
+      ctx.fill()
+      ctx.fillStyle = '#FF9800'
+      ctx.font = 'bold 22px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(stats.streakDays + '天', 16 + cardW / 2, cardY2 + 30)
+      ctx.fillStyle = '#999'
+      ctx.font = '11px sans-serif'
+      ctx.fillText('连续营业', 16 + cardW / 2, cardY2 + 52)
+
+      // Level card
+      ctx.fillStyle = '#F3E5F5'
+      roundRect(ctx, 16 + cardW + cardGap, cardY2, cardW, cardH, 10)
+      ctx.fill()
+      ctx.fillStyle = '#9C27B0'
+      ctx.font = 'bold 22px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('Lv.' + stats.level, 16 + cardW + cardGap + cardW / 2, cardY2 + 30)
+      ctx.fillStyle = '#999'
+      ctx.font = '11px sans-serif'
+      ctx.fillText('摊位等级', 16 + cardW + cardGap + cardW / 2, cardY2 + 52)
+
+      // Avg order card
+      ctx.fillStyle = '#E0F2F1'
+      roundRect(ctx, 16 + (cardW + cardGap) * 2, cardY2, cardW, cardH, 10)
+      ctx.fill()
+      ctx.fillStyle = '#009688'
+      ctx.font = 'bold 22px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('¥' + that.data.avgOrder.replace('¥', ''), 16 + (cardW + cardGap) * 2 + cardW / 2, cardY2 + 30)
+      ctx.fillStyle = '#999'
+      ctx.font = '11px sans-serif'
+      ctx.fillText('平均客单价', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY2 + 52)
+
+      // Divider 2
+      var divY = cardY2 + cardH + 20
+      ctx.strokeStyle = '#f0f0f0'
+      ctx.beginPath()
+      ctx.moveTo(30, divY)
+      ctx.lineTo(width - 30, divY)
+      ctx.stroke()
+
+      // Today section
+      var todayY = divY + 25
+      ctx.fillStyle = '#333'
+      ctx.font = 'bold 16px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText('📅 今日概况', 28, todayY)
+
+      var todayCardY = todayY + 15
+      var todayCardW = (width - 52) / 2
+
+      ctx.fillStyle = '#FFF5F7'
+      roundRect(ctx, 16, todayCardY, todayCardW, 50, 8)
+      ctx.fill()
+      ctx.fillStyle = '#FF6B8A'
+      ctx.font = 'bold 20px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('¥' + stats.todayRevenue, 16 + todayCardW / 2, todayCardY + 25)
       ctx.fillStyle = '#999'
       ctx.font = '10px sans-serif'
-      ctx.fillText('总订单', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY + 45)
+      ctx.fillText('今日销售额', 16 + todayCardW / 2, todayCardY + 42)
+
+      ctx.fillStyle = '#E3F2FD'
+      roundRect(ctx, 16 + todayCardW + 10, todayCardY, todayCardW, 50, 8)
+      ctx.fill()
+      ctx.fillStyle = '#2196F3'
+      ctx.font = 'bold 20px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(stats.todayOrders + '', 16 + todayCardW + 10 + todayCardW / 2, todayCardY + 25)
+      ctx.fillStyle = '#999'
+      ctx.font = '10px sans-serif'
+      ctx.fillText('今日订单', 16 + todayCardW + 10 + todayCardW / 2, todayCardY + 42)
+
+      // Divider 3
+      var div2Y = todayCardY + 65
+      ctx.strokeStyle = '#f0f0f0'
+      ctx.beginPath()
+      ctx.moveTo(30, div2Y)
+      ctx.lineTo(width - 30, div2Y)
+      ctx.stroke()
 
       // Top products
-      if (stats.topProducts && stats.topProducts.length > 0) {
-        var topY = cardY + cardH + 25
-        ctx.fillStyle = '#333'
-        ctx.font = 'bold 14px sans-serif'
-        ctx.textAlign = 'left'
-        ctx.fillText('🏆 热销商品', 28, topY)
+      var topY = div2Y + 25
+      ctx.fillStyle = '#333'
+      ctx.font = 'bold 16px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText('🏆 热销商品 Top5', 28, topY)
 
+      if (stats.topProducts && stats.topProducts.length > 0) {
         for (var i = 0; i < Math.min(5, stats.topProducts.length); i++) {
-          topY += 25
+          topY += 28
           var p = stats.topProducts[i]
-          ctx.fillStyle = '#FF6B8A'
-          ctx.font = 'bold 12px sans-serif'
-          ctx.fillText((i + 1) + '', 28, topY)
+
+          // Rank circle
+          ctx.fillStyle = i === 0 ? '#FF6B8A' : i === 1 ? '#FF9800' : i === 2 ? '#FFC107' : '#E0E0E0'
+          ctx.beginPath()
+          ctx.arc(38, topY - 4, 10, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.fillStyle = '#fff'
+          ctx.font = 'bold 10px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.fillText((i + 1) + '', 38, topY)
+
+          // Product name
           ctx.fillStyle = '#333'
-          ctx.font = '12px sans-serif'
-          ctx.fillText(p.name, 45, topY)
+          ctx.font = '13px sans-serif'
+          ctx.textAlign = 'left'
+          ctx.fillText(p.name, 55, topY)
+
+          // Revenue
           ctx.fillStyle = '#FF6B8A'
+          ctx.font = 'bold 13px sans-serif'
           ctx.textAlign = 'right'
           ctx.fillText('¥' + p.revenue, width - 28, topY)
+
+          // Progress bar
+          var barX = 55
+          var barY2 = topY + 6
+          var barW2 = width - 83 - 60
+          var barH2 = 4
+          ctx.fillStyle = '#f0f0f0'
+          ctx.beginPath()
+          ctx.moveTo(barX, barY2)
+          ctx.lineTo(barX + barW2, barY2)
+          ctx.lineTo(barX + barW2, barY2 + barH2)
+          ctx.lineTo(barX, barY2 + barH2)
+          ctx.fill()
+
+          var progressW = barW2 * (p.percent / 100)
+          ctx.fillStyle = '#FF6B8A'
+          ctx.beginPath()
+          ctx.moveTo(barX, barY2)
+          ctx.lineTo(barX + progressW, barY2)
+          ctx.lineTo(barX + progressW, barY2 + barH2)
+          ctx.lineTo(barX, barY2 + barH2)
+          ctx.fill()
+        }
+      } else {
+        topY += 30
+        ctx.fillStyle = '#999'
+        ctx.font = '12px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText('暂无销售数据', width / 2, topY)
+      }
+
+      // Divider 4
+      var div3Y = topY + 35
+      ctx.strokeStyle = '#f0f0f0'
+      ctx.beginPath()
+      ctx.moveTo(30, div3Y)
+      ctx.lineTo(width - 30, div3Y)
+      ctx.stroke()
+
+      // Category stats
+      var catY = div3Y + 25
+      ctx.fillStyle = '#333'
+      ctx.font = 'bold 16px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText('📦 分类统计', 28, catY)
+
+      if (categoryStats && categoryStats.length > 0) {
+        for (var i = 0; i < Math.min(5, categoryStats.length); i++) {
+          catY += 28
+          var c = categoryStats[i]
+
+          ctx.fillStyle = '#333'
+          ctx.font = '12px sans-serif'
           ctx.textAlign = 'left'
+          ctx.fillText(c.name, 28, catY)
+
+          // Bar
+          var barX = 90
+          var barW3 = width - 180
+          ctx.fillStyle = '#f0f0f0'
+          ctx.beginPath()
+          ctx.moveTo(barX, catY - 5)
+          ctx.lineTo(barX + barW3, catY - 5)
+          ctx.lineTo(barX + barW3, catY - 1)
+          ctx.lineTo(barX, catY - 1)
+          ctx.fill()
+
+          var progressW = barW3 * (c.percent / 100)
+          ctx.fillStyle = '#4CAF50'
+          ctx.beginPath()
+          ctx.moveTo(barX, catY - 5)
+          ctx.lineTo(barX + progressW, catY - 5)
+          ctx.lineTo(barX + progressW, catY - 1)
+          ctx.lineTo(barX, catY - 1)
+          ctx.fill()
+
+          ctx.fillStyle = '#FF6B8A'
+          ctx.font = 'bold 11px sans-serif'
+          ctx.textAlign = 'right'
+          ctx.fillText('¥' + c.revenue, width - 28, catY)
         }
       }
 
@@ -346,7 +519,7 @@ Page({
       ctx.fillStyle = '#ccc'
       ctx.font = '10px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('— 钰婷成长小助手 —', width / 2, height - 28)
+      ctx.fillText('— 钰婷成长小助手 —', width / 2, height - 30)
 
       // Convert to image
       setTimeout(function() {
@@ -360,7 +533,7 @@ Page({
             fail: function(err) {
               console.warn('生成海报失败:', err)
               wx.hideLoading()
-              wx.showToast({ title: '生成失败: ' + (err.errMsg || ''), icon: 'none', duration: 2000 })
+              wx.showToast({ title: '生成失败', icon: 'none', duration: 2000 })
             }
           })
         } catch (e) {
