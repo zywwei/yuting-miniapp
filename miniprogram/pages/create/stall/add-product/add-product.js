@@ -11,7 +11,8 @@ Page({
     quantity: '',
     description: '',
     categories: [],
-    profitRate: 0
+    profitRate: 0,
+    uploading: false
   },
 
   onLoad: function(options) {
@@ -58,9 +59,40 @@ Page({
       mediaType: ['image'],
       sizeType: ['compressed'],
       success: function(res) {
-        this.setData({ imagePath: res.tempFiles[0].tempFilePath })
+        var tempPath = res.tempFiles[0].tempFilePath
+        this.uploadImage(tempPath)
       }.bind(this)
     })
+  },
+
+  uploadImage: function(tempPath) {
+    this.setData({ uploading: true })
+    wx.showLoading({ title: '上传中...' })
+
+    if (wx.cloud) {
+      var cloudPath = 'stall/products/' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png'
+      wx.cloud.uploadFile({
+        cloudPath: cloudPath,
+        filePath: tempPath,
+        success: function(res) {
+          this.setData({ imagePath: res.fileID })
+          wx.showToast({ title: '上传成功', icon: 'success' })
+        }.bind(this),
+        fail: function(err) {
+          console.warn('云存储上传失败，使用本地路径:', err)
+          this.setData({ imagePath: tempPath })
+          wx.showToast({ title: '已保存本地', icon: 'none' })
+        }.bind(this),
+        complete: function() {
+          this.setData({ uploading: false })
+          wx.hideLoading()
+        }.bind(this)
+      })
+    } else {
+      // 无云环境，直接用临时路径
+      this.setData({ imagePath: tempPath, uploading: false })
+      wx.hideLoading()
+    }
   },
 
   calcProfitRate: function() {
@@ -82,6 +114,10 @@ Page({
     }
     if (!data.salePrice || parseFloat(data.salePrice) <= 0) {
       wx.showToast({ title: '请输入售价', icon: 'none' })
+      return
+    }
+    if (data.uploading) {
+      wx.showToast({ title: '图片上传中', icon: 'none' })
       return
     }
 
