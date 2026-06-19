@@ -1,4 +1,5 @@
 var childStorage = require('./child-storage.js')
+var cloud = require('./cloud.js')
 
 var PRODUCTS_KEY = 'stallProducts'
 var SALES_KEY = 'stallSales'
@@ -33,8 +34,29 @@ function getProducts() {
   return childStorage.get(PRODUCTS_KEY) || []
 }
 
+// 异步从云端同步数据
+function syncFromCloud() {
+  cloud.fetchStallProducts().then(function(products) {
+    if (products && products.length > 0) {
+      childStorage.set(PRODUCTS_KEY, products)
+    }
+  })
+  cloud.fetchStallSales().then(function(sales) {
+    if (sales && sales.length > 0) {
+      childStorage.set(SALES_KEY, sales)
+    }
+  })
+  cloud.fetchStallSettings().then(function(settings) {
+    if (settings) {
+      childStorage.set(SETTINGS_KEY, settings)
+    }
+  })
+}
+
 function saveProducts(products) {
   childStorage.set(PRODUCTS_KEY, products)
+  // 异步同步到云端
+  cloud.uploadStallProduct(products)
 }
 
 function addProduct(product) {
@@ -82,6 +104,8 @@ function getSales() {
 
 function saveSales(sales) {
   childStorage.set(SALES_KEY, sales)
+  // 异步同步到云端
+  cloud.uploadStallSale(sales)
 }
 
 function addSale(sale) {
@@ -176,6 +200,8 @@ function getSettings() {
 
 function saveSettings(settings) {
   childStorage.set(SETTINGS_KEY, settings)
+  // 异步同步到云端
+  cloud.uploadStallSettings(settings)
 }
 
 // Stall operations
@@ -334,5 +360,6 @@ module.exports = {
   getAllLevels: getAllLevels,
   calculateChange: calculateChange,
   getCategories: getCategories,
-  getTodayStr: getTodayStr
+  getTodayStr: getTodayStr,
+  syncFromCloud: syncFromCloud
 }

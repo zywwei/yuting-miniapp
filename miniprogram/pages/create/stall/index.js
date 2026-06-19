@@ -11,6 +11,8 @@ Page({
   },
 
   onLoad: function() {
+    // 从云端同步数据
+    stallManager.syncFromCloud()
     this.loadData()
   },
 
