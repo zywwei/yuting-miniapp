@@ -110,6 +110,7 @@ Page({
         data: {
           action: 'create',
           familyName: this.data.familyName.trim() || (this.data.childName.trim() + '的家'),
+          role: this.data.role,
           roleName: this.data.roleName,
           nickname: this.data.nickname,
           childName: this.data.childName.trim(),
@@ -125,9 +126,26 @@ Page({
       if (res.result.code === 0) {
         var data = res.result.data
 
-        // 如果已存在家庭，直接进入首页
+        // 如果已存在家庭，获取完整数据后进入首页
         if (data.existing) {
           wx.showToast({ title: '您已加入家庭', icon: 'none' })
+          try {
+            var familyRes = await wx.cloud.callFunction({
+              name: 'family',
+              data: { action: 'getMyFamilies' }
+            })
+            if (familyRes.result.code === 0 && familyRes.result.data.families.length > 0) {
+              var f = familyRes.result.data.families[0]
+              auth.setFamily(f.family)
+              auth.setMember(f.member)
+              auth.setChildren(f.children || [])
+              if (f.children && f.children.length > 0) {
+                auth.switchChild(f.children[0].childId)
+              }
+            }
+          } catch (e) {
+            console.warn('获取家庭数据失败:', e)
+          }
           setTimeout(function() {
             wx.reLaunch({ url: '/pages/index/index' })
           }, 1500)

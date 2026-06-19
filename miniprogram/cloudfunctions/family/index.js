@@ -73,7 +73,7 @@ async function isAdmin(member) {
   return member && member.permissions && member.permissions.indexOf('admin') >= 0
 }
 
-async function createFamily(openid, { familyName, roleName, nickname, childName, childNickname, childGender, childBirthday, avatar, familyAvatar, childTheme }) {
+async function createFamily(openid, { familyName, role, roleName, nickname, childName, childNickname, childGender, childBirthday, avatar, familyAvatar, childTheme }) {
   const existing = await getMemberByOpenid(openid)
   if (existing) {
     // 已加入家庭，返回家庭信息而不是报错
@@ -116,19 +116,20 @@ async function createFamily(openid, { familyName, roleName, nickname, childName,
   })
 
   const familyId = familyRes._id
-  let role = 'father'
-  let rName = roleName || '爸爸'
-  if (roleName === '妈妈' || roleName === 'mother') {
-    role = 'mother'
-    rName = '妈妈'
+
+  const ROLE_NAMES = {
+    father: '爸爸', mother: '妈妈', child: '本人',
+    grandpa: '爷爷', grandma: '奶奶', uncle: '叔叔', aunt: '阿姨', other: '其他'
   }
+  const memberRole = role || 'father'
+  const memberRoleName = roleName || ROLE_NAMES[memberRole] || '家人'
 
   await db.collection('familyMembers').add({
     data: {
       familyId,
       openid,
-      role,
-      roleName: rName,
+      role: memberRole,
+      roleName: memberRoleName,
       nickname: nickname || '',
       avatar: avatar || '',
       isChild: false,
@@ -276,6 +277,7 @@ async function getMyFamilies(openid) {
       familyId: family._id,
       familyName: family.name,
       familyAvatar: family.avatar,
+      family: family,
       member: memberRecord,
       children: family.children || [],
       status: memberRecord.status,
