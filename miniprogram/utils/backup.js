@@ -1,6 +1,6 @@
 /**
- * 数据备份与恢复工具（版本2）
- * 支持家庭角色系统的数据结构
+ * 数据备份与恢复工具（版本3）
+ * 支持家庭角色系统、摆摊模块的数据结构
  */
 
 var util = require('./util.js')
@@ -17,7 +17,7 @@ function exportAllData() {
       var children = auth.getChildren()
 
       var backupData = {
-        version: 2,
+        version: 3,
         exportTime: new Date().toISOString(),
         deviceInfo: {
           platform: wx.getSystemInfoSync().platform,
@@ -71,8 +71,9 @@ function importAllData(backupData) {
         return
       }
 
-      if (backupData.version !== 2) {
-        reject(new Error('不支持此备份版本，请使用版本2的备份文件'))
+      // 支持版本1、2、3
+      if (backupData.version < 1 || backupData.version > 3) {
+        reject(new Error('不支持此备份版本'))
         return
       }
 
@@ -119,6 +120,22 @@ function importAllData(backupData) {
             result.errors.push('恢复 ' + key + ' 失败: ' + err.message)
           }
         })
+
+        // 恢复家庭信息（版本2+）
+        if (backupData.version >= 2) {
+          if (backupData.family) {
+            auth.setFamily(backupData.family)
+          }
+          if (backupData.member) {
+            auth.setMember(backupData.member)
+          }
+          if (backupData.children && backupData.children.length > 0) {
+            auth.setChildren(backupData.children)
+            if (!auth.getCurrentChildId()) {
+              auth.switchChild(backupData.children[0].childId)
+            }
+          }
+        }
 
         resolve(result)
       }).catch(function(err) {
