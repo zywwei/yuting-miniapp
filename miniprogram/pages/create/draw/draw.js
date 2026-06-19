@@ -780,6 +780,13 @@ Page({
         duration: 2000
       })
 
+      // 保存成功后清除历史记录并返回
+      this.history = []
+      this.dataChanged = false
+      setTimeout(() => {
+        wx.navigateBack()
+      }, 1500)
+
       // 检查成就解锁（异步版本，确保读取最新数据）
       achievements.checkAchievementsAsync().then(newAchievements => {
         if (newAchievements && newAchievements.length > 0) {
