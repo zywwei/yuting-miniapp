@@ -137,14 +137,17 @@ Page({
       dailySales.forEach(function(d) {
         if (d.revenue > maxVal) maxVal = d.revenue
       })
-      // Round up to nice number
-      if (maxVal <= 0) maxVal = 10
-      else if (maxVal <= 10) maxVal = 10
-      else if (maxVal <= 50) maxVal = 50
-      else if (maxVal <= 100) maxVal = 100
-      else if (maxVal <= 500) maxVal = 500
-      else if (maxVal <= 1000) maxVal = 1000
-      else maxVal = Math.ceil(maxVal / 1000) * 1000
+      // Round up to nice number with dynamic adjustment
+      if (maxVal <= 0) {
+        maxVal = 10
+      } else {
+        var magnitude = Math.pow(10, Math.floor(Math.log10(maxVal)))
+        var normalized = maxVal / magnitude
+        if (normalized <= 1) maxVal = magnitude
+        else if (normalized <= 2) maxVal = magnitude * 2
+        else if (normalized <= 5) maxVal = magnitude * 5
+        else maxVal = magnitude * 10
+      }
 
       var padding = { top: 20, right: 10, bottom: 30, left: 40 }
       var chartW = width - padding.left - padding.right
