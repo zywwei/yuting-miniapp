@@ -81,13 +81,13 @@
         <view class="quick-icon">📚</view>
         <view class="quick-text">学习</view>
       </view>
-      <view class="quick-item" bindtap="goModule" data-module="create">
-        <view class="quick-icon">🎪</view>
-        <view class="quick-text">奇趣屋</view>
+      <view class="quick-item" bindtap="goModule" data-module="draw">
+        <view class="quick-icon">🎨</view>
+        <view class="quick-text">画画</view>
       </view>
-      <view class="quick-item" bindtap="goModule" data-module="notes">
-        <view class="quick-icon">📝</view>
-        <view class="quick-text">笔记</view>
+      <view class="quick-item" bindtap="goModule" data-module="stall">
+        <view class="quick-icon">🏪</view>
+        <view class="quick-text">摆摊</view>
       </view>
     </view>
   </view>
