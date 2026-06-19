@@ -19,6 +19,7 @@ Page({
     inviteCodeExpireAt: '',
     loading: false,
     showAddChild: false,
+    showMembers: false,
     newChildName: '',
     newChildNickname: '',
     newChildGender: '',
@@ -86,6 +87,19 @@ Page({
       themeGradient: themeGradient
     })
 
+    // 设置状态栏颜色
+    var themeColor = '#FF9AAB'
+    for (var k = 0; k < THEMES.length; k++) {
+      if (THEMES[k].id === currentTheme) {
+        themeColor = THEMES[k].color
+        break
+      }
+    }
+    wx.setNavigationBarColor({
+      frontColor: '#ffffff',
+      backgroundColor: themeColor
+    })
+
     if (family) {
       this.setData({
         inviteCode: family.inviteCode || '',
@@ -106,8 +120,10 @@ Page({
       })
 
       if (res.result.code === 0) {
+        var family = res.result.data.family
+        family.members = res.result.data.members || []
         this.setData({
-          family: res.result.data.family,
+          family: family,
           children: res.result.data.children
         })
         // 同步到 app.globalData
@@ -171,6 +187,13 @@ Page({
         themeBg: theme.bg,
         themeGradient: theme.gradient
       })
+
+      // 更新状态栏颜色
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: theme.color
+      })
+
       wx.showToast({ title: '已切换主题', icon: 'success' })
     } catch (err) {
       console.warn('保存主题失败:', err)
@@ -209,6 +232,14 @@ Page({
         wx.showToast({ title: '已复制', icon: 'success' })
       }
     })
+  },
+
+  showMembersPanel() {
+    this.setData({ showMembers: true })
+  },
+
+  hideMembersPanel() {
+    this.setData({ showMembers: false })
   },
 
   showAddChildPanel() {
@@ -499,6 +530,50 @@ Page({
         }
       }
     })
+  },
+
+  async disableMember(e) {
+    var memberId = e.currentTarget.dataset.id
+
+    wx.showModal({
+      title: '确认禁用',
+      content: '禁用后该成员将无法访问家庭数据，确定禁用吗？',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            var result = await wx.cloud.callFunction({
+              name: 'family',
+              data: { action: 'disableMember', memberId: memberId }
+            })
+
+            if (result.result.code === 0) {
+              wx.showToast({ title: '已禁用', icon: 'success' })
+              await this.loadData()
+            }
+          } catch (err) {
+            wx.showToast({ title: '禁用失败', icon: 'none' })
+          }
+        }
+      }
+    })
+  },
+
+  async enableMember(e) {
+    var memberId = e.currentTarget.dataset.id
+
+    try {
+      var result = await wx.cloud.callFunction({
+        name: 'family',
+        data: { action: 'enableMember', memberId: memberId }
+      })
+
+      if (result.result.code === 0) {
+        wx.showToast({ title: '已启用', icon: 'success' })
+        await this.loadData()
+      }
+    } catch (err) {
+      wx.showToast({ title: '启用失败', icon: 'none' })
+    }
   },
 
   leaveFamily() {

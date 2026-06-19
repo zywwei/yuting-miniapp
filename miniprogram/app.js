@@ -18,39 +18,84 @@ App({
   },
 
   async checkAuth() {
-    if (!auth.isLoggedIn()) {
-      // 本地没有登录信息，检查云端是否有家庭
-      if (this.globalData.cloudEnabled) {
-        try {
-          var res = await wx.cloud.callFunction({
-            name: 'family',
-            data: { action: 'getInfo' }
-          })
-          if (res.result.code === 0) {
-            // 云端有家庭，自动登录
-            var data = res.result.data
-            auth.setFamily(data.family)
-            auth.setMember(data.member)
-            auth.setChildren(data.children)
-            if (data.children.length > 0 && !auth.getCurrentChildId()) {
-              auth.switchChild(data.children[0].childId)
-            }
-            this.globalData.member = data.member
-            this.globalData.family = data.family
-            this.globalData.children = data.children
-            this.globalData.currentChildId = auth.getCurrentChildId()
-            this.calcGrowthDays()
+    // 获取用户所有家庭
+    if (this.globalData.cloudEnabled) {
+      try {
+        var res = await wx.cloud.callFunction({
+          name: 'family',
+          data: { action: 'getMyFamilies' }
+        })
+
+        if (res.result.code === 0) {
+          var families = res.result.data.families || []
+          auth.setMyFamilies(families)
+
+          if (families.length === 0) {
+            // 没有家庭，跳转角色选择
+            auth.clear()
+            wx.reLaunch({ url: '/pages/family/role-select/role-select' })
             return
           }
-        } catch (err) {
-          console.warn('检查云端家庭失败:', err)
+
+          // 选择要进入的家庭
+          var targetFamilyId = auth.getDefaultFamilyId()
+          var targetFamily = null
+
+          // 查找默认家庭
+          for (var i = 0; i < families.length; i++) {
+            if (families[i].familyId === targetFamilyId && families[i].status === 'active') {
+              targetFamily = families[i]
+              break
+            }
+          }
+
+          // 如果没有默认家庭或默认家庭不可用，使用第一个可用家庭
+          if (!targetFamily) {
+            for (var j = 0; j < families.length; j++) {
+              if (families[j].status === 'active') {
+                targetFamily = families[j]
+                break
+              }
+            }
+          }
+
+          if (!targetFamily) {
+            // 所有家庭都被禁用
+            wx.showModal({
+              title: '账号已被禁用',
+              content: '您在所有家庭中都被禁用，请联系管理员',
+              showCancel: false
+            })
+            return
+          }
+
+          // 进入目标家庭
+          auth.setFamily(targetFamily.family)
+          auth.setMember(targetFamily.member)
+          auth.setChildren(targetFamily.children || [])
+          if (targetFamily.children.length > 0 && !auth.getCurrentChildId()) {
+            auth.switchChild(targetFamily.children[0].childId)
+          }
+
+          this.globalData.member = targetFamily.member
+          this.globalData.family = targetFamily.family
+          this.globalData.children = targetFamily.children
+          this.globalData.currentChildId = auth.getCurrentChildId()
+          this.globalData.myFamilies = families
+          this.calcGrowthDays()
+          return
         }
+      } catch (err) {
+        console.warn('获取家庭列表失败:', err)
       }
-      // 确实没有家庭，跳转角色选择
-      wx.reLaunch({ url: '/pages/family/role-select/role-select' })
-      return
     }
-    await this.refreshFamilyInfo()
+
+    // 降级：尝试从本地缓存加载
+    if (auth.isLoggedIn()) {
+      this.loadFromLocalCache()
+    } else {
+      wx.reLaunch({ url: '/pages/family/role-select/role-select' })
+    }
   },
 
   async refreshFamilyInfo() {
@@ -59,10 +104,15 @@ App({
       return
     }
 
+    var currentFamilyId = auth.getCurrentFamilyId()
+    if (!currentFamilyId) {
+      return
+    }
+
     try {
       var res = await wx.cloud.callFunction({
         name: 'family',
-        data: { action: 'getInfo' }
+        data: { action: 'getFamilyDetail', familyId: currentFamilyId }
       })
 
       if (res.result.code === 0) {
@@ -85,14 +135,82 @@ App({
         this.globalData.children = data.children
         this.globalData.currentChildId = currentChildId
         this.calcGrowthDays()
-      } else if (res.result.code === -1) {
-        auth.clear()
-        wx.reLaunch({ url: '/pages/family/role-select/role-select' })
+
+        // 更新家庭列表中的当前家庭数据
+        this.updateFamilyInList(currentFamilyId, data)
+      } else if (res.result.code === -3) {
+        wx.showModal({
+          title: '账号已被禁用',
+          content: res.result.msg,
+          showCancel: false,
+          success: function() {
+            // 切换到其他可用家庭或退出
+            this.switchToNextAvailableFamily()
+          }.bind(this)
+        })
+      } else if (res.result.code === -1 || res.result.code === -2) {
+        // 家庭不存在或已解散
+        wx.showToast({ title: '家庭已不存在', icon: 'none' })
+        this.switchToNextAvailableFamily()
       }
     } catch (err) {
       console.warn('刷新家庭信息失败，使用本地缓存:', err)
       this.loadFromLocalCache()
     }
+  },
+
+  // 更新家庭列表中的数据
+  updateFamilyInList: function(familyId, data) {
+    var families = auth.getMyFamilies()
+    for (var i = 0; i < families.length; i++) {
+      if (families[i].familyId === familyId) {
+        families[i].family = data.family
+        families[i].member = data.member
+        families[i].children = data.children
+        break
+      }
+    }
+    auth.setMyFamilies(families)
+    this.globalData.myFamilies = families
+  },
+
+  // 切换到下一个可用家庭
+  switchToNextAvailableFamily: function() {
+    var families = auth.getMyFamilies()
+    var currentFamilyId = auth.getCurrentFamilyId()
+
+    for (var i = 0; i < families.length; i++) {
+      if (families[i].familyId !== currentFamilyId && families[i].status === 'active') {
+        this.switchFamily(families[i].familyId)
+        return
+      }
+    }
+
+    // 没有可用家庭
+    auth.clear()
+    wx.reLaunch({ url: '/pages/family/role-select/role-select' })
+  },
+
+  // 切换家庭
+  switchFamily: function(familyId) {
+    var success = auth.switchFamily(familyId)
+    if (success) {
+      this.globalData.family = auth.getFamily()
+      this.globalData.member = auth.getMember()
+      this.globalData.children = auth.getChildren()
+      this.globalData.currentChildId = auth.getCurrentChildId()
+      this.calcGrowthDays()
+
+      // 刷新页面
+      var pages = getCurrentPages()
+      if (pages.length > 0) {
+        var currentPage = pages[pages.length - 1]
+        if (currentPage.onShow) {
+          currentPage.onShow()
+        }
+      }
+    }
+    return success
   },
 
   loadFromLocalCache() {

@@ -81,7 +81,7 @@
 
   <view class="section" wx:if="{{isAdmin}}">
     <view class="section-title">成员管理</view>
-    <view class="card" wx:if="{{family}}">
+    <view class="card" wx:if="{{family}}" bindtap="showMembersPanel">
       <view class="card-left">
         <text class="card-icon">👨‍👩‍👧</text>
         <view class="card-info">
@@ -215,6 +215,39 @@
       <view class="panel-btns">
         <view class="panel-btn cancel" bindtap="hideEditChildPanel">取消</view>
         <view class="panel-btn confirm" style="background: {{editChildGender === 'boy' ? '#4A90D9' : '#FF9AAB'}};" bindtap="saveEditChild" loading="{{loading}}">保存</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成员列表面板 -->
+  <view class="members-panel" wx:if="{{showMembers}}">
+    <view class="panel-mask" bindtap="hideMembersPanel"></view>
+    <view class="panel-content">
+      <view class="panel-title">家庭成员</view>
+
+      <view class="members-list">
+        <view class="member-item {{item.status === 'disabled' ? 'disabled' : ''}}" wx:for="{{family.members}}" wx:key="_id">
+          <view class="member-avatar">
+            <image wx:if="{{item.avatar}}" src="{{item.avatar}}" mode="aspectFill" class="member-avatar-img" />
+            <text wx:else>{{item.role === 'father' ? '👨' : item.role === 'mother' ? '👩' : item.role === 'child' ? '🧒' : '👤'}}</text>
+          </view>
+          <view class="member-info">
+            <view class="member-name-row">
+              <text class="member-name">{{item.nickname || item.roleName}}</text>
+              <text class="member-status-tag" wx:if="{{item.status === 'disabled'}}">已禁用</text>
+            </view>
+            <text class="member-role">{{item.roleName}}</text>
+          </view>
+          <view class="member-actions" wx:if="{{isAdmin && item.openid !== member.openid}}">
+            <text class="disable-member-btn" wx:if="{{item.status === 'active'}}" data-id="{{item._id}}" catchtap="disableMember">禁用</text>
+            <text class="enable-member-btn" wx:if="{{item.status === 'disabled'}}" data-id="{{item._id}}" catchtap="enableMember">启用</text>
+            <text class="remove-member-btn" data-id="{{item._id}}" data-name="{{item.nickname || item.roleName}}" catchtap="removeMember">移除</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="panel-btns">
+        <view class="panel-btn confirm" bindtap="hideMembersPanel">关闭</view>
       </view>
     </view>
   </view>

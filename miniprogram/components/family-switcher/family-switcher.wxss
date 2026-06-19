@@ -1,0 +1,183 @@
+.switcher {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: rgba(255,255,255,0.3);
+  border-radius: 32rpx;
+  position: fixed;
+  top: 20rpx;
+  right: 20rpx;
+  z-index: 100;
+}
+
+.switcher-icon {
+  font-size: 28rpx;
+}
+
+.switcher-text {
+  font-size: 24rpx;
+  color: #fff;
+}
+
+.panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.panel-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+}
+
+.panel-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.panel-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.family-list {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.family-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  background: #f8f8f8;
+  border-radius: 16rpx;
+  border: 3rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.family-item.active {
+  border-color: #FF6B8A;
+  background: #fff5f7;
+}
+
+.family-item.disabled {
+  opacity: 0.6;
+}
+
+.family-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  margin-right: 20rpx;
+}
+
+.family-avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.family-info {
+  flex: 1;
+}
+
+.family-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.family-name {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: bold;
+}
+
+.default-tag {
+  font-size: 20rpx;
+  color: #FF6B8A;
+  background: #fff0f3;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.disabled-tag {
+  font-size: 20rpx;
+  color: #ff9900;
+  background: #fff3e0;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.family-role {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.family-actions {
+  margin-left: 16rpx;
+}
+
+.set-default-btn {
+  font-size: 24rpx;
+  color: #4A90D9;
+  padding: 8rpx 16rpx;
+}
+
+.current-tag {
+  font-size: 24rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+.add-family {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 24rpx;
+  margin-top: 16rpx;
+  border: 2rpx dashed #ddd;
+  border-radius: 16rpx;
+}
+
+.add-icon {
+  font-size: 36rpx;
+  color: #999;
+}
+
+.add-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.panel-close {
+  text-align: center;
+  padding: 32rpx 0 16rpx;
+  font-size: 30rpx;
+  color: #999;
+}

@@ -1,0 +1,81 @@
+<view class="container">
+  <view class="header">
+    <view class="header-bg"></view>
+    <view class="header-content">
+      <view class="stats-cards">
+        <view class="stat-card">
+          <text class="stat-icon">💰</text>
+          <text class="stat-value">¥{{stats.totalRevenue}}</text>
+          <text class="stat-label">累计销售额</text>
+        </view>
+        <view class="stat-card">
+          <text class="stat-icon">📈</text>
+          <text class="stat-value">¥{{stats.totalProfit}}</text>
+          <text class="stat-label">累计利润</text>
+        </view>
+        <view class="stat-card">
+          <text class="stat-icon">📦</text>
+          <text class="stat-value">{{stats.totalOrders}}</text>
+          <text class="stat-label">总订单数</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">🏆 热销商品 Top5</view>
+    <view class="top-list">
+      <view class="top-item" wx:for="{{stats.topProducts}}" wx:key="id">
+        <view class="top-rank">{{index + 1}}</view>
+        <view class="top-info">
+          <text class="top-name">{{item.name}}</text>
+          <view class="top-bar">
+            <view class="top-progress" style="width: {{item.percent}}%;"></view>
+          </view>
+        </view>
+        <view class="top-stats">
+          <text class="top-qty">x{{item.quantity}}</text>
+          <text class="top-revenue">¥{{item.revenue}}</text>
+        </view>
+      </view>
+      <view class="empty-hint" wx:if="{{stats.topProducts.length === 0}}">
+        <text>暂无销售数据</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">🔥 营业数据</view>
+    <view class="data-cards">
+      <view class="data-card">
+        <text class="data-icon">🔥</text>
+        <text class="data-value">{{stats.streakDays}}</text>
+        <text class="data-label">连续营业天数</text>
+      </view>
+      <view class="data-card">
+        <text class="data-icon">⭐</text>
+        <text class="data-value">Lv.{{stats.level}}</text>
+        <text class="data-label">摊位等级</text>
+      </view>
+      <view class="data-card">
+        <text class="data-icon">📊</text>
+        <text class="data-value">{{avgOrder}}</text>
+        <text class="data-label">平均客单价</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">📅 今日概况</view>
+    <view class="today-stats">
+      <view class="today-item">
+        <text class="today-value">¥{{stats.todayRevenue}}</text>
+        <text class="today-label">今日销售额</text>
+      </view>
+      <view class="today-item">
+        <text class="today-value">{{stats.todayOrders}}</text>
+        <text class="today-label">今日订单</text>
+      </view>
+    </view>
+  </view>
+</view>

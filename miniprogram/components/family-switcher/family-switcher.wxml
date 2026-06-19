@@ -1,0 +1,46 @@
+<view class="switcher" bindtap="showPanel" wx:if="{{families.length > 1}}">
+  <text class="switcher-icon">👥</text>
+  <text class="switcher-text">切换家庭</text>
+</view>
+
+<!-- 家庭切换面板 -->
+<view class="panel" wx:if="{{showPanel}}">
+  <view class="panel-mask" bindtap="hidePanel"></view>
+  <view class="panel-content">
+    <view class="panel-title">我的家庭</view>
+
+    <view class="family-list">
+      <view class="family-item {{item.familyId === currentFamilyId ? 'active' : ''}} {{item.status === 'disabled' ? 'disabled' : ''}}" 
+            wx:for="{{families}}" 
+            wx:key="familyId"
+            bindtap="switchFamily"
+            data-id="{{item.familyId}}">
+        <view class="family-avatar">
+          <image wx:if="{{item.familyAvatar}}" src="{{item.familyAvatar}}" mode="aspectFill" class="family-avatar-img" />
+          <text wx:else>👨‍👩‍👧</text>
+        </view>
+        <view class="family-info">
+          <view class="family-name-row">
+            <text class="family-name">{{item.familyName}}</text>
+            <text class="default-tag" wx:if="{{item.familyId === defaultFamilyId}}">默认</text>
+            <text class="disabled-tag" wx:if="{{item.status === 'disabled'}}">已禁用</text>
+          </view>
+          <text class="family-role">{{item.roleName}}</text>
+        </view>
+        <view class="family-actions">
+          <text class="set-default-btn" wx:if="{{item.familyId !== defaultFamilyId && item.status === 'active'}}" 
+                catchtap="setDefault" 
+                data-id="{{item.familyId}}">设为默认</text>
+          <text class="current-tag" wx:if="{{item.familyId === currentFamilyId}}">当前</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="add-family" bindtap="goCreate">
+      <text class="add-icon">+</text>
+      <text class="add-text">创建/加入新家庭</text>
+    </view>
+
+    <view class="panel-close" bindtap="hidePanel">关闭</view>
+  </view>
+</view>

@@ -18,6 +18,10 @@ exports.main = async (event, context) => {
       return await joinFamily(OPENID, event)
     case 'getInfo':
       return await getFamilyInfo(OPENID)
+    case 'getMyFamilies':
+      return await getMyFamilies(OPENID)
+    case 'getFamilyDetail':
+      return await getFamilyDetail(OPENID, event)
     case 'refreshInviteCode':
       return await refreshInviteCode(OPENID)
     case 'addChild':
@@ -28,6 +32,10 @@ exports.main = async (event, context) => {
       return await removeChild(OPENID, event)
     case 'removeMember':
       return await removeMember(OPENID, event)
+    case 'disableMember':
+      return await disableMember(OPENID, event)
+    case 'enableMember':
+      return await enableMember(OPENID, event)
     case 'updateProfile':
       return await updateProfile(OPENID, event)
     case 'updateAvatar':
@@ -53,7 +61,10 @@ function generateInviteCode() {
 
 async function getMemberByOpenid(openid) {
   const res = await db.collection('familyMembers')
-    .where({ openid, status: 'active' })
+    .where({
+      openid,
+      status: db.command.in(['active', 'disabled'])
+    })
     .get()
   return res.data[0] || null
 }
@@ -195,6 +206,10 @@ async function getFamilyInfo(openid) {
     return { code: -1, msg: '未加入家庭' }
   }
 
+  if (member.status === 'disabled') {
+    return { code: -3, msg: '您的账号已被禁用，请联系管理员' }
+  }
+
   const familyRes = await db.collection('families').doc(member.familyId).get()
   const family = familyRes.data
 
@@ -206,12 +221,114 @@ async function getFamilyInfo(openid) {
     data: { lastActiveAt: new Date() }
   })
 
+  // 获取所有家庭成员（活跃和禁用，不含已移除）
+  const membersRes = await db.collection('familyMembers')
+    .where({
+      familyId: member.familyId,
+      status: db.command.in(['active', 'disabled'])
+    })
+    .get()
+
   return {
     code: 0,
     data: {
       family,
       member,
-      children: family.children || []
+      children: family.children || [],
+      members: membersRes.data || []
+    }
+  }
+}
+
+async function getMyFamilies(openid) {
+  // 获取用户所有家庭成员记录
+  const membersRes = await db.collection('familyMembers')
+    .where({
+      openid,
+      status: db.command.in(['active', 'disabled'])
+    })
+    .get()
+
+  const memberRecords = membersRes.data || []
+  if (memberRecords.length === 0) {
+    return { code: 0, data: { families: [] } }
+  }
+
+  // 获取所有家庭信息
+  const familyIds = [...new Set(memberRecords.map(m => m.familyId))]
+  const familiesRes = await db.collection('families')
+    .where({
+      _id: db.command.in(familyIds),
+      status: 'active'
+    })
+    .get()
+
+  const familiesMap = {}
+  familiesRes.data.forEach(f => { familiesMap[f._id] = f })
+
+  // 组装数据
+  const families = []
+  for (const memberRecord of memberRecords) {
+    const family = familiesMap[memberRecord.familyId]
+    if (!family) continue
+
+    families.push({
+      familyId: family._id,
+      familyName: family.name,
+      familyAvatar: family.avatar,
+      member: memberRecord,
+      children: family.children || [],
+      status: memberRecord.status,
+      role: memberRecord.role,
+      roleName: memberRecord.roleName
+    })
+  }
+
+  return { code: 0, data: { families } }
+}
+
+async function getFamilyDetail(openid, { familyId }) {
+  // 获取用户在该家庭的成员记录
+  const memberRes = await db.collection('familyMembers')
+    .where({
+      openid,
+      familyId,
+      status: db.command.in(['active', 'disabled'])
+    })
+    .get()
+
+  const member = memberRes.data[0]
+  if (!member) {
+    return { code: -1, msg: '您不是该家庭成员' }
+  }
+
+  if (member.status === 'disabled') {
+    return { code: -3, msg: '您的账号在该家庭已被禁用' }
+  }
+
+  // 获取家庭信息
+  const familyRes = await db.collection('families').doc(familyId).get()
+  const family = familyRes.data
+
+  if (!family || family.status === 'archived') {
+    return { code: -2, msg: '家庭已解散' }
+  }
+
+  // 获取所有家庭成员
+  const membersRes = await db.collection('familyMembers')
+    .where({
+      familyId,
+      status: db.command.in(['active', 'disabled'])
+    })
+    .get()
+
+  return {
+    code: 0,
+    data: {
+      family,
+      member,
+      children: family.children || [],
+      members: membersRes.data || []
     }
   }
 }
@@ -322,6 +439,36 @@ async function removeMember(openid, { memberId }) {
 
   await db.collection('familyMembers').doc(memberId).update({
     data: { status: 'removed' }
+  })
+
+  return { code: 0 }
+}
+
+async function disableMember(openid, { memberId }) {
+  const member = await getMemberByOpenid(openid)
+  if (!member || !await isAdmin(member)) {
+    return { code: -1, msg: '无权限' }
+  }
+
+  if (member._id === memberId) {
+    return { code: -2, msg: '不能禁用自己' }
+  }
+
+  await db.collection('familyMembers').doc(memberId).update({
+    data: { status: 'disabled' }
+  })
+
+  return { code: 0 }
+}
+
+async function enableMember(openid, { memberId }) {
+  const member = await getMemberByOpenid(openid)
+  if (!member || !await isAdmin(member)) {
+    return { code: -1, msg: '无权限' }
+  }
+
+  await db.collection('familyMembers').doc(memberId).update({
+    data: { status: 'active' }
   })
 
   return { code: 0 }

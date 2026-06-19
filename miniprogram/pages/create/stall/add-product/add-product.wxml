@@ -1,0 +1,50 @@
+<view class="container">
+  <view class="form">
+    <view class="form-item">
+      <text class="label">商品名称</text>
+      <input class="input" placeholder="请输入商品名称" value="{{name}}" bindinput="onInput" data-field="name" />
+    </view>
+
+    <view class="form-item">
+      <text class="label">商品图片</text>
+      <view class="image-upload" bindtap="chooseImage">
+        <image wx:if="{{imagePath}}" src="{{imagePath}}" mode="aspectFill" class="preview-img" />
+        <text wx:else class="upload-icon">📷</text>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <text class="label">商品分类</text>
+      <view class="category-select">
+        <view class="category-option {{category === item ? 'active' : ''}}" wx:for="{{categories}}" wx:key="*this" bindtap="selectCategory" data-category="{{item}}">{{item}}</view>
+      </view>
+    </view>
+
+    <view class="form-row">
+      <view class="form-item half">
+        <text class="label">进货价 (元)</text>
+        <input class="input" type="digit" placeholder="0.00" value="{{costPrice}}" bindinput="onInput" data-field="costPrice" />
+      </view>
+      <view class="form-item half">
+        <text class="label">售价 (元)</text>
+        <input class="input" type="digit" placeholder="0.00" value="{{salePrice}}" bindinput="onInput" data-field="salePrice" />
+      </view>
+    </view>
+
+    <view class="profit-info" wx:if="{{profitRate > 0}}">
+      <text class="profit-text">利润率: {{profitRate}}%</text>
+    </view>
+
+    <view class="form-item">
+      <text class="label">库存数量</text>
+      <input class="input" type="number" placeholder="0" value="{{quantity}}" bindinput="onInput" data-field="quantity" />
+    </view>
+
+    <view class="form-item">
+      <text class="label">商品描述</text>
+      <textarea class="textarea" placeholder="请输入商品描述" value="{{description}}" bindinput="onInput" data-field="description" />
+    </view>
+  </view>
+
+  <view class="submit-btn" bindtap="save">保存</view>
+</view>

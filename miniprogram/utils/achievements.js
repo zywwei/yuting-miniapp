@@ -10,7 +10,7 @@ var habitManager = require('./habit-manager.js')
 var childStorage = require('./child-storage.js')
 
 // 成就总数常量（用于 legend 成就的 maxProgress）
-var TOTAL_ACHIEVEMENTS = 40
+var TOTAL_ACHIEVEMENTS = 48
 
 // 稀有度定义
 var RARITY = {
@@ -143,6 +143,32 @@ var ACHIEVEMENTS = [
     condition: function(data) { return data.storyRound >= 3 },
     progress: function(data) { return Math.min(data.storyRound, 3) }, maxProgress: 3 },
 
+  // ===== 摆摊成就 =====
+  { id: 'stall_1', icon: '🏪', title: '小老板', desc: '完成第一笔销售', category: 'special', rarity: 'common',
+    condition: function(data) { return data.stallSalesCount >= 1 },
+    progress: function(data) { return Math.min(data.stallSalesCount, 1) }, maxProgress: 1 },
+  { id: 'stall_10', icon: '💰', title: '赚钱能手', desc: '累计完成10笔销售', category: 'special', rarity: 'common',
+    condition: function(data) { return data.stallSalesCount >= 10 },
+    progress: function(data) { return Math.min(data.stallSalesCount, 10) }, maxProgress: 10 },
+  { id: 'stall_50', icon: '🏆', title: '销售冠军', desc: '累计完成50笔销售', category: 'special', rarity: 'rare',
+    condition: function(data) { return data.stallSalesCount >= 50 },
+    progress: function(data) { return Math.min(data.stallSalesCount, 50) }, maxProgress: 50 },
+  { id: 'stall_100', icon: '👑', title: '商业大亨', desc: '累计完成100笔销售', category: 'special', rarity: 'legendary',
+    condition: function(data) { return data.stallSalesCount >= 100 },
+    progress: function(data) { return Math.min(data.stallSalesCount, 100) }, maxProgress: 100 },
+  { id: 'stall_revenue_50', icon: '💵', title: '第一桶金', desc: '累计销售额达到50元', category: 'special', rarity: 'common',
+    condition: function(data) { return data.stallTotalRevenue >= 50 },
+    progress: function(data) { return Math.min(data.stallTotalRevenue, 50) }, maxProgress: 50 },
+  { id: 'stall_revenue_200', icon: '💎', title: '小富翁', desc: '累计销售额达到200元', category: 'special', rarity: 'rare',
+    condition: function(data) { return data.stallTotalRevenue >= 200 },
+    progress: function(data) { return Math.min(data.stallTotalRevenue, 200) }, maxProgress: 200 },
+  { id: 'stall_profit', icon: '📈', title: '理财小能手', desc: '累计盈利达到50元', category: 'special', rarity: 'rare',
+    condition: function(data) { return data.stallTotalProfit >= 50 },
+    progress: function(data) { return Math.min(data.stallTotalProfit, 50) }, maxProgress: 50 },
+  { id: 'stall_products_5', icon: '📦', title: '货如轮转', desc: '拥有5种不同商品', category: 'special', rarity: 'common',
+    condition: function(data) { return data.stallProductTypes >= 5 },
+    progress: function(data) { return Math.min(data.stallProductTypes, 5) }, maxProgress: 5 },
+
   // ===== 特殊成就 =====
   { id: 'early_bird', icon: '🐦', title: '早起鸟儿', desc: '早上7点前完成打卡', category: 'special', rarity: 'rare',
     condition: function(data) { return data.hasEarlyBird },
@@ -264,6 +290,26 @@ var getStoryExtraData = function() {
   }
 }
 
+// 获取摆摊额外数据
+var getStallExtraData = function() {
+  var sales = childStorage.get('stallSales') || []
+  var products = childStorage.get('stallProducts') || []
+  var totalRevenue = 0
+  var totalProfit = 0
+
+  for (var i = 0; i < products.length; i++) {
+    totalRevenue += products[i].totalRevenue || 0
+    totalProfit += (products[i].totalRevenue || 0) - ((products[i].costPrice || 0) * (products[i].totalSold || 0))
+  }
+
+  return {
+    stallSalesCount: sales.length,
+    stallTotalRevenue: totalRevenue,
+    stallTotalProfit: totalProfit,
+    stallProductTypes: products.length
+  }
+}
+
 // 获取当前完整数据
 var getCurrentData = function(records) {
   var drawings = childStorage.get('drawings') || []
@@ -288,6 +334,9 @@ var getCurrentData = function(records) {
   // 故事额外数据
   var storyData = getStoryExtraData()
 
+  // 摆摊额外数据
+  var stallData = getStallExtraData()
+
   return {
     brushingStreak: brushingStats.streak,
     cardsLearned: cardsLearned,
@@ -305,7 +354,11 @@ var getCurrentData = function(records) {
     weekendWarrior: habitData.weekendWarrior,
     storyChapter: storyData.storyChapter,
     storyRound: storyData.storyRound,
-    totalEnemiesDefeated: storyData.totalEnemiesDefeated
+    totalEnemiesDefeated: storyData.totalEnemiesDefeated,
+    stallSalesCount: stallData.stallSalesCount,
+    stallTotalRevenue: stallData.stallTotalRevenue,
+    stallTotalProfit: stallData.stallTotalProfit,
+    stallProductTypes: stallData.stallProductTypes
   }
 }
 

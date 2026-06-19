@@ -1,6 +1,7 @@
 {
   "navigationStyle": "custom",
   "usingComponents": {
-    "achievement-popup": "/components/achievement-popup/achievement-popup"
+    "achievement-popup": "/components/achievement-popup/achievement-popup",
+    "family-switcher": "/components/family-switcher/family-switcher"
   }
 }

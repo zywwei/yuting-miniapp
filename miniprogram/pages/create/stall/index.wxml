@@ -1,0 +1,83 @@
+<view class="container">
+  <view class="header {{settings.isOpen ? 'open' : 'closed'}}">
+    <view class="header-top">
+      <view class="stall-info">
+        <text class="stall-name">{{settings.stallName}}</text>
+        <view class="level-badge">
+          <text class="level-icon">{{levelInfo.icon}}</text>
+          <text class="level-name">{{levelInfo.name}}</text>
+        </view>
+      </view>
+      <view class="streak">
+        <text class="streak-icon">🔥</text>
+        <text class="streak-num">{{settings.streakDays}}</text>
+        <text class="streak-label">天</text>
+      </view>
+    </view>
+
+    <view class="open-btn" bindtap="toggleStall">
+      <text class="open-text">{{settings.isOpen ? '打烊收摊' : '开始营业'}}</text>
+    </view>
+  </view>
+
+  <view class="stats-panel" wx:if="{{settings.isOpen}}">
+    <view class="stats-row">
+      <view class="stat-item">
+        <text class="stat-value">¥{{todayRevenue}}</text>
+        <text class="stat-label">今日销售额</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{todayOrders}}</text>
+        <text class="stat-label">今日订单</text>
+      </view>
+    </view>
+    <view class="goal-bar" wx:if="{{settings.dailyGoal > 0}}">
+      <view class="goal-progress" style="width: {{goalPercent}}%;"></view>
+      <text class="goal-text">目标 ¥{{settings.dailyGoal}} ({{goalPercent}}%)</text>
+    </view>
+  </view>
+
+  <view class="quick-actions">
+    <view class="action-btn" bindtap="goSale">
+      <text class="action-icon">💰</text>
+      <text class="action-text">开单</text>
+    </view>
+    <view class="action-btn" bindtap="goInventory">
+      <text class="action-icon">📦</text>
+      <text class="action-text">库存</text>
+    </view>
+    <view class="action-btn" bindtap="goHistory">
+      <text class="action-icon">📋</text>
+      <text class="action-text">历史</text>
+    </view>
+    <view class="action-btn" bindtap="goStats">
+      <text class="action-icon">📊</text>
+      <text class="action-text">报表</text>
+    </view>
+  </view>
+
+  <view class="tools-section">
+    <view class="section-title">实战工具</view>
+    <view class="tools-grid">
+      <view class="tool-item" bindtap="goPriceBoard">
+        <text class="tool-icon">📺</text>
+        <text class="tool-name">价目表</text>
+      </view>
+      <view class="tool-item" bindtap="goChangeCalc">
+        <text class="tool-icon">🧮</text>
+        <text class="tool-name">找零器</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="stock-alert" wx:if="{{lowStockProducts.length > 0}}">
+    <view class="alert-title">⚠️ 库存不足</view>
+    <view class="alert-list">
+      <view class="alert-item" wx:for="{{lowStockProducts}}" wx:key="id">
+        <text class="alert-name">{{item.name}}</text>
+        <text class="alert-count">剩余 {{item.quantity}}</text>
+      </view>
+    </view>
+  </view>
+</view>

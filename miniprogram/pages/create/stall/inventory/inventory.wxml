@@ -1,0 +1,37 @@
+<view class="container">
+  <view class="header">
+    <view class="header-title">商品库存</view>
+    <view class="add-btn" bindtap="goAdd">+ 添加商品</view>
+  </view>
+
+  <view class="category-filter">
+    <view class="filter-item {{currentCategory === '' ? 'active' : ''}}" bindtap="filterCategory" data-category="">全部</view>
+    <view class="filter-item {{currentCategory === item ? 'active' : ''}}" wx:for="{{categories}}" wx:key="*this" bindtap="filterCategory" data-category="{{item}}">{{item}}</view>
+  </view>
+
+  <view class="product-list">
+    <view class="product-item" wx:for="{{filteredProducts}}" wx:key="id">
+      <view class="product-image">
+        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" />
+        <text wx:else class="product-emoji">📦</text>
+      </view>
+      <view class="product-info">
+        <view class="product-name">{{item.name}}</view>
+        <view class="product-price">售价 ¥{{item.salePrice}} | 进价 ¥{{item.costPrice}}</view>
+        <view class="product-stock {{item.quantity <= 3 ? 'low' : item.quantity <= 10 ? 'medium' : 'good'}}">
+          库存: {{item.quantity}}
+        </view>
+      </view>
+      <view class="product-actions">
+        <view class="action-btn edit" bindtap="editProduct" data-id="{{item.id}}">编辑</view>
+        <view class="action-btn delete" bindtap="deleteProduct" data-id="{{item.id}}">删除</view>
+      </view>
+    </view>
+
+    <view class="empty" wx:if="{{filteredProducts.length === 0}}">
+      <text class="empty-icon">📦</text>
+      <text class="empty-text">还没有商品</text>
+      <view class="empty-btn" bindtap="goAdd">添加商品</view>
+    </view>
+  </view>
+</view>
