@@ -1,0 +1,51 @@
+<view class="container">
+  <!-- 日志列表 -->
+  <view class="diary-list" wx:if="{{entries.length > 0}}">
+    <view class="diary-card" wx:for="{{entries}}" wx:key="id">
+      <view class="diary-header">
+        <text class="diary-date">{{item.date}}</text>
+        <view class="diary-actions">
+          <text class="action-btn edit" bindtap="showEditor" data-id="{{item.id}}">编辑</text>
+          <text class="action-btn delete" bindtap="deleteEntry" data-id="{{item.id}}">删除</text>
+        </view>
+      </view>
+      <text class="diary-content">{{item.content}}</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{entries.length === 0}}">
+    <text class="empty-icon">📝</text>
+    <text class="empty-text">还没有营业日志</text>
+    <text class="empty-hint">记录你的摆摊心得和经验吧</text>
+  </view>
+
+  <!-- 写日志按钮 -->
+  <view class="write-btn" bindtap="showEditor">
+    <text class="write-icon">✏️</text>
+    <text class="write-text">写日志</text>
+  </view>
+
+  <!-- 编辑器 -->
+  <view class="editor-panel" wx:if="{{showEditor}}">
+    <view class="editor-mask" bindtap="hideEditor"></view>
+    <view class="editor-content">
+      <view class="editor-header">
+        <text class="editor-title">{{editingId ? '编辑日志' : '写日志'}}</text>
+        <text class="editor-close" bindtap="hideEditor">✕</text>
+      </view>
+      
+      <view class="editor-date">
+        <text class="date-icon">📅</text>
+        <text class="date-text">{{todayDate}}</text>
+      </view>
+
+      <textarea class="editor-textarea" placeholder="记录今天的摆摊心得..." value="{{content}}" bindinput="onContentInput" maxlength="500" />
+      
+      <view class="editor-footer">
+        <text class="char-count">{{content.length}}/500</text>
+        <view class="save-btn" bindtap="saveEntry">保存</view>
+      </view>
+    </view>
+  </view>
+</view>

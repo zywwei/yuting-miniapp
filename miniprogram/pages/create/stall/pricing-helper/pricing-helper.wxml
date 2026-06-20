@@ -1,0 +1,57 @@
+<view class="container">
+  <!-- 成本价输入 -->
+  <view class="input-section">
+    <view class="section-title">成本价</view>
+    <view class="cost-input-row">
+      <text class="currency">¥</text>
+      <input class="cost-input" type="digit" placeholder="输入成本价" value="{{costPrice}}" bindinput="onCostInput" />
+    </view>
+  </view>
+
+  <!-- 利润率选择 -->
+  <view class="rate-section">
+    <view class="section-title">目标利润率</view>
+    <view class="rate-btns">
+      <view class="rate-btn {{profitRate === item ? 'active' : ''}}" wx:for="{{presetRates}}" wx:key="*this" bindtap="setProfitRate" data-rate="{{item}}">{{item}}%</view>
+    </view>
+    <view class="custom-rate">
+      <text class="custom-label">自定义：</text>
+      <input class="custom-input" type="digit" placeholder="输入利润率" value="{{customRate}}" bindinput="onCustomRateInput" />
+      <text class="custom-unit">%</text>
+    </view>
+  </view>
+
+  <!-- 计算结果 -->
+  <view class="result-section" wx:if="{{salePrice > 0}}">
+    <view class="result-card">
+      <view class="result-main">
+        <text class="result-label">建议售价</text>
+        <text class="result-price">¥{{salePrice}}</text>
+      </view>
+      <view class="result-detail">
+        <text class="result-profit">利润 ¥{{profit}}</text>
+        <text class="result-rate">利润率 {{profitRate}}%</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 参考售价表 -->
+  <view class="table-section" wx:if="{{priceTable.length > 0}}">
+    <view class="section-title">参考售价表</view>
+    <view class="price-table">
+      <view class="table-header">
+        <text class="th">利润率</text>
+        <text class="th">售价</text>
+        <text class="th">利润</text>
+      </view>
+      <view class="table-row {{item.rate === profitRate ? 'active' : ''}}" wx:for="{{priceTable}}" wx:key="rate">
+        <text class="td">{{item.rate}}%</text>
+        <text class="td price">¥{{item.price}}</text>
+        <text class="td profit">¥{{item.profit}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 清除按钮 -->
+  <view class="clear-btn" bindtap="clear" wx:if="{{costPrice.length > 0}}">清除</view>
+</view>

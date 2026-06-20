@@ -20,11 +20,57 @@ Page({
     stallManager.syncFromCloud()
     this.loadData()
     this.setThemeColor()
+    this.startDurationTimer()
   },
 
   onShow: function() {
     this.loadData()
     this.setThemeColor()
+  },
+
+  onUnload: function() {
+    this.stopDurationTimer()
+  },
+
+  startDurationTimer: function() {
+    var that = this
+    this._durationTimer = setInterval(function() {
+      if (that.data.settings.isOpen) {
+        that.refreshDuration()
+      }
+    }, 60000)
+  },
+
+  stopDurationTimer: function() {
+    if (this._durationTimer) {
+      clearInterval(this._durationTimer)
+      this._durationTimer = null
+    }
+  },
+
+  refreshDuration: function() {
+    var settings = this.data.settings
+    var todayBusinessHours = this.data.todayBusinessHours
+    if (!settings.isOpen || !todayBusinessHours || todayBusinessHours.sessions.length === 0) return
+
+    var lastSession = todayBusinessHours.sessions[todayBusinessHours.sessions.length - 1]
+    if (!lastSession || lastSession.closeTime) return
+
+    var currentDuration = Math.round((new Date() - new Date(lastSession.openTime)) / 60000)
+    var hours = Math.floor(currentDuration / 60)
+    var mins = currentDuration % 60
+    var currentDurationText = hours > 0 ? hours + '小时' + mins + '分钟' : mins + '分钟'
+
+    var totalDuration = (todayBusinessHours.totalDuration || 0) + currentDuration
+    var totalHours = Math.floor(totalDuration / 60)
+    var totalMins = totalDuration % 60
+    var totalDurationText = totalHours > 0 ? totalHours + '小时' + totalMins + '分钟' : totalMins + '分钟'
+
+    this.setData({
+      currentDuration: currentDuration,
+      currentDurationText: currentDurationText,
+      totalDurationText: totalDurationText
+    })
   },
 
   setThemeColor: function() {
@@ -66,11 +112,31 @@ Page({
     // 营业时间
     var todayBusinessHours = stallManager.getTodayBusinessHours()
     var currentDuration = 0
+    var currentDurationText = ''
     if (settings.isOpen && todayBusinessHours.sessions.length > 0) {
       var lastSession = todayBusinessHours.sessions[todayBusinessHours.sessions.length - 1]
       if (lastSession && !lastSession.closeTime) {
         currentDuration = Math.round((new Date() - new Date(lastSession.openTime)) / 60000)
       }
+    }
+    if (currentDuration > 0) {
+      var hours = Math.floor(currentDuration / 60)
+      var mins = currentDuration % 60
+      currentDurationText = hours > 0 ? hours + '小时' + mins + '分钟' : mins + '分钟'
+    } else if (settings.isOpen) {
+      currentDurationText = '不到1分钟'
+    }
+    var totalDuration = todayBusinessHours.totalDuration || 0
+    if (settings.isOpen && currentDuration > 0) {
+      totalDuration = totalDuration + currentDuration
+    }
+    var totalDurationText = ''
+    if (totalDuration > 0) {
+      var totalHours = Math.floor(totalDuration / 60)
+      var totalMins = totalDuration % 60
+      totalDurationText = totalHours > 0 ? totalHours + '小时' + totalMins + '分钟' : totalMins + '分钟'
+    } else {
+      totalDurationText = '不到1分钟'
     }
 
     this.setData({
@@ -84,7 +150,9 @@ Page({
       todayBusinessHours: todayBusinessHours,
       tempGoal: settings.dailyGoal || 50,
       tempDiscount: settings.defaultDiscount || 10,
-      currentDuration: currentDuration
+      currentDuration: currentDuration,
+      currentDurationText: currentDurationText,
+      totalDurationText: totalDurationText
     })
   },
 
@@ -134,8 +202,8 @@ Page({
     wx.navigateTo({ url: '/pages/create/stall/sale/sale' })
   },
 
-  goInventory: function() {
-    wx.navigateTo({ url: '/pages/create/stall/inventory/inventory' })
+  goProducts: function() {
+    wx.navigateTo({ url: '/pages/create/stall/price-board/price-board' })
   },
 
   goHistory: function() {
@@ -152,6 +220,18 @@ Page({
 
   goChangeCalc: function() {
     wx.navigateTo({ url: '/pages/create/stall/change-calc/change-calc' })
+  },
+
+  goPricingHelper: function() {
+    wx.navigateTo({ url: '/pages/create/stall/pricing-helper/pricing-helper' })
+  },
+
+  goRestockList: function() {
+    wx.navigateTo({ url: '/pages/create/stall/restock-list/restock-list' })
+  },
+
+  goBusinessDiary: function() {
+    wx.navigateTo({ url: '/pages/create/stall/business-diary/business-diary' })
   },
 
   openSettings: function() {

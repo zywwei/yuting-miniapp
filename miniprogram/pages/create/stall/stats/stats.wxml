@@ -149,8 +149,7 @@
     <view class="section-title">⏱️ 营业时间</view>
     <view class="hours-cards">
       <view class="hours-card">
-        <text class="hours-value">{{businessHours.totalDuration}}</text>
-        <text class="hours-unit">分钟</text>
+        <text class="hours-value">{{businessHoursText}}</text>
         <text class="hours-label">今日营业时长</text>
       </view>
       <view class="hours-card">

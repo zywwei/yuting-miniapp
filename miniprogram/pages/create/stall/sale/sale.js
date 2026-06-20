@@ -15,7 +15,14 @@ Page({
     change: 0,
     shortage: 0,
     lastSaleItems: [],
-    searchKeyword: ''
+    searchKeyword: '',
+    categories: [],
+    currentCategory: '',
+    sortBy: 'default',
+    showSortMenu: false,
+    showCelebration: false,
+    celebrationTotal: 0,
+    confetti: []
   },
 
   onLoad: function() {
@@ -35,7 +42,8 @@ Page({
     var defaultDiscount = stallManager.getDefaultDiscount()
     this.setData({
       discount: defaultDiscount,
-      customDiscount: defaultDiscount < 10 ? String(defaultDiscount) : ''
+      customDiscount: defaultDiscount < 10 ? String(defaultDiscount) : '',
+      categories: stallManager.getCategories()
     })
     this.loadProducts()
     this.setThemeColor()
@@ -72,22 +80,75 @@ Page({
     })
     
     this.setData({ 
-      products: products,
       allProducts: products
     })
+    this.applyFilterAndSort()
   },
 
   onSearchInput: function(e) {
-    var keyword = e.detail.value.toLowerCase()
-    var allProducts = this.data.allProducts || []
-    var filtered = keyword ? allProducts.filter(function(p) {
-      return p.name.toLowerCase().indexOf(keyword) >= 0
-    }) : allProducts
-    
+    this.setData({ searchKeyword: e.detail.value.toLowerCase() })
+    this.applyFilterAndSort()
+  },
+
+  filterCategory: function(e) {
+    this.setData({ currentCategory: e.currentTarget.dataset.category })
+    this.applyFilterAndSort()
+  },
+
+  setSortBy: function(e) {
     this.setData({ 
-      products: filtered,
-      searchKeyword: keyword
+      sortBy: e.currentTarget.dataset.sort,
+      showSortMenu: false
     })
+    this.applyFilterAndSort()
+  },
+
+  toggleSortMenu: function() {
+    this.setData({ showSortMenu: !this.data.showSortMenu })
+  },
+
+  closeSortMenu: function() {
+    this.setData({ showSortMenu: false })
+  },
+
+  applyFilterAndSort: function() {
+    var allProducts = this.data.allProducts || []
+    var keyword = this.data.searchKeyword
+    var category = this.data.currentCategory
+    var sortBy = this.data.sortBy
+
+    // 分类过滤
+    var filtered = category ? allProducts.filter(function(p) {
+      return p.category === category
+    }) : allProducts
+
+    // 关键词过滤
+    if (keyword) {
+      filtered = filtered.filter(function(p) {
+        return p.name.toLowerCase().indexOf(keyword) >= 0
+      })
+    }
+
+    // 排序
+    if (sortBy === 'time') {
+      filtered = filtered.slice().sort(function(a, b) {
+        return new Date(b.createdAt) - new Date(a.createdAt)
+      })
+    } else if (sortBy === 'salesCount') {
+      filtered = filtered.slice().sort(function(a, b) {
+        return (b.totalSold || 0) - (a.totalSold || 0)
+      })
+    } else if (sortBy === 'salesAmount') {
+      filtered = filtered.slice().sort(function(a, b) {
+        return (b.totalRevenue || 0) - (a.totalRevenue || 0)
+      })
+    } else if (sortBy === 'price') {
+      filtered = filtered.slice().sort(function(a, b) {
+        return a.salePrice - b.salePrice
+      })
+    }
+
+    this.setData({ products: filtered })
   },
 
   selectProduct: function(e) {
@@ -248,6 +309,17 @@ Page({
       return
     }
 
+    // 校验库存
+    var products = stallManager.getProducts()
+    for (var i = 0; i < cart.length; i++) {
+      for (var j = 0; j < products.length; j++) {
+        if (products[j].id === cart[i].productId && cart[i].quantity > products[j].quantity) {
+          wx.showToast({ title: cart[i].productName + '库存不足', icon: 'none' })
+          return
+        }
+      }
+    }
+
     var payment = parseFloat(this.data.paymentReceived) || 0
     if (payment < this.data.total) {
       wx.showToast({ title: '付款金额不足', icon: 'none' })
@@ -268,6 +340,9 @@ Page({
 
     // 保存本次销售商品用于快速再来一单
     this.setData({ lastSaleItems: JSON.parse(JSON.stringify(cart)) })
+
+    // 显示庆祝动画
+    this.showCelebration(this.data.total)
 
     // 检查挑战完成
     var newChallenges = stallManager.checkChallenges()
@@ -313,7 +388,14 @@ Page({
     }
 
     var cart = this.data.lastSaleItems.map(function(item) {
-      return { ...item }
+      return {
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        costPrice: item.costPrice,
+        subtotal: item.subtotal
+      }
     })
     
     this.setData({ cart: cart })
@@ -324,6 +406,33 @@ Page({
 
   goAddProduct: function() {
     wx.navigateTo({ url: '/pages/create/stall/add-product/add-product' })
+  },
+
+  showCelebration: function(total) {
+    var colors = ['#FF6B8A', '#FFD700', '#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#E91E63', '#00BCD4']
+    var confetti = []
+    for (var i = 0; i < 20; i++) {
+      confetti.push({
+        id: 'c_' + i,
+        left: Math.random() * 100,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        delay: Math.random() * 0.5,
+        rotate: Math.random() * 360
+      })
+    }
+    this.setData({
+      showCelebration: true,
+      celebrationTotal: total,
+      confetti: confetti
+    })
+    var that = this
+    setTimeout(function() {
+      that.setData({ showCelebration: false })
+    }, 3000)
+  },
+
+  hideCelebration: function() {
+    this.setData({ showCelebration: false })
   },
 
   setThemeColor: function() {

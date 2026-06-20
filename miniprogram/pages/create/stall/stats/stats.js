@@ -67,6 +67,10 @@ Page({
     // 营业时间统计
     var businessHours = stallManager.getTodayBusinessHours()
     var weekBusinessHours = this.getWeekBusinessHours()
+    var totalMin = businessHours.totalDuration || 0
+    var bHours = Math.floor(totalMin / 60)
+    var bMins = totalMin % 60
+    var businessHoursText = bHours > 0 ? bHours + '小时' + bMins + '分钟' : bMins + '分钟'
 
     this.setData({
       stats: stats,
@@ -75,6 +79,7 @@ Page({
       dailySales: dailySales,
       categoryStats: categoryStats,
       businessHours: businessHours,
+      businessHoursText: businessHoursText,
       weekBusinessHours: weekBusinessHours
     })
 
@@ -165,6 +170,7 @@ Page({
         date: dateStr,
         label: (d.getMonth() + 1) + '/' + d.getDate(),
         duration: dayHours.totalDuration || 0,
+        durationText: this.formatDuration(dayHours.totalDuration || 0),
         hours: Math.floor((dayHours.totalDuration || 0) / 60),
         minutes: (dayHours.totalDuration || 0) % 60
       })
@@ -686,5 +692,12 @@ Page({
       path: '/pages/create/stall/stats/stats',
       imageUrl: this.data.posterPath || ''
     }
+  },
+
+  formatDuration: function(minutes) {
+    if (!minutes || minutes <= 0) return '0分钟'
+    var h = Math.floor(minutes / 60)
+    var m = minutes % 60
+    return h > 0 ? h + '小时' + m + '分钟' : m + '分钟'
   }
 })
