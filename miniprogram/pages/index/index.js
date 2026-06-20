@@ -319,6 +319,8 @@ Page({
   // 跳转到模块页面
   goModule: function(e) {
     var module = e.currentTarget.dataset.module
+    // TabBar页面需要使用switchTab跳转
+    var tabPages = ['habits', 'learn', 'create', 'notes']
     var urlMap = {
       habits: '/pages/habits/index',
       learn: '/pages/learn/index',
@@ -329,7 +331,11 @@ Page({
     }
     var url = urlMap[module]
     if (url) {
-      wx.navigateTo({ url: url })
+      if (tabPages.indexOf(module) !== -1) {
+        wx.switchTab({ url: url })
+      } else {
+        wx.navigateTo({ url: url })
+      }
     }
   },
 

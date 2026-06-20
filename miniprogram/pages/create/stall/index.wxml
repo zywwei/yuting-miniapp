@@ -15,12 +15,17 @@
       </view>
     </view>
 
+    <view class="points-info" wx:if="{{settings.points > 0}}">
+      <text class="points-icon">🎯</text>
+      <text class="points-value">{{settings.points}} 积分</text>
+    </view>
+
     <view class="open-btn" bindtap="toggleStall">
       <text class="open-text">{{settings.isOpen ? '打烊收摊' : '开始营业'}}</text>
     </view>
   </view>
 
-  <view class="stats-panel" wx:if="{{settings.isOpen}}">
+  <view class="stats-panel">
     <view class="stats-row">
       <view class="stat-item">
         <text class="stat-value">¥{{todayRevenue}}</text>
@@ -32,9 +37,68 @@
         <text class="stat-label">今日订单</text>
       </view>
     </view>
-    <view class="goal-bar" wx:if="{{settings.dailyGoal > 0}}" bindtap="editDailyGoal">
+    
+    <view class="business-hours-info" wx:if="{{settings.isOpen && currentDuration > 0}}">
+      <text class="hours-icon">⏱️</text>
+      <text class="hours-text">已营业 {{currentDuration}} 分钟</text>
+      <text class="hours-count">今日第 {{todayBusinessHours.openCount}} 次营业</text>
+    </view>
+    
+    <view class="settings-row" bindtap="openSettings">
+      <view class="setting-item">
+        <text class="setting-label">🎯 目标</text>
+        <text class="setting-value">¥{{settings.dailyGoal}}</text>
+      </view>
+      <view class="setting-divider"></view>
+      <view class="setting-item">
+        <text class="setting-label">💰 折扣</text>
+        <text class="setting-value">{{settings.defaultDiscount < 10 ? settings.defaultDiscount + '折' : '无'}}</text>
+      </view>
+      <text class="settings-arrow">⚙️</text>
+    </view>
+    
+    <view class="goal-bar" wx:if="{{settings.dailyGoal > 0}}">
       <view class="goal-progress" style="width: {{goalPercent}}%;"></view>
-      <text class="goal-text">目标 ¥{{settings.dailyGoal}} ({{goalPercent}}%)  ✏️</text>
+      <text class="goal-text">目标 ¥{{settings.dailyGoal}} ({{goalPercent}}%)</text>
+    </view>
+  </view>
+
+  <!-- 设置弹窗 -->
+  <view class="settings-modal" wx:if="{{showSettings}}">
+    <view class="settings-mask" bindtap="closeSettings"></view>
+    <view class="settings-panel">
+      <view class="settings-header">
+        <text class="settings-title">⚙️ 营业设置</text>
+        <text class="settings-close" bindtap="closeSettings">✕</text>
+      </view>
+      
+      <view class="settings-body">
+        <view class="settings-group">
+          <text class="settings-group-title">🎯 今日目标（元）</text>
+          <input class="settings-input" type="digit" value="{{tempGoal}}" bindinput="onGoalInput" placeholder="输入目标金额" />
+        </view>
+        
+        <view class="settings-group">
+          <text class="settings-group-title">💰 默认折扣</text>
+          <view class="discount-options">
+            <view class="discount-option {{tempDiscount === 10 ? 'active' : ''}}" bindtap="setDiscountQuick" data-discount="10">无</view>
+            <view class="discount-option {{tempDiscount === 9 ? 'active' : ''}}" bindtap="setDiscountQuick" data-discount="9">9折</view>
+            <view class="discount-option {{tempDiscount === 8 ? 'active' : ''}}" bindtap="setDiscountQuick" data-discount="8">8折</view>
+            <view class="discount-option {{tempDiscount === 7 ? 'active' : ''}}" bindtap="setDiscountQuick" data-discount="7">7折</view>
+            <view class="discount-option {{tempDiscount === 6 ? 'active' : ''}}" bindtap="setDiscountQuick" data-discount="6">6折</view>
+            <view class="discount-option {{tempDiscount === 5 ? 'active' : ''}}" bindtap="setDiscountQuick" data-discount="5">5折</view>
+          </view>
+          <view class="custom-discount">
+            <text class="custom-label">自定义：</text>
+            <input class="custom-input" type="digit" value="{{tempDiscount}}" bindinput="onDiscountInput" placeholder="折扣" />
+            <text class="custom-unit">折</text>
+          </view>
+        </view>
+      </view>
+      
+      <view class="settings-footer">
+        <view class="settings-save-btn" bindtap="saveSettings">保存设置</view>
+      </view>
     </view>
   </view>
 
@@ -57,6 +121,28 @@
     </view>
   </view>
 
+  <view class="challenges-section">
+    <view class="section-header">
+      <text class="section-title">🎯 今日挑战</text>
+      <text class="section-desc">完成挑战赚积分</text>
+    </view>
+    <scroll-view scroll-x class="challenges-scroll">
+      <view class="challenges-list">
+        <view wx:for="{{todayChallenges}}" wx:key="id" 
+              class="challenge-card {{item.completed ? 'completed' : ''}} {{item.claimed ? 'claimed' : ''}}"
+              bindtap="{{item.completed && !item.claimed ? 'claimChallenge' : ''}}"
+              data-id="{{item.id}}">
+          <text class="challenge-icon">{{item.icon}}</text>
+          <text class="challenge-title">{{item.title}}</text>
+          <text class="challenge-desc">{{item.desc}}</text>
+          <text class="challenge-reward">+{{item.reward}}积分</text>
+          <view wx:if="{{item.completed && !item.claimed}}" class="claim-btn">领取</view>
+          <view wx:if="{{item.claimed}}" class="claimed-badge">✓</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
   <view class="tools-section">
     <view class="section-title">实战工具</view>
     <view class="tools-grid">
@@ -72,11 +158,11 @@
   </view>
 
   <view class="stock-alert" wx:if="{{lowStockProducts.length > 0}}">
-    <view class="alert-title">⚠️ 库存不足</view>
+    <view class="alert-title">⚠️ 库存预警</view>
     <view class="alert-list">
-      <view class="alert-item" wx:for="{{lowStockProducts}}" wx:key="id">
+      <view class="alert-item" wx:for="{{lowStockProducts}}" wx:key="id" bindtap="goInventory">
         <text class="alert-name">{{item.name}}</text>
-        <text class="alert-count">剩余 {{item.quantity}}</text>
+        <text class="alert-count">仅剩 {{item.quantity}} 件</text>
       </view>
     </view>
   </view>

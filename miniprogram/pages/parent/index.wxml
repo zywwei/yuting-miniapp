@@ -3,7 +3,7 @@
   <!-- 头部 -->
   <view class="header">
     <view class="header-title">👨‍👩‍👧 家庭中心</view>
-    <view class="header-desc">钰婷已成长 {{stats.growthDays}} 天</view>
+    <view class="header-desc">{{childName}}已成长 {{stats.growthDays}} 天</view>
   </view>
 
   <!-- 我的角色 -->

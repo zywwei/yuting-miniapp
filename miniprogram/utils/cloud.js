@@ -32,6 +32,146 @@ function getRecordMeta() {
   }
 }
 
+// ===== 墓碑清理配置 =====
+var TOMBSTONE_TTL_DAYS = 30 // 墓碑保留30天
+
+// 清理过期墓碑（超过30天的记录）
+function cleanExpiredTombstones(key) {
+  var tombstones = childStorage.get(key) || []
+  var now = Date.now()
+  var ttlMs = TOMBSTONE_TTL_DAYS * 24 * 60 * 60 * 1000
+  
+  // 兼容旧格式（纯ID数组）和新格式（带时间戳的对象数组）
+  var cleaned = tombstones.filter(function(item) {
+    if (typeof item === 'string') {
+      // 旧格式：保留（无法判断时间）
+      return true
+    }
+    // 新格式：检查是否过期
+    return (now - item.ts) < ttlMs
+  })
+  
+  childStorage.set(key, cleaned)
+  return cleaned
+}
+
+// 获取墓碑中的ID列表（兼容新旧格式）
+function extractTombstoneIds(tombstones) {
+  return tombstones.map(function(item) {
+    return typeof item === 'string' ? item : item.id
+  })
+}
+
+// ===== 已删除画作的墓碑清单（按孩子隔离）=====
+// 用于解决：删除后 fetchDrawings 合并云端数据时把已删除记录又拉回来的问题
+var DELETED_DRAWINGS_KEY = 'deletedDrawingIds'
+
+function getDeletedDrawingIds() {
+  var tombstones = cleanExpiredTombstones(DELETED_DRAWINGS_KEY)
+  return extractTombstoneIds(tombstones)
+}
+
+function addDeletedDrawingId(id) {
+  if (!id) return
+  var tombstones = cleanExpiredTombstones(DELETED_DRAWINGS_KEY)
+  var exists = tombstones.some(function(item) {
+    return (typeof item === 'string' ? item : item.id) === id
+  })
+  if (!exists) {
+    tombstones.push({ id: id, ts: Date.now() })
+    childStorage.set(DELETED_DRAWINGS_KEY, tombstones)
+  }
+}
+
+// ===== 已删除笔记的墓碑清单（按孩子隔离）=====
+var DELETED_NOTES_KEY = 'deletedNoteIds'
+
+function getDeletedNoteIds() {
+  var tombstones = cleanExpiredTombstones(DELETED_NOTES_KEY)
+  return extractTombstoneIds(tombstones)
+}
+
+function addDeletedNoteId(id) {
+  if (!id) return
+  var tombstones = cleanExpiredTombstones(DELETED_NOTES_KEY)
+  var exists = tombstones.some(function(item) {
+    return (typeof item === 'string' ? item : item.id) === id
+  })
+  if (!exists) {
+    tombstones.push({ id: id, ts: Date.now() })
+    childStorage.set(DELETED_NOTES_KEY, tombstones)
+  }
+}
+
+// ===== 已删除刷牙记录的墓碑清单（按孩子隔离）=====
+var DELETED_BRUSHING_KEY = 'deletedBrushingIds'
+
+function getDeletedBrushingIds() {
+  var tombstones = cleanExpiredTombstones(DELETED_BRUSHING_KEY)
+  return extractTombstoneIds(tombstones)
+}
+
+function addDeletedBrushingId(id) {
+  if (!id) return
+  var tombstones = cleanExpiredTombstones(DELETED_BRUSHING_KEY)
+  var exists = tombstones.some(function(item) {
+    return (typeof item === 'string' ? item : item.id) === id
+  })
+  if (!exists) {
+    tombstones.push({ id: id, ts: Date.now() })
+    childStorage.set(DELETED_BRUSHING_KEY, tombstones)
+  }
+}
+
+// ===== 已删除摆摊商品的墓碑清单 =====
+var DELETED_STALL_PRODUCTS_KEY = 'deletedStallProductIds'
+
+function getDeletedStallProductIds() {
+  var tombstones = cleanExpiredTombstones(DELETED_STALL_PRODUCTS_KEY)
+  return extractTombstoneIds(tombstones)
+}
+
+function addDeletedStallProductId(id) {
+  if (!id) return
+  var tombstones = cleanExpiredTombstones(DELETED_STALL_PRODUCTS_KEY)
+  var exists = tombstones.some(function(item) {
+    return (typeof item === 'string' ? item : item.id) === id
+  })
+  if (!exists) {
+    tombstones.push({ id: id, ts: Date.now() })
+    childStorage.set(DELETED_STALL_PRODUCTS_KEY, tombstones)
+  }
+}
+
+// ===== 已删除摆摊销售的墓碑清单 =====
+var DELETED_STALL_SALES_KEY = 'deletedStallSaleIds'
+
+function getDeletedStallSaleIds() {
+  var tombstones = cleanExpiredTombstones(DELETED_STALL_SALES_KEY)
+  return extractTombstoneIds(tombstones)
+}
+
+function addDeletedStallSaleId(id) {
+  if (!id) return
+  var tombstones = cleanExpiredTombstones(DELETED_STALL_SALES_KEY)
+  var exists = tombstones.some(function(item) {
+    return (typeof item === 'string' ? item : item.id) === id
+  })
+  if (!exists) {
+    tombstones.push({ id: id, ts: Date.now() })
+    childStorage.set(DELETED_STALL_SALES_KEY, tombstones)
+  }
+}
+
+// 清除指定墓碑（删除成功后调用）
+function removeTombstone(key, id) {
+  var tombstones = childStorage.get(key) || []
+  tombstones = tombstones.filter(function(item) {
+    return (typeof item === 'string' ? item : item.id) !== id
+  })
+  childStorage.set(key, tombstones)
+}
+
 // ===== 画作 =====
 
 async function uploadDrawing(tempFilePath, drawing) {
@@ -93,11 +233,16 @@ async function uploadDrawing(tempFilePath, drawing) {
 }
 
 async function fetchDrawings() {
+  var localDrawings = childStorage.get('drawings') || []
+
+  // 一次性迁移：将旧的全局 drawings 数据合并到按孩子隔离的存储
+  localDrawings = migrateLegacyDrawings(localDrawings)
+
   var member = auth.getMember()
-  if (!member) return childStorage.get('drawings') || []
+  if (!member) return localDrawings
 
   if (!isCloudReady()) {
-    return childStorage.get('drawings') || []
+    return localDrawings
   }
 
   try {
@@ -113,32 +258,146 @@ async function fetchDrawings() {
     })
 
     if (res.result.code === 0) {
-      var list = res.result.data.list || []
-      // 只有云端有数据时才更新本地缓存，避免覆盖本地数据
-      if (list.length > 0) {
-        childStorage.set('drawings', list)
+      var cloudList = res.result.data.list || []
+      var deletedIds = getDeletedDrawingIds()
+      var deletedSet = {}
+      deletedIds.forEach(function(id) { deletedSet[id] = true })
+
+      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致画作丢失
+      var mergedMap = {}
+      localDrawings.forEach(function(d) {
+        if (d && d.id && !deletedSet[d.id]) mergedMap[d.id] = d
+      })
+      cloudList.forEach(function(d) {
+        if (d && d.id && !deletedSet[d.id]) mergedMap[d.id] = d
+      })
+      var merged = []
+      for (var key in mergedMap) {
+        merged.push(mergedMap[key])
       }
-      // 优先返回云端数据，如果为空则返回本地缓存
-      return list.length > 0 ? list : (childStorage.get('drawings') || [])
+
+      // 按创建时间倒序排序
+      merged.sort(function(a, b) {
+        return new Date(b.createTime || 0) - new Date(a.createTime || 0)
+      })
+
+      // 用合并结果更新本地缓存
+      childStorage.set('drawings', merged)
+
+      // 云端仍存在但本地已删除的记录，再次尝试删除
+      cloudList.forEach(function(d) {
+        if (d && d.id && deletedSet[d.id]) {
+          wx.cloud.callFunction({
+            name: 'record',
+            data: { action: 'remove', collection: 'drawings', id: d.id }
+          }).catch(function() {})
+        }
+      })
+
+      // 将本地独有（云端缺失）的记录补传到云端，实现数据自愈
+      selfHealDrawings(cloudList, localDrawings, deletedSet)
+
+      return merged
     }
   } catch (err) {
     console.warn('云端读取失败，使用本地缓存:', err)
   }
 
-  return childStorage.get('drawings') || []
+  return localDrawings
+}
+
+// 数据自愈：将本地有但云端缺失的画作补传到云端
+function selfHealDrawings(cloudList, localDrawings, deletedSet) {
+  deletedSet = deletedSet || {}
+  var cloudIds = {}
+  cloudList.forEach(function(d) {
+    if (d && d.id) cloudIds[d.id] = true
+  })
+  localDrawings.forEach(function(d) {
+    // 已删除的、或云端已有的，都不补传
+    if (d && d.id && !cloudIds[d.id] && !deletedSet[d.id]) {
+      // 补传缺失的记录到云端（失败静默，不影响读取）
+      wx.cloud.callFunction({
+        name: 'record',
+        data: { action: 'add', collection: 'drawings', data: d }
+      }).catch(function() {})
+    }
+  })
+}
+
+// 一次性迁移：将旧的全局 drawings（迁移到孩子隔离存储前）合并进来
+function migrateLegacyDrawings(childScopedDrawings) {
+  var legacy = wx.getStorageSync('drawings')
+  if (!legacy || !Array.isArray(legacy) || legacy.length === 0) {
+    return childScopedDrawings
+  }
+
+  // 以 id 去重合并
+  var mergedMap = {}
+  childScopedDrawings.forEach(function(d) {
+    if (d && d.id) mergedMap[d.id] = d
+  })
+  legacy.forEach(function(d) {
+    if (d && d.id && !mergedMap[d.id]) mergedMap[d.id] = d
+  })
+
+  var merged = []
+  for (var key in mergedMap) {
+    merged.push(mergedMap[key])
+  }
+  merged.sort(function(a, b) {
+    return new Date(b.createTime || 0) - new Date(a.createTime || 0)
+  })
+
+  // 写入按孩子隔离的存储，并清除旧的全局数据
+  childStorage.set('drawings', merged)
+  try { wx.removeStorageSync('drawings') } catch (e) {}
+
+  return merged
 }
 
 async function removeDrawing(id) {
+  // 记录墓碑，防止 fetchDrawings 合并时把已删除记录拉回来
+  addDeletedDrawingId(id)
+
+  // 从本地缓存删除
   childStorage.set('drawings', (childStorage.get('drawings') || []).filter(function(d) { return d.id !== id }))
 
+  // 尝试删除云端记录
+  if (isCloudReady()) {
+    try {
+      var res = await wx.cloud.callFunction({
+        name: 'record',
+        data: { action: 'remove', collection: 'drawings', id: id }
+      })
+      // 只有云端删除成功后，才清除墓碑
+      if (res.result && res.result.code === 0) {
+        removeTombstone(DELETED_DRAWINGS_KEY, id)
+      }
+    } catch (err) {
+      console.warn('云端删除失败:', err)
+    }
+  }
+}
+
+async function updateDrawingName(id, newName) {
+  // 更新本地缓存
+  var drawings = childStorage.get('drawings') || []
+  drawings = drawings.map(function(d) {
+    if (d.id === id) return { ...d, name: newName }
+    return d
+  })
+  childStorage.set('drawings', drawings)
+  
+  // 更新云端
   if (isCloudReady()) {
     try {
       await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'remove', collection: 'drawings', id: id }
+        data: { action: 'update', collection: 'drawings', id: id, data: { name: newName } }
       })
     } catch (err) {
-      console.warn('云端删除失败:', err)
+      console.warn('云端更新名称失败:', err)
     }
   }
 }
@@ -215,11 +474,12 @@ async function uploadBrushingRecord(record) {
 }
 
 async function fetchBrushingRecords() {
+  var localRecords = childStorage.get('brushingRecords') || []
   var member = auth.getMember()
-  if (!member) return childStorage.get('brushingRecords') || []
+  if (!member) return localRecords
 
   if (!isCloudReady()) {
-    return childStorage.get('brushingRecords') || []
+    return localRecords
   }
 
   try {
@@ -235,33 +495,76 @@ async function fetchBrushingRecords() {
     })
 
     if (res.result.code === 0) {
-      var list = (res.result.data.list || []).map(function(r) {
-        return {
-          ...r,
-          id: r.id || r._id,
-          imagePath: r.cloudFileID || r.imagePath || '',
-          images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+      var cloudList = res.result.data.list || []
+      var deletedIds = getDeletedBrushingIds()
+      var deletedSet = {}
+      deletedIds.forEach(function(id) { deletedSet[id] = true })
+
+      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致记录丢失
+      var mergedMap = {}
+      localRecords.forEach(function(r) {
+        if (r && r.id && !deletedSet[r.id]) mergedMap[r.id] = r
+      })
+      cloudList.forEach(function(r) {
+        if (r && r.id && !deletedSet[r.id] && !deletedSet[r._id]) {
+          mergedMap[r.id] = {
+            ...r,
+            id: r.id || r._id,
+            imagePath: r.cloudFileID || r.imagePath || '',
+            images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+          }
         }
       })
-      childStorage.set('brushingRecords', list)
-      return list
+
+      var merged = []
+      for (var key in mergedMap) {
+        merged.push(mergedMap[key])
+      }
+
+      // 按创建时间倒序排序
+      merged.sort(function(a, b) {
+        return new Date(b.createTime || 0) - new Date(a.createTime || 0)
+      })
+
+      childStorage.set('brushingRecords', merged)
+
+      // 云端仍存在但本地已删除的记录，再次尝试删除
+      cloudList.forEach(function(r) {
+        if (r && r.id && (deletedSet[r.id] || deletedSet[r._id])) {
+          wx.cloud.callFunction({
+            name: 'record',
+            data: { action: 'remove', collection: 'brushingRecords', id: r.id }
+          }).catch(function() {})
+        }
+      })
+
+      return merged
     }
   } catch (err) {
     console.warn('云端读取失败，使用本地缓存:', err)
   }
 
-  return childStorage.get('brushingRecords') || []
+  return localRecords
 }
 
 async function removeBrushingRecord(id) {
+  // 记录墓碑，防止 fetchBrushingRecords 合并时把已删除记录拉回来
+  addDeletedBrushingId(id)
+
+  // 从本地缓存删除
   childStorage.set('brushingRecords', (childStorage.get('brushingRecords') || []).filter(function(r) { return r.id !== id }))
 
+  // 尝试删除云端记录
   if (isCloudReady()) {
     try {
-      await wx.cloud.callFunction({
+      var res = await wx.cloud.callFunction({
         name: 'record',
         data: { action: 'remove', collection: 'brushingRecords', id: id }
       })
+      // 只有云端删除成功后，才清除墓碑
+      if (res.result && res.result.code === 0) {
+        removeTombstone(DELETED_BRUSHING_KEY, id)
+      }
     } catch (err) {
       console.warn('云端删除失败:', err)
     }
@@ -411,11 +714,12 @@ async function uploadNote(note) {
 }
 
 async function fetchNotes() {
+  var localNotes = childStorage.get('notes') || []
   var member = auth.getMember()
-  if (!member) return childStorage.get('notes') || []
+  if (!member) return localNotes
 
   if (!isCloudReady()) {
-    return childStorage.get('notes') || []
+    return localNotes
   }
 
   try {
@@ -431,15 +735,51 @@ async function fetchNotes() {
     })
 
     if (res.result.code === 0) {
-      var list = res.result.data.list || []
-      childStorage.set('notes', list)
-      return list
+      var cloudList = res.result.data.list || []
+      var deletedIds = getDeletedNoteIds()
+      var deletedSet = {}
+      deletedIds.forEach(function(id) { deletedSet[id] = true })
+
+      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致笔记丢失
+      var mergedMap = {}
+      localNotes.forEach(function(n) {
+        if (n && n.id && !deletedSet[n.id]) mergedMap[n.id] = n
+      })
+      cloudList.forEach(function(n) {
+        if (n && n.id && !deletedSet[n.id] && !deletedSet[n._id]) {
+          mergedMap[n.id] = n
+        }
+      })
+
+      var merged = []
+      for (var key in mergedMap) {
+        merged.push(mergedMap[key])
+      }
+
+      // 按创建时间倒序排序
+      merged.sort(function(a, b) {
+        return new Date(b.createTime || 0) - new Date(a.createTime || 0)
+      })
+
+      childStorage.set('notes', merged)
+
+      // 云端仍存在但本地已删除的记录，再次尝试删除
+      cloudList.forEach(function(n) {
+        if (n && n.id && (deletedSet[n.id] || deletedSet[n._id])) {
+          wx.cloud.callFunction({
+            name: 'record',
+            data: { action: 'remove', collection: 'notes', id: n.id }
+          }).catch(function() {})
+        }
+      })
+
+      return merged
     }
   } catch (err) {
     console.warn('笔记云端读取失败，使用本地缓存:', err)
   }
 
-  return childStorage.get('notes') || []
+  return localNotes
 }
 
 async function updateNoteInCloud(id, updates) {
@@ -463,14 +803,23 @@ async function updateNoteInCloud(id, updates) {
 }
 
 async function removeNote(id) {
+  // 记录墓碑，防止 fetchNotes 合并时把已删除记录拉回来
+  addDeletedNoteId(id)
+
+  // 从本地缓存删除
   childStorage.set('notes', (childStorage.get('notes') || []).filter(function(n) { return n.id !== id && n._id !== id }))
 
+  // 尝试删除云端记录
   if (isCloudReady()) {
     try {
-      await wx.cloud.callFunction({
+      var res = await wx.cloud.callFunction({
         name: 'record',
         data: { action: 'remove', collection: 'notes', id: id }
       })
+      // 只有云端删除成功后，才清除墓碑
+      if (res.result && res.result.code === 0) {
+        removeTombstone(DELETED_NOTES_KEY, id)
+      }
     } catch (err) {
       console.warn('笔记云端删除失败:', err)
     }
@@ -1001,16 +1350,48 @@ async function uploadStallProduct(product) {
 }
 
 async function fetchStallProducts() {
-  if (!isCloudReady()) return childStorage.get('stallProducts') || []
+  var localProducts = childStorage.get('stallProducts') || []
+  if (!isCloudReady()) return localProducts
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'list', collection: 'stallProducts' }
+      data: { action: 'list', collection: 'stallProducts', childId: auth.getCurrentChildId() }
     })
     if (res.result.code === 0) {
-      var list = res.result.data.list || []
-      childStorage.set('stallProducts', list)
-      return list
+      var cloudList = res.result.data.list || []
+      var deletedIds = getDeletedStallProductIds()
+      var deletedSet = {}
+      deletedIds.forEach(function(id) { deletedSet[id] = true })
+
+      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致商品丢失
+      var mergedMap = {}
+      localProducts.forEach(function(p) {
+        if (p && p.id && !deletedSet[p.id]) mergedMap[p.id] = p
+      })
+      cloudList.forEach(function(p) {
+        if (p && p.id && !deletedSet[p.id] && !deletedSet[p._id]) {
+          mergedMap[p.id] = p
+        }
+      })
+
+      var merged = []
+      for (var key in mergedMap) {
+        merged.push(mergedMap[key])
+      }
+
+      childStorage.set('stallProducts', merged)
+
+      // 云端仍存在但本地已删除的记录，再次尝试删除
+      cloudList.forEach(function(p) {
+        if (p && p.id && (deletedSet[p.id] || deletedSet[p._id])) {
+          wx.cloud.callFunction({
+            name: 'record',
+            data: { action: 'remove', collection: 'stallProducts', id: p.id }
+          }).catch(function() {})
+        }
+      })
+
+      return merged
     }
   } catch (err) {
     console.warn('云端读取摆摊商品失败:', err)
@@ -1019,12 +1400,23 @@ async function fetchStallProducts() {
 }
 
 async function removeStallProduct(id) {
+  // 记录墓碑，防止 fetchStallProducts 合并时把已删除记录拉回来
+  addDeletedStallProductId(id)
+
+  // 从本地缓存删除
+  childStorage.set('stallProducts', (childStorage.get('stallProducts') || []).filter(function(p) { return p.id !== id }))
+
+  // 尝试删除云端记录
   if (!isCloudReady()) return
   try {
-    await wx.cloud.callFunction({
+    var res = await wx.cloud.callFunction({
       name: 'record',
       data: { action: 'remove', collection: 'stallProducts', id: id }
     })
+    // 只有云端删除成功后，才清除墓碑
+    if (res.result && res.result.code === 0) {
+      removeTombstone(DELETED_STALL_PRODUCTS_KEY, id)
+    }
   } catch (err) {
     console.warn('云端删除摆摊商品失败:', err)
   }
@@ -1043,30 +1435,73 @@ async function uploadStallSale(sale) {
 }
 
 async function fetchStallSales() {
-  if (!isCloudReady()) return childStorage.get('stallSales') || []
+  var localSales = childStorage.get('stallSales') || []
+  if (!isCloudReady()) return localSales
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'list', collection: 'stallSales' }
+      data: { action: 'list', collection: 'stallSales', childId: auth.getCurrentChildId() }
     })
     if (res.result.code === 0) {
-      var list = res.result.data.list || []
-      childStorage.set('stallSales', list)
-      return list
+      var cloudList = res.result.data.list || []
+      var deletedIds = getDeletedStallSaleIds()
+      var deletedSet = {}
+      deletedIds.forEach(function(id) { deletedSet[id] = true })
+
+      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致销售记录丢失
+      var mergedMap = {}
+      localSales.forEach(function(s) {
+        if (s && s.id && !deletedSet[s.id]) mergedMap[s.id] = s
+      })
+      cloudList.forEach(function(s) {
+        if (s && s.id && !deletedSet[s.id] && !deletedSet[s._id]) {
+          mergedMap[s.id] = s
+        }
+      })
+
+      var merged = []
+      for (var key in mergedMap) {
+        merged.push(mergedMap[key])
+      }
+
+      childStorage.set('stallSales', merged)
+
+      // 云端仍存在但本地已删除的记录，再次尝试删除
+      cloudList.forEach(function(s) {
+        if (s && s.id && (deletedSet[s.id] || deletedSet[s._id])) {
+          wx.cloud.callFunction({
+            name: 'record',
+            data: { action: 'remove', collection: 'stallSales', id: s.id }
+          }).catch(function() {})
+        }
+      })
+
+      return merged
     }
   } catch (err) {
     console.warn('云端读取销售记录失败:', err)
   }
-  return childStorage.get('stallSales') || []
+  return localSales
 }
 
 async function removeStallSale(id) {
+  // 记录墓碑，防止 fetchStallSales 合并时把已删除记录拉回来
+  addDeletedStallSaleId(id)
+
+  // 从本地缓存删除
+  childStorage.set('stallSales', (childStorage.get('stallSales') || []).filter(function(s) { return s.id !== id }))
+
+  // 尝试删除云端记录
   if (!isCloudReady()) return
   try {
-    await wx.cloud.callFunction({
+    var res = await wx.cloud.callFunction({
       name: 'record',
       data: { action: 'remove', collection: 'stallSales', id: id }
     })
+    // 只有云端删除成功后，才清除墓碑
+    if (res.result && res.result.code === 0) {
+      removeTombstone(DELETED_STALL_SALES_KEY, id)
+    }
   } catch (err) {
     console.warn('云端删除销售记录失败:', err)
   }
@@ -1118,11 +1553,78 @@ async function fetchStallSettings() {
   return null
 }
 
+// ===== 摆摊挑战和营业时间 =====
+
+async function uploadStallChallenges(challenges) {
+  if (!isCloudReady()) return
+  try {
+    await wx.cloud.callFunction({
+      name: 'record',
+      data: {
+        action: 'add',
+        collection: 'stallChallenges',
+        data: { _id: 'stall_challenges', ...challenges }
+      }
+    })
+  } catch (err) {
+    console.warn('云端同步挑战数据失败:', err)
+  }
+}
+
+async function fetchStallChallenges() {
+  if (!isCloudReady()) return null
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'get', collection: 'stallChallenges' }
+    })
+    if (res.result.code === 0) {
+      return res.result.data
+    }
+  } catch (err) {
+    console.warn('云端读取挑战数据失败:', err)
+  }
+  return null
+}
+
+async function uploadStallBusinessHours(hours) {
+  if (!isCloudReady()) return
+  try {
+    await wx.cloud.callFunction({
+      name: 'record',
+      data: {
+        action: 'add',
+        collection: 'stallBusinessHours',
+        data: { _id: 'stall_business_hours', ...hours }
+      }
+    })
+  } catch (err) {
+    console.warn('云端同步营业时间失败:', err)
+  }
+}
+
+async function fetchStallBusinessHours() {
+  if (!isCloudReady()) return null
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'get', collection: 'stallBusinessHours' }
+    })
+    if (res.result.code === 0) {
+      return res.result.data
+    }
+  } catch (err) {
+    console.warn('云端读取营业时间失败:', err)
+  }
+  return null
+}
+
 module.exports = {
   isCloudReady: isCloudReady,
   uploadDrawing: uploadDrawing,
   fetchDrawings: fetchDrawings,
   removeDrawing: removeDrawing,
+  updateDrawingName: updateDrawingName,
   uploadBrushingRecord: uploadBrushingRecord,
   fetchBrushingRecords: fetchBrushingRecords,
   removeBrushingRecord: removeBrushingRecord,
@@ -1156,5 +1658,9 @@ module.exports = {
   fetchStallSales: fetchStallSales,
   removeStallSale: removeStallSale,
   uploadStallSettings: uploadStallSettings,
-  fetchStallSettings: fetchStallSettings
+  fetchStallSettings: fetchStallSettings,
+  uploadStallChallenges: uploadStallChallenges,
+  fetchStallChallenges: fetchStallChallenges,
+  uploadStallBusinessHours: uploadStallBusinessHours,
+  fetchStallBusinessHours: fetchStallBusinessHours
 }

@@ -3,6 +3,7 @@ const util = require('../../../utils/util.js')
 const audio = require('../../../utils/audio.js')
 const cloud = require('../../../utils/cloud.js')
 const achievements = require('../../../utils/achievements.js')
+const auth = require('../../../utils/auth.js')
 const { templateDrawers } = require('../../../utils/templates.js')
 
 // 画画音乐管理
@@ -145,7 +146,7 @@ Page({
       brushSizes: app.globalData.brushSizes,
       templateId: templateId,
       templateName: templateName,
-      canvasTitle: titleMap[mode] || (templateName ? '涂色 - ' + templateName : '钰婷的画板'),
+      canvasTitle: titleMap[mode] || (templateName ? '涂色 - ' + templateName : auth.getChildNickname() + '的画板'),
       drawingMode: mode,
       drawingTimeOfDay: timeOfDay,
       soundEnabled: audio.enabled
@@ -690,7 +691,7 @@ Page({
   clearCanvas() {
     wx.showModal({
       title: '清空画布',
-      content: '确定要清空画布吗？钰婷画的内容会消失哦~',
+      content: '确定要清空画布吗？画的内容会消失哦~',
       confirmText: '清空',
       confirmColor: '#FF6B8A',
       success: (res) => {
@@ -761,44 +762,60 @@ Page({
         return
       }
 
-      const drawing = {
-        id: util.generateId(),
-        imagePath: res.tempFilePath,
-        name: this.data.templateName || '钰婷的画',
-        mode: this.data.canvasTitle,
-        createTime: new Date().toISOString()
-      }
-
-      // 上传到云端（内部自动处理本地降级）
-      await cloud.uploadDrawing(res.tempFilePath, drawing)
-      audio.saveSuccess()
-
+      // 弹出命名弹窗
+      const childName = auth.getChildNickname()
+      const defaultName = this.data.templateName || childName + '的画'
+      
       wx.hideLoading()
-      wx.showToast({
-        title: '保存成功！',
-        icon: 'success',
-        duration: 2000
-      })
-
-      // 保存成功后清除历史记录并返回
-      this.history = []
-      this.dataChanged = false
-      setTimeout(() => {
-        wx.navigateBack()
-      }, 1500)
-
-      // 检查成就解锁（异步版本，确保读取最新数据）
-      achievements.checkAchievementsAsync().then(newAchievements => {
-        if (newAchievements && newAchievements.length > 0) {
-          setTimeout(() => {
-            const popup = this.selectComponent('#achievementPopup')
-            if (popup) {
-              popup.showAchievements(newAchievements)
+      wx.showModal({
+        title: '🎨 给画起个名字',
+        editable: true,
+        placeholderText: defaultName,
+        success: async (modalRes) => {
+          if (modalRes.confirm) {
+            wx.showLoading({ title: '保存中...' })
+            const name = modalRes.content || defaultName
+            const drawing = {
+              id: util.generateId(),
+              imagePath: res.tempFilePath,
+              name: name,
+              mode: this.data.canvasTitle,
+              createTime: new Date().toISOString()
             }
-          }, 2500)
+
+            // 上传到云端（内部自动处理本地降级）
+            await cloud.uploadDrawing(res.tempFilePath, drawing)
+            audio.saveSuccess()
+
+            wx.hideLoading()
+            wx.showToast({
+              title: '保存成功！',
+              icon: 'success',
+              duration: 2000
+            })
+
+            // 保存成功后清除历史记录并返回
+            this.history = []
+            this.dataChanged = false
+            setTimeout(() => {
+              wx.navigateBack()
+            }, 1500)
+
+            // 检查成就解锁（异步版本，确保读取最新数据）
+            achievements.checkAchievementsAsync().then(newAchievements => {
+              if (newAchievements && newAchievements.length > 0) {
+                setTimeout(() => {
+                  const popup = this.selectComponent('#achievementPopup')
+                  if (popup) {
+                    popup.showAchievements(newAchievements)
+                  }
+                }, 2500)
+              }
+            }).catch(err => {
+              console.warn('成就检查失败:', err)
+            })
+          }
         }
-      }).catch(err => {
-        console.warn('成就检查失败:', err)
       })
     } catch (err) {
       wx.hideLoading()

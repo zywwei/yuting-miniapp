@@ -213,7 +213,7 @@
     <view wx:else class="empty-history">
       <text class="empty-icon">🦷</text>
       <text class="empty-text">还没有刷牙记录哦~</text>
-      <text class="empty-tip">从今天开始，帮钰婷养成刷牙好习惯！</text>
+      <text class="empty-tip">从今天开始，帮{{childName}}养成刷牙好习惯！</text>
     </view>
   </view>
 

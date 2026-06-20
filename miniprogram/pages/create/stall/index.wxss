@@ -155,21 +155,206 @@
   color: #333;
 }
 
+/* 设置行 */
+.settings-row {
+  display: flex;
+  align-items: center;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.setting-item {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8rpx 0;
+}
+
+.setting-label {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.setting-value {
+  font-size: 26rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+.setting-divider {
+  width: 1rpx;
+  height: 32rpx;
+  background: #f0f0f0;
+  margin: 0 20rpx;
+}
+
+.settings-arrow {
+  font-size: 28rpx;
+  margin-left: 12rpx;
+}
+
+/* 设置弹窗 */
+.settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.settings-panel {
+  position: relative;
+  width: 85%;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx;
+  background: linear-gradient(135deg, #FF9AAB 0%, #FF6B8A 100%);
+}
+
+.settings-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.settings-close {
+  font-size: 36rpx;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8rpx;
+}
+
+.settings-body {
+  padding: 32rpx;
+}
+
+.settings-group {
+  margin-bottom: 32rpx;
+}
+
+.settings-group-title {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: bold;
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.settings-input {
+  width: 100%;
+  height: 80rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.discount-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.discount-option {
+  padding: 16rpx 28rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.discount-option.active {
+  background: #FF6B8A;
+  color: #fff;
+}
+
+.custom-discount {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.custom-label {
+  font-size: 26rpx;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.custom-input {
+  width: 120rpx;
+  height: 64rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  text-align: center;
+  font-size: 28rpx;
+}
+
+.custom-unit {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.settings-footer {
+  padding: 24rpx 32rpx 32rpx;
+}
+
+.settings-save-btn {
+  width: 100%;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #FF9AAB 0%, #FF6B8A 100%);
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: bold;
+  border-radius: 44rpx;
+}
+
 .quick-actions {
   display: flex;
   justify-content: space-around;
   margin: 24rpx;
-  padding: 24rpx;
+  padding: 28rpx 16rpx;
   background: #fff;
-  border-radius: 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.08);
 }
 
 .action-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
+  gap: 10rpx;
+  padding: 16rpx 20rpx;
+  border-radius: 16rpx;
+  background: #f5f5f5;
+  transition: all 0.2s;
 }
 
 .action-icon {
@@ -254,4 +439,150 @@
   font-size: 26rpx;
   color: #E65100;
   font-weight: bold;
+}
+
+/* 积分信息 */
+.points-info {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+}
+
+.points-icon {
+  font-size: 28rpx;
+}
+
+.points-value {
+  font-size: 26rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* 营业时间信息 */
+.business-hours-info {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 0;
+  border-top: 1rpx solid #f0f0f0;
+  margin-top: 12rpx;
+}
+
+.hours-icon {
+  font-size: 28rpx;
+}
+
+.hours-text {
+  font-size: 24rpx;
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.hours-count {
+  font-size: 22rpx;
+  color: #999;
+  margin-left: auto;
+}
+
+/* 挑战系统 */
+.challenges-section {
+  margin: 24rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding: 0 8rpx;
+}
+
+.section-desc {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.challenges-scroll {
+  white-space: nowrap;
+}
+
+.challenges-list {
+  display: inline-flex;
+  gap: 16rpx;
+  padding: 8rpx 0;
+}
+
+.challenge-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 180rpx;
+  padding: 20rpx 16rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+  position: relative;
+}
+
+.challenge-card.completed {
+  background: #E8F5E9;
+  border: 1rpx solid #A5D6A7;
+}
+
+.challenge-card.claimed {
+  background: #f5f5f5;
+  opacity: 0.7;
+}
+
+.challenge-icon {
+  font-size: 40rpx;
+  margin-bottom: 8rpx;
+}
+
+.challenge-title {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.challenge-desc {
+  font-size: 20rpx;
+  color: #999;
+  text-align: center;
+  margin-bottom: 8rpx;
+  white-space: normal;
+}
+
+.challenge-reward {
+  font-size: 22rpx;
+  color: #FF9800;
+  font-weight: bold;
+}
+
+.claim-btn {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  padding: 4rpx 12rpx;
+  background: #4CAF50;
+  color: #fff;
+  font-size: 20rpx;
+  border-radius: 12rpx;
+}
+
+.claimed-badge {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 32rpx;
+  height: 32rpx;
+  background: #4CAF50;
+  color: #fff;
+  font-size: 20rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

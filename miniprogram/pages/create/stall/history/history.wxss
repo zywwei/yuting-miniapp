@@ -102,6 +102,34 @@
   color: #333;
 }
 
+.discount-badge {
+  padding: 4rpx 12rpx;
+  background: #FF9800;
+  color: #fff;
+  font-size: 22rpx;
+  border-radius: 8rpx;
+  margin-left: 12rpx;
+}
+
+.sale-original {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8rpx 0;
+  margin-bottom: 8rpx;
+}
+
+.original-text {
+  font-size: 22rpx;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.save-text {
+  font-size: 22rpx;
+  color: #FF9800;
+}
+
 .sale-items {
   margin-bottom: 12rpx;
 }

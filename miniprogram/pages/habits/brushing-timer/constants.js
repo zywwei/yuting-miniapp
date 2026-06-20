@@ -49,12 +49,15 @@ const THEMES = {
 }
 
 const REWARD_TEXTS = ['准备开始！', '刷得好认真～', '继续加油！', '越来越棒！', '快完成啦！', '太完美了！']
-const COMPLETED_TEXTS = [
-  '牙齿变得好白好亮！✨',
-  '刷得干干净净，真厉害！💪',
-  '小牙齿在说谢谢钰婷！🦷',
-  '今天又是棒棒的一天！🌈'
-]
+
+function getCompletedTexts(childName) {
+  return [
+    '牙齿变得好白好亮！✨',
+    '刷得干干净净，真厉害！💪',
+    '小牙齿在说谢谢' + (childName || '宝宝') + '！🦷',
+    '今天又是棒棒的一天！🌈'
+  ]
+}
 const CHEER_LEFT = ['加油', '好棒', '厉害', '继续', '加油', '棒棒']
 const CHEER_RIGHT = ['真乖', '认真', '好快', '漂亮', '太强', '赞赞']
 
@@ -766,7 +769,7 @@ module.exports = {
   BRUSHING_TIPS,
   THEMES,
   REWARD_TEXTS,
-  COMPLETED_TEXTS,
+  getCompletedTexts,
   CHEER_LEFT,
   CHEER_RIGHT,
   RING_MODES,

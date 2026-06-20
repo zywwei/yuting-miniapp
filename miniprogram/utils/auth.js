@@ -88,6 +88,15 @@ module.exports = {
     return null
   },
 
+  // 获取当前孩子的昵称（优先nickname，其次name，最后默认"宝宝"）
+  getChildNickname: function() {
+    var child = this.getCurrentChild()
+    if (child) {
+      return child.nickname || child.name || '宝宝'
+    }
+    return '宝宝'
+  },
+
   // 用户所有家庭列表
   getMyFamilies: function() {
     return wx.getStorageSync(FAMILIES_KEY) || []

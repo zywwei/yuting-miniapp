@@ -20,7 +20,9 @@ var CHILD_KEYS = [
   'settings',
   'stallProducts',
   'stallSales',
-  'stallSettings'
+  'stallSettings',
+  'stallDailyChallenges',
+  'stallBusinessHours'
 ]
 
 function getKey(key) {

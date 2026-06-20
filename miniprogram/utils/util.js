@@ -2,6 +2,8 @@
  * 工具函数
  */
 
+var childStorage = require('./child-storage.js')
+
 // ===== 主线故事系统工具函数 =====
 
 // 故事章节数量（与 constants.js 中 CHAPTERS 长度一致）
@@ -394,19 +396,19 @@ const saveImageToPersistent = (tempFilePath) => {
  * 保存画作记录到本地存储
  */
 const saveDrawing = (drawing) => {
-  const drawings = wx.getStorageSync('drawings') || []
+  const drawings = childStorage.get('drawings') || []
   drawings.unshift(drawing)
-  wx.setStorageSync('drawings', drawings)
+  childStorage.set('drawings', drawings)
 }
 
 // 获取所有画作
 const getDrawings = () => {
-  return wx.getStorageSync('drawings') || []
+  return childStorage.get('drawings') || []
 }
 
 // 删除画作（同时删除图片文件）
 const deleteDrawing = (id) => {
-  let drawings = wx.getStorageSync('drawings') || []
+  let drawings = childStorage.get('drawings') || []
   const target = drawings.find(d => d.id === id)
 
   // 删除关联的图片文件
@@ -420,7 +422,7 @@ const deleteDrawing = (id) => {
   }
 
   drawings = drawings.filter(d => d.id !== id)
-  wx.setStorageSync('drawings', drawings)
+  childStorage.set('drawings', drawings)
 }
 
 module.exports = {
