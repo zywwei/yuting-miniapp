@@ -1,0 +1,80 @@
+<view class="container">
+  <!-- 清单列表 -->
+  <view class="list-section" wx:if="{{items.length > 0}}">
+    <view class="item-card {{item.checked ? 'checked' : ''}}" wx:for="{{items}}" wx:key="id">
+      <view class="item-check" bindtap="toggleCheck" data-id="{{item.id}}">
+        <text class="check-icon">{{item.checked ? '✅' : '⬜'}}</text>
+      </view>
+      <view class="item-info">
+        <text class="item-name">{{item.name}}</text>
+        <view class="item-qty">
+          <view class="qty-btn" catchtap="updateQuantity" data-id="{{item.id}}" data-action="sub">-</view>
+          <text class="qty-num">{{item.quantity}}</text>
+          <view class="qty-btn" catchtap="updateQuantity" data-id="{{item.id}}" data-action="add">+</view>
+        </view>
+      </view>
+      <view class="item-remove" bindtap="removeItem" data-id="{{item.id}}">
+        <text class="remove-icon">✕</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{items.length === 0}}">
+    <text class="empty-icon">📋</text>
+    <text class="empty-text">暂无进货清单</text>
+    <text class="empty-hint">点击下方按钮添加需要补货的商品</text>
+  </view>
+
+  <!-- 底部操作 -->
+  <view class="footer" wx:if="{{items.length > 0}}">
+    <view class="footer-stats">
+      <text class="stats-text">共 {{items.length}} 项</text>
+      <text class="stats-done">已完成 {{checkedCount}} 项</text>
+    </view>
+    <view class="clear-checked" bindtap="clearChecked">清除已进货</view>
+  </view>
+
+  <!-- 添加按钮 -->
+  <view class="add-btn" bindtap="showAddPanel">
+    <text class="add-icon">+</text>
+    <text class="add-text">添加商品</text>
+  </view>
+
+  <!-- 添加面板 -->
+  <view class="add-panel" wx:if="{{showAdd}}">
+    <view class="add-mask" bindtap="hideAddPanel"></view>
+    <view class="add-content">
+      <view class="add-header">
+        <text class="add-title">选择商品</text>
+        <text class="add-close" bindtap="hideAddPanel">✕</text>
+      </view>
+      
+      <!-- 搜索 -->
+      <view class="add-search">
+        <text class="search-icon">🔍</text>
+        <input class="search-input" placeholder="搜索商品..." bindinput="onSearchInput" value="{{searchKeyword}}" />
+      </view>
+
+      <!-- 商品列表 -->
+      <scroll-view scroll-y class="product-scroll">
+        <view class="product-item {{selectedProduct.id === item.id ? 'selected' : ''}}" 
+              wx:for="{{filteredProducts}}" wx:key="id" 
+              bindtap="selectProduct" data-id="{{item.id}}">
+          <text class="product-name">{{item.name}}</text>
+          <text class="product-price">¥{{item.salePrice}}</text>
+          <text class="product-stock">库存 {{item.quantity}}</text>
+        </view>
+      </scroll-view>
+
+      <!-- 数量输入 -->
+      <view class="add-quantity" wx:if="{{selectedProduct}}">
+        <text class="qty-label">{{selectedProduct.name}} 进货数量：</text>
+        <input class="qty-input" type="number" placeholder="输入数量" value="{{addQuantity}}" bindinput="onQuantityInput" />
+      </view>
+
+      <!-- 确认按钮 -->
+      <view class="add-confirm" bindtap="addItem">添加到清单</view>
+    </view>
+  </view>
+</view>

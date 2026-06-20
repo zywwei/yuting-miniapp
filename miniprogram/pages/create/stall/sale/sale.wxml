@@ -5,6 +5,30 @@
     <input class="search-input" placeholder="搜索商品..." bindinput="onSearchInput" value="{{searchKeyword}}" />
   </view>
 
+  <!-- 分类筛选 -->
+  <view class="category-filter">
+    <scroll-view scroll-x class="category-scroll">
+      <view class="category-item {{currentCategory === '' ? 'active' : ''}}" bindtap="filterCategory" data-category="">全部</view>
+      <view class="category-item {{currentCategory === item ? 'active' : ''}}" wx:for="{{categories}}" wx:key="*this" bindtap="filterCategory" data-category="{{item}}">{{item}}</view>
+    </scroll-view>
+    <view class="sort-btn" bindtap="toggleSortMenu">
+      <text class="sort-icon">↕</text>
+      <text class="sort-text">排序</text>
+    </view>
+  </view>
+
+  <!-- 排序菜单浮层 -->
+  <view wx:if="{{showSortMenu}}" class="sort-mask" bindtap="closeSortMenu"></view>
+  <view class="sort-menu-wrapper" wx:if="{{showSortMenu}}">
+    <view class="sort-menu">
+      <view class="sort-option {{sortBy === 'default' ? 'active' : ''}}" bindtap="setSortBy" data-sort="default">默认</view>
+      <view class="sort-option {{sortBy === 'time' ? 'active' : ''}}" bindtap="setSortBy" data-sort="time">最新上架</view>
+      <view class="sort-option {{sortBy === 'salesCount' ? 'active' : ''}}" bindtap="setSortBy" data-sort="salesCount">销量最高</view>
+      <view class="sort-option {{sortBy === 'salesAmount' ? 'active' : ''}}" bindtap="setSortBy" data-sort="salesAmount">销售额最高</view>
+      <view class="sort-option {{sortBy === 'price' ? 'active' : ''}}" bindtap="setSortBy" data-sort="price">价格最低</view>
+    </view>
+  </view>
+
   <!-- 快速再来一单 -->
   <view wx:if="{{lastSaleItems.length > 0}}" class="repeat-section">
     <view class="repeat-btn" bindtap="repeatLastSale">
@@ -94,5 +118,17 @@
     <text class="empty-icon">📦</text>
     <text class="empty-text">还没有商品，请先添加商品</text>
     <view class="empty-btn" bindtap="goAddProduct">添加商品</view>
+  </view>
+
+  <!-- 庆祝动画 -->
+  <view wx:if="{{showCelebration}}" class="celebration-overlay" bindtap="hideCelebration">
+    <view wx:for="{{confetti}}" wx:key="id" class="confetti"
+          style="left:{{item.left}}%;background:{{item.color}};animation-delay:{{item.delay}}s;--rotate:{{item.rotate}}deg">
+    </view>
+    <view class="celebration-content">
+      <text class="celebration-emoji">🎉</text>
+      <text class="celebration-text">收款成功！</text>
+      <text class="celebration-amount">¥{{celebrationTotal}}</text>
+    </view>
   </view>
 </view>

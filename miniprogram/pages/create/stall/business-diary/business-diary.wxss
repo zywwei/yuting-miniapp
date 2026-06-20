@@ -1,0 +1,209 @@
+.container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 32rpx;
+  padding-bottom: 160rpx;
+}
+
+/* 日志列表 */
+.diary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.diary-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
+}
+
+.diary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.diary-date {
+  font-size: 28rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+.diary-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.action-btn {
+  font-size: 24rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+.action-btn.edit {
+  color: #1976D2;
+  background: #E3F2FD;
+}
+
+.action-btn.delete {
+  color: #F44336;
+  background: #FFEBEE;
+}
+
+.diary-content {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+/* 空状态 */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: bold;
+  margin-bottom: 8rpx;
+}
+
+.empty-hint {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 写日志按钮 */
+.write-btn {
+  position: fixed;
+  bottom: 48rpx;
+  left: 32rpx;
+  right: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 24rpx;
+  background: linear-gradient(135deg, #FF6B8A, #FF9AAB);
+  border-radius: 44rpx;
+  box-shadow: 0 8rpx 32rpx rgba(255,107,138,0.3);
+}
+
+.write-icon {
+  font-size: 32rpx;
+}
+
+.write-text {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* 编辑器 */
+.editor-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+.editor-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+}
+
+.editor-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx;
+  max-height: 80vh;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.editor-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.editor-close {
+  font-size: 32rpx;
+  color: #999;
+  padding: 8rpx;
+}
+
+.editor-date {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 24rpx;
+}
+
+.date-icon {
+  font-size: 28rpx;
+}
+
+.date-text {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.editor-textarea {
+  width: 100%;
+  height: 300rpx;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 16rpx;
+}
+
+.editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.char-count {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.save-btn {
+  padding: 16rpx 48rpx;
+  background: linear-gradient(135deg, #FF6B8A, #FF9AAB);
+  border-radius: 32rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+}

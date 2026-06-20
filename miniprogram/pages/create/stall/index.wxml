@@ -38,10 +38,17 @@
       </view>
     </view>
     
-    <view class="business-hours-info" wx:if="{{settings.isOpen && currentDuration > 0}}">
+    <view class="business-hours-info" wx:if="{{settings.isOpen}}">
       <text class="hours-icon">⏱️</text>
-      <text class="hours-text">已营业 {{currentDuration}} 分钟</text>
-      <text class="hours-count">今日第 {{todayBusinessHours.openCount}} 次营业</text>
+      <text class="hours-text">本次 {{currentDurationText}}</text>
+      <text class="hours-divider">|</text>
+      <text class="hours-text">今日 {{totalDurationText}}</text>
+      <text class="hours-count">第{{todayBusinessHours.openCount}}次</text>
+    </view>
+    <view class="business-hours-info" wx:elif="{{todayBusinessHours.openCount > 0}}">
+      <text class="hours-icon">⏱️</text>
+      <text class="hours-text">今日已营业 {{totalDurationText}}</text>
+      <text class="hours-count">共{{todayBusinessHours.openCount}}次</text>
     </view>
     
     <view class="settings-row" bindtap="openSettings">
@@ -107,9 +114,9 @@
       <text class="action-icon">💰</text>
       <text class="action-text">开单</text>
     </view>
-    <view class="action-btn" bindtap="goInventory">
+    <view class="action-btn" bindtap="goProducts">
       <text class="action-icon">📦</text>
-      <text class="action-text">库存</text>
+      <text class="action-text">商品</text>
     </view>
     <view class="action-btn" bindtap="goHistory">
       <text class="action-icon">📋</text>
@@ -146,9 +153,17 @@
   <view class="tools-section">
     <view class="section-title">实战工具</view>
     <view class="tools-grid">
-      <view class="tool-item" bindtap="goPriceBoard">
-        <text class="tool-icon">📺</text>
-        <text class="tool-name">价目表</text>
+      <view class="tool-item" bindtap="goPricingHelper">
+        <text class="tool-icon">💰</text>
+        <text class="tool-name">定价助手</text>
+      </view>
+      <view class="tool-item" bindtap="goRestockList">
+        <text class="tool-icon">📋</text>
+        <text class="tool-name">进货清单</text>
+      </view>
+      <view class="tool-item" bindtap="goBusinessDiary">
+        <text class="tool-icon">📝</text>
+        <text class="tool-name">营业日志</text>
       </view>
       <view class="tool-item" bindtap="goChangeCalc">
         <text class="tool-icon">🧮</text>
@@ -160,7 +175,7 @@
   <view class="stock-alert" wx:if="{{lowStockProducts.length > 0}}">
     <view class="alert-title">⚠️ 库存预警</view>
     <view class="alert-list">
-      <view class="alert-item" wx:for="{{lowStockProducts}}" wx:key="id" bindtap="goInventory">
+      <view class="alert-item" wx:for="{{lowStockProducts}}" wx:key="id" bindtap="goProducts">
         <text class="alert-name">{{item.name}}</text>
         <text class="alert-count">仅剩 {{item.quantity}} 件</text>
       </view>

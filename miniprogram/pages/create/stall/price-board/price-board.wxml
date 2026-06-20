@@ -1,21 +1,97 @@
 <view class="container">
+  <!-- 头部 -->
   <view class="header">
     <text class="header-title">{{stallName}}</text>
-    <text class="header-subtitle">价目表</text>
+    <text class="header-subtitle">商品一览</text>
   </view>
 
-  <view class="product-grid">
-    <view class="product-card" wx:for="{{products}}" wx:key="id">
+  <!-- 搜索框 -->
+  <view class="search-bar">
+    <text class="search-icon">🔍</text>
+    <input class="search-input" placeholder="搜索商品..." bindinput="onSearchInput" value="{{searchKeyword}}" />
+  </view>
+
+  <!-- 工具栏：分类 + 视图切换 + 排序 -->
+  <view class="toolbar">
+    <scroll-view scroll-x class="category-scroll">
+      <view class="category-item {{currentCategory === '' ? 'active' : ''}}" bindtap="filterCategory" data-category="">全部</view>
+      <view class="category-item {{currentCategory === item ? 'active' : ''}}" wx:for="{{categories}}" wx:key="*this" bindtap="filterCategory" data-category="{{item}}">{{item}}</view>
+    </scroll-view>
+    <view class="view-toggle" bindtap="toggleViewMode">
+      <text class="view-icon">{{viewMode === 'list' ? '⊞' : '≡'}}</text>
+    </view>
+    <view class="sort-btn" bindtap="toggleSortMenu">
+      <text class="sort-icon">↕</text>
+      <text class="sort-text">排序</text>
+    </view>
+  </view>
+
+  <!-- 排序菜单浮层 -->
+  <view wx:if="{{showSortMenu}}" class="sort-mask" bindtap="closeSortMenu"></view>
+  <view class="sort-menu-wrapper" wx:if="{{showSortMenu}}">
+    <view class="sort-menu">
+      <view class="sort-option {{sortBy === 'default' ? 'active' : ''}}" bindtap="setSortBy" data-sort="default">默认</view>
+      <view class="sort-option {{sortBy === 'time' ? 'active' : ''}}" bindtap="setSortBy" data-sort="time">最新上架</view>
+      <view class="sort-option {{sortBy === 'salesCount' ? 'active' : ''}}" bindtap="setSortBy" data-sort="salesCount">销量最高</view>
+      <view class="sort-option {{sortBy === 'salesAmount' ? 'active' : ''}}" bindtap="setSortBy" data-sort="salesAmount">销售额最高</view>
+      <view class="sort-option {{sortBy === 'priceAsc' ? 'active' : ''}}" bindtap="setSortBy" data-sort="priceAsc">价格最低</view>
+      <view class="sort-option {{sortBy === 'priceDesc' ? 'active' : ''}}" bindtap="setSortBy" data-sort="priceDesc">价格最高</view>
+    </view>
+  </view>
+
+  <!-- 列表视图 -->
+  <view wx:if="{{viewMode === 'list'}}" class="product-list">
+    <view class="product-item" wx:for="{{products}}" wx:key="id" bindtap="editProduct" data-id="{{item.id}}" longpress="onProductLongPress" data-name="{{item.name}}">
       <view class="product-image">
         <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" />
         <text wx:else class="product-emoji">📦</text>
       </view>
-      <view class="product-name">{{item.name}}</view>
-      <view class="product-price">¥{{item.salePrice}}</view>
+      <view class="product-info">
+        <view class="product-name">{{item.name}}</view>
+        <view class="product-meta">
+          <text class="product-category">{{item.category || '其他'}}</text>
+          <text class="product-sales">销量 {{item.totalSold || 0}}</text>
+        </view>
+        <view class="product-price-row">
+          <text class="product-price">¥{{item.salePrice}}</text>
+          <text class="product-stock {{item.quantity <= 3 ? 'low' : item.quantity <= 10 ? 'medium' : 'good'}}">库存 {{item.quantity}}</text>
+        </view>
+      </view>
+      <view class="product-actions">
+        <view class="action-btn edit" catchtap="editProduct" data-id="{{item.id}}">编辑</view>
+        <view class="action-btn delete" catchtap="deleteProduct" data-id="{{item.id}}" data-name="{{item.name}}">删除</view>
+      </view>
     </view>
   </view>
 
-  <view class="footer">
-    <text class="footer-text">欢迎光临！</text>
+  <!-- 网格视图 -->
+  <view wx:if="{{viewMode === 'grid'}}" class="product-grid">
+    <view class="product-card" wx:for="{{products}}" wx:key="id" bindtap="editProduct" data-id="{{item.id}}" longpress="onProductLongPress" data-name="{{item.name}}">
+      <view class="card-image">
+        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="card-img" />
+        <text wx:else class="card-emoji">📦</text>
+        <view wx:if="{{item.quantity <= 3}}" class="low-stock-badge">库存紧张</view>
+      </view>
+      <view class="card-info">
+        <text class="card-name">{{item.name}}</text>
+        <text class="card-price">¥{{item.salePrice}}</text>
+        <text class="card-stock">库存 {{item.quantity}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{products.length === 0}}">
+    <text class="empty-icon">📦</text>
+    <text class="empty-text">还没有商品</text>
+    <view class="empty-btn" bindtap="goAddProduct">添加商品</view>
+  </view>
+
+  <!-- 底部添加按钮 -->
+  <view class="footer" wx:if="{{products.length > 0}}">
+    <view class="add-btn" bindtap="goAddProduct">
+      <text class="add-icon">+</text>
+      <text class="add-text">添加商品</text>
+    </view>
   </view>
 </view>
