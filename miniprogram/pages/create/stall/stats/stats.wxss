@@ -355,6 +355,35 @@
   color: #999;
 }
 
+/* 折扣统计 */
+.discount-stats {
+  display: flex;
+  gap: 16rpx;
+  padding: 0 24rpx 24rpx;
+}
+
+.discount-stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx;
+  background: #FFF3E0;
+  border-radius: 12rpx;
+}
+
+.discount-stat-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #FF9800;
+  margin-bottom: 4rpx;
+}
+
+.discount-stat-label {
+  font-size: 20rpx;
+  color: #999;
+}
+
 .today-stats {
   display: flex;
   justify-content: space-around;
@@ -565,4 +594,87 @@
 .poster-btn.primary {
   color: #fff;
   background: linear-gradient(135deg, #FF6B8A 0%, #FF9AAB 100%);
+}
+
+/* 营业时间统计 */
+.hours-cards {
+  display: flex;
+  gap: 16rpx;
+  padding: 0 24rpx 24rpx;
+}
+
+.hours-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx;
+  background: #E8F5E9;
+  border-radius: 12rpx;
+}
+
+.hours-value {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #4CAF50;
+}
+
+.hours-unit {
+  font-size: 22rpx;
+  color: #66BB6A;
+  margin-top: 4rpx;
+}
+
+.hours-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.hours-trend {
+  padding: 0 24rpx 24rpx;
+}
+
+.trend-title {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+}
+
+.trend-bars {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 120rpx;
+  padding: 0 8rpx;
+}
+
+.trend-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.trend-bar-bg {
+  width: 24rpx;
+  height: 80rpx;
+  background: #f0f0f0;
+  border-radius: 12rpx;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.trend-bar {
+  width: 100%;
+  background: linear-gradient(180deg, #4CAF50, #8BC34A);
+  border-radius: 12rpx;
+  min-height: 4rpx;
+}
+
+.trend-label {
+  font-size: 20rpx;
+  color: #999;
+  margin-top: 8rpx;
 }

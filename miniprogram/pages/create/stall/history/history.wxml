@@ -27,6 +27,13 @@
         <view class="sale-header">
           <text class="sale-time">{{sale.time}}</text>
           <text class="sale-total">¥{{sale.total}}</text>
+          <view wx:if="{{sale.discount < 10}}" class="discount-badge">
+            {{sale.discount}}折
+          </view>
+        </view>
+        <view wx:if="{{sale.discount < 10}}" class="sale-original">
+          <text class="original-text">原价 ¥{{sale.originalTotal}}</text>
+          <text class="save-text">省 ¥{{sale.discountAmount}}</text>
         </view>
         <view class="sale-items">
           <view class="sale-item-row" wx:for="{{sale.items}}" wx:for-item="item" wx:key="productId">

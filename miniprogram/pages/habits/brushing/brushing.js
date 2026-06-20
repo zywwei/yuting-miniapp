@@ -2,11 +2,13 @@ const util = require('../../../utils/util.js')
 const audio = require('../../../utils/audio.js')
 const cloud = require('../../../utils/cloud.js')
 const achievements = require('../../../utils/achievements.js')
+const auth = require('../../../utils/auth.js')
 const { getNavBarInfo, previewImage, getTodayStr, getYesterdayStr } = require('../../../utils/page-helpers.js')
 const { CHAPTERS, getOrSelectTodayChapter } = require('../brushing-timer/constants.js')
 
 Page({
   data: {
+    childName: '宝宝',
     statusBarHeight: 20,
     capsuleRight: 80,
     todayInfo: {
@@ -50,6 +52,7 @@ Page({
   onLoad() {
     const navInfo = getNavBarInfo()
     this.setData({
+      childName: auth.getChildNickname(),
       statusBarHeight: navInfo.statusBarHeight,
       capsuleRight: navInfo.capsuleRight
     })

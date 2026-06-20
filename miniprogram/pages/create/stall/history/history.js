@@ -60,16 +60,27 @@ Page({
       if (!groups[sale.date]) {
         groups[sale.date] = { date: sale.date, total: 0, sales: [] }
       }
-      // Calculate profit for this sale
-      var profit = 0
+      
+      // 向后兼容：确保折扣字段存在
+      sale.discount = sale.discount || 10
+      sale.originalTotal = sale.originalTotal || sale.total
+      sale.discountAmount = sale.discountAmount || 0
+      
+      // Calculate profit for this sale（使用成本价快照）
+      var totalCost = 0
       for (var j = 0; j < sale.items.length; j++) {
         var item = sale.items[j]
-        var product = productMap[item.productId]
-        if (product) {
-          profit += (item.unitPrice - product.costPrice) * item.quantity
+        var costPrice = item.costPrice || 0
+        // 如果没有成本价快照，尝试从当前商品获取
+        if (!costPrice && productMap[item.productId]) {
+          costPrice = productMap[item.productId].costPrice || 0
         }
+        totalCost += costPrice * item.quantity
       }
-      sale.profit = profit
+      
+      // 利润 = 折后价 - 总成本
+      sale.profit = Math.round((sale.total - totalCost) * 100) / 100
+      
       groups[sale.date].total += sale.total
       groups[sale.date].sales.push(sale)
     }

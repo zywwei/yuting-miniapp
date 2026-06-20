@@ -1,4 +1,5 @@
 var stallManager = require('../../../../utils/stall-manager.js')
+var auth = require('../../../../utils/auth.js')
 
 Page({
   data: {
@@ -10,7 +11,9 @@ Page({
     categoryStats: [],
     profitMargin: 0,
     themeColor: '#FF9AAB',
-    themeGradient: 'linear-gradient(135deg, #FF9AAB 0%, #FFB6C1 100%)'
+    themeGradient: 'linear-gradient(135deg, #FF9AAB 0%, #FFB6C1 100%)',
+    businessHours: null,
+    weekBusinessHours: []
   },
 
   onLoad: function() {
@@ -61,12 +64,18 @@ Page({
     var dailySales = this.getDailySales(sales, this.data.currentTab)
     var categoryStats = this.getCategoryStats(sales, products)
 
+    // 营业时间统计
+    var businessHours = stallManager.getTodayBusinessHours()
+    var weekBusinessHours = this.getWeekBusinessHours()
+
     this.setData({
       stats: stats,
       avgOrder: '¥' + avgOrder,
       profitMargin: profitMargin,
       dailySales: dailySales,
-      categoryStats: categoryStats
+      categoryStats: categoryStats,
+      businessHours: businessHours,
+      weekBusinessHours: weekBusinessHours
     })
 
     setTimeout(function() {
@@ -115,13 +124,18 @@ Page({
     products.forEach(function(p) { productMap[p.id] = p })
 
     sales.forEach(function(sale) {
+      var discount = sale.discount || 10
       sale.items.forEach(function(item) {
         var product = productMap[item.productId]
         var category = product ? product.category : '其他'
         if (!categories[category]) {
           categories[category] = { name: category, revenue: 0, quantity: 0 }
         }
-        categories[category].revenue += item.subtotal || 0
+        // 使用折后价计算分类收入
+        var itemRevenue = discount < 10 
+          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
+          : (item.subtotal || 0)
+        categories[category].revenue += itemRevenue
         categories[category].quantity += item.quantity || 0
       })
     })
@@ -133,6 +147,30 @@ Page({
     })
 
     return result
+  },
+
+  getWeekBusinessHours: function() {
+    var hours = []
+    var today = new Date()
+    
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(today)
+      d.setDate(d.getDate() - i)
+      var dateStr = this.formatDate(d)
+      
+      // 获取该日期的营业时间数据
+      var dayHours = stallManager.getBusinessHoursByDate(dateStr)
+      
+      hours.push({
+        date: dateStr,
+        label: (d.getMonth() + 1) + '/' + d.getDate(),
+        duration: dayHours.totalDuration || 0,
+        hours: Math.floor((dayHours.totalDuration || 0) / 60),
+        minutes: (dayHours.totalDuration || 0) % 60
+      })
+    }
+    
+    return hours
   },
 
   drawSalesChart: function(dailySales) {
@@ -568,7 +606,7 @@ Page({
       ctx.fillStyle = '#ccc'
       ctx.font = '10px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('— 钰婷成长小助手 —', width / 2, height - 30)
+      ctx.fillText('— ' + auth.getChildNickname() + '成长小助手 —', width / 2, height - 30)
 
       // Convert to image
       setTimeout(function() {

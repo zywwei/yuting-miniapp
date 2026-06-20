@@ -37,6 +37,78 @@
   min-width: 0;
 }
 
+/* 折扣区域 */
+.discount-section {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.discount-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+}
+
+.discount-btns {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.discount-btn {
+  flex: 1;
+  padding: 16rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.discount-btn.active {
+  background: #FF6B8A;
+  color: #fff;
+}
+
+.discount-custom {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.discount-input {
+  width: 120rpx;
+  height: 64rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  text-align: center;
+  font-size: 28rpx;
+}
+
+.discount-unit {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.discount-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.discount-save {
+  font-size: 26rpx;
+  color: #FF9800;
+}
+
+.discount-result {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #FF6B8A;
+}
+
 .change-row {
   display: flex;
   justify-content: space-between;
@@ -48,6 +120,10 @@
   font-size: 40rpx;
   color: #4CAF50;
   font-weight: bold;
+}
+
+.change-row.negative .change-label {
+  color: #F44336;
 }
 
 .change-value {

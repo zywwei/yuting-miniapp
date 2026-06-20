@@ -1,62 +1,134 @@
 <!-- 画廊页面 - 成长记录时间线 -->
 <view class="container">
-  <!-- 顶部统计 -->
-  <view class="stats-header">
-    <view class="stats-card">
-      <text class="stats-number">{{totalCount}}</text>
-      <text class="stats-label">幅画作</text>
+  <!-- 汇总卡片 -->
+  <view class="summary-cards">
+    <view class="summary-card">
+      <text class="summary-number">{{totalCount}}</text>
+      <text class="summary-label">幅画作</text>
     </view>
-    <view class="stats-card">
-      <text class="stats-number">{{streakDays}}</text>
-      <text class="stats-label">连续天数</text>
+    <view class="summary-card">
+      <text class="summary-number">{{streakDays}}</text>
+      <text class="summary-label">连续天数</text>
     </view>
-    <view class="stats-card">
-      <text class="stats-number">{{thisMonthCount}}</text>
-      <text class="stats-label">本月创作</text>
+    <view class="summary-card">
+      <text class="summary-number">{{thisMonthCount}}</text>
+      <text class="summary-label">本月创作</text>
+    </view>
+  </view>
+
+  <!-- 日历 -->
+  <view class="calendar-card">
+    <view class="calendar-header">
+      <view class="calendar-nav">
+        <view class="calendar-arrow" bindtap="prevMonth">◀</view>
+        <view class="calendar-title">{{currentYear}}年{{currentMonth}}月</view>
+        <view class="calendar-arrow" bindtap="nextMonth">▶</view>
+      </view>
+    </view>
+
+    <view class="weekdays">
+      <view wx:for="{{['日','一','二','三','四','五','六']}}" wx:key="*this" class="weekday">
+        {{item}}
+      </view>
+    </view>
+
+    <view class="days-grid">
+      <view
+        wx:for="{{calendarDays}}"
+        wx:key="index"
+        class="day-cell {{item.isCurrentMonth ? '' : 'other-month'}} {{item.isToday ? 'today' : ''}}"
+        bindtap="selectDate"
+        data-date="{{item.date}}"
+      >
+        <text class="day-number">{{item.day}}</text>
+        <view wx:if="{{item.hasDrawing}}" class="day-dot"></view>
+      </view>
     </view>
   </view>
 
   <!-- 时间线 -->
-  <view wx:if="{{timeline.length > 0}}" class="timeline">
-    <view
-      wx:for="{{timeline}}"
-      wx:key="dateKey"
-      class="timeline-group"
-    >
-      <!-- 日期标签 -->
-      <view class="date-label">
-        <view class="date-dot"></view>
-        <text class="date-text">{{item.dateLabel}}</text>
-        <text class="date-count">{{item.drawings.length}}幅</text>
-      </view>
-
-      <!-- 该日期下的画作列表 -->
-      <view class="date-drawings">
-        <view
-          wx:for="{{item.drawings}}"
-          wx:for-item="drawing"
-          wx:key="id"
-          class="drawing-card"
-          bindtap="viewDrawing"
-          data-id="{{drawing.id}}"
-        >
-          <image
-            class="drawing-image"
-            src="{{drawing.imagePath}}"
-            mode="aspectFill"
-            lazy-load
-          />
-          <view class="drawing-info">
-            <text class="drawing-name">{{drawing.name}}</text>
-            <text class="drawing-time">{{drawing.timeFormatted}}</text>
+  <view class="timeline">
+    <!-- 最近7天 -->
+    <view wx:if="{{recentDays.length > 0}}" class="recent-section">
+      <view wx:for="{{recentDays}}" wx:key="dateKey" class="day-group" id="date-{{item.dateKey}}">
+        <view class="day-header">
+          <view class="date-dot {{item.isToday ? 'today-dot' : ''}}"></view>
+          <text class="day-label">{{item.dateLabel}}</text>
+          <text class="count-badge">{{item.count}}幅</text>
+        </view>
+        <view class="drawings-list">
+          <view wx:for="{{item.drawings}}" wx:for-item="drawing" wx:key="id" class="drawing-card">
+            <image
+              src="{{drawing.imagePath}}"
+              mode="aspectFill"
+              class="drawing-image"
+              bindtap="previewDrawing"
+              data-path="{{drawing.imagePath}}"
+              lazy-load
+            />
+            <view class="drawing-info">
+              <view class="drawing-name-row">
+                <text class="drawing-name">{{drawing.name}}</text>
+                <text class="edit-icon" catchtap="editDrawingName" data-id="{{drawing.id}}">✏️</text>
+              </view>
+              <text class="drawing-time">{{drawing.timeFormatted}}</text>
+            </view>
+            <view class="drawing-actions">
+              <view
+                class="action-btn delete-btn"
+                catchtap="deleteDrawing"
+                data-id="{{drawing.id}}"
+              >
+                <text>🗑️</text>
+              </view>
+            </view>
           </view>
-          <view class="drawing-actions">
-            <view
-              class="action-btn delete-btn"
-              catchtap="deleteDrawing"
-              data-id="{{drawing.id}}"
-            >
-              <text>🗑️</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 历史月份 -->
+    <view wx:if="{{historyMonths.length > 0}}" class="history-section">
+      <view wx:for="{{historyMonths}}" wx:key="monthKey" class="month-group">
+        <view class="month-header" bindtap="expandHistoryMonth" data-index="{{index}}">
+          <text class="month-arrow">{{item.expanded ? '▼' : '▶'}}</text>
+          <text class="month-label">{{item.monthLabel}}</text>
+          <text class="count-badge">{{item.count}}幅</text>
+        </view>
+        <view wx:if="{{item.expanded}}" class="month-days">
+          <view wx:for="{{item.days}}" wx:for-item="day" wx:key="dateKey" class="day-group" id="date-{{day.dateKey}}">
+            <view class="day-header">
+              <view class="date-dot"></view>
+              <text class="day-label">{{day.dateLabel}}</text>
+              <text class="count-badge">{{day.count}}幅</text>
+            </view>
+            <view class="drawings-list">
+              <view wx:for="{{day.drawings}}" wx:for-item="drawing" wx:key="id" class="drawing-card">
+                <image
+                  src="{{drawing.imagePath}}"
+                  mode="aspectFill"
+                  class="drawing-image"
+                  bindtap="previewDrawing"
+                  data-path="{{drawing.imagePath}}"
+                  lazy-load
+                />
+                <view class="drawing-info">
+                  <view class="drawing-name-row">
+                    <text class="drawing-name">{{drawing.name}}</text>
+                    <text class="edit-icon" catchtap="editDrawingName" data-id="{{drawing.id}}">✏️</text>
+                  </view>
+                  <text class="drawing-time">{{drawing.timeFormatted}}</text>
+                </view>
+                <view class="drawing-actions">
+                  <view
+                    class="action-btn delete-btn"
+                    catchtap="deleteDrawing"
+                    data-id="{{drawing.id}}"
+                  >
+                    <text>🗑️</text>
+                  </view>
+                </view>
+              </view>
             </view>
           </view>
         </view>
@@ -65,13 +137,19 @@
   </view>
 
   <!-- 空状态 -->
-  <view wx:else class="empty-state">
+  <view wx:if="{{totalCount === 0}}" class="empty-state">
     <view class="empty-icon-wrapper">
       <text class="empty-icon">🎨</text>
     </view>
-    <text class="empty-text">钰婷还没有画作哦~</text>
+    <text class="empty-text">{{childName}}还没有画作哦~</text>
     <text class="empty-tip">每一幅画都是成长的足迹</text>
     <view class="empty-btn" bindtap="goDraw">开始第一幅画</view>
+  </view>
+
+  <!-- 底部快捷栏 -->
+  <view wx:if="{{showBackToToday}}" class="bottom-bar">
+    <view class="bar-btn" bindtap="backToToday">⬆ 回到今天</view>
+    <view class="bar-btn primary" bindtap="goDraw">🎨 去画画</view>
   </view>
 
   <!-- 底部安全区 -->

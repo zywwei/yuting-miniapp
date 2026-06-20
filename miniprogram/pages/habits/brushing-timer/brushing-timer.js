@@ -5,7 +5,7 @@ const cloud = require('../../../utils/cloud.js')
 const achievements = require('../../../utils/achievements.js')
 const { getNavBarInfo } = require('../../../utils/page-helpers.js')
 const {
-  BRUSH_AREAS, BRUSHING_TIPS, THEMES, REWARD_TEXTS, COMPLETED_TEXTS,
+  BRUSH_AREAS, BRUSHING_TIPS, THEMES, REWARD_TEXTS, getCompletedTexts,
   CHEER_LEFT, CHEER_RIGHT, RING_MODES, BUBBLE_LIST, PRE_GERM_TYPES,
   STICKERS, GIRL_BUBBLES, ZONE_GERM_TYPES, CHAPTERS, BATTLE_CONFIG,
   PRINCESS_CHEER, getOrSelectTodayChapter
@@ -1319,9 +1319,11 @@ Page({
       storyText = `打败了${currentEnemy.name}！`
     }
 
+    const childName = auth.getChildNickname()
+    const completedTexts = getCompletedTexts(childName)
     const completedText = specialTitle
       ? specialTitle + dirtyBonus + (storyText ? `，${storyText}` : '')
-      : COMPLETED_TEXTS[Math.floor(Math.random() * COMPLETED_TEXTS.length)] + dirtyBonus + (storyText ? `，${storyText}` : '')
+      : completedTexts[Math.floor(Math.random() * completedTexts.length)] + dirtyBonus + (storyText ? `，${storyText}` : '')
 
     // 标记为未保存状态（等用户贴完贴纸后再保存）
     this._recordSaved = false
@@ -1558,10 +1560,11 @@ Page({
   onShareAppMessage() {
     const score = this.data.completedAreas.length >= 6 ? 5 : this.data.completedAreas.length >= 4 ? 4 : 3
     const { currentEnemy, isEnemyDefeated } = this.data
+    const childName = auth.getChildNickname()
 
-    let title = `钰婷今天${this.data.timeOfDay === 'morning' ? '早上' : '晚上'}刷牙得了${score}颗星！⭐`
+    let title = childName + '今天' + (this.data.timeOfDay === 'morning' ? '早上' : '晚上') + '刷牙得了' + score + '颗星！⭐'
     if (isEnemyDefeated && currentEnemy) {
-      title = `钰婷打败了${currentEnemy.name}，刷牙得了${score}颗星！🏆`
+      title = childName + '打败了' + currentEnemy.name + '，刷牙得了' + score + '颗星！🏆'
     }
 
     return {

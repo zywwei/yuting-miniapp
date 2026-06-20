@@ -80,8 +80,26 @@ async function addRecord(member, collection, data) {
 
 async function updateRecord(member, collection, id, updates) {
   try {
-    const doc = await db.collection(collection).doc(id).get()
-    const record = doc.data
+    let record = null
+    let docId = null
+
+    // 先尝试用 doc(id) 查找（如果 id 是 _id）
+    try {
+      const doc = await db.collection(collection).doc(id).get()
+      record = doc.data
+      docId = id
+    } catch (e) {
+      // 如果找不到，用 where({ id }) 查找客户端生成的 id 字段
+      const res = await db.collection(collection).where({ id }).get()
+      if (res.data && res.data.length > 0) {
+        record = res.data[0]
+        docId = record._id
+      }
+    }
+
+    if (!record) {
+      return { code: -3, msg: '记录不存在' }
+    }
 
     if (!canEdit(member, record)) {
       return { code: -2, msg: '无权限修改' }
@@ -92,7 +110,7 @@ async function updateRecord(member, collection, id, updates) {
     delete updates.createdBy
     delete updates.createTime
 
-    await db.collection(collection).doc(id).update({ data: updates })
+    await db.collection(collection).doc(docId).update({ data: updates })
     return { code: 0 }
   } catch (err) {
     return { code: -3, msg: '记录不存在' }
@@ -101,14 +119,32 @@ async function updateRecord(member, collection, id, updates) {
 
 async function removeRecord(member, collection, id) {
   try {
-    const doc = await db.collection(collection).doc(id).get()
-    const record = doc.data
+    let record = null
+    let docId = null
+
+    // 先尝试用 doc(id) 查找（如果 id 是 _id）
+    try {
+      const doc = await db.collection(collection).doc(id).get()
+      record = doc.data
+      docId = id
+    } catch (e) {
+      // 如果找不到，用 where({ id }) 查找客户端生成的 id 字段
+      const res = await db.collection(collection).where({ id }).get()
+      if (res.data && res.data.length > 0) {
+        record = res.data[0]
+        docId = record._id
+      }
+    }
+
+    if (!record) {
+      return { code: -3, msg: '记录不存在' }
+    }
 
     if (!canDelete(member, record)) {
       return { code: -2, msg: '无权限删除' }
     }
 
-    await db.collection(collection).doc(id).remove()
+    await db.collection(collection).doc(docId).remove()
     return { code: 0 }
   } catch (err) {
     return { code: -3, msg: '记录不存在' }
@@ -147,8 +183,23 @@ async function listRecords(member, collection, childId, page, pageSize) {
 
 async function getRecord(member, collection, id) {
   try {
-    const doc = await db.collection(collection).doc(id).get()
-    const record = doc.data
+    let record = null
+
+    // 先尝试用 doc(id) 查找（如果 id 是 _id）
+    try {
+      const doc = await db.collection(collection).doc(id).get()
+      record = doc.data
+    } catch (e) {
+      // 如果找不到，用 where({ id }) 查找客户端生成的 id 字段
+      const res = await db.collection(collection).where({ id }).get()
+      if (res.data && res.data.length > 0) {
+        record = res.data[0]
+      }
+    }
+
+    if (!record) {
+      return { code: -3, msg: '记录不存在' }
+    }
 
     if (record.familyId !== member.familyId) {
       return { code: -2, msg: '无权访问' }

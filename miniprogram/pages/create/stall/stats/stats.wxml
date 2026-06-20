@@ -125,6 +125,53 @@
     </view>
   </view>
 
+  <!-- 折扣统计 -->
+  <view class="section" wx:if="{{stats.discountOrderCount > 0}}">
+    <view class="section-title">💰 折扣统计</view>
+    <view class="discount-stats">
+      <view class="discount-stat-item">
+        <text class="discount-stat-value">¥{{stats.totalDiscountAmount}}</text>
+        <text class="discount-stat-label">累计折扣</text>
+      </view>
+      <view class="discount-stat-item">
+        <text class="discount-stat-value">{{stats.discountOrderCount}}</text>
+        <text class="discount-stat-label">折扣订单</text>
+      </view>
+      <view class="discount-stat-item">
+        <text class="discount-stat-value">¥{{stats.avgDiscountAmount}}</text>
+        <text class="discount-stat-label">平均节省</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 营业时间统计 -->
+  <view class="section">
+    <view class="section-title">⏱️ 营业时间</view>
+    <view class="hours-cards">
+      <view class="hours-card">
+        <text class="hours-value">{{businessHours.totalDuration}}</text>
+        <text class="hours-unit">分钟</text>
+        <text class="hours-label">今日营业时长</text>
+      </view>
+      <view class="hours-card">
+        <text class="hours-value">{{businessHours.openCount}}</text>
+        <text class="hours-unit">次</text>
+        <text class="hours-label">今日开店次数</text>
+      </view>
+    </view>
+    <view class="hours-trend" wx:if="{{weekBusinessHours.length > 0}}">
+      <view class="trend-title">本周营业时长</view>
+      <view class="trend-bars">
+        <view class="trend-item" wx:for="{{weekBusinessHours}}" wx:key="date">
+          <view class="trend-bar-bg">
+            <view class="trend-bar" style="height: {{item.duration > 0 ? (item.duration / 120 * 100) : 0}}%;"></view>
+          </view>
+          <text class="trend-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <!-- 今日概况 -->
   <view class="section">
     <view class="section-title">📅 今日概况</view>

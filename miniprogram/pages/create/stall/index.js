@@ -7,11 +7,16 @@ Page({
     todayRevenue: 0,
     todayOrders: 0,
     goalPercent: 0,
-    lowStockProducts: []
+    lowStockProducts: [],
+    todayChallenges: [],
+    todayBusinessHours: null,
+    currentDuration: 0,
+    showSettings: false,
+    tempGoal: 50,
+    tempDiscount: 10
   },
 
   onLoad: function() {
-    // 从云端同步数据
     stallManager.syncFromCloud()
     this.loadData()
     this.setThemeColor()
@@ -42,7 +47,31 @@ Page({
     var todayRevenue = todaySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
     var goalPercent = settings.dailyGoal > 0 ? Math.min(100, Math.round(todayRevenue / settings.dailyGoal * 100)) : 0
 
-    var lowStockProducts = products.filter(function(p) { return p.quantity <= 3 })
+    var lowStockProducts = stallManager.getLowStockProducts()
+
+    // 加载挑战数据
+    var todayChallenges = stallManager.getTodayChallenges()
+    var allChallenges = stallManager.DAILY_CHALLENGES.map(function(c) {
+      return {
+        id: c.id,
+        title: c.title,
+        desc: c.desc,
+        icon: c.icon,
+        reward: c.reward,
+        completed: todayChallenges.completed.indexOf(c.id) >= 0,
+        claimed: todayChallenges.claimed.indexOf(c.id) >= 0
+      }
+    })
+
+    // 营业时间
+    var todayBusinessHours = stallManager.getTodayBusinessHours()
+    var currentDuration = 0
+    if (settings.isOpen && todayBusinessHours.sessions.length > 0) {
+      var lastSession = todayBusinessHours.sessions[todayBusinessHours.sessions.length - 1]
+      if (lastSession && !lastSession.closeTime) {
+        currentDuration = Math.round((new Date() - new Date(lastSession.openTime)) / 60000)
+      }
+    }
 
     this.setData({
       settings: settings,
@@ -50,23 +79,58 @@ Page({
       todayRevenue: todayRevenue,
       todayOrders: todaySales.length,
       goalPercent: goalPercent,
-      lowStockProducts: lowStockProducts
+      lowStockProducts: lowStockProducts,
+      todayChallenges: allChallenges,
+      todayBusinessHours: todayBusinessHours,
+      tempGoal: settings.dailyGoal || 50,
+      tempDiscount: settings.defaultDiscount || 10,
+      currentDuration: currentDuration
     })
   },
 
   toggleStall: function() {
+    var that = this
     var settings = this.data.settings
     if (settings.isOpen) {
-      stallManager.closeStall()
-      wx.showToast({ title: '已打烊', icon: 'success' })
+      var todayHours = stallManager.getTodayBusinessHours()
+      var durationText = this.data.currentDuration > 0 ? '本次营业 ' + this.data.currentDuration + ' 分钟' : ''
+      
+      wx.showModal({
+        title: '确认打烊',
+        content: durationText + '\n今日已营业 ' + todayHours.openCount + ' 次',
+        success: function(res) {
+          if (res.confirm) {
+            stallManager.closeStall()
+            wx.showToast({ title: '已打烊', icon: 'success' })
+            that.loadData()
+          }
+        }
+      })
     } else {
       stallManager.openStall()
       wx.showToast({ title: '开始营业', icon: 'success' })
+      this.loadData()
     }
-    this.loadData()
+  },
+
+  claimChallenge: function(e) {
+    var challengeId = e.currentTarget.dataset.id
+    var result = stallManager.claimChallenge(challengeId)
+    if (result) {
+      wx.showToast({ title: '领取成功！+积分', icon: 'success' })
+      this.loadData()
+    }
   },
 
   goSale: function() {
+    if (!this.data.settings.isOpen) {
+      wx.showModal({
+        title: '尚未营业',
+        content: '请先开始营业后再开单',
+        showCancel: false
+      })
+      return
+    }
     wx.navigateTo({ url: '/pages/create/stall/sale/sale' })
   },
 
@@ -90,28 +154,47 @@ Page({
     wx.navigateTo({ url: '/pages/create/stall/change-calc/change-calc' })
   },
 
-  editDailyGoal: function() {
-    var that = this
-    var currentGoal = this.data.settings.dailyGoal || 50
-    wx.showModal({
-      title: '设置今日目标',
-      editable: true,
-      placeholderText: '输入目标金额（元）',
-      content: String(currentGoal),
-      success: function(res) {
-        if (res.confirm && res.content) {
-          var goal = parseInt(res.content)
-          if (isNaN(goal) || goal < 0) {
-            wx.showToast({ title: '请输入有效金额', icon: 'none' })
-            return
-          }
-          var settings = stallManager.getSettings()
-          settings.dailyGoal = goal
-          stallManager.saveSettings(settings)
-          that.loadData()
-          wx.showToast({ title: '目标已更新', icon: 'success' })
-        }
-      }
-    })
+  openSettings: function() {
+    this.setData({ showSettings: true })
+  },
+
+  closeSettings: function() {
+    this.setData({ showSettings: false })
+  },
+
+  onGoalInput: function(e) {
+    this.setData({ tempGoal: e.detail.value })
+  },
+
+  setDiscountQuick: function(e) {
+    var discount = parseInt(e.currentTarget.dataset.discount)
+    this.setData({ tempDiscount: discount })
+  },
+
+  onDiscountInput: function(e) {
+    this.setData({ tempDiscount: parseFloat(e.detail.value) || 10 })
+  },
+
+  saveSettings: function() {
+    var goal = parseInt(this.data.tempGoal)
+    var discount = parseFloat(this.data.tempDiscount)
+    
+    if (isNaN(goal) || goal < 0) {
+      wx.showToast({ title: '请输入有效目标金额', icon: 'none' })
+      return
+    }
+    if (isNaN(discount) || discount < 0 || discount > 10) {
+      wx.showToast({ title: '请输入0-10的折扣', icon: 'none' })
+      return
+    }
+
+    var settings = stallManager.getSettings()
+    settings.dailyGoal = goal
+    settings.defaultDiscount = discount
+    stallManager.saveSettings(settings)
+    
+    this.setData({ showSettings: false })
+    this.loadData()
+    wx.showToast({ title: '设置已保存', icon: 'success' })
   }
 })

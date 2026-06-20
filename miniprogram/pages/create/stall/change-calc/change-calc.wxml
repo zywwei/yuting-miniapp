@@ -1,19 +1,41 @@
 <view class="container">
   <view class="display">
     <view class="display-row">
-      <text class="display-label">总价</text>
-      <input class="display-input" type="digit" placeholder="0.00" value="{{total}}" bindinput="onTotalInput" />
+      <text class="display-label">原价</text>
+      <input class="display-input" type="digit" placeholder="0.00" value="{{originalTotal}}" bindinput="onTotalInput" />
     </view>
+    
+    <!-- 折扣区域 -->
+    <view class="discount-section">
+      <text class="discount-label">折扣</text>
+      <view class="discount-btns">
+        <view class="discount-btn {{discount === 9 ? 'active' : ''}}" bindtap="setDiscount" data-discount="9">9折</view>
+        <view class="discount-btn {{discount === 8 ? 'active' : ''}}" bindtap="setDiscount" data-discount="8">8折</view>
+        <view class="discount-btn {{discount === 7 ? 'active' : ''}}" bindtap="setDiscount" data-discount="7">7折</view>
+        <view class="discount-btn {{discount === 6 ? 'active' : ''}}" bindtap="setDiscount" data-discount="6">6折</view>
+        <view class="discount-btn {{discount === 5 ? 'active' : ''}}" bindtap="setDiscount" data-discount="5">5折</view>
+      </view>
+      <view class="discount-custom">
+        <input class="discount-input" type="digit" placeholder="自定义" value="{{customDiscount}}" bindinput="onDiscountInput" />
+        <text class="discount-unit">折</text>
+      </view>
+    </view>
+    
+    <view class="discount-info" wx:if="{{discount < 10 && originalTotal > 0}}">
+      <text class="discount-save">省 ¥{{discountAmount}}</text>
+      <text class="discount-result">折后 ¥{{total}}</text>
+    </view>
+    
     <view class="display-row">
       <text class="display-label">付款</text>
       <input class="display-input" type="digit" placeholder="0.00" value="{{received}}" bindinput="onReceivedInput" />
     </view>
-    <view class="change-row" wx:if="{{total > 0 && received > 0}}">
-      <text class="change-label">找零</text>
-      <text class="change-value {{change < 0 ? 'negative' : ''}}">¥{{change}}</text>
+    <view class="change-row {{change < 0 ? 'negative' : ''}}" wx:if="{{total > 0 && received > 0}}">
+      <text class="change-label">{{change < 0 ? '⚠️ 还需付' : '找零'}}</text>
+      <text class="change-value {{change < 0 ? 'negative' : ''}}">¥{{change < 0 ? shortage : change}}</text>
     </view>
     <view class="change-hint" wx:if="{{change < 0}}">
-      <text>⚠️ 付款不足，还差 ¥{{Math.abs(change)}}</text>
+      <text>⚠️ 付款不足，还差 ¥{{shortage}}</text>
     </view>
   </view>
 

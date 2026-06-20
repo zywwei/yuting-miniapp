@@ -1,9 +1,11 @@
 const util = require('../../../utils/util.js')
 const cloud = require('../../../utils/cloud.js')
+const auth = require('../../../utils/auth.js')
 const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 
 Page({
   data: {
+    childName: '宝宝',
     statusBarHeight: 20,
     capsuleRight: 80,
     currentYear: 2026,
@@ -41,6 +43,7 @@ Page({
     const navInfo = getNavBarInfo()
     const now = new Date()
     this.setData({
+      childName: auth.getChildNickname(),
       statusBarHeight: navInfo.statusBarHeight,
       capsuleRight: navInfo.capsuleRight,
       currentYear: now.getFullYear(),

@@ -4,6 +4,8 @@ var cloud = require('./cloud.js')
 var PRODUCTS_KEY = 'stallProducts'
 var SALES_KEY = 'stallSales'
 var SETTINGS_KEY = 'stallSettings'
+var CHALLENGES_KEY = 'stallDailyChallenges'
+var BUSINESS_HOURS_KEY = 'stallBusinessHours'
 
 var LEVELS = [
   { level: 1, name: '路边摊', requirement: 0, icon: '🏕️' },
@@ -14,6 +16,18 @@ var LEVELS = [
 ]
 
 var CATEGORIES = ['手工', '玩具', '文具', '食物', '饮料', '饰品', '其他']
+
+// 每日挑战定义
+var DAILY_CHALLENGES = [
+  { id: 'first_sale', title: '开张大吉', desc: '完成今日第一笔销售', icon: '🎉', reward: 5 },
+  { id: 'sales_3', title: '小有斩获', desc: '今日完成3笔销售', icon: '📈', reward: 10 },
+  { id: 'sales_5', title: '销售达人', desc: '今日完成5笔销售', icon: '🏆', reward: 20 },
+  { id: 'revenue_50', title: '日入斗金', desc: '今日销售额达到50元', icon: '💰', reward: 15 },
+  { id: 'revenue_100', title: '财源广进', desc: '今日销售额达到100元', icon: '💎', reward: 30 },
+  { id: 'new_product', title: '推陈出新', desc: '今日添加1个新商品', icon: '📦', reward: 5 },
+  { id: 'streak_3', title: '坚持不懈', desc: '连续营业3天', icon: '🔥', reward: 10 },
+  { id: 'full_day', title: '全天营业', desc: '今日营业时长超过2小时', icon: '⏰', reward: 15 }
+]
 
 function generateId(prefix) {
   return prefix + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)
@@ -49,6 +63,16 @@ function syncFromCloud() {
   cloud.fetchStallSettings().then(function(settings) {
     if (settings) {
       childStorage.set(SETTINGS_KEY, settings)
+    }
+  })
+  cloud.fetchStallChallenges().then(function(challenges) {
+    if (challenges) {
+      childStorage.set(CHALLENGES_KEY, challenges)
+    }
+  })
+  cloud.fetchStallBusinessHours().then(function(hours) {
+    if (hours) {
+      childStorage.set(BUSINESS_HOURS_KEY, hours)
     }
   })
 }
@@ -87,6 +111,9 @@ function removeProduct(id) {
   var products = getProducts()
   products = products.filter(function(p) { return p.id !== id })
   saveProducts(products)
+  
+  // 使用墓碑机制删除云端记录
+  cloud.removeStallProduct(id)
 }
 
 function getProduct(id) {
@@ -117,25 +144,50 @@ function addSale(sale) {
   sale.time = getNowTime()
   sale.createdAt = new Date().toISOString()
 
-  // Calculate totals and update stock
+  // 保留前端传入的折扣信息（向后兼容）
+  sale.originalTotal = sale.originalTotal || sale.total
+  sale.discount = sale.discount || 10
+  sale.discountAmount = sale.discountAmount || 0
+
+  // 重新计算小计（使用原价单价）
   sale.total = 0
   for (var i = 0; i < sale.items.length; i++) {
     var item = sale.items[i]
     item.subtotal = item.quantity * item.unitPrice
     sale.total += item.subtotal
-
-    // Update product stock
+    
+    // 保存成本价快照（向后兼容）
     for (var j = 0; j < products.length; j++) {
       if (products[j].id === item.productId) {
-        products[j].quantity -= item.quantity
-        products[j].totalSold += item.quantity
-        products[j].totalRevenue += item.subtotal
+        item.costPrice = item.costPrice || products[j].costPrice || 0
         break
       }
     }
   }
+  
+  // 如果有折扣，使用折后价
+  if (sale.discount < 10) {
+    sale.total = Math.round(sale.originalTotal * sale.discount / 10 * 100) / 100
+    sale.discountAmount = Math.round((sale.originalTotal - sale.total) * 100) / 100
+  }
 
   sale.change = (sale.paymentReceived || 0) - sale.total
+
+  // 更新库存（使用折后收入）
+  for (var i = 0; i < sale.items.length; i++) {
+    var item = sale.items[i]
+    for (var j = 0; j < products.length; j++) {
+      if (products[j].id === item.productId) {
+        products[j].quantity -= item.quantity
+        products[j].totalSold += item.quantity
+        // totalRevenue 记录实际收入（折后价）
+        products[j].totalRevenue += sale.discount < 10 
+          ? Math.round(item.subtotal * sale.discount / 10 * 100) / 100
+          : item.subtotal
+        break
+      }
+    }
+  }
 
   saveProducts(products)
   sales.push(sale)
@@ -161,14 +213,19 @@ function deleteSale(id) {
 
   if (!sale) return false
 
-  // Restore stock
+  // Restore stock（使用与addSale相同的折扣计算逻辑）
+  var discount = sale.discount || 10
   for (var i = 0; i < sale.items.length; i++) {
     var item = sale.items[i]
     for (var j = 0; j < products.length; j++) {
       if (products[j].id === item.productId) {
         products[j].quantity += item.quantity
         products[j].totalSold = Math.max(0, products[j].totalSold - item.quantity)
-        products[j].totalRevenue = Math.max(0, products[j].totalRevenue - item.subtotal)
+        // 回退收入时使用与添加时相同的折扣计算
+        var revenueToRemove = discount < 10 
+          ? Math.round(item.subtotal * discount / 10 * 100) / 100
+          : item.subtotal
+        products[j].totalRevenue = Math.max(0, products[j].totalRevenue - revenueToRemove)
         break
       }
     }
@@ -178,13 +235,174 @@ function deleteSale(id) {
 
   sales = sales.filter(function(s) { return s.id !== id })
   saveSales(sales)
+  
+  // 使用墓碑机制删除云端记录
+  cloud.removeStallSale(id)
 
   return true
 }
 
+// ===== 每日挑战系统 =====
+function getTodayChallenges() {
+  var today = getTodayStr()
+  var challenges = childStorage.get(CHALLENGES_KEY) || {}
+  if (!challenges[today]) {
+    challenges[today] = { date: today, completed: [], claimed: [], points: 0 }
+  }
+  return challenges[today]
+}
+
+function checkChallenges() {
+  var today = getTodayStr()
+  var challenges = getTodayChallenges()
+  var settings = getSettings()
+  var sales = getSales().filter(function(s) { return s.date === today })
+  var todayRevenue = sales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+  var products = getProducts()
+  var newCompleted = []
+
+  DAILY_CHALLENGES.forEach(function(challenge) {
+    if (challenges.completed.indexOf(challenge.id) >= 0) return
+
+    var completed = false
+    switch (challenge.id) {
+      case 'first_sale':
+        completed = sales.length >= 1
+        break
+      case 'sales_3':
+        completed = sales.length >= 3
+        break
+      case 'sales_5':
+        completed = sales.length >= 5
+        break
+      case 'revenue_50':
+        completed = todayRevenue >= 50
+        break
+      case 'revenue_100':
+        completed = todayRevenue >= 100
+        break
+      case 'new_product':
+        var todayProducts = products.filter(function(p) {
+          return p.createdAt && p.createdAt.indexOf(today) >= 0
+        })
+        completed = todayProducts.length >= 1
+        break
+      case 'streak_3':
+        completed = settings.streakDays >= 3
+        break
+      case 'full_day':
+        var todayHours = getTodayBusinessHours()
+        completed = todayHours.totalDuration >= 120
+        break
+    }
+
+    if (completed) {
+      challenges.completed.push(challenge.id)
+      newCompleted.push(challenge)
+    }
+  })
+
+  var allChallenges = childStorage.get(CHALLENGES_KEY) || {}
+  allChallenges[today] = challenges
+  childStorage.set(CHALLENGES_KEY, allChallenges)
+
+  return newCompleted
+}
+
+function claimChallenge(challengeId) {
+  var today = getTodayStr()
+  var challenges = getTodayChallenges()
+  var challenge = DAILY_CHALLENGES.find(function(c) { return c.id === challengeId })
+
+  if (!challenge) return false
+  if (challenges.completed.indexOf(challengeId) < 0) return false
+  if (challenges.claimed.indexOf(challengeId) >= 0) return false
+
+  challenges.claimed.push(challengeId)
+  challenges.points += challenge.reward
+
+  var settings = getSettings()
+  settings.points = (settings.points || 0) + challenge.reward
+  settings.totalPoints = (settings.totalPoints || 0) + challenge.reward
+  saveSettings(settings)
+
+  var allChallenges = childStorage.get(CHALLENGES_KEY) || {}
+  allChallenges[today] = challenges
+  childStorage.set(CHALLENGES_KEY, allChallenges)
+
+  return true
+}
+
+// ===== 营业时间追踪 =====
+function getTodayBusinessHours() {
+  var today = getTodayStr()
+  var hours = childStorage.get(BUSINESS_HOURS_KEY) || {}
+  if (!hours[today]) {
+    hours[today] = { date: today, sessions: [], totalDuration: 0, openCount: 0, closeCount: 0 }
+  }
+  return hours[today]
+}
+
+function getBusinessHoursByDate(dateStr) {
+  var hours = childStorage.get(BUSINESS_HOURS_KEY) || {}
+  return hours[dateStr] || { date: dateStr, sessions: [], totalDuration: 0, openCount: 0, closeCount: 0 }
+}
+
+function recordOpenTime() {
+  var today = getTodayStr()
+  var hours = childStorage.get(BUSINESS_HOURS_KEY) || {}
+  if (!hours[today]) {
+    hours[today] = { date: today, sessions: [], totalDuration: 0, openCount: 0, closeCount: 0 }
+  }
+  hours[today].sessions.push({ openTime: new Date().toISOString(), closeTime: null })
+  hours[today].openCount++
+  childStorage.set(BUSINESS_HOURS_KEY, hours)
+}
+
+function recordCloseTime() {
+  var today = getTodayStr()
+  var hours = childStorage.get(BUSINESS_HOURS_KEY) || {}
+  if (!hours[today]) return
+
+  var lastSession = hours[today].sessions[hours[today].sessions.length - 1]
+  if (lastSession && !lastSession.closeTime) {
+    lastSession.closeTime = new Date().toISOString()
+    var duration = Math.round((new Date(lastSession.closeTime) - new Date(lastSession.openTime)) / 60000)
+    lastSession.duration = duration
+    hours[today].totalDuration += duration
+    hours[today].closeCount++
+    childStorage.set(BUSINESS_HOURS_KEY, hours)
+  }
+}
+
+// ===== 积分系统 =====
+function addPoints(points) {
+  var settings = getSettings()
+  settings.points = (settings.points || 0) + points
+  settings.totalPoints = (settings.totalPoints || 0) + points
+  saveSettings(settings)
+}
+
+// ===== 低库存检查 =====
+function getLowStockProducts(threshold) {
+  threshold = threshold || 3
+  return getProducts().filter(function(p) { return p.quantity <= threshold })
+}
+
+// ===== 默认折扣设置 =====
+function setDefaultDiscount(discount) {
+  var settings = getSettings()
+  settings.defaultDiscount = discount
+  saveSettings(settings)
+}
+
+function getDefaultDiscount() {
+  return getSettings().defaultDiscount || 10
+}
+
 // Settings
 function getSettings() {
-  return childStorage.get(SETTINGS_KEY) || {
+  var settings = childStorage.get(SETTINGS_KEY) || {
     stallName: '我的小铺',
     ownerName: '',
     theme: 'pink',
@@ -196,6 +414,15 @@ function getSettings() {
     decorations: [],
     isOpen: false
   }
+  
+  // 向后兼容
+  if (settings.points === undefined) settings.points = 0
+  if (settings.totalPoints === undefined) settings.totalPoints = 0
+  if (settings.weeklyGoal === undefined) settings.weeklyGoal = 300
+  if (settings.monthlyGoal === undefined) settings.monthlyGoal = 1000
+  if (settings.defaultDiscount === undefined) settings.defaultDiscount = 10
+  
+  return settings
 }
 
 function saveSettings(settings) {
@@ -225,6 +452,10 @@ function openStall() {
   settings.isOpen = true
   settings.lastOpenDate = today
   saveSettings(settings)
+  
+  // 记录营业时间
+  recordOpenTime()
+  
   return settings
 }
 
@@ -232,6 +463,10 @@ function closeStall() {
   var settings = getSettings()
   settings.isOpen = false
   saveSettings(settings)
+  
+  // 记录关店时间
+  recordCloseTime()
+  
   return settings
 }
 
@@ -244,9 +479,16 @@ function getStats() {
   var totalRevenue = 0
   var totalProfit = 0
   var totalOrders = sales.length
+  var totalDiscountAmount = 0
+  var discountOrderCount = 0
 
   for (var i = 0; i < sales.length; i++) {
     totalRevenue += sales[i].total || 0
+    // 折扣统计
+    if (sales[i].discount && sales[i].discount < 10) {
+      totalDiscountAmount += sales[i].discountAmount || 0
+      discountOrderCount++
+    }
   }
 
   // Calculate profit
@@ -255,17 +497,22 @@ function getStats() {
     totalProfit += (p.totalRevenue || 0) - ((p.costPrice || 0) * (p.totalSold || 0))
   }
 
-  // Top products
+  // Top products（使用折后价）
   var productSales = {}
   for (var i = 0; i < sales.length; i++) {
     var sale = sales[i]
+    var discount = sale.discount || 10
     for (var j = 0; j < sale.items.length; j++) {
       var item = sale.items[j]
       if (!productSales[item.productId]) {
         productSales[item.productId] = { name: item.productName, quantity: 0, revenue: 0 }
       }
       productSales[item.productId].quantity += item.quantity
-      productSales[item.productId].revenue += item.subtotal
+      // 使用折后价计算商品收入
+      var itemRevenue = discount < 10 
+        ? Math.round(item.subtotal * discount / 10 * 100) / 100
+        : item.subtotal
+      productSales[item.productId].revenue += itemRevenue
     }
   }
 
@@ -286,7 +533,10 @@ function getStats() {
     todayRevenue: todayRevenue,
     todayOrders: todaySales.length,
     streakDays: settings.streakDays,
-    level: settings.level
+    level: settings.level,
+    totalDiscountAmount: Math.round(totalDiscountAmount * 100) / 100,
+    discountOrderCount: discountOrderCount,
+    avgDiscountAmount: discountOrderCount > 0 ? Math.round(totalDiscountAmount / discountOrderCount * 100) / 100 : 0
   }
 }
 
@@ -361,5 +611,17 @@ module.exports = {
   calculateChange: calculateChange,
   getCategories: getCategories,
   getTodayStr: getTodayStr,
-  syncFromCloud: syncFromCloud
+  syncFromCloud: syncFromCloud,
+  DAILY_CHALLENGES: DAILY_CHALLENGES,
+  getTodayChallenges: getTodayChallenges,
+  checkChallenges: checkChallenges,
+  claimChallenge: claimChallenge,
+  getTodayBusinessHours: getTodayBusinessHours,
+  getBusinessHoursByDate: getBusinessHoursByDate,
+  recordOpenTime: recordOpenTime,
+  recordCloseTime: recordCloseTime,
+  addPoints: addPoints,
+  getLowStockProducts: getLowStockProducts,
+  setDefaultDiscount: setDefaultDiscount,
+  getDefaultDiscount: getDefaultDiscount
 }

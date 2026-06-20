@@ -5,6 +5,7 @@ var auth = require('../../utils/auth.js')
 
 Page({
   data: {
+    childName: '宝宝',
     stats: {
       growthDays: 0,
       brushingStreak: 0,
@@ -27,6 +28,7 @@ Page({
   },
 
   onLoad: function() {
+    this.setData({ childName: auth.getChildNickname() })
     this.loadData()
   },
 

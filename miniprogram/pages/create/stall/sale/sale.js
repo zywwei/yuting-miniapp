@@ -4,13 +4,39 @@ var achievements = require('../../../../utils/achievements.js')
 Page({
   data: {
     products: [],
+    allProducts: [],
     cart: [],
+    originalTotal: 0,
     total: 0,
+    discount: 10,
+    customDiscount: '',
+    discountAmount: 0,
     paymentReceived: '',
-    change: 0
+    change: 0,
+    shortage: 0,
+    lastSaleItems: [],
+    searchKeyword: ''
   },
 
   onLoad: function() {
+    var settings = stallManager.getSettings()
+    if (!settings.isOpen) {
+      wx.showModal({
+        title: '尚未营业',
+        content: '请先开始营业后再开单',
+        showCancel: false,
+        success: function() {
+          wx.navigateBack()
+        }
+      })
+      return
+    }
+    // 加载默认折扣
+    var defaultDiscount = stallManager.getDefaultDiscount()
+    this.setData({
+      discount: defaultDiscount,
+      customDiscount: defaultDiscount < 10 ? String(defaultDiscount) : ''
+    })
     this.loadProducts()
     this.setThemeColor()
   },
@@ -21,7 +47,47 @@ Page({
 
   loadProducts: function() {
     var products = stallManager.getProducts().filter(function(p) { return p.quantity > 0 })
-    this.setData({ products: products })
+    
+    // 标记热销商品（最近7天销量前3）
+    var sales = stallManager.getSales()
+    var recentSales = sales.filter(function(s) {
+      var d = new Date()
+      d.setDate(d.getDate() - 7)
+      return new Date(s.createdAt) >= d
+    })
+    
+    var productSales = {}
+    recentSales.forEach(function(sale) {
+      sale.items.forEach(function(item) {
+        productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity
+      })
+    })
+    
+    var sortedIds = Object.keys(productSales).sort(function(a, b) {
+      return productSales[b] - productSales[a]
+    }).slice(0, 3)
+    
+    products.forEach(function(p) {
+      p.isHot = sortedIds.indexOf(p.id) >= 0
+    })
+    
+    this.setData({ 
+      products: products,
+      allProducts: products
+    })
+  },
+
+  onSearchInput: function(e) {
+    var keyword = e.detail.value.toLowerCase()
+    var allProducts = this.data.allProducts || []
+    var filtered = keyword ? allProducts.filter(function(p) {
+      return p.name.toLowerCase().indexOf(keyword) >= 0
+    }) : allProducts
+    
+    this.setData({ 
+      products: filtered,
+      searchKeyword: keyword
+    })
   },
 
   selectProduct: function(e) {
@@ -29,7 +95,6 @@ Page({
     var products = this.data.products
     var cart = this.data.cart
 
-    // Check if already in cart
     var existing = null
     for (var i = 0; i < cart.length; i++) {
       if (cart[i].productId === id) {
@@ -39,10 +104,8 @@ Page({
     }
 
     if (existing) {
-      // Already in cart, remove
       cart = cart.filter(function(item) { return item.productId !== id })
     } else {
-      // Add to cart
       var product = null
       for (var i = 0; i < products.length; i++) {
         if (products[i].id === id) {
@@ -56,8 +119,8 @@ Page({
           productName: product.name,
           quantity: 1,
           unitPrice: product.salePrice,
-          subtotal: product.salePrice,
-          maxQty: product.quantity
+          costPrice: product.costPrice || 0,
+          subtotal: product.salePrice
         })
       }
     }
@@ -67,38 +130,72 @@ Page({
     this.updateSelection()
   },
 
-  minusQty: function(e) {
-    var index = e.currentTarget.dataset.index
+  updateQuantity: function(e) {
+    var id = e.currentTarget.dataset.id
+    var action = e.currentTarget.dataset.action
     var cart = this.data.cart
-    if (cart[index].quantity > 1) {
-      cart[index].quantity--
-      cart[index].subtotal = cart[index].quantity * cart[index].unitPrice
-      this.setData({ cart: cart })
-      this.calcTotal()
-    }
-  },
 
-  plusQty: function(e) {
-    var index = e.currentTarget.dataset.index
-    var cart = this.data.cart
-    if (cart[index].quantity < cart[index].maxQty) {
-      cart[index].quantity++
-      cart[index].subtotal = cart[index].quantity * cart[index].unitPrice
-      this.setData({ cart: cart })
-      this.calcTotal()
-    } else {
-      wx.showToast({ title: '库存不足', icon: 'none' })
+    for (var i = 0; i < cart.length; i++) {
+      if (cart[i].productId === id) {
+        if (action === 'add') {
+          cart[i].quantity++
+        } else if (action === 'sub') {
+          cart[i].quantity--
+          if (cart[i].quantity <= 0) {
+            cart.splice(i, 1)
+          }
+        }
+        cart[i].subtotal = cart[i].quantity * cart[i].unitPrice
+        break
+      }
     }
+
+    this.setData({ cart: cart })
+    this.calcTotal()
+    this.updateSelection()
   },
 
   calcTotal: function() {
     var cart = this.data.cart
-    var total = 0
+    var originalTotal = 0
     for (var i = 0; i < cart.length; i++) {
-      total += cart[i].subtotal
+      originalTotal += cart[i].subtotal
     }
-    this.setData({ total: total })
+    // 转换为分计算，避免浮点数精度问题，结果保留2位小数
+    originalTotal = Math.round(originalTotal * 100) / 100
+    
+    // 应用折扣
+    var discount = this.data.discount
+    var total = discount < 10 ? Math.round(originalTotal * discount / 10 * 100) / 100 : originalTotal
+    var discountAmount = Math.round((originalTotal - total) * 100) / 100
+    
+    this.setData({ 
+      originalTotal: originalTotal,
+      total: total,
+      discountAmount: discountAmount
+    })
     this.calcChange()
+  },
+
+  setDiscount: function(e) {
+    var discount = parseInt(e.currentTarget.dataset.discount)
+    this.setData({ 
+      discount: discount,
+      customDiscount: String(discount)
+    })
+    this.calcTotal()
+  },
+
+  onDiscountInput: function(e) {
+    var value = e.detail.value
+    var discount = parseFloat(value) || 10
+    if (discount < 0) discount = 0
+    if (discount > 10) discount = 10
+    this.setData({ 
+      customDiscount: value,
+      discount: discount
+    })
+    this.calcTotal()
   },
 
   onPaymentInput: function(e) {
@@ -110,9 +207,12 @@ Page({
     var payment = parseFloat(this.data.paymentReceived) || 0
     var total = this.data.total
     if (payment > 0) {
-      this.setData({ change: payment - total })
+      // 转换为分计算，避免浮点数精度问题，结果保留2位小数
+      var change = Math.round((payment - total) * 100) / 100
+      var shortage = change < 0 ? Math.abs(change) : 0
+      this.setData({ change: change, shortage: shortage })
     } else {
-      this.setData({ change: 0 })
+      this.setData({ change: 0, shortage: 0 })
     }
   },
 
@@ -132,6 +232,16 @@ Page({
   },
 
   confirmSale: function() {
+    // 检查营业状态
+    if (!stallManager.getSettings().isOpen) {
+      wx.showModal({
+        title: '已打烊',
+        content: '营业已结束，无法开单',
+        showCancel: false
+      })
+      return
+    }
+
     var cart = this.data.cart
     if (cart.length === 0) {
       wx.showToast({ title: '请选择商品', icon: 'none' })
@@ -146,16 +256,34 @@ Page({
 
     var sale = {
       items: cart,
+      originalTotal: this.data.originalTotal,
       total: this.data.total,
+      discount: this.data.discount,
+      discountAmount: this.data.discountAmount,
       paymentReceived: payment,
       change: this.data.change
     }
 
     stallManager.addSale(sale)
 
+    // 保存本次销售商品用于快速再来一单
+    this.setData({ lastSaleItems: JSON.parse(JSON.stringify(cart)) })
+
+    // 检查挑战完成
+    var newChallenges = stallManager.checkChallenges()
+    if (newChallenges.length > 0) {
+      setTimeout(function() {
+        wx.showModal({
+          title: '🎉 挑战完成！',
+          content: '完成挑战：' + newChallenges.map(function(c) { return c.title }).join('、'),
+          showCancel: false
+        })
+      }, 500)
+    }
+
     wx.showToast({ title: '收款成功', icon: 'success' })
 
-    // Check achievements (non-blocking)
+    // Check achievements
     achievements.checkAchievementsAsync().then(function(newAchievements) {
       if (newAchievements && newAchievements.length > 0) {
         var popup = this.selectComponent('#achievementPopup')
@@ -176,6 +304,22 @@ Page({
     })
     this.loadProducts()
     this.updateSelection()
+  },
+
+  repeatLastSale: function() {
+    if (this.data.lastSaleItems.length === 0) {
+      wx.showToast({ title: '暂无历史订单', icon: 'none' })
+      return
+    }
+
+    var cart = this.data.lastSaleItems.map(function(item) {
+      return { ...item }
+    })
+    
+    this.setData({ cart: cart })
+    this.calcTotal()
+    this.updateSelection()
+    wx.showToast({ title: '已填充上次商品', icon: 'success' })
   },
 
   goAddProduct: function() {

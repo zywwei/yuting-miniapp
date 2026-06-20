@@ -1,6 +1,22 @@
 <view class="container">
+  <!-- 搜索框 -->
+  <view class="search-bar">
+    <text class="search-icon">🔍</text>
+    <input class="search-input" placeholder="搜索商品..." bindinput="onSearchInput" value="{{searchKeyword}}" />
+  </view>
+
+  <!-- 快速再来一单 -->
+  <view wx:if="{{lastSaleItems.length > 0}}" class="repeat-section">
+    <view class="repeat-btn" bindtap="repeatLastSale">
+      <text class="repeat-icon">🔄</text>
+      <text class="repeat-text">再来一单</text>
+    </view>
+  </view>
+
+  <!-- 商品列表 -->
   <view class="product-grid">
-    <view class="product-item {{item.selected ? 'selected' : ''}}" wx:for="{{products}}" wx:key="id" bindtap="selectProduct" data-id="{{item.id}}">
+    <view class="product-item {{item.selected ? 'selected' : ''}} {{item.quantity <= 0 ? 'sold-out' : ''}}" 
+          wx:for="{{products}}" wx:key="id" bindtap="selectProduct" data-id="{{item.id}}">
       <view class="product-image">
         <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" />
         <text wx:else class="product-emoji">📦</text>
@@ -8,9 +24,12 @@
       <view class="product-name">{{item.name}}</view>
       <view class="product-price">¥{{item.salePrice}}</view>
       <view class="product-stock">库存 {{item.quantity}}</view>
+      <view wx:if="{{item.isHot}}" class="hot-badge">🔥热销</view>
+      <view wx:if="{{item.quantity <= 3 && item.quantity > 0}}" class="low-stock-badge">库存紧张</view>
     </view>
   </view>
 
+  <!-- 购物车 -->
   <view class="cart-panel" wx:if="{{cart.length > 0}}">
     <view class="cart-header">
       <text class="cart-title">已选商品</text>
@@ -20,9 +39,9 @@
       <view class="cart-item" wx:for="{{cart}}" wx:key="productId">
         <text class="cart-name">{{item.productName}}</text>
         <view class="cart-qty">
-          <view class="qty-btn" catchtap="minusQty" data-index="{{index}}">-</view>
+          <view class="qty-btn" catchtap="updateQuantity" data-id="{{item.productId}}" data-action="sub">-</view>
           <text class="qty-num">{{item.quantity}}</text>
-          <view class="qty-btn" catchtap="plusQty" data-index="{{index}}">+</view>
+          <view class="qty-btn" catchtap="updateQuantity" data-id="{{item.productId}}" data-action="add">+</view>
         </view>
         <text class="cart-subtotal">¥{{item.subtotal}}</text>
       </view>
@@ -33,7 +52,28 @@
     </view>
   </view>
 
+  <!-- 收款区域 -->
   <view class="payment-section" wx:if="{{cart.length > 0}}">
+    <!-- 折扣区域 -->
+    <view class="discount-row">
+      <text class="discount-label">折扣</text>
+      <view class="discount-btns">
+        <view class="discount-btn {{discount === 9 ? 'active' : ''}}" bindtap="setDiscount" data-discount="9">9折</view>
+        <view class="discount-btn {{discount === 8 ? 'active' : ''}}" bindtap="setDiscount" data-discount="8">8折</view>
+        <view class="discount-btn {{discount === 7 ? 'active' : ''}}" bindtap="setDiscount" data-discount="7">7折</view>
+        <view class="discount-btn {{discount === 6 ? 'active' : ''}}" bindtap="setDiscount" data-discount="6">6折</view>
+        <view class="discount-btn {{discount === 5 ? 'active' : ''}}" bindtap="setDiscount" data-discount="5">5折</view>
+      </view>
+      <input class="discount-input" type="digit" placeholder="自定义" value="{{customDiscount}}" bindinput="onDiscountInput" />
+      <text class="discount-unit">折</text>
+    </view>
+    <view class="discount-info" wx:if="{{discount < 10}}">
+      <text class="original-price">原价 ¥{{originalTotal}}</text>
+      <text class="discount-arrow">→</text>
+      <text class="discounted-price">折后 ¥{{total}}</text>
+      <text class="discount-save">省 ¥{{discountAmount}}</text>
+    </view>
+    
     <view class="payment-row">
       <text class="payment-label">顾客付款</text>
       <input class="payment-input" type="digit" placeholder="输入金额" value="{{paymentReceived}}" bindinput="onPaymentInput" />
@@ -42,9 +82,14 @@
       <text class="change-label">找零</text>
       <text class="change-value">¥{{change}}</text>
     </view>
+    <view class="change-row shortage" wx:if="{{change < 0 && paymentReceived > 0}}">
+      <text class="change-label">⚠️ 还需付</text>
+      <text class="change-value shortage">¥{{shortage}}</text>
+    </view>
     <view class="confirm-btn" bindtap="confirmSale">确认收款</view>
   </view>
 
+  <!-- 空状态 -->
   <view class="empty" wx:if="{{products.length === 0}}">
     <text class="empty-icon">📦</text>
     <text class="empty-text">还没有商品，请先添加商品</text>

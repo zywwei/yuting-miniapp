@@ -279,7 +279,7 @@
   <!-- 评分弹窗 -->
   <view wx:if="{{showScoreModal}}" class="modal-mask">
     <view class="modal-content">
-      <view class="modal-title">🦷 给钰婷打分</view>
+      <view class="modal-title">🦷 给{{childName}}打分</view>
       <view class="modal-desc">{{modalTime === 'morning' ? '早上' : '晚上'}}刷牙完成啦~</view>
 
       <view class="score-selector">
