@@ -1,4 +1,5 @@
 var stallManager = require('../../../../utils/stall-manager.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 
 Page({
   data: {
@@ -13,7 +14,7 @@ Page({
   },
 
   onLoad: function() {
-    this.setThemeColor()
+    stallUtils.setThemeColor()
   },
 
   onTotalInput: function(e) {
@@ -58,7 +59,7 @@ Page({
     
     // 转换为分计算，避免浮点数精度问题，结果保留2位小数
     originalTotal = Math.round(originalTotal * 100) / 100
-    var total = discount < 10 ? Math.round(originalTotal * discount / 10 * 100) / 100 : originalTotal
+    var total = stallUtils.applyDiscount(originalTotal, discount)
     var discountAmount = Math.round((originalTotal - total) * 100) / 100
     
     this.setData({ 
@@ -91,15 +92,6 @@ Page({
       received: '', 
       change: 0,
       shortage: 0
-    })
-  },
-
-  setThemeColor: function() {
-    var app = getApp()
-    wx.setNavigationBarColor({
-      frontColor: '#ffffff',
-      backgroundColor: app.globalData.themeColor || '#FF9AAB',
-      animation: { duration: 0 }
     })
   }
 })

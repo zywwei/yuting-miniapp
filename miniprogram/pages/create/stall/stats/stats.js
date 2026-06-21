@@ -1,5 +1,6 @@
 var stallManager = require('../../../../utils/stall-manager.js')
 var auth = require('../../../../utils/auth.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 
 Page({
   data: {
@@ -39,12 +40,7 @@ Page({
   },
 
   setNavBarColor: function() {
-    var app = getApp()
-    wx.setNavigationBarColor({
-      frontColor: '#ffffff',
-      backgroundColor: app.globalData.themeColor || '#FF9AAB',
-      animation: { duration: 0 }
-    })
+    stallUtils.setThemeColor()
   },
 
   loadData: function() {
@@ -143,25 +139,22 @@ Page({
   getFilteredSales: function(sales) {
     var tab = this.data.timeTab
     var today = new Date()
-    var todayStr = this.formatDate(today)
+    var todayStr = stallUtils.formatDate(today)
     var filtered = []
 
     if (tab === 'today') {
       filtered = sales.filter(function(s) { return s.date === todayStr })
     } else if (tab === 'week') {
-      var weekStart = new Date(today)
-      var dayOfWeek = today.getDay()
-      var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-      weekStart.setDate(today.getDate() - diff)
-      var weekStartStr = this.formatDate(weekStart)
+      var weekStart = stallUtils.getWeekStart()
+      var weekStartStr = stallUtils.formatDate(weekStart)
       filtered = sales.filter(function(s) { return s.date >= weekStartStr && s.date <= todayStr })
     } else if (tab === 'month') {
       var monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-      var monthStartStr = this.formatDate(monthStart)
+      var monthStartStr = stallUtils.formatDate(monthStart)
       filtered = sales.filter(function(s) { return s.date >= monthStartStr && s.date <= todayStr })
     } else if (tab === 'year') {
       var yearStart = new Date(today.getFullYear(), 0, 1)
-      var yearStartStr = this.formatDate(yearStart)
+      var yearStartStr = stallUtils.formatDate(yearStart)
       filtered = sales.filter(function(s) { return s.date >= yearStartStr && s.date <= todayStr })
     } else if (tab === 'custom') {
       var startDate = this.data.startDate
@@ -190,9 +183,7 @@ Page({
       sale.items.forEach(function(item) {
         var product = productMap[item.productId]
         var costPrice = item.costPrice || (product ? product.costPrice : 0) || 0
-        var itemRevenue = discount < 10 
-          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
-          : (item.subtotal || 0)
+        var itemRevenue = stallUtils.applyDiscount((item.subtotal || 0), discount)
         profit += (itemRevenue - costPrice * (item.quantity || 0))
 
         if (!productStats[item.productId]) {
@@ -226,25 +217,38 @@ Page({
     var today = new Date()
 
     if (tab === 'today') {
-      // 按小时统计
+      // 按小时统计：先分桶再统计，O(n) 替代 O(24n)
+      var todayStr = stallUtils.formatDate(today)
+      var hourBuckets = {}
+      for (var i = 0; i < 24; i++) {
+        var h = (i < 10 ? '0' : '') + i
+        hourBuckets[h] = { revenue: 0, orders: 0 }
+      }
+      for (var j = 0; j < sales.length; j++) {
+        var s = sales[j]
+        if (s.date === todayStr && s.time) {
+          var hour = s.time.substring(0, 2)
+          if (hourBuckets[hour]) {
+            hourBuckets[hour].revenue += (s.total || 0)
+            hourBuckets[hour].orders++
+          }
+        }
+      }
       for (var i = 0; i < 24; i++) {
         var hourStr = (i < 10 ? '0' : '') + i
-        var hourSales = sales.filter(function(s) {
-          return s.date === this.formatDate(today) && s.time && s.time.substring(0, 2) === hourStr
-        }.bind(this))
-        var revenue = hourSales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+        var bucket = hourBuckets[hourStr]
         result.push({
-          date: this.formatDate(today),
+          date: todayStr,
           label: hourStr + '时',
-          revenue: revenue,
-          orders: hourSales.length
+          revenue: bucket.revenue,
+          orders: bucket.orders
         })
       }
     } else if (tab === 'week') {
       for (var i = 6; i >= 0; i--) {
         var d = new Date(today)
         d.setDate(d.getDate() - i)
-        var dateStr = this.formatDate(d)
+        var dateStr = stallUtils.formatDate(d)
         var daySales = sales.filter(function(s) { return s.date === dateStr })
         var revenue = daySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
         result.push({
@@ -258,7 +262,7 @@ Page({
       for (var i = 29; i >= 0; i--) {
         var d = new Date(today)
         d.setDate(d.getDate() - i)
-        var dateStr = this.formatDate(d)
+        var dateStr = stallUtils.formatDate(d)
         var daySales = sales.filter(function(s) { return s.date === dateStr })
         var revenue = daySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
         result.push({
@@ -271,8 +275,8 @@ Page({
     } else if (tab === 'year') {
       for (var i = 11; i >= 0; i--) {
         var d = new Date(today.getFullYear(), today.getMonth() - i, 1)
-        var monthStart = this.formatDate(d)
-        var monthEnd = this.formatDate(new Date(d.getFullYear(), d.getMonth() + 1, 0))
+        var monthStart = stallUtils.formatDate(d)
+        var monthEnd = stallUtils.formatDate(new Date(d.getFullYear(), d.getMonth() + 1, 0))
         var monthSales = sales.filter(function(s) { return s.date >= monthStart && s.date <= monthEnd })
         var revenue = monthSales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
         result.push({
@@ -292,7 +296,7 @@ Page({
         for (var i = 0; i <= daysDiff; i++) {
           var d = new Date(start)
           d.setDate(d.getDate() + i)
-          var dateStr = this.formatDate(d)
+          var dateStr = stallUtils.formatDate(d)
           var daySales = sales.filter(function(s) { return s.date === dateStr })
           var revenue = daySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
           result.push({
@@ -321,9 +325,7 @@ Page({
         if (!categories[category]) {
           categories[category] = { name: category, revenue: 0, quantity: 0 }
         }
-        var itemRevenue = discount < 10 
-          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
-          : (item.subtotal || 0)
+        var itemRevenue = stallUtils.applyDiscount((item.subtotal || 0), discount)
         categories[category].revenue += itemRevenue
         categories[category].quantity += item.quantity || 0
       })
@@ -341,7 +343,7 @@ Page({
   getPeriodCompare: function(sales) {
     var tab = this.data.timeTab
     var today = new Date()
-    var todayStr = this.formatDate(today)
+    var todayStr = stallUtils.formatDate(today)
     var result = {}
 
     var currentSales = []
@@ -351,39 +353,36 @@ Page({
       currentSales = sales.filter(function(s) { return s.date === todayStr })
       var yesterday = new Date(today)
       yesterday.setDate(yesterday.getDate() - 1)
-      var yesterdayStr = this.formatDate(yesterday)
+      var yesterdayStr = stallUtils.formatDate(yesterday)
       previousSales = sales.filter(function(s) { return s.date === yesterdayStr })
     } else if (tab === 'week') {
-      var weekStart = new Date(today)
-      var dayOfWeek = today.getDay()
-      var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-      weekStart.setDate(today.getDate() - diff)
-      var weekStartStr = this.formatDate(weekStart)
+      var weekStart = stallUtils.getWeekStart()
+      var weekStartStr = stallUtils.formatDate(weekStart)
       currentSales = sales.filter(function(s) { return s.date >= weekStartStr && s.date <= todayStr })
       var prevWeekStart = new Date(weekStart)
       prevWeekStart.setDate(prevWeekStart.getDate() - 7)
       var prevWeekEnd = new Date(weekStart)
       prevWeekEnd.setDate(prevWeekEnd.getDate() - 1)
       previousSales = sales.filter(function(s) { 
-        return s.date >= this.formatDate(prevWeekStart) && s.date <= this.formatDate(prevWeekEnd) 
+        return s.date >= stallUtils.formatDate(prevWeekStart) && s.date <= stallUtils.formatDate(prevWeekEnd) 
       }.bind(this))
     } else if (tab === 'month') {
       var monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-      var monthStartStr = this.formatDate(monthStart)
+      var monthStartStr = stallUtils.formatDate(monthStart)
       currentSales = sales.filter(function(s) { return s.date >= monthStartStr && s.date <= todayStr })
       var prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
       var prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
       previousSales = sales.filter(function(s) { 
-        return s.date >= this.formatDate(prevMonthStart) && s.date <= this.formatDate(prevMonthEnd) 
+        return s.date >= stallUtils.formatDate(prevMonthStart) && s.date <= stallUtils.formatDate(prevMonthEnd) 
       }.bind(this))
     } else if (tab === 'year') {
       var yearStart = new Date(today.getFullYear(), 0, 1)
-      var yearStartStr = this.formatDate(yearStart)
+      var yearStartStr = stallUtils.formatDate(yearStart)
       currentSales = sales.filter(function(s) { return s.date >= yearStartStr && s.date <= todayStr })
       var prevYearStart = new Date(today.getFullYear() - 1, 0, 1)
       var prevYearEnd = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
       previousSales = sales.filter(function(s) { 
-        return s.date >= this.formatDate(prevYearStart) && s.date <= this.formatDate(prevYearEnd) 
+        return s.date >= stallUtils.formatDate(prevYearStart) && s.date <= stallUtils.formatDate(prevYearEnd) 
       }.bind(this))
     }
 
@@ -395,18 +394,14 @@ Page({
     currentSales.forEach(function(sale) {
       var discount = sale.discount || 10
       sale.items.forEach(function(item) {
-        var itemRevenue = discount < 10 
-          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
-          : (item.subtotal || 0)
+        var itemRevenue = stallUtils.applyDiscount((item.subtotal || 0), discount)
         currentProfit += itemRevenue - (item.costPrice || 0) * (item.quantity || 0)
       })
     })
     previousSales.forEach(function(sale) {
       var discount = sale.discount || 10
       sale.items.forEach(function(item) {
-        var itemRevenue = discount < 10 
-          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
-          : (item.subtotal || 0)
+        var itemRevenue = stallUtils.applyDiscount((item.subtotal || 0), discount)
         previousProfit += itemRevenue - (item.costPrice || 0) * (item.quantity || 0)
       })
     })
@@ -447,23 +442,23 @@ Page({
 
     if (tab === 'month') {
       var monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-      var monthStartStr = this.formatDate(monthStart)
-      var todayStr = this.formatDate(today)
+      var monthStartStr = stallUtils.formatDate(monthStart)
+      var todayStr = stallUtils.formatDate(today)
       currentSales = sales.filter(function(s) { return s.date >= monthStartStr && s.date <= todayStr })
       var lastYearMonthStart = new Date(today.getFullYear() - 1, today.getMonth(), 1)
       var lastYearMonthEnd = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
       lastYearSales = sales.filter(function(s) { 
-        return s.date >= this.formatDate(lastYearMonthStart) && s.date <= this.formatDate(lastYearMonthEnd) 
+        return s.date >= stallUtils.formatDate(lastYearMonthStart) && s.date <= stallUtils.formatDate(lastYearMonthEnd) 
       }.bind(this))
     } else if (tab === 'year') {
       var yearStart = new Date(today.getFullYear(), 0, 1)
-      var yearStartStr = this.formatDate(yearStart)
-      var todayStr = this.formatDate(today)
+      var yearStartStr = stallUtils.formatDate(yearStart)
+      var todayStr = stallUtils.formatDate(today)
       currentSales = sales.filter(function(s) { return s.date >= yearStartStr && s.date <= todayStr })
       var lastYearStart = new Date(today.getFullYear() - 1, 0, 1)
       var lastYearEnd = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
       lastYearSales = sales.filter(function(s) { 
-        return s.date >= this.formatDate(lastYearStart) && s.date <= this.formatDate(lastYearEnd) 
+        return s.date >= stallUtils.formatDate(lastYearStart) && s.date <= stallUtils.formatDate(lastYearEnd) 
       }.bind(this))
     }
 
@@ -475,18 +470,14 @@ Page({
     currentSales.forEach(function(sale) {
       var discount = sale.discount || 10
       sale.items.forEach(function(item) {
-        var itemRevenue = discount < 10 
-          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
-          : (item.subtotal || 0)
+        var itemRevenue = stallUtils.applyDiscount((item.subtotal || 0), discount)
         currentProfit += itemRevenue - (item.costPrice || 0) * (item.quantity || 0)
       })
     })
     lastYearSales.forEach(function(sale) {
       var discount = sale.discount || 10
       sale.items.forEach(function(item) {
-        var itemRevenue = discount < 10 
-          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
-          : (item.subtotal || 0)
+        var itemRevenue = stallUtils.applyDiscount((item.subtotal || 0), discount)
         lastYearProfit += itemRevenue - (item.costPrice || 0) * (item.quantity || 0)
       })
     })
@@ -595,13 +586,6 @@ Page({
         }
       }
     })
-  },
-
-  formatDate: function(date) {
-    var y = date.getFullYear()
-    var m = String(date.getMonth() + 1).padStart(2, '0')
-    var d = String(date.getDate()).padStart(2, '0')
-    return y + '-' + m + '-' + d
   },
 
   generatePoster: function() {
@@ -873,13 +857,6 @@ Page({
     }
   },
 
-  formatDuration: function(minutes) {
-    if (!minutes || minutes <= 0) return '0分钟'
-    var h = Math.floor(minutes / 60)
-    var m = minutes % 60
-    return h > 0 ? h + '小时' + m + '分钟' : m + '分钟'
-  },
-
   calcProductActiveRate: function(products, sales) {
     if (products.length === 0) return 0
     var soldProductIds = {}
@@ -913,9 +890,7 @@ Page({
             profitRate: 0
           }
         }
-        var itemRevenue = discount < 10 
-          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
-          : (item.subtotal || 0)
+        var itemRevenue = stallUtils.applyDiscount((item.subtotal || 0), discount)
         var costPrice = item.costPrice || product.costPrice || 0
         
         productProfits[item.productId].revenue += itemRevenue
@@ -973,7 +948,7 @@ Page({
     var monthlyGoal = settings.monthlyGoal || 1000
 
     var today = new Date()
-    var todayStr = this.formatDate(today)
+    var todayStr = stallUtils.formatDate(today)
     var todaySales = allSales.filter(function(s) { return s.date === todayStr })
     var todayRevenue = todaySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
 

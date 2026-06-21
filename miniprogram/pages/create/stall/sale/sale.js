@@ -1,5 +1,6 @@
 var stallManager = require('../../../../utils/stall-manager.js')
 var achievements = require('../../../../utils/achievements.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 
 Page({
   data: {
@@ -46,7 +47,7 @@ Page({
       categories: stallManager.getCategories()
     })
     this.loadProducts()
-    this.setThemeColor()
+    stallUtils.setThemeColor()
   },
 
   onShow: function() {
@@ -56,27 +57,32 @@ Page({
   loadProducts: function() {
     var products = stallManager.getProducts().filter(function(p) { return p.quantity > 0 })
     
-    // 标记热销商品（最近7天销量前3）
+    // 标记热销商品（最近7天销量前3），使用缓存避免重复计算
     var sales = stallManager.getSales()
-    var recentSales = sales.filter(function(s) {
-      var d = new Date()
-      d.setDate(d.getDate() - 7)
-      return new Date(s.createdAt) >= d
-    })
-    
-    var productSales = {}
-    recentSales.forEach(function(sale) {
-      sale.items.forEach(function(item) {
-        productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity
+    if (!this._hotCache || this._hotCache.salesLen !== sales.length) {
+      var recentSales = sales.filter(function(s) {
+        var d = new Date()
+        d.setDate(d.getDate() - 7)
+        return new Date(s.createdAt) >= d
       })
-    })
+      
+      var productSales = {}
+      recentSales.forEach(function(sale) {
+        sale.items.forEach(function(item) {
+          productSales[item.productId] = (productSales[item.productId] || 0) + item.quantity
+        })
+      })
+      
+      var sortedIds = Object.keys(productSales).sort(function(a, b) {
+        return productSales[b] - productSales[a]
+      }).slice(0, 3)
+      
+      this._hotCache = { salesLen: sales.length, hotIds: sortedIds }
+    }
     
-    var sortedIds = Object.keys(productSales).sort(function(a, b) {
-      return productSales[b] - productSales[a]
-    }).slice(0, 3)
-    
+    var hotIds = this._hotCache.hotIds
     products.forEach(function(p) {
-      p.isHot = sortedIds.indexOf(p.id) >= 0
+      p.isHot = hotIds.indexOf(p.id) >= 0
     })
     
     this.setData({ 
@@ -227,7 +233,7 @@ Page({
     
     // 应用折扣
     var discount = this.data.discount
-    var total = discount < 10 ? Math.round(originalTotal * discount / 10 * 100) / 100 : originalTotal
+    var total = stallUtils.applyDiscount(originalTotal, discount)
     var discountAmount = Math.round((originalTotal - total) * 100) / 100
     
     this.setData({ 
@@ -371,6 +377,7 @@ Page({
     })
 
     // Reset
+    this._hotCache = null
     this.setData({
       cart: [],
       total: 0,
@@ -433,14 +440,5 @@ Page({
 
   hideCelebration: function() {
     this.setData({ showCelebration: false })
-  },
-
-  setThemeColor: function() {
-    var app = getApp()
-    wx.setNavigationBarColor({
-      frontColor: '#ffffff',
-      backgroundColor: app.globalData.themeColor || '#FF9AAB',
-      animation: { duration: 0 }
-    })
   }
 })

@@ -297,15 +297,31 @@ var getStallExtraData = function() {
   var totalRevenue = 0
   var totalProfit = 0
 
+  // 构建商品当前成本价映射（供无快照的老订单 fallback）
+  var productCostMap = {}
   for (var i = 0; i < products.length; i++) {
-    totalRevenue += products[i].totalRevenue || 0
-    totalProfit += (products[i].totalRevenue || 0) - ((products[i].costPrice || 0) * (products[i].totalSold || 0))
+    productCostMap[products[i].id] = products[i].costPrice || 0
+  }
+
+  // 使用订单快照成本价计算利润（与 stall-manager 口径一致）
+  for (var i = 0; i < sales.length; i++) {
+    var sale = sales[i]
+    totalRevenue += sale.total || 0
+    var discount = sale.discount || 10
+    for (var j = 0; j < sale.items.length; j++) {
+      var item = sale.items[j]
+      var costPrice = item.costPrice || productCostMap[item.productId] || 0
+      var itemRevenue = discount < 10
+        ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
+        : (item.subtotal || 0)
+      totalProfit += itemRevenue - costPrice * (item.quantity || 0)
+    }
   }
 
   return {
     stallSalesCount: sales.length,
-    stallTotalRevenue: totalRevenue,
-    stallTotalProfit: totalProfit,
+    stallTotalRevenue: Math.round(totalRevenue * 100) / 100,
+    stallTotalProfit: Math.round(totalProfit * 100) / 100,
     stallProductTypes: products.length
   }
 }
