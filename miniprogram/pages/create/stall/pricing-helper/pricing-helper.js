@@ -1,3 +1,5 @@
+var stallUtils = require('../../../../utils/stall-utils.js')
+
 Page({
   data: {
     costPrice: '',
@@ -10,7 +12,7 @@ Page({
   },
 
   onLoad: function() {
-    this.setThemeColor()
+    stallUtils.setThemeColor()
   },
 
   onCostInput: function(e) {
@@ -75,15 +77,6 @@ Page({
       salePrice: 0,
       profit: 0,
       priceTable: []
-    })
-  },
-
-  setThemeColor: function() {
-    var app = getApp()
-    wx.setNavigationBarColor({
-      frontColor: '#ffffff',
-      backgroundColor: app.globalData.themeColor || '#FF9AAB',
-      animation: { duration: 0 }
     })
   }
 })

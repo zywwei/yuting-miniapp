@@ -1,4 +1,5 @@
 var stallManager = require('../../../../utils/stall-manager.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 
 Page({
   data: {
@@ -33,7 +34,7 @@ Page({
   },
 
   onLoad: function() {
-    this.setThemeColor()
+    stallUtils.setThemeColor()
   },
 
   onShow: function() {
@@ -147,15 +148,12 @@ Page({
     if (filter === 'today') {
       filtered = sales.filter(function(s) { return s.date === today })
     } else if (filter === 'week') {
-      var weekStart = new Date()
-      var dayOfWeek = weekStart.getDay()
-      var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-      weekStart.setDate(weekStart.getDate() - diff)
-      var weekStartStr = this.formatDate(weekStart)
+      var weekStart = stallUtils.getWeekStart()
+      var weekStartStr = stallUtils.formatDate(weekStart)
       filtered = sales.filter(function(s) { return s.date >= weekStartStr })
     } else if (filter === 'month') {
       var monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      var monthStartStr = this.formatDate(monthStart)
+      var monthStartStr = stallUtils.formatDate(monthStart)
       filtered = sales.filter(function(s) { return s.date >= monthStartStr })
     } else {
       filtered = sales.slice()
@@ -231,6 +229,9 @@ Page({
     var pagedSales = filtered.slice(startIndex, endIndex)
     var hasMore = endIndex < filtered.length
 
+    // 缓存全量 filtered 数据供 loadMoreOrders 增量使用
+    this._cachedFilteredSales = filtered
+
     // Group by date
     var groups = {}
     for (var i = 0; i < pagedSales.length; i++) {
@@ -260,8 +261,91 @@ Page({
 
   loadMoreOrders: function() {
     if (this.data.ordersLoading || !this.data.ordersHasMore) return
-    this.setData({ ordersPage: this.data.ordersPage + 1 })
-    this.loadOrdersData()
+    var nextPage = this.data.ordersPage + 1
+    this.setData({ ordersPage: nextPage })
+
+    // 增量计算：只计算新增页的数据，与现有 groupedSales 合并
+    var cachedFiltered = this._cachedFilteredSales
+    if (!cachedFiltered) {
+      // 无缓存时 fallback 到全量重算
+      this.loadOrdersData()
+      return
+    }
+
+    var pageSize = this.data.ordersPageSize
+    var startIndex = (nextPage - 1) * pageSize
+    var endIndex = nextPage * pageSize
+    var pagedSales = cachedFiltered.slice(startIndex, endIndex)
+    var hasMore = endIndex < cachedFiltered.length
+
+    // 构建 product lookup
+    var products = stallManager.getProducts()
+    var productMap = {}
+    for (var p = 0; p < products.length; p++) {
+      productMap[products[p].id] = products[p]
+    }
+
+    // 计算新增页的利润并分组
+    var newGroups = {}
+    for (var i = 0; i < pagedSales.length; i++) {
+      var sale = pagedSales[i]
+      sale.discount = sale.discount || 10
+      sale.originalTotal = sale.originalTotal || sale.total
+      sale.discountAmount = sale.discountAmount || 0
+      sale.expanded = false
+
+      var totalCost = 0
+      for (var j = 0; j < sale.items.length; j++) {
+        var item = sale.items[j]
+        var costPrice = item.costPrice || 0
+        if (!costPrice && productMap[item.productId]) {
+          costPrice = productMap[item.productId].costPrice || 0
+        }
+        totalCost += costPrice * item.quantity
+      }
+      sale.profit = Math.round((sale.total - totalCost) * 100) / 100
+
+      if (!newGroups[sale.date]) {
+        newGroups[sale.date] = { date: sale.date, total: 0, profit: 0, count: 0, sales: [] }
+      }
+      newGroups[sale.date].total += sale.total
+      newGroups[sale.date].profit += sale.profit
+      newGroups[sale.date].count++
+      newGroups[sale.date].sales.push(sale)
+    }
+
+    // 与现有 groupedSales 合并（同日期的追加到已有 group）
+    var existingGroups = this.data.groupedSales || []
+    var mergedMap = {}
+    for (var i = 0; i < existingGroups.length; i++) {
+      mergedMap[existingGroups[i].date] = {
+        date: existingGroups[i].date,
+        total: existingGroups[i].total,
+        profit: existingGroups[i].profit,
+        count: existingGroups[i].count,
+        sales: existingGroups[i].sales.slice()
+      }
+    }
+    for (var date in newGroups) {
+      if (mergedMap[date]) {
+        mergedMap[date].total += newGroups[date].total
+        mergedMap[date].profit += newGroups[date].profit
+        mergedMap[date].count += newGroups[date].count
+        mergedMap[date].sales = mergedMap[date].sales.concat(newGroups[date].sales)
+      } else {
+        mergedMap[date] = newGroups[date]
+      }
+    }
+
+    var groupedSales = Object.keys(mergedMap).sort().reverse().map(function(date) {
+      return mergedMap[date]
+    })
+
+    this.setData({
+      groupedSales: groupedSales,
+      ordersHasMore: hasMore,
+      ordersLoading: false
+    })
   },
 
   // 营业时长相关函数
@@ -322,15 +406,12 @@ Page({
     if (filter === 'today') {
       filtered = businessHours.filter(function(h) { return h.date === today })
     } else if (filter === 'week') {
-      var weekStart = new Date()
-      var dayOfWeek = weekStart.getDay()
-      var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-      weekStart.setDate(weekStart.getDate() - diff)
-      var weekStartStr = this.formatDate(weekStart)
+      var weekStart = stallUtils.getWeekStart()
+      var weekStartStr = stallUtils.formatDate(weekStart)
       filtered = businessHours.filter(function(h) { return h.date >= weekStartStr })
     } else if (filter === 'month') {
       var monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      var monthStartStr = this.formatDate(monthStart)
+      var monthStartStr = stallUtils.formatDate(monthStart)
       filtered = businessHours.filter(function(h) { return h.date >= monthStartStr })
     } else {
       filtered = businessHours.slice()
@@ -360,9 +441,9 @@ Page({
           openTime: session.openTime,
           closeTime: session.closeTime,
           duration: session.duration || 0,
-          openTimeStr: this.formatTime(new Date(session.openTime)),
-          closeTimeStr: session.closeTime ? this.formatTime(new Date(session.closeTime)) : '',
-          durationText: this.formatDuration(session.duration || 0)
+          openTimeStr: stallUtils.formatTime(new Date(session.openTime)),
+          closeTimeStr: session.closeTime ? stallUtils.formatTime(new Date(session.closeTime)) : '',
+          durationText: stallUtils.formatDuration(session.duration || 0)
         })
       }
     }
@@ -429,37 +510,6 @@ Page({
           wx.showToast({ title: '已删除', icon: 'success' })
         }
       }.bind(this)
-    })
-  },
-
-  formatDate: function(date) {
-    var y = date.getFullYear()
-    var m = String(date.getMonth() + 1).padStart(2, '0')
-    var d = String(date.getDate()).padStart(2, '0')
-    return y + '-' + m + '-' + d
-  },
-
-  formatTime: function(date) {
-    return this.padZero(date.getHours()) + ':' + this.padZero(date.getMinutes())
-  },
-
-  padZero: function(num) {
-    return num < 10 ? '0' + num : String(num)
-  },
-
-  formatDuration: function(minutes) {
-    if (!minutes || minutes <= 0) return '0分钟'
-    var h = Math.floor(minutes / 60)
-    var m = minutes % 60
-    return h > 0 ? h + '小时' + m + '分钟' : m + '分钟'
-  },
-
-  setThemeColor: function() {
-    var app = getApp()
-    wx.setNavigationBarColor({
-      frontColor: '#ffffff',
-      backgroundColor: app.globalData.themeColor || '#FF9AAB',
-      animation: { duration: 0 }
     })
   }
 })

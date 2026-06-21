@@ -1,3 +1,5 @@
+var childStorage = require('../../../../utils/child-storage.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 var DIARY_KEY = 'stallDiary'
 
 Page({
@@ -13,12 +15,25 @@ Page({
     var today = new Date()
     var dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0')
     this.setData({ todayDate: dateStr })
+    this.migrateData()
     this.loadEntries()
-    this.setThemeColor()
+    stallUtils.setThemeColor()
+  },
+
+  // 一次性迁移：旧的裸 key 数据迁移到 childStorage（按孩子隔离）
+  migrateData: function() {
+    var oldData = wx.getStorageSync(DIARY_KEY)
+    if (oldData && Array.isArray(oldData) && oldData.length > 0) {
+      var currentData = childStorage.get(DIARY_KEY)
+      if (!currentData || currentData.length === 0) {
+        childStorage.set(DIARY_KEY, oldData)
+      }
+      wx.removeStorageSync(DIARY_KEY)
+    }
   },
 
   loadEntries: function() {
-    var entries = wx.getStorageSync(DIARY_KEY) || []
+    var entries = childStorage.get(DIARY_KEY) || []
     entries.sort(function(a, b) {
       return new Date(b.createdAt) - new Date(a.createdAt)
     })
@@ -26,7 +41,7 @@ Page({
   },
 
   saveEntries: function() {
-    wx.setStorageSync(DIARY_KEY, this.data.entries)
+    childStorage.set(DIARY_KEY, this.data.entries)
   },
 
   showEditor: function(e) {
@@ -119,14 +134,5 @@ Page({
   formatDate: function(dateStr) {
     var parts = dateStr.split('-')
     return parts[1] + '月' + parts[2] + '日'
-  },
-
-  setThemeColor: function() {
-    var app = getApp()
-    wx.setNavigationBarColor({
-      frontColor: '#ffffff',
-      backgroundColor: app.globalData.themeColor || '#FF9AAB',
-      animation: { duration: 0 }
-    })
   }
 })

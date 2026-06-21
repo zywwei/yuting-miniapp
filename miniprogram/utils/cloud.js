@@ -1337,15 +1337,17 @@ async function fetchToothDecorations() {
 
 // ===== 摆摊相关 =====
 
+// 上传单个商品（带 _id 走 upsert，同 id 覆盖而非新建）
 async function uploadStallProduct(product) {
   if (!isCloudReady()) return
   try {
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'stallProducts', data: product }
+      data: { action: 'add', collection: 'stallProducts', data: { _id: product.id, ...product } }
     })
   } catch (err) {
-    console.warn('云端同步摆摊商品失败:', err)
+    console.warn('云端同步摆摊商品失败，入队列重试:', err)
+    syncQueue.enqueue({ id: product.id, action: 'add', collection: 'stallProducts', data: { _id: product.id, ...product } })
   }
 }
 
@@ -1355,7 +1357,7 @@ async function fetchStallProducts() {
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'list', collection: 'stallProducts', childId: auth.getCurrentChildId() }
+      data: { action: 'list', collection: 'stallProducts', childId: auth.getCurrentChildId(), pageSize: 100 }
     })
     if (res.result.code === 0) {
       var cloudList = res.result.data.list || []
@@ -1363,14 +1365,29 @@ async function fetchStallProducts() {
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
-      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致商品丢失
+      // 兼容旧格式：展开数组类型的文档（旧 uploadStallProduct 传入整个数组）
+      var expandedList = []
+      cloudList.forEach(function(item) {
+        if (Array.isArray(item)) {
+          item.forEach(function(p) { if (p && p.id) expandedList.push(p) })
+        } else if (item && item.id) {
+          expandedList.push(item)
+        }
+      })
+
+      // 合并云端与本地数据（以 id 去重，取 updatedAt 较新者）
       var mergedMap = {}
       localProducts.forEach(function(p) {
         if (p && p.id && !deletedSet[p.id]) mergedMap[p.id] = p
       })
-      cloudList.forEach(function(p) {
+      expandedList.forEach(function(p) {
         if (p && p.id && !deletedSet[p.id] && !deletedSet[p._id]) {
-          mergedMap[p.id] = p
+          var existing = mergedMap[p.id]
+          if (!existing || (p.updatedAt && existing.updatedAt && p.updatedAt > existing.updatedAt)) {
+            mergedMap[p.id] = p
+          } else if (!existing) {
+            mergedMap[p.id] = p
+          }
         }
       })
 
@@ -1382,14 +1399,17 @@ async function fetchStallProducts() {
       childStorage.set('stallProducts', merged)
 
       // 云端仍存在但本地已删除的记录，再次尝试删除
-      cloudList.forEach(function(p) {
+      expandedList.forEach(function(p) {
         if (p && p.id && (deletedSet[p.id] || deletedSet[p._id])) {
           wx.cloud.callFunction({
             name: 'record',
-            data: { action: 'remove', collection: 'stallProducts', id: p.id }
+            data: { action: 'remove', collection: 'stallProducts', id: p._id || p.id }
           }).catch(function() {})
         }
       })
+
+      // 清理云端旧格式的数组文档（一次性迁移）
+      cleanLegacyArrayDocs('stallProducts', cloudList)
 
       return merged
     }
@@ -1418,19 +1438,22 @@ async function removeStallProduct(id) {
       removeTombstone(DELETED_STALL_PRODUCTS_KEY, id)
     }
   } catch (err) {
-    console.warn('云端删除摆摊商品失败:', err)
+    console.warn('云端删除摆摊商品失败，入队列重试:', err)
+    syncQueue.enqueue({ id: id, action: 'remove', collection: 'stallProducts', data: {} })
   }
 }
 
+// 上传单条销售记录（带 _id 走 upsert）
 async function uploadStallSale(sale) {
   if (!isCloudReady()) return
   try {
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'stallSales', data: sale }
+      data: { action: 'add', collection: 'stallSales', data: { _id: sale.id, ...sale } }
     })
   } catch (err) {
-    console.warn('云端同步销售记录失败:', err)
+    console.warn('云端同步销售记录失败，入队列重试:', err)
+    syncQueue.enqueue({ id: sale.id, action: 'add', collection: 'stallSales', data: { _id: sale.id, ...sale } })
   }
 }
 
@@ -1440,7 +1463,7 @@ async function fetchStallSales() {
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'list', collection: 'stallSales', childId: auth.getCurrentChildId() }
+      data: { action: 'list', collection: 'stallSales', childId: auth.getCurrentChildId(), pageSize: 100 }
     })
     if (res.result.code === 0) {
       var cloudList = res.result.data.list || []
@@ -1448,14 +1471,29 @@ async function fetchStallSales() {
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
-      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致销售记录丢失
+      // 兼容旧格式：展开数组类型的文档
+      var expandedList = []
+      cloudList.forEach(function(item) {
+        if (Array.isArray(item)) {
+          item.forEach(function(s) { if (s && s.id) expandedList.push(s) })
+        } else if (item && item.id) {
+          expandedList.push(item)
+        }
+      })
+
+      // 合并云端与本地数据（以 id 去重，取 updatedAt 较新者）
       var mergedMap = {}
       localSales.forEach(function(s) {
         if (s && s.id && !deletedSet[s.id]) mergedMap[s.id] = s
       })
-      cloudList.forEach(function(s) {
+      expandedList.forEach(function(s) {
         if (s && s.id && !deletedSet[s.id] && !deletedSet[s._id]) {
-          mergedMap[s.id] = s
+          var existing = mergedMap[s.id]
+          if (!existing || (s.createdAt && existing.createdAt && s.createdAt > existing.createdAt)) {
+            mergedMap[s.id] = s
+          } else if (!existing) {
+            mergedMap[s.id] = s
+          }
         }
       })
 
@@ -1467,14 +1505,17 @@ async function fetchStallSales() {
       childStorage.set('stallSales', merged)
 
       // 云端仍存在但本地已删除的记录，再次尝试删除
-      cloudList.forEach(function(s) {
+      expandedList.forEach(function(s) {
         if (s && s.id && (deletedSet[s.id] || deletedSet[s._id])) {
           wx.cloud.callFunction({
             name: 'record',
-            data: { action: 'remove', collection: 'stallSales', id: s.id }
+            data: { action: 'remove', collection: 'stallSales', id: s._id || s.id }
           }).catch(function() {})
         }
       })
+
+      // 清理云端旧格式的数组文档
+      cleanLegacyArrayDocs('stallSales', cloudList)
 
       return merged
     }
@@ -1503,37 +1544,26 @@ async function removeStallSale(id) {
       removeTombstone(DELETED_STALL_SALES_KEY, id)
     }
   } catch (err) {
-    console.warn('云端删除销售记录失败:', err)
+    console.warn('云端删除销售记录失败，入队列重试:', err)
+    syncQueue.enqueue({ id: id, action: 'remove', collection: 'stallSales', data: {} })
   }
 }
 
+// 上传摊位设置（用固定 _id 的 upsert 一步到位）
 async function uploadStallSettings(settings) {
   if (!isCloudReady()) return
   try {
-    // 先尝试更新，如果不存在则添加
     await wx.cloud.callFunction({
       name: 'record',
       data: {
-        action: 'update',
+        action: 'add',
         collection: 'stallSettings',
-        id: 'stall_settings',
-        data: settings
+        data: { _id: 'stall_settings', ...settings }
       }
     })
   } catch (err) {
-    // 如果更新失败（文档不存在），则添加
-    try {
-      await wx.cloud.callFunction({
-        name: 'record',
-        data: {
-          action: 'add',
-          collection: 'stallSettings',
-          data: { _id: 'stall_settings', ...settings }
-        }
-      })
-    } catch (addErr) {
-      console.warn('云端同步摊位设置失败:', addErr)
-    }
+    console.warn('云端同步摊位设置失败，入队列重试:', err)
+    syncQueue.enqueue({ id: 'stall_settings', action: 'add', collection: 'stallSettings', data: { _id: 'stall_settings', ...settings } })
   }
 }
 
@@ -1542,7 +1572,7 @@ async function fetchStallSettings() {
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'get', collection: 'stallSettings' }
+      data: { action: 'get', collection: 'stallSettings', id: 'stall_settings' }
     })
     if (res.result.code === 0) {
       return res.result.data
@@ -1551,6 +1581,24 @@ async function fetchStallSettings() {
     console.warn('云端读取摊位设置失败:', err)
   }
   return null
+}
+
+// 清理云端旧格式的数组文档（一次性迁移，旧 uploadStallProduct 传整个数组导致每条文档是数组快照）
+async function cleanLegacyArrayDocs(collection, cloudList) {
+  if (!isCloudReady()) return
+  var legacyDocs = cloudList.filter(function(item) { return Array.isArray(item) })
+  if (legacyDocs.length === 0) return
+  for (var i = 0; i < legacyDocs.length; i++) {
+    var doc = legacyDocs[i]
+    try {
+      await wx.cloud.callFunction({
+        name: 'record',
+        data: { action: 'remove', collection: collection, id: doc._id }
+      })
+    } catch (err) {
+      console.warn('清理旧格式文档失败:', doc._id, err)
+    }
+  }
 }
 
 // ===== 摆摊挑战和营业时间 =====

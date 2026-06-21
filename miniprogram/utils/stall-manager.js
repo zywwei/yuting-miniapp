@@ -1,5 +1,6 @@
 var childStorage = require('./child-storage.js')
 var cloud = require('./cloud.js')
+var pageHelpers = require('./page-helpers.js')
 
 var PRODUCTS_KEY = 'stallProducts'
 var SALES_KEY = 'stallSales'
@@ -30,13 +31,11 @@ var DAILY_CHALLENGES = [
 ]
 
 function generateId(prefix) {
-  return prefix + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)
+  return prefix + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8)
 }
 
-function getTodayStr() {
-  var d = new Date()
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
-}
+// 复用 page-helpers 的 getTodayStr，保持导出兼容
+var getTodayStr = pageHelpers.getTodayStr
 
 function getNowTime() {
   var d = new Date()
@@ -79,8 +78,11 @@ function syncFromCloud() {
 
 function saveProducts(products) {
   childStorage.set(PRODUCTS_KEY, products)
-  // 异步同步到云端
-  cloud.uploadStallProduct(products)
+}
+
+// 同步单个商品到云端（细粒度上传，每条商品独立一条云文档）
+function syncProduct(product) {
+  cloud.uploadStallProduct(product)
 }
 
 function addProduct(product) {
@@ -92,6 +94,7 @@ function addProduct(product) {
   product.updatedAt = new Date().toISOString()
   products.push(product)
   saveProducts(products)
+  syncProduct(product)
   return product
 }
 
@@ -101,6 +104,7 @@ function updateProduct(id, updates) {
     if (products[i].id === id) {
       Object.assign(products[i], updates, { updatedAt: new Date().toISOString() })
       saveProducts(products)
+      syncProduct(products[i])
       return products[i]
     }
   }
@@ -131,8 +135,6 @@ function getSales() {
 
 function saveSales(sales) {
   childStorage.set(SALES_KEY, sales)
-  // 异步同步到云端
-  cloud.uploadStallSale(sales)
 }
 
 function addSale(sale) {
@@ -173,12 +175,12 @@ function addSale(sale) {
 
   sale.change = (sale.paymentReceived || 0) - sale.total
 
-  // 更新库存（使用折后收入）
+    // 更新库存（使用折后收入）
   for (var i = 0; i < sale.items.length; i++) {
     var item = sale.items[i]
     for (var j = 0; j < products.length; j++) {
       if (products[j].id === item.productId) {
-        products[j].quantity -= item.quantity
+        products[j].quantity = Math.max(0, products[j].quantity - item.quantity)
         products[j].totalSold += item.quantity
         // totalRevenue 记录实际收入（折后价）
         products[j].totalRevenue += sale.discount < 10 
@@ -190,8 +192,19 @@ function addSale(sale) {
   }
 
   saveProducts(products)
+  // 同步受影响的商品到云端
+  for (var i = 0; i < sale.items.length; i++) {
+    for (var j = 0; j < products.length; j++) {
+      if (products[j].id === sale.items[i].productId) {
+        syncProduct(products[j])
+        break
+      }
+    }
+  }
   sales.push(sale)
   saveSales(sales)
+  // 同步单条销售记录到云端
+  cloud.uploadStallSale(sale)
 
   // Check level up
   checkLevelUp()
@@ -492,19 +505,30 @@ function getStats() {
   var totalDiscountAmount = 0
   var discountOrderCount = 0
 
-  for (var i = 0; i < sales.length; i++) {
-    totalRevenue += sales[i].total || 0
-    // 折扣统计
-    if (sales[i].discount && sales[i].discount < 10) {
-      totalDiscountAmount += sales[i].discountAmount || 0
-      discountOrderCount++
-    }
+  // 构建商品当前成本价映射（供无快照的老订单 fallback）
+  var productCostMap = {}
+  for (var i = 0; i < products.length; i++) {
+    productCostMap[products[i].id] = products[i].costPrice || 0
   }
 
-  // Calculate profit
-  for (var i = 0; i < products.length; i++) {
-    var p = products[i]
-    totalProfit += (p.totalRevenue || 0) - ((p.costPrice || 0) * (p.totalSold || 0))
+  for (var i = 0; i < sales.length; i++) {
+    var sale = sales[i]
+    totalRevenue += sale.total || 0
+    // 折扣统计
+    if (sale.discount && sale.discount < 10) {
+      totalDiscountAmount += sale.discountAmount || 0
+      discountOrderCount++
+    }
+    // 使用订单快照成本价计算利润（向后兼容无快照的老订单：fallback 到商品当前成本价）
+    var discount = sale.discount || 10
+    for (var j = 0; j < sale.items.length; j++) {
+      var item = sale.items[j]
+      var costPrice = item.costPrice || productCostMap[item.productId] || 0
+      var itemRevenue = discount < 10
+        ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
+        : (item.subtotal || 0)
+      totalProfit += itemRevenue - costPrice * (item.quantity || 0)
+    }
   }
 
   // Top products（使用折后价）

@@ -1,4 +1,5 @@
 var stallManager = require('../../../utils/stall-manager.js')
+var stallUtils = require('../../../utils/stall-utils.js')
 
 Page({
   data: {
@@ -19,13 +20,18 @@ Page({
   onLoad: function() {
     stallManager.syncFromCloud()
     this.loadData()
-    this.setThemeColor()
+    stallUtils.setThemeColor()
     this.startDurationTimer()
   },
 
   onShow: function() {
     this.loadData()
-    this.setThemeColor()
+    stallUtils.setThemeColor()
+    this.startDurationTimer()
+  },
+
+  onHide: function() {
+    this.stopDurationTimer()
   },
 
   onUnload: function() {
@@ -33,6 +39,8 @@ Page({
   },
 
   startDurationTimer: function() {
+    // 先清理旧定时器，避免 onLoad/onShow 叠加导致泄漏
+    this.stopDurationTimer()
     var that = this
     this._durationTimer = setInterval(function() {
       if (that.data.settings.isOpen) {
@@ -70,15 +78,6 @@ Page({
       currentDuration: currentDuration,
       currentDurationText: currentDurationText,
       totalDurationText: totalDurationText
-    })
-  },
-
-  setThemeColor: function() {
-    var app = getApp()
-    wx.setNavigationBarColor({
-      frontColor: '#ffffff',
-      backgroundColor: app.globalData.themeColor || '#FF9AAB',
-      animation: { duration: 0 }
     })
   },
 

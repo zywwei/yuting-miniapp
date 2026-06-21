@@ -1,4 +1,5 @@
 var stallManager = require('../../../../utils/stall-manager.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 
 Page({
   data: {
@@ -16,7 +17,7 @@ Page({
   onLoad: function() {
     this.setData({ categories: stallManager.getCategories() })
     this.loadData()
-    this.setThemeColor()
+    stallUtils.setThemeColor()
   },
 
   onShow: function() {
@@ -146,14 +147,5 @@ Page({
 
   goAddProduct: function() {
     wx.navigateTo({ url: '/pages/create/stall/add-product/add-product' })
-  },
-
-  setThemeColor: function() {
-    var app = getApp()
-    wx.setNavigationBarColor({
-      frontColor: '#ffffff',
-      backgroundColor: app.globalData.themeColor || '#FF9AAB',
-      animation: { duration: 0 }
-    })
   }
 })

@@ -1,4 +1,6 @@
 var stallManager = require('../../../../utils/stall-manager.js')
+var childStorage = require('../../../../utils/child-storage.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 
 var RESTOCK_KEY = 'stallRestockList'
 
@@ -15,9 +17,22 @@ Page({
   },
 
   onLoad: function() {
+    this.migrateData()
     this.loadItems()
     this.loadProducts()
-    this.setThemeColor()
+    stallUtils.setThemeColor()
+  },
+
+  // 一次性迁移：旧的裸 key 数据迁移到 childStorage（按孩子隔离）
+  migrateData: function() {
+    var oldData = wx.getStorageSync(RESTOCK_KEY)
+    if (oldData && Array.isArray(oldData) && oldData.length > 0) {
+      var currentData = childStorage.get(RESTOCK_KEY)
+      if (!currentData || currentData.length === 0) {
+        childStorage.set(RESTOCK_KEY, oldData)
+      }
+      wx.removeStorageSync(RESTOCK_KEY)
+    }
   },
 
   onShow: function() {
@@ -25,13 +40,13 @@ Page({
   },
 
   loadItems: function() {
-    var items = wx.getStorageSync(RESTOCK_KEY) || []
+    var items = childStorage.get(RESTOCK_KEY) || []
     var checkedCount = items.filter(function(item) { return item.checked }).length
     this.setData({ items: items, checkedCount: checkedCount })
   },
 
   saveItems: function() {
-    wx.setStorageSync(RESTOCK_KEY, this.data.items)
+    childStorage.set(RESTOCK_KEY, this.data.items)
   },
 
   loadProducts: function() {
@@ -172,15 +187,6 @@ Page({
     if (!keyword) return products
     return products.filter(function(p) {
       return p.name.toLowerCase().indexOf(keyword.toLowerCase()) >= 0
-    })
-  },
-
-  setThemeColor: function() {
-    var app = getApp()
-    wx.setNavigationBarColor({
-      frontColor: '#ffffff',
-      backgroundColor: app.globalData.themeColor || '#FF9AAB',
-      animation: { duration: 0 }
     })
   }
 })
