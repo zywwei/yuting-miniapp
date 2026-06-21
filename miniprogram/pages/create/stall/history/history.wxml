@@ -1,123 +1,189 @@
 <view class="container">
-  <!-- 搜索框 -->
-  <view class="search-bar">
-    <text class="search-icon">🔍</text>
-    <input class="search-input" placeholder="搜索商品名称..." bindinput="onSearchInput" value="{{searchKeyword}}" />
+  <!-- Tab 切换 -->
+  <view class="tab-bar">
+    <view class="tab-item {{activeTab === 'orders' ? 'active' : ''}}" bindtap="switchTab" data-tab="orders">📋 订单记录</view>
+    <view class="tab-item {{activeTab === 'hours' ? 'active' : ''}}" bindtap="switchTab" data-tab="hours">⏱️ 营业时长</view>
   </view>
 
-  <!-- 今日概况 -->
-  <view class="today-overview" wx:if="{{todayOverview}}">
-    <view class="overview-title">📅 今日概况</view>
-    <view class="overview-row">
-      <text class="overview-item">开店 {{todayOverview.firstOpenTime}}</text>
-      <text class="overview-item">营业 {{todayOverview.durationText}}</text>
+  <!-- 订单记录 Tab -->
+  <view wx:if="{{activeTab === 'orders'}}">
+    <!-- 搜索框 -->
+    <view class="search-bar">
+      <text class="search-icon">🔍</text>
+      <input class="search-input" placeholder="搜索商品名称..." bindinput="onSearchInput" value="{{searchKeyword}}" />
     </view>
-    <view class="overview-row">
-      <text class="overview-item">{{todayOverview.orderCount}}单</text>
-      <text class="overview-item">¥{{todayOverview.revenue}}</text>
-      <text class="overview-item profit">利润¥{{todayOverview.profit}}</text>
-    </view>
-  </view>
 
-  <!-- 筛选栏 -->
-  <view class="filter-bar">
-    <view class="filter-item {{currentFilter === 'today' ? 'active' : ''}}" bindtap="setFilter" data-filter="today">今日</view>
-    <view class="filter-item {{currentFilter === 'week' ? 'active' : ''}}" bindtap="setFilter" data-filter="week">本周</view>
-    <view class="filter-item {{currentFilter === 'month' ? 'active' : ''}}" bindtap="setFilter" data-filter="month">本月</view>
-    <view class="filter-item {{currentFilter === 'all' ? 'active' : ''}}" bindtap="setFilter" data-filter="all">全部</view>
-  </view>
-
-  <!-- 自定义日期 -->
-  <view class="date-range-picker">
-    <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
-      <text class="date-pick-btn {{startDate ? 'active' : ''}}">{{startDate || '起始日期'}}</text>
-    </picker>
-    <text class="date-sep">~</text>
-    <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
-      <text class="date-pick-btn {{endDate ? 'active' : ''}}">{{endDate || '截止日期'}}</text>
-    </picker>
-    <text wx:if="{{startDate || endDate}}" class="date-clear" bindtap="clearDateRange">✕</text>
-  </view>
-
-  <!-- 汇总栏 -->
-  <view class="summary-bar">
-    <view class="summary-item">
-      <text class="summary-value">¥{{filteredTotal}}</text>
-      <text class="summary-label">总金额</text>
+    <!-- 筛选栏 -->
+    <view class="filter-bar">
+      <view class="filter-item {{currentFilter === 'today' ? 'active' : ''}}" bindtap="setFilter" data-filter="today">今日</view>
+      <view class="filter-item {{currentFilter === 'week' ? 'active' : ''}}" bindtap="setFilter" data-filter="week">本周</view>
+      <view class="filter-item {{currentFilter === 'month' ? 'active' : ''}}" bindtap="setFilter" data-filter="month">本月</view>
+      <view class="filter-item {{currentFilter === 'all' ? 'active' : ''}}" bindtap="setFilter" data-filter="all">全部</view>
     </view>
-    <view class="summary-item">
-      <text class="summary-value">{{filteredCount}}</text>
-      <text class="summary-label">订单数</text>
-    </view>
-    <view class="summary-item">
-      <text class="summary-value profit">¥{{filteredProfit}}</text>
-      <text class="summary-label">利润</text>
-    </view>
-  </view>
 
-  <!-- 历史列表 -->
-  <view class="history-list">
-    <view class="date-group" wx:for="{{groupedSales}}" wx:key="date">
-      <!-- 日期头部 -->
-      <view class="date-header">
-        <text class="date-text">{{item.date}}</text>
-        <view class="date-stats">
-          <text class="date-orders">{{item.count}}单</text>
-          <text class="date-total">¥{{item.total}}</text>
-          <text class="date-profit">利润¥{{item.profit}}</text>
-          <text class="date-hours" wx:if="{{item.businessHours.totalDurationText !== '0分钟'}}">⏱️{{item.businessHours.totalDurationText}}</text>
+    <!-- 自定义日期 -->
+    <view class="date-range-picker">
+      <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+        <text class="date-pick-btn {{startDate ? 'active' : ''}}">{{startDate || '起始日期'}}</text>
+      </picker>
+      <text class="date-sep">~</text>
+      <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+        <text class="date-pick-btn {{endDate ? 'active' : ''}}">{{endDate || '截止日期'}}</text>
+      </picker>
+      <text wx:if="{{startDate || endDate}}" class="date-clear" bindtap="clearDateRange">✕</text>
+    </view>
+
+    <!-- 汇总栏 -->
+    <view class="summary-bar">
+      <view class="summary-item">
+        <text class="summary-value">¥{{filteredTotal}}</text>
+        <text class="summary-label">总金额</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value">{{filteredCount}}</text>
+        <text class="summary-label">订单数</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value profit">¥{{filteredProfit}}</text>
+        <text class="summary-label">利润</text>
+      </view>
+    </view>
+
+    <!-- 历史列表 -->
+    <view class="history-list">
+      <view class="date-group" wx:for="{{groupedSales}}" wx:key="date">
+        <!-- 日期头部 -->
+        <view class="date-header">
+          <text class="date-text">{{item.date}}</text>
+          <view class="date-stats">
+            <text class="date-orders">{{item.count}}单</text>
+            <text class="date-total">¥{{item.total}}</text>
+            <text class="date-profit">利润¥{{item.profit}}</text>
+          </view>
+        </view>
+
+        <!-- 订单列表 -->
+        <view class="sale-item" wx:for="{{item.sales}}" wx:for-item="sale" wx:key="id">
+          <!-- 摘要行 -->
+          <view class="sale-summary" bindtap="toggleSaleDetail" data-id="{{sale.id}}">
+            <text class="sale-time">{{sale.time}}</text>
+            <text class="sale-total">¥{{sale.total}}</text>
+            <view wx:if="{{sale.discount < 10}}" class="discount-badge">{{sale.discount}}折</view>
+            <text class="sale-count">{{sale.items.length}}种</text>
+            <text class="expand-icon">{{sale.expanded ? '▼' : '▶'}}</text>
+          </view>
+
+          <!-- 详情 -->
+          <view class="sale-detail" wx:if="{{sale.expanded}}">
+            <view wx:if="{{sale.discount < 10}}" class="sale-original">
+              <text class="original-text">原价 ¥{{sale.originalTotal}}</text>
+              <text class="save-text">省 ¥{{sale.discountAmount}}</text>
+            </view>
+            <view class="sale-items">
+              <view class="sale-item-row" wx:for="{{sale.items}}" wx:for-item="item" wx:key="productId">
+                <text class="item-name">{{item.productName}}</text>
+                <text class="item-qty">x{{item.quantity}}</text>
+                <text class="item-price">¥{{item.subtotal}}</text>
+              </view>
+            </view>
+            <view class="sale-payment" wx:if="{{sale.paymentReceived}}">
+              <text class="payment-text">付款 ¥{{sale.paymentReceived}}</text>
+              <text class="change-text" wx:if="{{sale.change > 0}}">找零 ¥{{sale.change}}</text>
+            </view>
+            <view class="sale-footer">
+              <text class="sale-profit">利润 ¥{{sale.profit}}</text>
+              <view class="delete-btn" catchtap="deleteSale" data-id="{{sale.id}}">删除</view>
+            </view>
+          </view>
         </view>
       </view>
+    </view>
 
-      <!-- 营业时间详情 -->
-      <view class="business-hours-detail" wx:if="{{item.businessHours.sessions.length > 0}}">
-        <view class="session-item" wx:for="{{item.businessHours.sessions}}" wx:for-item="session" wx:key="openTimeStr">
-          <text class="session-time">第{{index+1}}次 {{session.openTimeStr}} - {{session.closeTimeStr || '营业中'}}</text>
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{ordersHasMore && filteredCount > 0}}">
+      <text class="load-more-text" wx:if="{{ordersLoading}}">加载中...</text>
+      <text class="load-more-text" wx:else bindtap="loadMoreOrders">加载更多</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty" wx:if="{{filteredCount === 0 && !ordersLoading}}">
+      <text class="empty-icon">📋</text>
+      <text class="empty-text" wx:if="{{searchKeyword}}">没有找到包含「{{searchKeyword}}」的订单</text>
+      <text class="empty-text" wx:else>暂无销售记录</text>
+    </view>
+  </view>
+
+  <!-- 营业时长 Tab -->
+  <view wx:if="{{activeTab === 'hours'}}">
+    <!-- 筛选栏 -->
+    <view class="filter-bar">
+      <view class="filter-item {{hoursFilter === 'today' ? 'active' : ''}}" bindtap="setHoursFilter" data-filter="today">今日</view>
+      <view class="filter-item {{hoursFilter === 'week' ? 'active' : ''}}" bindtap="setHoursFilter" data-filter="week">本周</view>
+      <view class="filter-item {{hoursFilter === 'month' ? 'active' : ''}}" bindtap="setHoursFilter" data-filter="month">本月</view>
+      <view class="filter-item {{hoursFilter === 'all' ? 'active' : ''}}" bindtap="setHoursFilter" data-filter="all">全部</view>
+    </view>
+
+    <!-- 自定义日期 -->
+    <view class="date-range-picker">
+      <picker mode="date" value="{{hoursStartDate}}" bindchange="onHoursStartDateChange">
+        <text class="date-pick-btn {{hoursStartDate ? 'active' : ''}}">{{hoursStartDate || '起始日期'}}</text>
+      </picker>
+      <text class="date-sep">~</text>
+      <picker mode="date" value="{{hoursEndDate}}" bindchange="onHoursEndDateChange">
+        <text class="date-pick-btn {{hoursEndDate ? 'active' : ''}}">{{hoursEndDate || '截止日期'}}</text>
+      </picker>
+      <text wx:if="{{hoursStartDate || hoursEndDate}}" class="date-clear" bindtap="clearHoursDateRange">✕</text>
+    </view>
+
+    <!-- 汇总统计 -->
+    <view class="summary-bar">
+      <view class="summary-item">
+        <text class="summary-value">{{hoursTotalDuration}}</text>
+        <text class="summary-label">总营业时长</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value">{{hoursTotalCount}}</text>
+        <text class="summary-label">营业次数</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-value">{{hoursAvgDuration}}</text>
+        <text class="summary-label">平均时长</text>
+      </view>
+    </view>
+
+    <!-- 营业时长列表 -->
+    <view class="hours-list">
+      <view class="hours-date-group" wx:for="{{groupedHours}}" wx:key="date">
+        <!-- 日期头部 -->
+        <view class="hours-date-header">
+          <text class="hours-date-text">{{item.date}}</text>
+          <view class="hours-date-stats">
+            <text class="hours-date-count">{{item.count}}次</text>
+            <text class="hours-date-duration">{{item.totalDurationText}}</text>
+          </view>
+        </view>
+
+        <!-- 营业明细 -->
+        <view class="hours-session-item" wx:for="{{item.sessions}}" wx:for-item="session" wx:key="openTimeStr">
+          <view class="session-info">
+            <text class="session-label">第{{index+1}}次</text>
+            <text class="session-time">{{session.openTimeStr}} - {{session.closeTimeStr || '营业中'}}</text>
+          </view>
           <text class="session-duration">{{session.durationText}}</text>
         </view>
       </view>
-
-      <!-- 订单列表 -->
-      <view class="sale-item" wx:for="{{item.sales}}" wx:for-item="sale" wx:key="id">
-        <!-- 摘要行 -->
-        <view class="sale-summary" bindtap="toggleSaleDetail" data-id="{{sale.id}}">
-          <text class="sale-time">{{sale.time}}</text>
-          <text class="sale-total">¥{{sale.total}}</text>
-          <view wx:if="{{sale.discount < 10}}" class="discount-badge">{{sale.discount}}折</view>
-          <text class="sale-count">{{sale.items.length}}种</text>
-          <text class="expand-icon">{{sale.expanded ? '▼' : '▶'}}</text>
-        </view>
-
-        <!-- 详情 -->
-        <view class="sale-detail" wx:if="{{sale.expanded}}">
-          <view wx:if="{{sale.discount < 10}}" class="sale-original">
-            <text class="original-text">原价 ¥{{sale.originalTotal}}</text>
-            <text class="save-text">省 ¥{{sale.discountAmount}}</text>
-          </view>
-          <view class="sale-items">
-            <view class="sale-item-row" wx:for="{{sale.items}}" wx:for-item="item" wx:key="productId">
-              <text class="item-name">{{item.productName}}</text>
-              <text class="item-qty">x{{item.quantity}}</text>
-              <text class="item-price">¥{{item.subtotal}}</text>
-            </view>
-          </view>
-          <view class="sale-payment" wx:if="{{sale.paymentReceived}}">
-            <text class="payment-text">付款 ¥{{sale.paymentReceived}}</text>
-            <text class="change-text" wx:if="{{sale.change > 0}}">找零 ¥{{sale.change}}</text>
-          </view>
-          <view class="sale-footer">
-            <text class="sale-profit">利润 ¥{{sale.profit}}</text>
-            <view class="delete-btn" catchtap="deleteSale" data-id="{{sale.id}}">删除</view>
-          </view>
-        </view>
-      </view>
     </view>
-  </view>
 
-  <!-- 空状态 -->
-  <view class="empty" wx:if="{{filteredCount === 0}}">
-    <text class="empty-icon">📋</text>
-    <text class="empty-text" wx:if="{{searchKeyword}}">没有找到包含「{{searchKeyword}}」的订单</text>
-    <text class="empty-text" wx:else>暂无销售记录</text>
+    <!-- 加载更多 -->
+    <view class="load-more" wx:if="{{hoursHasMore && hoursTotalCount > 0}}">
+      <text class="load-more-text" wx:if="{{hoursLoading}}">加载中...</text>
+      <text class="load-more-text" wx:else bindtap="loadMoreHours">加载更多</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty" wx:if="{{hoursTotalCount === 0 && !hoursLoading}}">
+      <text class="empty-icon">⏱️</text>
+      <text class="empty-text">暂无营业记录</text>
+    </view>
   </view>
 </view>

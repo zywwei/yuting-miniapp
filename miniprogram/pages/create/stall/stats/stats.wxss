@@ -13,63 +13,66 @@
   visibility: hidden;
 }
 
-.header {
-  position: relative;
-  margin-bottom: -16rpx;
-  z-index: 1;
-}
-
-.header-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 300rpx;
-  border-radius: 0 0 32rpx 32rpx;
-}
-
-.header-content {
-  position: relative;
-  padding: 32rpx;
-  z-index: 2;
-}
-
-.stats-cards {
+/* 时间维度选择器 */
+.time-tabs {
   display: flex;
-  gap: 16rpx;
+  background: #fff;
+  padding: 16rpx 24rpx;
+  gap: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
 }
 
-.stat-card {
+.time-tab {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24rpx 12rpx;
-  background: rgba(255,255,255,0.2);
-  border-radius: 16rpx;
-  backdrop-filter: blur(10px);
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 26rpx;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 24rpx;
 }
 
-.stat-icon {
-  font-size: 36rpx;
-  margin-bottom: 8rpx;
-}
-
-.stat-value {
-  font-size: 32rpx;
-  font-weight: bold;
+.time-tab.active {
   color: #fff;
-  margin-bottom: 4rpx;
+  background: linear-gradient(135deg, #FF6B8A, #FF9AAB);
 }
 
-.stat-label {
-  font-size: 20rpx;
-  color: rgba(255,255,255,0.8);
+/* 自定义日期选择器 */
+.custom-date-picker {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.date-pick-btn {
+  font-size: 24rpx;
+  color: #999;
+  padding: 12rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 8rpx;
+}
+
+.date-pick-btn.active {
+  color: #FF6B8A;
+  background: #FFF5F7;
+}
+
+.date-sep {
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+.date-clear {
+  font-size: 28rpx;
+  color: #999;
+  padding: 8rpx;
+  margin-left: auto;
 }
 
 .section {
-  position: relative;
-  z-index: 3;
   margin: 16rpx 24rpx;
   background: #fff;
   border-radius: 16rpx;
@@ -91,28 +94,95 @@
   padding: 24rpx 24rpx 16rpx;
 }
 
-.section-header .section-title {
-  padding: 0;
-}
-
-.tab-bar {
+/* 营业数据卡片 */
+.data-cards {
   display: flex;
-  gap: 8rpx;
+  gap: 12rpx;
+  padding: 0 24rpx 24rpx;
 }
 
-.tab-item {
-  padding: 6rpx 16rpx;
+.data-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16rpx 8rpx;
+  background: #FFF5F7;
+  border-radius: 12rpx;
+}
+
+.data-value {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.data-label {
+  font-size: 20rpx;
+  color: #999;
+}
+
+/* 核心指标卡片 */
+.metrics-grid {
+  display: flex;
+  gap: 12rpx;
+  padding: 0 24rpx 24rpx;
+}
+
+.metric-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 12rpx;
+  background: #f8f8f8;
+  border-radius: 12rpx;
+}
+
+.metric-label {
   font-size: 22rpx;
   color: #999;
-  background: #f5f5f5;
-  border-radius: 16rpx;
+  margin-bottom: 8rpx;
 }
 
-.tab-item.active {
-  color: #FF6B8A;
-  background: #FFF5F7;
+.metric-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
 }
 
+.metric-value.profit {
+  color: #4CAF50;
+}
+
+.metric-compare {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  margin-top: 4rpx;
+}
+
+.compare-text {
+  font-size: 20rpx;
+  font-weight: bold;
+}
+
+.compare-text.up {
+  color: #4CAF50;
+}
+
+.compare-text.down {
+  color: #F44336;
+}
+
+.compare-label {
+  font-size: 18rpx;
+  color: #999;
+}
+
+/* 销售趋势图 */
 .chart-container {
   padding: 0 24rpx 24rpx;
   position: relative;
@@ -124,6 +194,255 @@
   height: 300rpx;
 }
 
+/* 经营分析 */
+.profit-section {
+  display: flex;
+  align-items: center;
+  padding: 0 24rpx 24rpx;
+  gap: 32rpx;
+}
+
+.profit-circle {
+  width: 160rpx;
+  height: 160rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profit-ring {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 8rpx solid #FF6B8A;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.profit-value {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #FF6B8A;
+}
+
+.profit-label {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.profit-details {
+  flex: 1;
+}
+
+.profit-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.profit-row:last-child {
+  border-bottom: none;
+}
+
+.profit-key {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.profit-val {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 目标完成率 */
+.target-section {
+  padding: 0 24rpx 24rpx;
+}
+
+.target-header {
+  margin-bottom: 16rpx;
+}
+
+.target-title {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.target-cards {
+  display: flex;
+  gap: 16rpx;
+}
+
+.target-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.target-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.target-progress-bar {
+  height: 16rpx;
+  background: #f0f0f0;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.target-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  border-radius: 8rpx;
+  transition: width 0.3s;
+}
+
+.target-value {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #4CAF50;
+  text-align: right;
+}
+
+/* 高利润商品 */
+.high-profit-section {
+  padding: 0 24rpx 24rpx;
+}
+
+.high-profit-header {
+  margin-bottom: 16rpx;
+}
+
+.high-profit-title {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.high-profit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.high-profit-item {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 16rpx;
+  background: #f8f8f8;
+  border-radius: 12rpx;
+}
+
+.high-profit-rank {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FF9800;
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: bold;
+  border-radius: 50%;
+  margin-right: 16rpx;
+}
+
+.high-profit-item:nth-child(1) .high-profit-rank {
+  background: #FF6B8A;
+}
+
+.high-profit-item:nth-child(2) .high-profit-rank {
+  background: #FF9800;
+}
+
+.high-profit-item:nth-child(3) .high-profit-rank {
+  background: #FFC107;
+}
+
+.high-profit-info {
+  flex: 1;
+}
+
+.high-profit-name {
+  font-size: 26rpx;
+  color: #333;
+  display: block;
+}
+
+.high-profit-rate {
+  font-size: 22rpx;
+  color: #4CAF50;
+}
+
+.high-profit-stats {
+  text-align: right;
+}
+
+.high-profit-amount {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #4CAF50;
+}
+
+/* 客单价分布 */
+.order-distribution-section {
+  padding: 0 24rpx 24rpx;
+}
+
+.distribution-header {
+  margin-bottom: 16rpx;
+}
+
+.distribution-title {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.distribution-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.distribution-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.distribution-range {
+  font-size: 24rpx;
+  color: #666;
+  width: 120rpx;
+}
+
+.distribution-bar {
+  flex: 1;
+  height: 20rpx;
+  background: #f0f0f0;
+  border-radius: 10rpx;
+  overflow: hidden;
+}
+
+.distribution-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #2196F3, #64B5F6);
+  border-radius: 10rpx;
+}
+
+.distribution-count {
+  font-size: 24rpx;
+  color: #999;
+  width: 80rpx;
+  text-align: right;
+}
+
+/* 热销商品 */
 .top-list {
   padding: 0 24rpx 24rpx;
 }
@@ -204,7 +523,7 @@
   color: #FF6B8A;
 }
 
-/* Category stats */
+/* 分类统计 */
 .category-list {
   padding: 0 24rpx 24rpx;
 }
@@ -254,160 +573,6 @@
   color: #999;
 }
 
-/* Profit section */
-.profit-section {
-  display: flex;
-  align-items: center;
-  padding: 0 24rpx 24rpx;
-  gap: 32rpx;
-}
-
-.profit-circle {
-  width: 160rpx;
-  height: 160rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.profit-ring {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 50%;
-  border: 8rpx solid #FF6B8A;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.profit-value {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #FF6B8A;
-}
-
-.profit-label {
-  font-size: 20rpx;
-  color: #999;
-}
-
-.profit-details {
-  flex: 1;
-}
-
-.profit-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 8rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.profit-row:last-child {
-  border-bottom: none;
-}
-
-.profit-key {
-  font-size: 26rpx;
-  color: #666;
-}
-
-.profit-val {
-  font-size: 26rpx;
-  font-weight: bold;
-  color: #333;
-}
-
-.profit-green {
-  color: #4CAF50;
-}
-
-.data-cards {
-  display: flex;
-  gap: 16rpx;
-  padding: 0 24rpx 24rpx;
-}
-
-.data-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20rpx 12rpx;
-  background: #FFF5F7;
-  border-radius: 12rpx;
-}
-
-.data-icon {
-  font-size: 32rpx;
-  margin-bottom: 8rpx;
-}
-
-.data-value {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 4rpx;
-}
-
-.data-label {
-  font-size: 20rpx;
-  color: #999;
-}
-
-/* 折扣统计 */
-.discount-stats {
-  display: flex;
-  gap: 16rpx;
-  padding: 0 24rpx 24rpx;
-}
-
-.discount-stat-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20rpx;
-  background: #FFF3E0;
-  border-radius: 12rpx;
-}
-
-.discount-stat-value {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #FF9800;
-  margin-bottom: 4rpx;
-}
-
-.discount-stat-label {
-  font-size: 20rpx;
-  color: #999;
-}
-
-.today-stats {
-  display: flex;
-  justify-content: space-around;
-  padding: 24rpx;
-}
-
-.today-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.today-value {
-  font-size: 40rpx;
-  font-weight: bold;
-  color: #FF6B8A;
-}
-
-.today-label {
-  font-size: 24rpx;
-  color: #999;
-  margin-top: 4rpx;
-}
-
 .empty-hint {
   text-align: center;
   padding: 32rpx;
@@ -415,6 +580,7 @@
   font-size: 26rpx;
 }
 
+/* 分享按钮 */
 .share-actions {
   padding: 32rpx 24rpx 48rpx;
 }
@@ -440,6 +606,7 @@
   color: #fff;
 }
 
+/* 海报相关 */
 .poster-canvas {
   position: fixed;
   left: -9999rpx;
@@ -483,7 +650,7 @@
 
 .poster-image-wrapper {
   width: 100%;
-  padding-bottom: 177.87%; /* 667/375 = 1.7787 */
+  padding-bottom: 177.87%;
   position: relative;
   overflow: hidden;
   border-radius: 16rpx;
@@ -527,154 +694,4 @@
 .poster-btn.primary {
   color: #fff;
   background: linear-gradient(135deg, #FF6B8A 0%, #FF9AAB 100%);
-}
-
-.poster-image-wrapper {
-  width: 100%;
-  padding-bottom: 177.87%; /* 667/375 = 1.7787 */
-  position: relative;
-  overflow: hidden;
-  border-radius: 16rpx;
-  margin-bottom: 24rpx;
-}
-
-.poster-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.poster-actions {
-  display: flex;
-  gap: 24rpx;
-  width: 100%;
-  padding: 0 10rpx;
-  box-sizing: border-box;
-  flex-shrink: 0;
-}
-
-.poster-image-wrapper {
-  width: 100%;
-  padding-bottom: 177.87%; /* 667/375 = 1.7787 */
-  position: relative;
-  overflow: hidden;
-  border-radius: 16rpx;
-  margin-bottom: 24rpx;
-}
-
-.poster-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.poster-actions {
-  display: flex;
-  gap: 24rpx;
-  width: 100%;
-  flex-shrink: 0;
-}
-
-.poster-btn {
-  flex: 1;
-  padding: 20rpx;
-  text-align: center;
-  font-size: 28rpx;
-  color: #333;
-  background: #fff;
-  border-radius: 12rpx;
-}
-
-.poster-btn.primary {
-  color: #fff;
-  background: linear-gradient(135deg, #FF6B8A 0%, #FF9AAB 100%);
-}
-
-/* 营业时间统计 */
-.hours-cards {
-  display: flex;
-  gap: 16rpx;
-  padding: 0 24rpx 24rpx;
-}
-
-.hours-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20rpx;
-  background: #E8F5E9;
-  border-radius: 12rpx;
-}
-
-.hours-value {
-  font-size: 40rpx;
-  font-weight: bold;
-  color: #4CAF50;
-}
-
-.hours-unit {
-  font-size: 22rpx;
-  color: #66BB6A;
-  margin-top: 4rpx;
-}
-
-.hours-label {
-  font-size: 22rpx;
-  color: #999;
-  margin-top: 8rpx;
-}
-
-.hours-trend {
-  padding: 0 24rpx 24rpx;
-}
-
-.trend-title {
-  font-size: 24rpx;
-  color: #666;
-  margin-bottom: 16rpx;
-}
-
-.trend-bars {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  height: 120rpx;
-  padding: 0 8rpx;
-}
-
-.trend-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 1;
-}
-
-.trend-bar-bg {
-  width: 24rpx;
-  height: 80rpx;
-  background: #f0f0f0;
-  border-radius: 12rpx;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-}
-
-.trend-bar {
-  width: 100%;
-  background: linear-gradient(180deg, #4CAF50, #8BC34A);
-  border-radius: 12rpx;
-  min-height: 4rpx;
-}
-
-.trend-label {
-  font-size: 20rpx;
-  color: #999;
-  margin-top: 8rpx;
 }
