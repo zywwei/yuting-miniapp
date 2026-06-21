@@ -1,22 +1,98 @@
 <view class="container {{posterPath ? 'modal-open' : ''}}">
-  <view class="header">
-    <view class="header-bg" style="background: {{themeGradient}};"></view>
-    <view class="header-content">
-      <view class="stats-cards">
-        <view class="stat-card">
-          <text class="stat-icon">💰</text>
-          <text class="stat-value">¥{{stats.totalRevenue}}</text>
-          <text class="stat-label">累计销售额</text>
+  <!-- 时间维度选择器 -->
+  <view class="time-tabs">
+    <view class="time-tab {{timeTab === 'today' ? 'active' : ''}}" bindtap="switchTimeTab" data-tab="today">今日</view>
+    <view class="time-tab {{timeTab === 'week' ? 'active' : ''}}" bindtap="switchTimeTab" data-tab="week">本周</view>
+    <view class="time-tab {{timeTab === 'month' ? 'active' : ''}}" bindtap="switchTimeTab" data-tab="month">本月</view>
+    <view class="time-tab {{timeTab === 'year' ? 'active' : ''}}" bindtap="switchTimeTab" data-tab="year">本年</view>
+    <view class="time-tab {{timeTab === 'custom' ? 'active' : ''}}" bindtap="showCustomDate">自定义</view>
+  </view>
+
+  <!-- 自定义日期选择器 -->
+  <view class="custom-date-picker" wx:if="{{showCustomPicker}}">
+    <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+      <text class="date-pick-btn {{startDate ? 'active' : ''}}">{{startDate || '起始日期'}}</text>
+    </picker>
+    <text class="date-sep">~</text>
+    <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+      <text class="date-pick-btn {{endDate ? 'active' : ''}}">{{endDate || '截止日期'}}</text>
+    </picker>
+    <text wx:if="{{startDate || endDate}}" class="date-clear" bindtap="clearCustomDate">✕</text>
+  </view>
+
+  <!-- 营业数据 -->
+  <view class="section">
+    <view class="section-title">🔥 营业数据</view>
+    <view class="data-cards">
+      <view class="data-card">
+        <text class="data-value">{{stats.streakDays}}天</text>
+        <text class="data-label">连续营业</text>
+      </view>
+      <view class="data-card">
+        <text class="data-value">Lv.{{stats.level}}</text>
+        <text class="data-label">摊位等级</text>
+      </view>
+      <view class="data-card">
+        <text class="data-value">{{businessHoursText}}</text>
+        <text class="data-label">营业时长</text>
+      </view>
+      <view class="data-card">
+        <text class="data-value">{{businessHours.openCount}}次</text>
+        <text class="data-label">开店次数</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 核心指标卡片 -->
+  <view class="section">
+    <view class="section-title">📊 核心指标</view>
+    <view class="metrics-grid">
+      <view class="metric-card">
+        <text class="metric-label">销售额</text>
+        <text class="metric-value">¥{{filteredStats.revenue}}</text>
+        <view class="metric-compare" wx:if="{{compareData.revenue}}">
+          <text class="compare-text {{compareData.revenue.trend === 'up' ? 'up' : 'down'}}">
+            {{compareData.revenue.trend === 'up' ? '↑' : '↓'}} {{compareData.revenue.percent}}%
+          </text>
+          <text class="compare-label">环比</text>
         </view>
-        <view class="stat-card">
-          <text class="stat-icon">📈</text>
-          <text class="stat-value">¥{{stats.totalProfit}}</text>
-          <text class="stat-label">累计利润</text>
+        <view class="metric-compare" wx:if="{{yearCompareData.revenue}}">
+          <text class="compare-text {{yearCompareData.revenue.trend === 'up' ? 'up' : 'down'}}">
+            {{yearCompareData.revenue.trend === 'up' ? '↑' : '↓'}} {{yearCompareData.revenue.percent}}%
+          </text>
+          <text class="compare-label">同比</text>
         </view>
-        <view class="stat-card">
-          <text class="stat-icon">📦</text>
-          <text class="stat-value">{{stats.totalOrders}}</text>
-          <text class="stat-label">总订单数</text>
+      </view>
+      <view class="metric-card">
+        <text class="metric-label">利润</text>
+        <text class="metric-value profit">¥{{filteredStats.profit}}</text>
+        <view class="metric-compare" wx:if="{{compareData.profit}}">
+          <text class="compare-text {{compareData.profit.trend === 'up' ? 'up' : 'down'}}">
+            {{compareData.profit.trend === 'up' ? '↑' : '↓'}} {{compareData.profit.percent}}%
+          </text>
+          <text class="compare-label">环比</text>
+        </view>
+        <view class="metric-compare" wx:if="{{yearCompareData.profit}}">
+          <text class="compare-text {{yearCompareData.profit.trend === 'up' ? 'up' : 'down'}}">
+            {{yearCompareData.profit.trend === 'up' ? '↑' : '↓'}} {{yearCompareData.profit.percent}}%
+          </text>
+          <text class="compare-label">同比</text>
+        </view>
+      </view>
+      <view class="metric-card">
+        <text class="metric-label">订单数</text>
+        <text class="metric-value">{{filteredStats.orders}}</text>
+        <view class="metric-compare" wx:if="{{compareData.orders}}">
+          <text class="compare-text {{compareData.orders.trend === 'up' ? 'up' : 'down'}}">
+            {{compareData.orders.trend === 'up' ? '↑' : '↓'}} {{compareData.orders.percent}}%
+          </text>
+          <text class="compare-label">环比</text>
+        </view>
+        <view class="metric-compare" wx:if="{{yearCompareData.orders}}">
+          <text class="compare-text {{yearCompareData.orders.trend === 'up' ? 'up' : 'down'}}">
+            {{yearCompareData.orders.trend === 'up' ? '↑' : '↓'}} {{yearCompareData.orders.percent}}%
+          </text>
+          <text class="compare-label">同比</text>
         </view>
       </view>
     </view>
@@ -25,22 +101,111 @@
   <!-- 销售趋势图 -->
   <view class="section">
     <view class="section-header">
-      <text class="section-title">📊 销售趋势</text>
-      <view class="tab-bar">
-        <view class="tab-item {{currentTab === 'week' ? 'active' : ''}}" bindtap="switchTab" data-tab="week">近7天</view>
-        <view class="tab-item {{currentTab === 'month' ? 'active' : ''}}" bindtap="switchTab" data-tab="month">近30天</view>
-      </view>
+      <text class="section-title">📈 销售趋势</text>
     </view>
     <view class="chart-container">
       <canvas type="2d" id="salesChart" class="sales-chart"></canvas>
     </view>
   </view>
 
-  <!-- 热销商品 -->
+  <!-- 经营分析 -->
+  <view class="section">
+    <view class="section-title">💹 经营分析</view>
+    
+    <!-- 利润率环形图 -->
+    <view class="profit-section">
+      <view class="profit-circle">
+        <view class="profit-ring">
+          <text class="profit-value">{{profitMargin}}%</text>
+          <text class="profit-label">利润率</text>
+        </view>
+      </view>
+      <view class="profit-details">
+        <view class="profit-row">
+          <text class="profit-key">平均客单价</text>
+          <text class="profit-val">{{avgOrder}}</text>
+        </view>
+        <view class="profit-row">
+          <text class="profit-key">商品动销率</text>
+          <text class="profit-val">{{productActiveRate}}%</text>
+        </view>
+        <view class="profit-row" wx:if="{{stats.discountOrderCount > 0}}">
+          <text class="profit-key">折扣订单</text>
+          <text class="profit-val">{{stats.discountOrderCount}}单</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 目标完成率 -->
+    <view class="target-section" wx:if="{{targetData}}">
+      <view class="target-header">
+        <text class="target-title">📊 目标完成</text>
+      </view>
+      <view class="target-cards">
+        <view class="target-card">
+          <text class="target-label">今日目标 (¥{{targetData.today.target}})</text>
+          <view class="target-progress-bar">
+            <view class="target-progress" style="width: {{targetData.today.percent}}%;"></view>
+          </view>
+          <text class="target-value">{{targetData.today.percent}}%</text>
+        </view>
+        <view class="target-card" wx:if="{{targetData.period}}">
+          <text class="target-label">{{targetData.period.label}} (¥{{targetData.period.target}})</text>
+          <view class="target-progress-bar">
+            <view class="target-progress" style="width: {{targetData.period.percent}}%;"></view>
+          </view>
+          <text class="target-value">{{targetData.period.percent}}%</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 高利润商品 Top3 -->
+    <view class="high-profit-section">
+      <view class="high-profit-header">
+        <text class="high-profit-title">💎 高利润商品</text>
+      </view>
+      <view class="high-profit-list" wx:if="{{highProfitProducts.length > 0}}">
+        <view class="high-profit-item" wx:for="{{highProfitProducts}}" wx:key="id">
+          <view class="high-profit-rank">{{index + 1}}</view>
+          <view class="high-profit-info">
+            <text class="high-profit-name">{{item.name}}</text>
+            <text class="high-profit-rate">利润率 {{item.profitRate}}%</text>
+          </view>
+          <view class="high-profit-stats">
+            <text class="high-profit-amount">¥{{item.profit}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="empty-hint" wx:else>
+        <text>暂无销售数据</text>
+      </view>
+    </view>
+
+    <!-- 客单价分布 -->
+    <view class="order-distribution-section">
+      <view class="distribution-header">
+        <text class="distribution-title">📦 客单价分布</text>
+      </view>
+      <view class="distribution-list" wx:if="{{orderDistribution.length > 0}}">
+        <view class="distribution-item" wx:for="{{orderDistribution}}" wx:key="range">
+          <text class="distribution-range">{{item.range}}</text>
+          <view class="distribution-bar">
+            <view class="distribution-progress" style="width: {{item.percent}}%;"></view>
+          </view>
+          <text class="distribution-count">{{item.count}}单</text>
+        </view>
+      </view>
+      <view class="empty-hint" wx:else>
+        <text>暂无销售数据</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 商品分析 -->
   <view class="section">
     <view class="section-title">🏆 热销商品 Top5</view>
     <view class="top-list">
-      <view class="top-item" wx:for="{{stats.topProducts}}" wx:key="id">
+      <view class="top-item" wx:for="{{filteredStats.topProducts}}" wx:key="id">
         <view class="top-rank">{{index + 1}}</view>
         <view class="top-info">
           <text class="top-name">{{item.name}}</text>
@@ -53,7 +218,7 @@
           <text class="top-revenue">¥{{item.revenue}}</text>
         </view>
       </view>
-      <view class="empty-hint" wx:if="{{stats.topProducts.length === 0}}">
+      <view class="empty-hint" wx:if="{{filteredStats.topProducts.length === 0}}">
         <text>暂无销售数据</text>
       </view>
     </view>
@@ -72,116 +237,6 @@
           <text class="category-revenue">¥{{item.revenue}}</text>
           <text class="category-qty">x{{item.quantity}}</text>
         </view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 利润率 -->
-  <view class="section">
-    <view class="section-title">💹 利润分析</view>
-    <view class="profit-section">
-      <view class="profit-circle">
-        <view class="profit-ring">
-          <text class="profit-value">{{profitMargin}}%</text>
-          <text class="profit-label">利润率</text>
-        </view>
-      </view>
-      <view class="profit-details">
-        <view class="profit-row">
-          <text class="profit-key">累计销售额</text>
-          <text class="profit-val">¥{{stats.totalRevenue}}</text>
-        </view>
-        <view class="profit-row">
-          <text class="profit-key">累计利润</text>
-          <text class="profit-val profit-green">¥{{stats.totalProfit}}</text>
-        </view>
-        <view class="profit-row">
-          <text class="profit-key">平均客单价</text>
-          <text class="profit-val">{{avgOrder}}</text>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 营业数据 -->
-  <view class="section">
-    <view class="section-title">🔥 营业数据</view>
-    <view class="data-cards">
-      <view class="data-card">
-        <text class="data-icon">🔥</text>
-        <text class="data-value">{{stats.streakDays}}</text>
-        <text class="data-label">连续营业天数</text>
-      </view>
-      <view class="data-card">
-        <text class="data-icon">⭐</text>
-        <text class="data-value">Lv.{{stats.level}}</text>
-        <text class="data-label">摊位等级</text>
-      </view>
-      <view class="data-card">
-        <text class="data-icon">📊</text>
-        <text class="data-value">{{avgOrder}}</text>
-        <text class="data-label">平均客单价</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 折扣统计 -->
-  <view class="section" wx:if="{{stats.discountOrderCount > 0}}">
-    <view class="section-title">💰 折扣统计</view>
-    <view class="discount-stats">
-      <view class="discount-stat-item">
-        <text class="discount-stat-value">¥{{stats.totalDiscountAmount}}</text>
-        <text class="discount-stat-label">累计折扣</text>
-      </view>
-      <view class="discount-stat-item">
-        <text class="discount-stat-value">{{stats.discountOrderCount}}</text>
-        <text class="discount-stat-label">折扣订单</text>
-      </view>
-      <view class="discount-stat-item">
-        <text class="discount-stat-value">¥{{stats.avgDiscountAmount}}</text>
-        <text class="discount-stat-label">平均节省</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 营业时间统计 -->
-  <view class="section">
-    <view class="section-title">⏱️ 营业时间</view>
-    <view class="hours-cards">
-      <view class="hours-card">
-        <text class="hours-value">{{businessHoursText}}</text>
-        <text class="hours-label">今日营业时长</text>
-      </view>
-      <view class="hours-card">
-        <text class="hours-value">{{businessHours.openCount}}</text>
-        <text class="hours-unit">次</text>
-        <text class="hours-label">今日开店次数</text>
-      </view>
-    </view>
-    <view class="hours-trend" wx:if="{{weekBusinessHours.length > 0}}">
-      <view class="trend-title">本周营业时长</view>
-      <view class="trend-bars">
-        <view class="trend-item" wx:for="{{weekBusinessHours}}" wx:key="date">
-          <view class="trend-bar-bg">
-            <view class="trend-bar" style="height: {{item.duration > 0 ? (item.duration / 120 * 100) : 0}}%;"></view>
-          </view>
-          <text class="trend-label">{{item.label}}</text>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 今日概况 -->
-  <view class="section">
-    <view class="section-title">📅 今日概况</view>
-    <view class="today-stats">
-      <view class="today-item">
-        <text class="today-value">¥{{stats.todayRevenue}}</text>
-        <text class="today-label">今日销售额</text>
-      </view>
-      <view class="today-item">
-        <text class="today-value">{{stats.todayOrders}}</text>
-        <text class="today-label">今日订单</text>
       </view>
     </view>
   </view>

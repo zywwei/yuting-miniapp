@@ -4,6 +4,32 @@
   padding: 16rpx;
 }
 
+/* Tab 切换 */
+.tab-bar {
+  display: flex;
+  background: #fff;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  color: #666;
+  border-bottom: 4rpx solid transparent;
+}
+
+.tab-item.active {
+  color: #FF6B8A;
+  font-weight: bold;
+  border-bottom-color: #FF6B8A;
+  background: #FFF5F7;
+}
+
 /* 搜索框 */
 .search-bar {
   display: flex;
@@ -23,41 +49,6 @@
 .search-input {
   flex: 1;
   font-size: 28rpx;
-}
-
-/* 今日概况 */
-.today-overview {
-  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  color: #fff;
-}
-
-.overview-title {
-  font-size: 28rpx;
-  font-weight: bold;
-  margin-bottom: 12rpx;
-}
-
-.overview-row {
-  display: flex;
-  gap: 24rpx;
-  margin-bottom: 8rpx;
-}
-
-.overview-row:last-child {
-  margin-bottom: 0;
-}
-
-.overview-item {
-  font-size: 24rpx;
-  opacity: 0.9;
-}
-
-.overview-item.profit {
-  color: #FFD700;
-  font-weight: bold;
 }
 
 /* 筛选栏 */
@@ -203,36 +194,6 @@
   color: #4CAF50;
 }
 
-.date-hours {
-  font-size: 22rpx;
-  color: #999;
-}
-
-/* 营业时间详情 */
-.business-hours-detail {
-  padding: 12rpx 24rpx;
-  background: #FAFAFA;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.session-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6rpx 0;
-}
-
-.session-time {
-  font-size: 22rpx;
-  color: #666;
-}
-
-.session-duration {
-  font-size: 22rpx;
-  color: #4CAF50;
-  font-weight: bold;
-}
-
 /* 订单项 */
 .sale-item {
   border-bottom: 1rpx solid #f5f5f5;
@@ -369,6 +330,99 @@
   padding: 8rpx 16rpx;
   background: #FFEBEE;
   border-radius: 8rpx;
+}
+
+/* 营业时长列表 */
+.hours-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.hours-date-group {
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.hours-date-header {
+  padding: 16rpx 24rpx;
+  background: #f8f8f8;
+  border-bottom: 1rpx solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hours-date-text {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.hours-date-stats {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.hours-date-count {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.hours-date-duration {
+  font-size: 22rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+.hours-session-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.hours-session-item:last-child {
+  border-bottom: none;
+}
+
+.session-info {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.session-label {
+  font-size: 24rpx;
+  color: #999;
+  width: 80rpx;
+  flex-shrink: 0;
+}
+
+.session-time {
+  font-size: 24rpx;
+  color: #333;
+}
+
+.session-duration {
+  font-size: 24rpx;
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 24rpx;
+}
+
+.load-more-text {
+  font-size: 28rpx;
+  color: #999;
 }
 
 /* 空状态 */

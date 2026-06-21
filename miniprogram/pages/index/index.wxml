@@ -73,14 +73,6 @@
   <view class="section">
     <view class="section-title">🎯 快捷入口</view>
     <view class="quick-grid">
-      <view class="quick-item" bindtap="goModule" data-module="habits">
-        <view class="quick-icon">🎯</view>
-        <view class="quick-text">习惯</view>
-      </view>
-      <view class="quick-item" bindtap="goModule" data-module="learn">
-        <view class="quick-icon">📚</view>
-        <view class="quick-text">学习</view>
-      </view>
       <view class="quick-item" bindtap="goModule" data-module="draw">
         <view class="quick-icon">🎨</view>
         <view class="quick-text">画画</view>
@@ -88,6 +80,10 @@
       <view class="quick-item" bindtap="goModule" data-module="stall">
         <view class="quick-icon">🏪</view>
         <view class="quick-text">摆摊</view>
+      </view>
+      <view class="quick-item" bindtap="goModule" data-module="changeCalc">
+        <view class="quick-icon">💰</view>
+        <view class="quick-text">找零器</view>
       </view>
     </view>
   </view>

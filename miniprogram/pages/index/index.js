@@ -90,9 +90,6 @@ Page({
       currentChildId = children[0].childId
     }
 
-    // 调试日志
-    console.log('当前孩子数据:', currentChild)
-
     this.setData({
       growthDays: app.globalData.growthDays || 0,
       children: children,
@@ -327,7 +324,8 @@ Page({
       create: '/pages/create/index',
       notes: '/pages/notes/index',
       draw: '/pages/create/draw/index',
-      stall: '/pages/create/stall/index'
+      stall: '/pages/create/stall/index',
+      changeCalc: '/pages/create/stall/change-calc/change-calc'
     }
     var url = urlMap[module]
     if (url) {

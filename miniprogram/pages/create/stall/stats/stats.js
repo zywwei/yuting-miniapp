@@ -6,24 +6,28 @@ Page({
     stats: {},
     avgOrder: '¥0',
     posterPath: '',
-    currentTab: 'week',
+    timeTab: 'today',
+    startDate: '',
+    endDate: '',
+    showCustomPicker: false,
+    filteredStats: { revenue: 0, profit: 0, orders: 0, topProducts: [] },
     dailySales: [],
     categoryStats: [],
     profitMargin: 0,
     themeColor: '#FF9AAB',
     themeGradient: 'linear-gradient(135deg, #FF9AAB 0%, #FFB6C1 100%)',
     businessHours: null,
-    weekBusinessHours: []
+    businessHoursText: '0分钟',
+    compareData: {},
+    yearCompareData: {}
   },
 
   onLoad: function() {
-    this.loadData()
     this.setNavBarColor()
   },
 
   onShow: function() {
     this.loadData()
-    // 获取主题颜色
     var app = getApp()
     if (app.globalData.themeColor) {
       this.setData({
@@ -49,75 +53,256 @@ Page({
     var products = stallManager.getProducts()
 
     var avgOrder = stats.totalOrders > 0 ? Math.round(stats.totalRevenue / stats.totalOrders) : 0
-
-    var maxRevenue = 0
-    for (var i = 0; i < stats.topProducts.length; i++) {
-      if (stats.topProducts[i].revenue > maxRevenue) {
-        maxRevenue = stats.topProducts[i].revenue
-      }
-    }
-    for (var i = 0; i < stats.topProducts.length; i++) {
-      stats.topProducts[i].percent = maxRevenue > 0 ? Math.round(stats.topProducts[i].revenue / maxRevenue * 100) : 0
-    }
-
     var profitMargin = stats.totalRevenue > 0 ? Math.round(stats.totalProfit / stats.totalRevenue * 100) : 0
-    var dailySales = this.getDailySales(sales, this.data.currentTab)
-    var categoryStats = this.getCategoryStats(sales, products)
+
+    // 根据时间维度筛选数据
+    var filteredSales = this.getFilteredSales(sales)
+    var filteredStats = this.calculateFilteredStats(filteredSales, products)
+    var dailySales = this.getDailySales(sales)
+    var categoryStats = this.getCategoryStats(filteredSales, products)
+
+    // 计算环比和同比
+    var compareData = this.getPeriodCompare(sales)
+    var yearCompareData = this.getYearOverYear(sales)
 
     // 营业时间统计
     var businessHours = stallManager.getTodayBusinessHours()
-    var weekBusinessHours = this.getWeekBusinessHours()
     var totalMin = businessHours.totalDuration || 0
     var bHours = Math.floor(totalMin / 60)
     var bMins = totalMin % 60
     var businessHoursText = bHours > 0 ? bHours + '小时' + bMins + '分钟' : bMins + '分钟'
 
+    // 计算 Top5 百分比
+    var maxRevenue = 0
+    for (var i = 0; i < filteredStats.topProducts.length; i++) {
+      if (filteredStats.topProducts[i].revenue > maxRevenue) {
+        maxRevenue = filteredStats.topProducts[i].revenue
+      }
+    }
+    for (var i = 0; i < filteredStats.topProducts.length; i++) {
+      filteredStats.topProducts[i].percent = maxRevenue > 0 ? Math.round(filteredStats.topProducts[i].revenue / maxRevenue * 100) : 0
+    }
+
     this.setData({
       stats: stats,
       avgOrder: '¥' + avgOrder,
       profitMargin: profitMargin,
+      filteredStats: filteredStats,
       dailySales: dailySales,
       categoryStats: categoryStats,
       businessHours: businessHours,
       businessHoursText: businessHoursText,
-      weekBusinessHours: weekBusinessHours
+      compareData: compareData,
+      yearCompareData: yearCompareData,
+      productActiveRate: this.calcProductActiveRate(products, filteredSales),
+      highProfitProducts: this.calcHighProfitProducts(filteredSales, products),
+      orderDistribution: this.calcOrderDistribution(filteredSales),
+      targetData: this.calcTargetData(filteredStats, sales)
     })
 
-    setTimeout(function() {
-      this.drawSalesChart(dailySales)
-    }.bind(this), 100)
+    this.drawSalesChart(dailySales)
   },
 
-  switchTab: function(e) {
+  switchTimeTab: function(e) {
     var tab = e.currentTarget.dataset.tab
-    this.setData({ currentTab: tab })
-    var sales = stallManager.getSales()
-    var dailySales = this.getDailySales(sales, tab)
-    this.setData({ dailySales: dailySales })
-    setTimeout(function() {
-      this.drawSalesChart(dailySales)
-    }.bind(this), 100)
+    this.setData({ 
+      timeTab: tab,
+      showCustomPicker: tab === 'custom'
+    })
+    this.loadData()
   },
 
-  getDailySales: function(sales, tab) {
-    var days = tab === 'week' ? 7 : 30
+  showCustomDate: function() {
+    this.setData({ showCustomPicker: true, timeTab: 'custom' })
+  },
+
+  onStartDateChange: function(e) {
+    this.setData({ startDate: e.detail.value })
+    if (this.data.endDate) {
+      this.loadData()
+    }
+  },
+
+  onEndDateChange: function(e) {
+    this.setData({ endDate: e.detail.value })
+    if (this.data.startDate) {
+      this.loadData()
+    }
+  },
+
+  clearCustomDate: function() {
+    this.setData({ 
+      startDate: '', 
+      endDate: '',
+      timeTab: 'today',
+      showCustomPicker: false
+    })
+    this.loadData()
+  },
+
+  getFilteredSales: function(sales) {
+    var tab = this.data.timeTab
+    var today = new Date()
+    var todayStr = this.formatDate(today)
+    var filtered = []
+
+    if (tab === 'today') {
+      filtered = sales.filter(function(s) { return s.date === todayStr })
+    } else if (tab === 'week') {
+      var weekStart = new Date(today)
+      var dayOfWeek = today.getDay()
+      var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      weekStart.setDate(today.getDate() - diff)
+      var weekStartStr = this.formatDate(weekStart)
+      filtered = sales.filter(function(s) { return s.date >= weekStartStr && s.date <= todayStr })
+    } else if (tab === 'month') {
+      var monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+      var monthStartStr = this.formatDate(monthStart)
+      filtered = sales.filter(function(s) { return s.date >= monthStartStr && s.date <= todayStr })
+    } else if (tab === 'year') {
+      var yearStart = new Date(today.getFullYear(), 0, 1)
+      var yearStartStr = this.formatDate(yearStart)
+      filtered = sales.filter(function(s) { return s.date >= yearStartStr && s.date <= todayStr })
+    } else if (tab === 'custom') {
+      var startDate = this.data.startDate
+      var endDate = this.data.endDate
+      if (startDate && endDate) {
+        filtered = sales.filter(function(s) { return s.date >= startDate && s.date <= endDate })
+      }
+    }
+
+    return filtered
+  },
+
+  calculateFilteredStats: function(sales, products) {
+    var productMap = {}
+    products.forEach(function(p) { productMap[p.id] = p })
+
+    var revenue = 0
+    var profit = 0
+    var orders = sales.length
+    var productStats = {}
+
+    sales.forEach(function(sale) {
+      var discount = sale.discount || 10
+      revenue += sale.total || 0
+
+      sale.items.forEach(function(item) {
+        var product = productMap[item.productId]
+        var costPrice = item.costPrice || (product ? product.costPrice : 0) || 0
+        var itemRevenue = discount < 10 
+          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
+          : (item.subtotal || 0)
+        profit += (itemRevenue - costPrice * (item.quantity || 0))
+
+        if (!productStats[item.productId]) {
+          productStats[item.productId] = {
+            id: item.productId,
+            name: item.productName || (product ? product.name : '未知'),
+            quantity: 0,
+            revenue: 0
+          }
+        }
+        productStats[item.productId].quantity += item.quantity || 0
+        productStats[item.productId].revenue += itemRevenue
+      })
+    })
+
+    var topProducts = Object.values(productStats)
+      .sort(function(a, b) { return b.revenue - a.revenue })
+      .slice(0, 5)
+
+    return {
+      revenue: Math.round(revenue * 100) / 100,
+      profit: Math.round(profit * 100) / 100,
+      orders: orders,
+      topProducts: topProducts
+    }
+  },
+
+  getDailySales: function(sales) {
+    var tab = this.data.timeTab
     var result = []
     var today = new Date()
 
-    for (var i = days - 1; i >= 0; i--) {
-      var d = new Date(today)
-      d.setDate(d.getDate() - i)
-      var dateStr = this.formatDate(d)
-      var daySales = sales.filter(function(s) { return s.date === dateStr })
-      var revenue = daySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
-      var orders = daySales.length
-
-      result.push({
-        date: dateStr,
-        label: (d.getMonth() + 1) + '/' + d.getDate(),
-        revenue: revenue,
-        orders: orders
-      })
+    if (tab === 'today') {
+      // 按小时统计
+      for (var i = 0; i < 24; i++) {
+        var hourStr = (i < 10 ? '0' : '') + i
+        var hourSales = sales.filter(function(s) {
+          return s.date === this.formatDate(today) && s.time && s.time.substring(0, 2) === hourStr
+        }.bind(this))
+        var revenue = hourSales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+        result.push({
+          date: this.formatDate(today),
+          label: hourStr + '时',
+          revenue: revenue,
+          orders: hourSales.length
+        })
+      }
+    } else if (tab === 'week') {
+      for (var i = 6; i >= 0; i--) {
+        var d = new Date(today)
+        d.setDate(d.getDate() - i)
+        var dateStr = this.formatDate(d)
+        var daySales = sales.filter(function(s) { return s.date === dateStr })
+        var revenue = daySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+        result.push({
+          date: dateStr,
+          label: (d.getMonth() + 1) + '/' + d.getDate(),
+          revenue: revenue,
+          orders: daySales.length
+        })
+      }
+    } else if (tab === 'month') {
+      for (var i = 29; i >= 0; i--) {
+        var d = new Date(today)
+        d.setDate(d.getDate() - i)
+        var dateStr = this.formatDate(d)
+        var daySales = sales.filter(function(s) { return s.date === dateStr })
+        var revenue = daySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+        result.push({
+          date: dateStr,
+          label: (d.getMonth() + 1) + '/' + d.getDate(),
+          revenue: revenue,
+          orders: daySales.length
+        })
+      }
+    } else if (tab === 'year') {
+      for (var i = 11; i >= 0; i--) {
+        var d = new Date(today.getFullYear(), today.getMonth() - i, 1)
+        var monthStart = this.formatDate(d)
+        var monthEnd = this.formatDate(new Date(d.getFullYear(), d.getMonth() + 1, 0))
+        var monthSales = sales.filter(function(s) { return s.date >= monthStart && s.date <= monthEnd })
+        var revenue = monthSales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+        result.push({
+          date: monthStart,
+          label: (d.getMonth() + 1) + '月',
+          revenue: revenue,
+          orders: monthSales.length
+        })
+      }
+    } else if (tab === 'custom') {
+      var startDate = this.data.startDate
+      var endDate = this.data.endDate
+      if (startDate && endDate) {
+        var start = new Date(startDate)
+        var end = new Date(endDate)
+        var daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
+        for (var i = 0; i <= daysDiff; i++) {
+          var d = new Date(start)
+          d.setDate(d.getDate() + i)
+          var dateStr = this.formatDate(d)
+          var daySales = sales.filter(function(s) { return s.date === dateStr })
+          var revenue = daySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+          result.push({
+            date: dateStr,
+            label: (d.getMonth() + 1) + '/' + d.getDate(),
+            revenue: revenue,
+            orders: daySales.length
+          })
+        }
+      }
     }
 
     return result
@@ -136,7 +321,6 @@ Page({
         if (!categories[category]) {
           categories[category] = { name: category, revenue: 0, quantity: 0 }
         }
-        // 使用折后价计算分类收入
         var itemRevenue = discount < 10 
           ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
           : (item.subtotal || 0)
@@ -154,29 +338,179 @@ Page({
     return result
   },
 
-  getWeekBusinessHours: function() {
-    var hours = []
+  getPeriodCompare: function(sales) {
+    var tab = this.data.timeTab
     var today = new Date()
-    
-    for (var i = 6; i >= 0; i--) {
-      var d = new Date(today)
-      d.setDate(d.getDate() - i)
-      var dateStr = this.formatDate(d)
-      
-      // 获取该日期的营业时间数据
-      var dayHours = stallManager.getBusinessHoursByDate(dateStr)
-      
-      hours.push({
-        date: dateStr,
-        label: (d.getMonth() + 1) + '/' + d.getDate(),
-        duration: dayHours.totalDuration || 0,
-        durationText: this.formatDuration(dayHours.totalDuration || 0),
-        hours: Math.floor((dayHours.totalDuration || 0) / 60),
-        minutes: (dayHours.totalDuration || 0) % 60
-      })
+    var todayStr = this.formatDate(today)
+    var result = {}
+
+    var currentSales = []
+    var previousSales = []
+
+    if (tab === 'today') {
+      currentSales = sales.filter(function(s) { return s.date === todayStr })
+      var yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+      var yesterdayStr = this.formatDate(yesterday)
+      previousSales = sales.filter(function(s) { return s.date === yesterdayStr })
+    } else if (tab === 'week') {
+      var weekStart = new Date(today)
+      var dayOfWeek = today.getDay()
+      var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      weekStart.setDate(today.getDate() - diff)
+      var weekStartStr = this.formatDate(weekStart)
+      currentSales = sales.filter(function(s) { return s.date >= weekStartStr && s.date <= todayStr })
+      var prevWeekStart = new Date(weekStart)
+      prevWeekStart.setDate(prevWeekStart.getDate() - 7)
+      var prevWeekEnd = new Date(weekStart)
+      prevWeekEnd.setDate(prevWeekEnd.getDate() - 1)
+      previousSales = sales.filter(function(s) { 
+        return s.date >= this.formatDate(prevWeekStart) && s.date <= this.formatDate(prevWeekEnd) 
+      }.bind(this))
+    } else if (tab === 'month') {
+      var monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+      var monthStartStr = this.formatDate(monthStart)
+      currentSales = sales.filter(function(s) { return s.date >= monthStartStr && s.date <= todayStr })
+      var prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+      var prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
+      previousSales = sales.filter(function(s) { 
+        return s.date >= this.formatDate(prevMonthStart) && s.date <= this.formatDate(prevMonthEnd) 
+      }.bind(this))
+    } else if (tab === 'year') {
+      var yearStart = new Date(today.getFullYear(), 0, 1)
+      var yearStartStr = this.formatDate(yearStart)
+      currentSales = sales.filter(function(s) { return s.date >= yearStartStr && s.date <= todayStr })
+      var prevYearStart = new Date(today.getFullYear() - 1, 0, 1)
+      var prevYearEnd = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+      previousSales = sales.filter(function(s) { 
+        return s.date >= this.formatDate(prevYearStart) && s.date <= this.formatDate(prevYearEnd) 
+      }.bind(this))
     }
-    
-    return hours
+
+    var currentRevenue = currentSales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+    var previousRevenue = previousSales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+    var currentProfit = 0
+    var previousProfit = 0
+
+    currentSales.forEach(function(sale) {
+      var discount = sale.discount || 10
+      sale.items.forEach(function(item) {
+        var itemRevenue = discount < 10 
+          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
+          : (item.subtotal || 0)
+        currentProfit += itemRevenue - (item.costPrice || 0) * (item.quantity || 0)
+      })
+    })
+    previousSales.forEach(function(sale) {
+      var discount = sale.discount || 10
+      sale.items.forEach(function(item) {
+        var itemRevenue = discount < 10 
+          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
+          : (item.subtotal || 0)
+        previousProfit += itemRevenue - (item.costPrice || 0) * (item.quantity || 0)
+      })
+    })
+
+    if (previousRevenue > 0) {
+      result.revenue = {
+        percent: Math.abs(Math.round((currentRevenue - previousRevenue) / previousRevenue * 100)),
+        trend: currentRevenue >= previousRevenue ? 'up' : 'down'
+      }
+    }
+    if (previousProfit > 0) {
+      result.profit = {
+        percent: Math.abs(Math.round((currentProfit - previousProfit) / previousProfit * 100)),
+        trend: currentProfit >= previousProfit ? 'up' : 'down'
+      }
+    }
+    if (previousSales.length > 0) {
+      result.orders = {
+        percent: Math.abs(Math.round((currentSales.length - previousSales.length) / previousSales.length * 100)),
+        trend: currentSales.length >= previousSales.length ? 'up' : 'down'
+      }
+    }
+
+    return result
+  },
+
+  getYearOverYear: function(sales) {
+    var tab = this.data.timeTab
+    var today = new Date()
+    var result = {}
+
+    if (tab !== 'month' && tab !== 'year') {
+      return result
+    }
+
+    var currentSales = []
+    var lastYearSales = []
+
+    if (tab === 'month') {
+      var monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+      var monthStartStr = this.formatDate(monthStart)
+      var todayStr = this.formatDate(today)
+      currentSales = sales.filter(function(s) { return s.date >= monthStartStr && s.date <= todayStr })
+      var lastYearMonthStart = new Date(today.getFullYear() - 1, today.getMonth(), 1)
+      var lastYearMonthEnd = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+      lastYearSales = sales.filter(function(s) { 
+        return s.date >= this.formatDate(lastYearMonthStart) && s.date <= this.formatDate(lastYearMonthEnd) 
+      }.bind(this))
+    } else if (tab === 'year') {
+      var yearStart = new Date(today.getFullYear(), 0, 1)
+      var yearStartStr = this.formatDate(yearStart)
+      var todayStr = this.formatDate(today)
+      currentSales = sales.filter(function(s) { return s.date >= yearStartStr && s.date <= todayStr })
+      var lastYearStart = new Date(today.getFullYear() - 1, 0, 1)
+      var lastYearEnd = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate())
+      lastYearSales = sales.filter(function(s) { 
+        return s.date >= this.formatDate(lastYearStart) && s.date <= this.formatDate(lastYearEnd) 
+      }.bind(this))
+    }
+
+    var currentRevenue = currentSales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+    var lastYearRevenue = lastYearSales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+    var currentProfit = 0
+    var lastYearProfit = 0
+
+    currentSales.forEach(function(sale) {
+      var discount = sale.discount || 10
+      sale.items.forEach(function(item) {
+        var itemRevenue = discount < 10 
+          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
+          : (item.subtotal || 0)
+        currentProfit += itemRevenue - (item.costPrice || 0) * (item.quantity || 0)
+      })
+    })
+    lastYearSales.forEach(function(sale) {
+      var discount = sale.discount || 10
+      sale.items.forEach(function(item) {
+        var itemRevenue = discount < 10 
+          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
+          : (item.subtotal || 0)
+        lastYearProfit += itemRevenue - (item.costPrice || 0) * (item.quantity || 0)
+      })
+    })
+
+    if (lastYearRevenue > 0) {
+      result.revenue = {
+        percent: Math.abs(Math.round((currentRevenue - lastYearRevenue) / lastYearRevenue * 100)),
+        trend: currentRevenue >= lastYearRevenue ? 'up' : 'down'
+      }
+    }
+    if (lastYearProfit > 0) {
+      result.profit = {
+        percent: Math.abs(Math.round((currentProfit - lastYearProfit) / lastYearProfit * 100)),
+        trend: currentProfit >= lastYearProfit ? 'up' : 'down'
+      }
+    }
+    if (lastYearSales.length > 0) {
+      result.orders = {
+        percent: Math.abs(Math.round((currentSales.length - lastYearSales.length) / lastYearSales.length * 100)),
+        trend: currentSales.length >= lastYearSales.length ? 'up' : 'down'
+      }
+    }
+
+    return result
   },
 
   drawSalesChart: function(dailySales) {
@@ -202,16 +536,12 @@ Page({
       dailySales.forEach(function(d) {
         if (d.revenue > maxVal) maxVal = d.revenue
       })
-      // Round up to nice number with dynamic adjustment
       if (maxVal <= 0) {
-        maxVal = 10
+        maxVal = 100
       } else {
-        var magnitude = Math.pow(10, Math.floor(Math.log10(maxVal)))
-        var normalized = maxVal / magnitude
-        if (normalized <= 1) maxVal = magnitude
-        else if (normalized <= 2) maxVal = magnitude * 2
-        else if (normalized <= 5) maxVal = magnitude * 5
-        else maxVal = magnitude * 10
+        // 向上取整到合适的刻度
+        var niceNumbers = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
+        maxVal = niceNumbers.find(function(n) { return n >= maxVal }) || maxVal * 1.2
       }
 
       var padding = { top: 20, right: 10, bottom: 30, left: 40 }
@@ -220,7 +550,6 @@ Page({
       var barW = chartW / dailySales.length * 0.6
       var gap = chartW / dailySales.length * 0.4
 
-      // Draw grid lines
       ctx.strokeStyle = '#e0e0e0'
       ctx.lineWidth = 0.5
       for (var i = 0; i <= 4; i++) {
@@ -240,7 +569,6 @@ Page({
         ctx.fillText('¥' + labelText, padding.left - 5, gy + 3)
       }
 
-      // Draw bars
       for (var i = 0; i < dailySales.length; i++) {
         var d = dailySales[i]
         var barH = (d.revenue / maxVal) * chartH
@@ -252,7 +580,6 @@ Page({
         gradient.addColorStop(1, '#FF9AAB')
         ctx.fillStyle = gradient
 
-        // Draw bar without roundRect
         ctx.beginPath()
         ctx.moveTo(x, y)
         ctx.lineTo(x + barW, y)
@@ -260,7 +587,7 @@ Page({
         ctx.lineTo(x, y + barH)
         ctx.fill()
 
-        if (dailySales.length <= 7 || i % 2 === 0) {
+        if (dailySales.length <= 12 || i % 2 === 0) {
           ctx.fillStyle = '#999'
           ctx.font = '10px sans-serif'
           ctx.textAlign = 'center'
@@ -295,7 +622,6 @@ Page({
       ctx.closePath()
     }
 
-    // 获取主题颜色
     var app = getApp()
     var themeColor = app.globalData.themeColor || '#FF9AAB'
     var themeGradientStart = themeColor
@@ -328,9 +654,9 @@ Page({
       ctx.scale(dpr, dpr)
 
       var stats = that.data.stats
+      var filteredStats = that.data.filteredStats
       var categoryStats = that.data.categoryStats
 
-      // Background gradient using theme color
       var bgGradient = ctx.createLinearGradient(0, 0, 0, height)
       bgGradient.addColorStop(0, themeGradientStart)
       bgGradient.addColorStop(0.3, themeColor)
@@ -338,24 +664,20 @@ Page({
       ctx.fillStyle = bgGradient
       ctx.fillRect(0, 0, width, height)
 
-      // White card
       ctx.fillStyle = '#fff'
       roundRect(ctx, 16, 16, width - 32, height - 32, 20)
       ctx.fill()
 
-      // Title
       ctx.fillStyle = '#FF6B8A'
       ctx.font = 'bold 24px sans-serif'
       ctx.textAlign = 'center'
       ctx.fillText('🏪 营业报告', width / 2, 60)
 
-      // Date
       ctx.fillStyle = '#999'
       ctx.font = '13px sans-serif'
       var today = new Date()
       ctx.fillText(today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日', width / 2, 82)
 
-      // Divider
       ctx.strokeStyle = '#f0f0f0'
       ctx.lineWidth = 1
       ctx.beginPath()
@@ -363,148 +685,62 @@ Page({
       ctx.lineTo(width - 30, 95)
       ctx.stroke()
 
-      // Stats cards - row 1
       var cardY = 110
       var cardH = 70
       var cardGap = 10
       var cardW = (width - 52) / 3
 
-      // Revenue card
       ctx.fillStyle = '#FFF5F7'
       roundRect(ctx, 16, cardY, cardW, cardH, 10)
       ctx.fill()
       ctx.fillStyle = '#FF6B8A'
       ctx.font = 'bold 22px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('¥' + stats.totalRevenue, 16 + cardW / 2, cardY + 30)
+      ctx.fillText('¥' + filteredStats.revenue, 16 + cardW / 2, cardY + 30)
       ctx.fillStyle = '#999'
       ctx.font = '11px sans-serif'
-      ctx.fillText('累计销售', 16 + cardW / 2, cardY + 52)
+      ctx.fillText('销售额', 16 + cardW / 2, cardY + 52)
 
-      // Profit card
       ctx.fillStyle = '#E8F5E9'
       roundRect(ctx, 16 + cardW + cardGap, cardY, cardW, cardH, 10)
       ctx.fill()
       ctx.fillStyle = '#4CAF50'
       ctx.font = 'bold 22px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText('¥' + stats.totalProfit, 16 + cardW + cardGap + cardW / 2, cardY + 30)
+      ctx.fillText('¥' + filteredStats.profit, 16 + cardW + cardGap + cardW / 2, cardY + 30)
       ctx.fillStyle = '#999'
       ctx.font = '11px sans-serif'
-      ctx.fillText('累计利润', 16 + cardW + cardGap + cardW / 2, cardY + 52)
+      ctx.fillText('利润', 16 + cardW + cardGap + cardW / 2, cardY + 52)
 
-      // Orders card
       ctx.fillStyle = '#E3F2FD'
       roundRect(ctx, 16 + (cardW + cardGap) * 2, cardY, cardW, cardH, 10)
       ctx.fill()
       ctx.fillStyle = '#2196F3'
       ctx.font = 'bold 22px sans-serif'
       ctx.textAlign = 'center'
-      ctx.fillText(stats.totalOrders + '', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY + 30)
+      ctx.fillText(filteredStats.orders + '', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY + 30)
       ctx.fillStyle = '#999'
       ctx.font = '11px sans-serif'
-      ctx.fillText('总订单', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY + 52)
+      ctx.fillText('订单数', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY + 52)
 
-      // Stats cards - row 2
-      var cardY2 = cardY + cardH + 12
-
-      // Streak card
-      ctx.fillStyle = '#FFF3E0'
-      roundRect(ctx, 16, cardY2, cardW, cardH, 10)
-      ctx.fill()
-      ctx.fillStyle = '#FF9800'
-      ctx.font = 'bold 22px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText(stats.streakDays + '天', 16 + cardW / 2, cardY2 + 30)
-      ctx.fillStyle = '#999'
-      ctx.font = '11px sans-serif'
-      ctx.fillText('连续营业', 16 + cardW / 2, cardY2 + 52)
-
-      // Level card
-      ctx.fillStyle = '#F3E5F5'
-      roundRect(ctx, 16 + cardW + cardGap, cardY2, cardW, cardH, 10)
-      ctx.fill()
-      ctx.fillStyle = '#9C27B0'
-      ctx.font = 'bold 22px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('Lv.' + stats.level, 16 + cardW + cardGap + cardW / 2, cardY2 + 30)
-      ctx.fillStyle = '#999'
-      ctx.font = '11px sans-serif'
-      ctx.fillText('摊位等级', 16 + cardW + cardGap + cardW / 2, cardY2 + 52)
-
-      // Avg order card
-      ctx.fillStyle = '#E0F2F1'
-      roundRect(ctx, 16 + (cardW + cardGap) * 2, cardY2, cardW, cardH, 10)
-      ctx.fill()
-      ctx.fillStyle = '#009688'
-      ctx.font = 'bold 22px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('¥' + that.data.avgOrder.replace('¥', ''), 16 + (cardW + cardGap) * 2 + cardW / 2, cardY2 + 30)
-      ctx.fillStyle = '#999'
-      ctx.font = '11px sans-serif'
-      ctx.fillText('平均客单价', 16 + (cardW + cardGap) * 2 + cardW / 2, cardY2 + 52)
-
-      // Divider 2
-      var divY = cardY2 + cardH + 20
+      var divY = cardY + cardH + 20
       ctx.strokeStyle = '#f0f0f0'
       ctx.beginPath()
       ctx.moveTo(30, divY)
       ctx.lineTo(width - 30, divY)
       ctx.stroke()
 
-      // Today section
-      var todayY = divY + 25
-      ctx.fillStyle = '#333'
-      ctx.font = 'bold 16px sans-serif'
-      ctx.textAlign = 'left'
-      ctx.fillText('📅 今日概况', 28, todayY)
-
-      var todayCardY = todayY + 15
-      var todayCardW = (width - 52) / 2
-
-      ctx.fillStyle = '#FFF5F7'
-      roundRect(ctx, 16, todayCardY, todayCardW, 50, 8)
-      ctx.fill()
-      ctx.fillStyle = '#FF6B8A'
-      ctx.font = 'bold 20px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('¥' + stats.todayRevenue, 16 + todayCardW / 2, todayCardY + 25)
-      ctx.fillStyle = '#999'
-      ctx.font = '10px sans-serif'
-      ctx.fillText('今日销售额', 16 + todayCardW / 2, todayCardY + 42)
-
-      ctx.fillStyle = '#E3F2FD'
-      roundRect(ctx, 16 + todayCardW + 10, todayCardY, todayCardW, 50, 8)
-      ctx.fill()
-      ctx.fillStyle = '#2196F3'
-      ctx.font = 'bold 20px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText(stats.todayOrders + '', 16 + todayCardW + 10 + todayCardW / 2, todayCardY + 25)
-      ctx.fillStyle = '#999'
-      ctx.font = '10px sans-serif'
-      ctx.fillText('今日订单', 16 + todayCardW + 10 + todayCardW / 2, todayCardY + 42)
-
-      // Divider 3
-      var div2Y = todayCardY + 65
-      ctx.strokeStyle = '#f0f0f0'
-      ctx.beginPath()
-      ctx.moveTo(30, div2Y)
-      ctx.lineTo(width - 30, div2Y)
-      ctx.stroke()
-
-      // Top products
-      var topY = div2Y + 25
+      var topY = divY + 25
       ctx.fillStyle = '#333'
       ctx.font = 'bold 16px sans-serif'
       ctx.textAlign = 'left'
       ctx.fillText('🏆 热销商品 Top5', 28, topY)
 
-      if (stats.topProducts && stats.topProducts.length > 0) {
-        for (var i = 0; i < Math.min(5, stats.topProducts.length); i++) {
+      if (filteredStats.topProducts && filteredStats.topProducts.length > 0) {
+        for (var i = 0; i < Math.min(5, filteredStats.topProducts.length); i++) {
           topY += 28
-          var p = stats.topProducts[i]
+          var p = filteredStats.topProducts[i]
 
-          // Rank circle
           ctx.fillStyle = i === 0 ? '#FF6B8A' : i === 1 ? '#FF9800' : i === 2 ? '#FFC107' : '#E0E0E0'
           ctx.beginPath()
           ctx.arc(38, topY - 4, 10, 0, Math.PI * 2)
@@ -514,19 +750,16 @@ Page({
           ctx.textAlign = 'center'
           ctx.fillText((i + 1) + '', 38, topY)
 
-          // Product name
           ctx.fillStyle = '#333'
           ctx.font = '13px sans-serif'
           ctx.textAlign = 'left'
           ctx.fillText(p.name, 55, topY)
 
-          // Revenue
           ctx.fillStyle = '#FF6B8A'
           ctx.font = 'bold 13px sans-serif'
           ctx.textAlign = 'right'
           ctx.fillText('¥' + p.revenue, width - 28, topY)
 
-          // Progress bar
           var barX = 55
           var barY2 = topY + 6
           var barW2 = width - 83 - 60
@@ -556,65 +789,11 @@ Page({
         ctx.fillText('暂无销售数据', width / 2, topY)
       }
 
-      // Divider 4
-      var div3Y = topY + 35
-      ctx.strokeStyle = '#f0f0f0'
-      ctx.beginPath()
-      ctx.moveTo(30, div3Y)
-      ctx.lineTo(width - 30, div3Y)
-      ctx.stroke()
-
-      // Category stats
-      var catY = div3Y + 25
-      ctx.fillStyle = '#333'
-      ctx.font = 'bold 16px sans-serif'
-      ctx.textAlign = 'left'
-      ctx.fillText('📦 分类统计', 28, catY)
-
-      if (categoryStats && categoryStats.length > 0) {
-        for (var i = 0; i < Math.min(5, categoryStats.length); i++) {
-          catY += 28
-          var c = categoryStats[i]
-
-          ctx.fillStyle = '#333'
-          ctx.font = '12px sans-serif'
-          ctx.textAlign = 'left'
-          ctx.fillText(c.name, 28, catY)
-
-          // Bar
-          var barX = 90
-          var barW3 = width - 180
-          ctx.fillStyle = '#f0f0f0'
-          ctx.beginPath()
-          ctx.moveTo(barX, catY - 5)
-          ctx.lineTo(barX + barW3, catY - 5)
-          ctx.lineTo(barX + barW3, catY - 1)
-          ctx.lineTo(barX, catY - 1)
-          ctx.fill()
-
-          var progressW = barW3 * (c.percent / 100)
-          ctx.fillStyle = '#4CAF50'
-          ctx.beginPath()
-          ctx.moveTo(barX, catY - 5)
-          ctx.lineTo(barX + progressW, catY - 5)
-          ctx.lineTo(barX + progressW, catY - 1)
-          ctx.lineTo(barX, catY - 1)
-          ctx.fill()
-
-          ctx.fillStyle = '#FF6B8A'
-          ctx.font = 'bold 11px sans-serif'
-          ctx.textAlign = 'right'
-          ctx.fillText('¥' + c.revenue, width - 28, catY)
-        }
-      }
-
-      // Footer
       ctx.fillStyle = '#ccc'
       ctx.font = '10px sans-serif'
       ctx.textAlign = 'center'
       ctx.fillText('— ' + auth.getChildNickname() + '成长小助手 —', width / 2, height - 30)
 
-      // Convert to image
       setTimeout(function() {
         try {
           wx.canvasToTempFilePath({
@@ -699,5 +878,138 @@ Page({
     var h = Math.floor(minutes / 60)
     var m = minutes % 60
     return h > 0 ? h + '小时' + m + '分钟' : m + '分钟'
+  },
+
+  calcProductActiveRate: function(products, sales) {
+    if (products.length === 0) return 0
+    var soldProductIds = {}
+    sales.forEach(function(sale) {
+      sale.items.forEach(function(item) {
+        soldProductIds[item.productId] = true
+      })
+    })
+    var activeCount = Object.keys(soldProductIds).length
+    return Math.round(activeCount / products.length * 100)
+  },
+
+  calcHighProfitProducts: function(sales, products) {
+    var productMap = {}
+    products.forEach(function(p) { productMap[p.id] = p })
+
+    var productProfits = {}
+    sales.forEach(function(sale) {
+      var discount = sale.discount || 10
+      sale.items.forEach(function(item) {
+        var product = productMap[item.productId]
+        if (!product) return
+        
+        if (!productProfits[item.productId]) {
+          productProfits[item.productId] = {
+            id: item.productId,
+            name: product.name,
+            revenue: 0,
+            cost: 0,
+            profit: 0,
+            profitRate: 0
+          }
+        }
+        var itemRevenue = discount < 10 
+          ? Math.round((item.subtotal || 0) * discount / 10 * 100) / 100
+          : (item.subtotal || 0)
+        var costPrice = item.costPrice || product.costPrice || 0
+        
+        productProfits[item.productId].revenue += itemRevenue
+        productProfits[item.productId].cost += costPrice * (item.quantity || 0)
+      })
+    })
+
+    var result = Object.values(productProfits).map(function(p) {
+      p.profit = Math.round((p.revenue - p.cost) * 100) / 100
+      p.profitRate = p.revenue > 0 ? Math.round(p.profit / p.revenue * 100) : 0
+      return p
+    })
+
+    result.sort(function(a, b) { return b.profit - a.profit })
+    return result.slice(0, 3)
+  },
+
+  calcOrderDistribution: function(sales) {
+    var ranges = [
+      { range: '0-10元', min: 0, max: 10, count: 0 },
+      { range: '10-30元', min: 10, max: 30, count: 0 },
+      { range: '30-50元', min: 30, max: 50, count: 0 },
+      { range: '50-100元', min: 50, max: 100, count: 0 },
+      { range: '100元以上', min: 100, max: Infinity, count: 0 }
+    ]
+
+    sales.forEach(function(sale) {
+      var total = sale.total || 0
+      for (var i = 0; i < ranges.length; i++) {
+        if (total >= ranges[i].min && total < ranges[i].max) {
+          ranges[i].count++
+          break
+        }
+      }
+    })
+
+    var maxCount = 0
+    ranges.forEach(function(r) {
+      if (r.count > maxCount) maxCount = r.count
+    })
+
+    return ranges.filter(function(r) { return r.count > 0 }).map(function(r) {
+      return {
+        range: r.range,
+        count: r.count,
+        percent: maxCount > 0 ? Math.round(r.count / maxCount * 100) : 0
+      }
+    })
+  },
+
+  calcTargetData: function(filteredStats, allSales) {
+    var settings = stallManager.getSettings()
+    var dailyGoal = settings.dailyGoal || 50
+    var weeklyGoal = settings.weeklyGoal || 300
+    var monthlyGoal = settings.monthlyGoal || 1000
+
+    var today = new Date()
+    var todayStr = this.formatDate(today)
+    var todaySales = allSales.filter(function(s) { return s.date === todayStr })
+    var todayRevenue = todaySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+
+    var result = {
+      today: {
+        target: dailyGoal,
+        actual: todayRevenue,
+        percent: dailyGoal > 0 ? Math.min(100, Math.round(todayRevenue / dailyGoal * 100)) : 0
+      }
+    }
+
+    var tab = this.data.timeTab
+    if (tab === 'week') {
+      result.period = {
+        label: '本周目标',
+        target: weeklyGoal,
+        actual: filteredStats.revenue,
+        percent: weeklyGoal > 0 ? Math.min(100, Math.round(filteredStats.revenue / weeklyGoal * 100)) : 0
+      }
+    } else if (tab === 'month') {
+      result.period = {
+        label: '本月目标',
+        target: monthlyGoal,
+        actual: filteredStats.revenue,
+        percent: monthlyGoal > 0 ? Math.min(100, Math.round(filteredStats.revenue / monthlyGoal * 100)) : 0
+      }
+    } else if (tab === 'year') {
+      var yearlyGoal = monthlyGoal * 12
+      result.period = {
+        label: '本年目标',
+        target: yearlyGoal,
+        actual: filteredStats.revenue,
+        percent: yearlyGoal > 0 ? Math.min(100, Math.round(filteredStats.revenue / yearlyGoal * 100)) : 0
+      }
+    }
+
+    return result
   }
 })

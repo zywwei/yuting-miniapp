@@ -343,6 +343,16 @@ function getTodayBusinessHours() {
   return hours[today]
 }
 
+function getBusinessHours() {
+  var hours = childStorage.get(BUSINESS_HOURS_KEY) || {}
+  var result = []
+  var dates = Object.keys(hours).sort().reverse()
+  for (var i = 0; i < dates.length; i++) {
+    result.push(hours[dates[i]])
+  }
+  return result
+}
+
 function getBusinessHoursByDate(dateStr) {
   var hours = childStorage.get(BUSINESS_HOURS_KEY) || {}
   return hours[dateStr] || { date: dateStr, sessions: [], totalDuration: 0, openCount: 0, closeCount: 0 }
@@ -617,6 +627,7 @@ module.exports = {
   checkChallenges: checkChallenges,
   claimChallenge: claimChallenge,
   getTodayBusinessHours: getTodayBusinessHours,
+  getBusinessHours: getBusinessHours,
   getBusinessHoursByDate: getBusinessHoursByDate,
   recordOpenTime: recordOpenTime,
   recordCloseTime: recordCloseTime,

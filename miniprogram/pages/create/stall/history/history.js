@@ -2,6 +2,8 @@ var stallManager = require('../../../../utils/stall-manager.js')
 
 Page({
   data: {
+    activeTab: 'orders',
+    // 订单相关
     currentFilter: 'today',
     filteredTotal: 0,
     filteredCount: 0,
@@ -10,11 +12,27 @@ Page({
     searchKeyword: '',
     startDate: '',
     endDate: '',
-    todayOverview: null
+    // 订单分页
+    ordersPage: 1,
+    ordersPageSize: 20,
+    ordersHasMore: true,
+    ordersLoading: false,
+    // 营业时长相关
+    hoursFilter: 'today',
+    hoursStartDate: '',
+    hoursEndDate: '',
+    groupedHours: [],
+    hoursTotalDuration: '0分钟',
+    hoursTotalCount: 0,
+    hoursAvgDuration: '0分钟',
+    // 营业时长分页
+    hoursPage: 1,
+    hoursPageSize: 20,
+    hoursHasMore: true,
+    hoursLoading: false
   },
 
   onLoad: function() {
-    this.loadData()
     this.setThemeColor()
   },
 
@@ -22,24 +40,50 @@ Page({
     this.loadData()
   },
 
+  onUnload: function() {
+    if (this._searchTimer) {
+      clearTimeout(this._searchTimer)
+      this._searchTimer = null
+    }
+  },
+
+  switchTab: function(e) {
+    var tab = e.currentTarget.dataset.tab
+    this.setData({ activeTab: tab })
+    this.loadData()
+  },
+
+  // 订单相关函数
   setFilter: function(e) {
     this.setData({
       currentFilter: e.currentTarget.dataset.filter,
       startDate: '',
-      endDate: ''
+      endDate: '',
+      ordersPage: 1,
+      ordersHasMore: true
     })
     this.loadData()
   },
 
   onSearchInput: function(e) {
+    var that = this
     this.setData({ searchKeyword: e.detail.value })
-    this.loadData()
+    // 防抖处理
+    if (this._searchTimer) {
+      clearTimeout(this._searchTimer)
+    }
+    this._searchTimer = setTimeout(function() {
+      that.setData({ ordersPage: 1, ordersHasMore: true })
+      that.loadData()
+    }, 300)
   },
 
   onStartDateChange: function(e) {
     this.setData({
       startDate: e.detail.value,
-      currentFilter: 'custom'
+      currentFilter: 'custom',
+      ordersPage: 1,
+      ordersHasMore: true
     })
     this.loadData()
   },
@@ -47,7 +91,9 @@ Page({
   onEndDateChange: function(e) {
     this.setData({
       endDate: e.detail.value,
-      currentFilter: 'custom'
+      currentFilter: 'custom',
+      ordersPage: 1,
+      ordersHasMore: true
     })
     this.loadData()
   },
@@ -56,7 +102,9 @@ Page({
     this.setData({
       startDate: '',
       endDate: '',
-      currentFilter: 'today'
+      currentFilter: 'today',
+      ordersPage: 1,
+      ordersHasMore: true
     })
     this.loadData()
   },
@@ -76,6 +124,17 @@ Page({
   },
 
   loadData: function() {
+    if (this.data.activeTab === 'orders') {
+      this.loadOrdersData()
+    } else {
+      this.loadHoursData()
+    }
+  },
+
+  loadOrdersData: function() {
+    var that = this
+    this.setData({ ordersLoading: true })
+
     var sales = stallManager.getSales()
     var filter = this.data.currentFilter
     var today = stallManager.getTodayStr()
@@ -88,15 +147,16 @@ Page({
     if (filter === 'today') {
       filtered = sales.filter(function(s) { return s.date === today })
     } else if (filter === 'week') {
-      var weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 7)
-      var weekAgoStr = this.formatDate(weekAgo)
-      filtered = sales.filter(function(s) { return s.date >= weekAgoStr })
+      var weekStart = new Date()
+      var dayOfWeek = weekStart.getDay()
+      var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      weekStart.setDate(weekStart.getDate() - diff)
+      var weekStartStr = this.formatDate(weekStart)
+      filtered = sales.filter(function(s) { return s.date >= weekStartStr })
     } else if (filter === 'month') {
-      var monthAgo = new Date()
-      monthAgo.setMonth(monthAgo.getMonth() - 1)
-      var monthAgoStr = this.formatDate(monthAgo)
-      filtered = sales.filter(function(s) { return s.date >= monthAgoStr })
+      var monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      var monthStartStr = this.formatDate(monthStart)
+      filtered = sales.filter(function(s) { return s.date >= monthStartStr })
     } else {
       filtered = sales.slice()
     }
@@ -133,15 +193,16 @@ Page({
       productMap[products[p].id] = products[p]
     }
 
-    // Group by date
-    var groups = {}
+    // 按时间倒序排列
+    filtered.sort(function(a, b) {
+      var timeA = a.date + ' ' + (a.time || '00:00')
+      var timeB = b.date + ' ' + (b.time || '00:00')
+      return timeB.localeCompare(timeA)
+    })
+
+    // 计算总金额和利润
     for (var i = 0; i < filtered.length; i++) {
       var sale = filtered[i]
-      if (!groups[sale.date]) {
-        groups[sale.date] = { date: sale.date, total: 0, profit: 0, count: 0, sales: [], businessHours: null }
-      }
-
-      // 向后兼容
       sale.discount = sale.discount || 10
       sale.originalTotal = sale.originalTotal || sale.total
       sale.discountAmount = sale.discountAmount || 0
@@ -158,72 +219,202 @@ Page({
         totalCost += costPrice * item.quantity
       }
       sale.profit = Math.round((sale.total - totalCost) * 100) / 100
-
-      groups[sale.date].total += sale.total
-      groups[sale.date].profit += sale.profit
-      groups[sale.date].count++
-      groups[sale.date].sales.push(sale)
-
       filteredTotal += sale.total
       filteredProfit += sale.profit
     }
 
-    // 获取每天的营业时间
-    var dates = Object.keys(groups)
-    for (var d = 0; d < dates.length; d++) {
-      var date = dates[d]
-      var dayHours = stallManager.getBusinessHoursByDate(date)
-      var sessions = []
-      for (var s = 0; s < dayHours.sessions.length; s++) {
-        var session = dayHours.sessions[s]
-        var openTime = new Date(session.openTime)
-        var closeTime = session.closeTime ? new Date(session.closeTime) : null
-        sessions.push({
-          openTimeStr: this.padZero(openTime.getHours()) + ':' + this.padZero(openTime.getMinutes()),
-          closeTimeStr: closeTime ? this.padZero(closeTime.getHours()) + ':' + this.padZero(closeTime.getMinutes()) : '',
-          durationText: this.formatDuration(session.duration || 0)
-        })
+    // 分页处理
+    var page = this.data.ordersPage
+    var pageSize = this.data.ordersPageSize
+    var startIndex = (page - 1) * pageSize
+    var endIndex = page * pageSize
+    var pagedSales = filtered.slice(startIndex, endIndex)
+    var hasMore = endIndex < filtered.length
+
+    // Group by date
+    var groups = {}
+    for (var i = 0; i < pagedSales.length; i++) {
+      var sale = pagedSales[i]
+      if (!groups[sale.date]) {
+        groups[sale.date] = { date: sale.date, total: 0, profit: 0, count: 0, sales: [] }
       }
-      groups[date].businessHours = {
-        sessions: sessions,
-        totalDurationText: this.formatDuration(dayHours.totalDuration || 0)
-      }
+      groups[sale.date].total += sale.total
+      groups[sale.date].profit += sale.profit
+      groups[sale.date].count++
+      groups[sale.date].sales.push(sale)
     }
 
     var groupedSales = Object.keys(groups).sort().reverse().map(function(date) {
       return groups[date]
     })
 
-    // 今日概况
-    var todayOverview = null
-    if (filter === 'today' && !startDate && !endDate) {
-      var todayHours = stallManager.getTodayBusinessHours()
-      var firstSession = todayHours.sessions && todayHours.sessions[0]
-      var firstOpenTime = ''
-      if (firstSession) {
-        var t = new Date(firstSession.openTime)
-        firstOpenTime = this.padZero(t.getHours()) + ':' + this.padZero(t.getMinutes())
-      }
-      var todayProfit = 0
-      for (var k = 0; k < filtered.length; k++) {
-        todayProfit += filtered[k].profit || 0
-      }
-      todayOverview = {
-        firstOpenTime: firstOpenTime || '未开店',
-        durationText: this.formatDuration(todayHours.totalDuration || 0),
-        orderCount: filtered.length,
-        revenue: Math.round(filteredTotal * 100) / 100,
-        profit: Math.round(todayProfit * 100) / 100
-      }
-    }
-
     this.setData({
       filteredTotal: Math.round(filteredTotal * 100) / 100,
       filteredCount: filtered.length,
       filteredProfit: Math.round(filteredProfit * 100) / 100,
       groupedSales: groupedSales,
-      todayOverview: todayOverview
+      ordersHasMore: hasMore,
+      ordersLoading: false
     })
+  },
+
+  loadMoreOrders: function() {
+    if (this.data.ordersLoading || !this.data.ordersHasMore) return
+    this.setData({ ordersPage: this.data.ordersPage + 1 })
+    this.loadOrdersData()
+  },
+
+  // 营业时长相关函数
+  setHoursFilter: function(e) {
+    this.setData({
+      hoursFilter: e.currentTarget.dataset.filter,
+      hoursStartDate: '',
+      hoursEndDate: '',
+      hoursPage: 1,
+      hoursHasMore: true
+    })
+    this.loadHoursData()
+  },
+
+  onHoursStartDateChange: function(e) {
+    this.setData({
+      hoursStartDate: e.detail.value,
+      hoursFilter: 'custom',
+      hoursPage: 1,
+      hoursHasMore: true
+    })
+    this.loadHoursData()
+  },
+
+  onHoursEndDateChange: function(e) {
+    this.setData({
+      hoursEndDate: e.detail.value,
+      hoursFilter: 'custom',
+      hoursPage: 1,
+      hoursHasMore: true
+    })
+    this.loadHoursData()
+  },
+
+  clearHoursDateRange: function() {
+    this.setData({
+      hoursStartDate: '',
+      hoursEndDate: '',
+      hoursFilter: 'today',
+      hoursPage: 1,
+      hoursHasMore: true
+    })
+    this.loadHoursData()
+  },
+
+  loadHoursData: function() {
+    var that = this
+    this.setData({ hoursLoading: true })
+
+    var businessHours = stallManager.getBusinessHours()
+    var filter = this.data.hoursFilter
+    var today = stallManager.getTodayStr()
+    var startDate = this.data.hoursStartDate
+    var endDate = this.data.hoursEndDate
+
+    // 筛选
+    var filtered = []
+    if (filter === 'today') {
+      filtered = businessHours.filter(function(h) { return h.date === today })
+    } else if (filter === 'week') {
+      var weekStart = new Date()
+      var dayOfWeek = weekStart.getDay()
+      var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      weekStart.setDate(weekStart.getDate() - diff)
+      var weekStartStr = this.formatDate(weekStart)
+      filtered = businessHours.filter(function(h) { return h.date >= weekStartStr })
+    } else if (filter === 'month') {
+      var monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      var monthStartStr = this.formatDate(monthStart)
+      filtered = businessHours.filter(function(h) { return h.date >= monthStartStr })
+    } else {
+      filtered = businessHours.slice()
+    }
+
+    // 自定义日期范围覆盖
+    if (startDate) {
+      filtered = filtered.filter(function(h) { return h.date >= startDate })
+    }
+    if (endDate) {
+      filtered = filtered.filter(function(h) { return h.date <= endDate })
+    }
+
+    // 按时间倒序排列
+    filtered.sort(function(a, b) {
+      return b.date.localeCompare(a.date)
+    })
+
+    // 展开为单次营业记录
+    var allSessions = []
+    for (var i = 0; i < filtered.length; i++) {
+      var day = filtered[i]
+      for (var j = 0; j < day.sessions.length; j++) {
+        var session = day.sessions[j]
+        allSessions.push({
+          date: day.date,
+          openTime: session.openTime,
+          closeTime: session.closeTime,
+          duration: session.duration || 0,
+          openTimeStr: this.formatTime(new Date(session.openTime)),
+          closeTimeStr: session.closeTime ? this.formatTime(new Date(session.closeTime)) : '',
+          durationText: this.formatDuration(session.duration || 0)
+        })
+      }
+    }
+
+    // 计算汇总
+    var totalDuration = 0
+    for (var i = 0; i < allSessions.length; i++) {
+      totalDuration += allSessions[i].duration
+    }
+    var totalCount = allSessions.length
+    var avgDuration = totalCount > 0 ? Math.round(totalDuration / totalCount) : 0
+
+    // 分页处理
+    var page = this.data.hoursPage
+    var pageSize = this.data.hoursPageSize
+    var startIndex = (page - 1) * pageSize
+    var endIndex = page * pageSize
+    var pagedSessions = allSessions.slice(startIndex, endIndex)
+    var hasMore = endIndex < allSessions.length
+
+    // Group by date
+    var groups = {}
+    for (var i = 0; i < pagedSessions.length; i++) {
+      var session = pagedSessions[i]
+      if (!groups[session.date]) {
+        groups[session.date] = { date: session.date, count: 0, totalDuration: 0, sessions: [] }
+      }
+      groups[session.date].count++
+      groups[session.date].totalDuration += session.duration
+      groups[session.date].sessions.push(session)
+    }
+
+    var groupedHours = Object.keys(groups).sort().reverse().map(function(date) {
+      var group = groups[date]
+      group.totalDurationText = that.formatDuration(group.totalDuration)
+      return group
+    })
+
+    this.setData({
+      groupedHours: groupedHours,
+      hoursTotalDuration: that.formatDuration(totalDuration),
+      hoursTotalCount: totalCount,
+      hoursAvgDuration: that.formatDuration(avgDuration),
+      hoursHasMore: hasMore,
+      hoursLoading: false
+    })
+  },
+
+  loadMoreHours: function() {
+    if (this.data.hoursLoading || !this.data.hoursHasMore) return
+    this.setData({ hoursPage: this.data.hoursPage + 1 })
+    this.loadHoursData()
   },
 
   deleteSale: function(e) {
@@ -246,6 +437,10 @@ Page({
     var m = String(date.getMonth() + 1).padStart(2, '0')
     var d = String(date.getDate()).padStart(2, '0')
     return y + '-' + m + '-' + d
+  },
+
+  formatTime: function(date) {
+    return this.padZero(date.getHours()) + ':' + this.padZero(date.getMinutes())
   },
 
   padZero: function(num) {
