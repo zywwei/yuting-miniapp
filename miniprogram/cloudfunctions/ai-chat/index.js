@@ -296,9 +296,10 @@ function buildMessages(config, history, newMessage, imageFileID) {
     })
   } else {
     messages.push({
-    role: 'user',
-    content: newMessage
-  })
+      role: 'user',
+      content: newMessage
+    })
+  }
 
   return messages
 }
