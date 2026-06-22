@@ -1,0 +1,383 @@
+<view class="container">
+  <!-- 顶部栏 -->
+  <view class="top-bar">
+    <view class="model-badge" bindtap="showQuickSwitch">
+      <text class="model-icon">{{modelInfo.icon}}</text>
+      <view class="model-badge-info">
+        <text class="model-name">{{modelInfo.name}}</text>
+        <text class="model-sub-name">{{currentSubModelName || currentTemplateName}}</text>
+      </view>
+      <text class="model-badge-arrow">▾</text>
+    </view>
+    <view class="top-actions">
+      <view class="action-btn" bindtap="showSessions">
+        <text>💬</text>
+      </view>
+      <view class="action-btn" bindtap="newSession">
+        <text>➕</text>
+      </view>
+      <view class="action-btn" bindtap="goSettings">
+        <text>⚙️</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 快速切换弹窗 -->
+  <view class="quick-switch-modal" wx:if="{{showQuickSwitchModal}}" bindtap="hideQuickSwitch">
+    <view class="quick-switch-content" catchtap="stopPropagation">
+      <!-- Tab切换 -->
+      <view class="quick-switch-tabs">
+        <view class="quick-tab {{quickSwitchTab === 'template' ? 'active' : ''}}" bindtap="switchQuickTab" data-tab="template">
+          助手
+        </view>
+        <view class="quick-tab {{quickSwitchTab === 'provider' ? 'active' : ''}}" bindtap="switchQuickTab" data-tab="provider">
+          供应商/模型
+        </view>
+      </view>
+      
+      <!-- 助手类型列表 -->
+      <view class="quick-panel" wx:if="{{quickSwitchTab === 'template'}}">
+        <scroll-view scroll-y class="quick-scroll">
+          <view class="template-select-list">
+            <view 
+              wx:for="{{templateList}}" 
+              wx:key="key"
+              class="template-select-item {{currentTemplateKey === item.key ? 'active' : ''}}"
+              bindtap="quickSwitchTemplate"
+              data-key="{{item.key}}"
+              data-name="{{item.name}}"
+            >
+              <view class="template-select-icon">{{item.icon}}</view>
+              <view class="template-select-info">
+                <view class="template-select-name">{{item.name}}</view>
+                <view class="template-select-desc">{{item.desc}}</view>
+              </view>
+              <view class="template-select-check" wx:if="{{currentTemplateKey === item.key}}">✓</view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+      
+      <!-- 供应商和模型列表 -->
+      <view class="quick-panel" wx:if="{{quickSwitchTab === 'provider'}}">
+        <scroll-view scroll-y class="quick-scroll">
+          <view class="provider-model-list">
+            <view 
+              wx:for="{{allProviders}}" 
+              wx:key="key"
+              class="provider-group {{currentProvider === item.key ? 'expanded' : ''}}"
+            >
+              <!-- 供应商主卡片 -->
+              <view class="provider-main" bindtap="quickSwitchProvider" data-key="{{item.key}}">
+                <view class="provider-icon" style="background: {{item.color}}">{{item.icon}}</view>
+                <view class="provider-info">
+                  <view class="provider-name">
+                    {{item.name}}
+                    <text class="provider-badge" wx:if="{{item.configured}}">✓ 已配置</text>
+                  </view>
+                  <view class="provider-desc">{{item.description}}</view>
+                </view>
+                <view class="provider-expand {{currentProvider === item.key ? 'open' : ''}}">
+                  <text>›</text>
+                </view>
+              </view>
+              
+              <!-- 子模型列表（展开时显示） -->
+              <view class="model-sub-list" wx:if="{{currentProvider === item.key && expandProvider}}">
+                <view 
+                  wx:for="{{item.subModels}}" 
+                  wx:for-item="sub"
+                  wx:key="key"
+                  class="model-sub-item {{currentModelKey === sub.key ? 'active' : ''}}"
+                  bindtap="quickSwitchModel"
+                  data-key="{{sub.key}}"
+                  data-name="{{sub.name}}"
+                >
+                  <view class="model-sub-name">{{sub.name}}</view>
+                  <view class="model-sub-desc">{{sub.desc}}</view>
+                  <view class="model-sub-check" wx:if="{{currentModelKey === sub.key}}">✓</view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 未配置提示 -->
+  <view class="not-configured" wx:if="{{!isConfigured}}">
+    <view class="not-configured-icon">🤖</view>
+    <view class="not-configured-title">还未配置AI模型</view>
+    <view class="not-configured-desc">请先配置API Key才能开始对话</view>
+    <button class="config-btn" bindtap="goSettings">去配置</button>
+  </view>
+
+  <!-- 聊天区域 -->
+  <view class="chat-area" wx:else>
+    <!-- 消息列表 -->
+    <scroll-view 
+      class="message-list" 
+      scroll-y 
+      scroll-into-view="{{scrollToView}}"
+      scroll-with-animation
+    >
+      <!-- 加载历史中 -->
+      <view class="loading-history" wx:if="{{loadingHistory}}">
+        <view class="loading-spinner"></view>
+        <text>加载历史消息中...</text>
+      </view>
+      
+      <!-- 欢迎消息 -->
+      <view class="welcome-msg" wx:if="{{messages.length === 0 && !loadingHistory}}">
+        <view class="welcome-icon">👋</view>
+        <view class="welcome-title">你好，我是{{modelInfo.name}}</view>
+        <view class="welcome-desc">我可以根据你的成长数据和你聊天哦！</view>
+        <view class="quick-questions">
+          <view class="quick-btn" bindtap="quickQuestion" data-q="我最近的学习情况怎么样？">
+            📚 学习情况
+          </view>
+          <view class="quick-btn" bindtap="quickQuestion" data-q="我的刷牙习惯坚持得怎么样？">
+            🦷 刷牙习惯
+          </view>
+          <view class="quick-btn" bindtap="quickQuestion" data-q="给我讲个有趣的故事吧">
+            📖 讲个故事
+          </view>
+          <view class="quick-btn" bindtap="quickQuestion" data-q="我的摆摊生意怎么样？">
+            🏪 摆摊经营
+          </view>
+        </view>
+      </view>
+
+      <!-- 消息列表 -->
+      <view 
+        wx:for="{{messages}}" 
+        wx:key="id"
+        class="message-item {{item.role === 'user' ? 'user-msg' : 'ai-msg'}} {{item.isError ? 'error-msg' : ''}}"
+        id="msg-{{item.id}}"
+        bindlongpress="showMessageActions"
+        data-id="{{item.id}}"
+        data-role="{{item.role}}"
+        data-content="{{item.content}}"
+      >
+        <view class="msg-avatar" wx:if="{{item.role === 'assistant'}}">
+          {{modelInfo.icon}}
+        </view>
+        <view class="msg-content">
+          <!-- 思考过程（可折叠） -->
+          <view class="thinking-section" wx:if="{{item.thinking}}">
+            <view class="thinking-header" bindtap="toggleThinking" data-id="{{item.id}}">
+              <text class="thinking-icon">🧠</text>
+              <text class="thinking-title">思考过程</text>
+              <text class="thinking-arrow {{item.showThinking ? 'open' : ''}}">›</text>
+            </view>
+            <view class="thinking-content" wx:if="{{item.showThinking}}">
+              {{item.thinking}}
+            </view>
+          </view>
+          <!-- 图片消息 -->
+          <view class="msg-image" wx:if="{{item.image}}" bindtap="previewImage" data-url="{{item.image}}">
+            <image src="{{item.image}}" mode="widthFix" class="image-preview" />
+          </view>
+          <!-- 文本消息 -->
+          <view class="msg-text" wx:if="{{item.content}}">{{item.content}}</view>
+          <!-- 错误消息重新发送按钮 -->
+          <view class="msg-retry" wx:if="{{item.isError}}" bindtap="retryMessage" data-id="{{item.id}}">
+            <text class="retry-icon">🔄</text>
+            <text class="retry-text">重新发送</text>
+          </view>
+          <view class="msg-time">{{item.timeStr}}</view>
+        </view>
+        <view class="msg-avatar" wx:if="{{item.role === 'user'}}">
+          👦
+        </view>
+      </view>
+
+      <!-- 加载中 -->
+      <view class="message-item ai-msg" wx:if="{{loading}}">
+        <view class="msg-avatar">{{modelInfo.icon}}</view>
+        <view class="msg-content">
+          <view class="thinking-indicator">
+            <view class="thinking-dot"></view>
+            <view class="thinking-dot"></view>
+            <view class="thinking-dot"></view>
+            <text class="thinking-text">{{loadingText}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 占位 -->
+      <view id="msg-bottom" style="height: 20rpx;"></view>
+    </scroll-view>
+
+    <!-- 表情快捷栏 -->
+    <view class="emoji-bar" wx:if="{{showEmojiBar}}">
+      <scroll-view scroll-x class="emoji-scroll">
+        <view class="emoji-list">
+          <view 
+            wx:for="{{emojiList}}" 
+            wx:key="*this"
+            class="emoji-item"
+            bindtap="insertEmoji"
+            data-emoji="{{item}}"
+          >
+            {{item}}
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+    
+    <!-- 输入区域 -->
+    <view class="input-area">
+      <!-- 表情按钮 -->
+      <view class="action-btn {{showEmojiBar ? 'active' : ''}}" bindtap="toggleEmojiBar">
+        <text>😊</text>
+      </view>
+      <!-- 图片按钮 -->
+      <view class="action-btn" bindtap="chooseImage">
+        <text>🖼️</text>
+      </view>
+      <!-- 输入框 -->
+      <view class="input-wrapper">
+        <input 
+          class="msg-input"
+          placeholder="输入消息..."
+          value="{{inputValue}}"
+          bindinput="onInput"
+          bindconfirm="sendMessage"
+          confirm-type="send"
+          disabled="{{loading}}"
+          focus="{{inputFocus}}"
+        />
+      </view>
+      <!-- 语音/发送按钮 -->
+      <view 
+        wx:if="{{inputValue.length > 0 || selectedImage}}"
+        class="send-btn active" 
+        bindtap="sendMessage"
+      >
+        发送
+      </view>
+      <view 
+        wx:else
+        class="voice-btn {{isRecording ? 'recording' : ''}}" 
+        bindtouchstart="startRecording"
+        bindtouchend="stopRecording"
+        bindtouchcancel="cancelRecording"
+      >
+        <text>{{isRecording ? '🎤' : '🎙️'}}</text>
+      </view>
+    </view>
+    
+    <!-- 选中的图片预览 -->
+    <view class="image-preview-bar" wx:if="{{selectedImage}}">
+      <view class="preview-image-wrapper">
+        <image src="{{selectedImage}}" mode="aspectFill" class="preview-image" />
+        <view class="remove-image" bindtap="removeImage">✕</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 消息操作弹窗 -->
+  <view class="action-modal" wx:if="{{showActionModal}}" bindtap="hideMessageActions">
+    <view class="action-modal-content" catchtap="stopPropagation">
+      <view class="action-modal-header">消息操作</view>
+      <view class="action-list">
+        <view class="action-item" bindtap="copyMessage" data-content="{{actionMessage.content}}">
+          <text class="action-icon">📋</text>
+          <text class="action-text">复制</text>
+        </view>
+        <view class="action-item" wx:if="{{actionMessage.role === 'user'}}" bindtap="resendMessage" data-content="{{actionMessage.content}}" data-image="{{actionMessage.image}}">
+          <text class="action-icon">🔄</text>
+          <text class="action-text">重新发送</text>
+        </view>
+        <view class="action-item delete" bindtap="deleteMessage" data-id="{{actionMessage.id}}">
+          <text class="action-icon">🗑️</text>
+          <text class="action-text">删除</text>
+        </view>
+      </view>
+      <view class="action-cancel" bindtap="hideMessageActions">取消</view>
+    </view>
+  </view>
+
+  <!-- 会话列表弹窗 -->
+  <view class="session-modal" wx:if="{{showSessionModal}}" bindtap="hideSessions">
+    <view class="session-modal-content" catchtap="stopPropagation">
+      <view class="session-modal-header">
+        <text class="session-modal-title">历史会话</text>
+        <view class="session-modal-close" bindtap="hideSessions">✕</view>
+      </view>
+      
+      <!-- 搜索框 -->
+      <view class="session-search">
+        <view class="search-wrapper">
+          <text class="search-icon">🔍</text>
+          <input 
+            class="search-input"
+            placeholder="搜索会话..."
+            value="{{searchKeyword}}"
+            bindinput="onSearchInput"
+          />
+          <view class="search-clear" wx:if="{{searchKeyword}}" bindtap="clearSearch">✕</view>
+        </view>
+      </view>
+      
+      <!-- 统计信息 -->
+      <view class="session-stats">
+        <view class="stat-item">
+          <text class="stat-value">{{totalSessions}}</text>
+          <text class="stat-label">会话</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{totalMessages}}</text>
+          <text class="stat-label">消息</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{totalTokens}}</text>
+          <text class="stat-label">Tokens</text>
+        </view>
+      </view>
+      
+      <!-- 会话列表 -->
+      <scroll-view 
+        class="session-list" 
+        scroll-y
+        bindscrolltolower="loadMoreSessions"
+      >
+        <view 
+          wx:for="{{filteredSessions}}" 
+          wx:key="sessionId"
+          class="session-item {{currentSessionId === item.sessionId ? 'active' : ''}}"
+          bindtap="switchSession"
+          data-id="{{item.sessionId}}"
+        >
+          <view class="session-info">
+            <view class="session-preview">{{item.lastMessage}}</view>
+            <view class="session-detail">
+              <view class="session-meta">
+                <text class="session-model">{{item.modelName}}</text>
+                <text class="session-count">{{item.messageCount}}条</text>
+              </view>
+              <view class="session-usage">
+                <text class="session-tokens" wx:if="{{item.totalTokens}}">🔤 {{item.totalTokens}}</text>
+                <text class="session-time">{{item.timeStr}}</text>
+              </view>
+            </view>
+          </view>
+          <view class="session-delete" catchtap="deleteSession" data-id="{{item.sessionId}}">🗑️</view>
+        </view>
+        
+        <!-- 加载更多 -->
+        <view class="load-more" wx:if="{{hasMoreSessions}}" bindtap="loadMoreSessions">
+          {{loadingSessions ? '加载中...' : '加载更多'}}
+        </view>
+        
+        <!-- 空状态 -->
+        <view class="session-empty" wx:if="{{filteredSessions.length === 0}}">
+          <text wx:if="{{searchKeyword}}">未找到匹配的会话</text>
+          <text wx:else>暂无历史会话</text>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

@@ -73,6 +73,10 @@
   <view class="section">
     <view class="section-title">🎯 快捷入口</view>
     <view class="quick-grid">
+      <view class="quick-item" bindtap="goModule" data-module="aiChat">
+        <view class="quick-icon">🤖</view>
+        <view class="quick-text">AI助手</view>
+      </view>
       <view class="quick-item" bindtap="goModule" data-module="draw">
         <view class="quick-icon">🎨</view>
         <view class="quick-text">画画</view>

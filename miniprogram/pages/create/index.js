@@ -1,9 +1,12 @@
 var childStorage = require('../../utils/child-storage.js')
+var aiManager = require('../../utils/ai-manager.js')
 
 Page({
   data: {
     drawingCount: 0,
-    todaySales: 0
+    todaySales: 0,
+    aiModelIcon: '🤖',
+    aiModelName: '未配置'
   },
 
   onLoad: function() {
@@ -36,9 +39,21 @@ Page({
     var today = this.getTodayStr()
     var todaySales = sales.filter(function(s) { return s.date === today })
 
+    // 获取AI模型信息
+    var modelInfo = aiManager.getCurrentModelInfo()
+    var aiModelIcon = '🤖'
+    var aiModelName = '未配置'
+    
+    if (modelInfo && modelInfo.configured) {
+      aiModelIcon = modelInfo.info.icon
+      aiModelName = modelInfo.info.name
+    }
+
     this.setData({
       drawingCount: drawings.length,
-      todaySales: todaySales.length
+      todaySales: todaySales.length,
+      aiModelIcon: aiModelIcon,
+      aiModelName: aiModelName
     })
   },
 
@@ -53,5 +68,9 @@ Page({
 
   goStall: function() {
     wx.navigateTo({ url: '/pages/create/stall/index' })
+  },
+
+  goAiChat: function() {
+    wx.navigateTo({ url: '/pages/create/ai-chat/index' })
   }
 })

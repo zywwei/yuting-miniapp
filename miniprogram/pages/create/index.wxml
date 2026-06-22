@@ -29,5 +29,20 @@
         </view>
       </view>
     </view>
+
+    <view class="category-card ai-card" bindtap="goAiChat">
+      <view class="card-bg" style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);"></view>
+      <view class="card-content">
+        <view class="card-icon">🤖</view>
+        <view class="card-info">
+          <view class="card-title">AI助手</view>
+          <view class="card-desc">智能陪伴、成长互动</view>
+        </view>
+        <view class="card-stat">
+          <text class="stat-icon">{{aiModelIcon}}</text>
+          <text class="stat-label">{{aiModelName}}</text>
+        </view>
+      </view>
+    </view>
   </view>
 </view>
