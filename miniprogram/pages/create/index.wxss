@@ -74,3 +74,7 @@
   font-size: 22rpx;
   color: rgba(255,255,255,0.8);
 }
+
+.stat-icon {
+  font-size: 48rpx;
+}

@@ -30,6 +30,8 @@
     "pages/create/stall/pricing-helper/pricing-helper",
     "pages/create/stall/restock-list/restock-list",
     "pages/create/stall/business-diary/business-diary",
+    "pages/create/ai-chat/index",
+    "pages/create/ai-settings/index",
     "pages/notes/index",
     "pages/notes/add",
     "pages/notes/detail",
