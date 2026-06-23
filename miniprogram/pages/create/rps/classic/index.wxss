@@ -1,0 +1,481 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFE0E6 0%, #FFF5F5 100%);
+  padding: 32rpx;
+}
+
+.phase-select {
+  text-align: center;
+  padding-top: 80rpx;
+}
+
+.phase-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #E91E63;
+  margin-bottom: 60rpx;
+}
+
+.mode-buttons,
+.difficulty-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+}
+
+.mode-btn,
+.difficulty-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 40rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(233, 30, 99, 0.15);
+}
+
+.mode-btn:active,
+.difficulty-btn:active {
+  transform: scale(0.98);
+}
+
+.mode-btn-icon,
+.difficulty-icon {
+  font-size: 64rpx;
+  margin-bottom: 16rpx;
+}
+
+.mode-btn-text,
+.difficulty-text {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.mode-desc {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.easy {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+.medium {
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+}
+
+.hard {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+}
+
+.back-btn {
+  margin-top: 40rpx;
+  font-size: 28rpx;
+  color: #999;
+}
+
+.phase-playing,
+.phase-parent,
+.phase-result {
+  padding-top: 40rpx;
+}
+
+.scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 32rpx;
+  border-radius: 20rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+}
+
+.score-side {
+  flex: 1;
+  text-align: center;
+}
+
+.score-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+
+.score-value {
+  font-size: 56rpx;
+  font-weight: bold;
+  color: #E91E63;
+}
+
+.score-divider {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #ccc;
+  padding: 0 32rpx;
+}
+
+.countdown {
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+
+.countdown-num {
+  font-size: 120rpx;
+  font-weight: bold;
+  color: #E91E63;
+  animation: countdownPulse 0.8s ease-in-out;
+}
+
+@keyframes countdownPulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.battle-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 40rpx;
+}
+
+.player-side {
+  text-align: center;
+}
+
+.player-choice {
+  width: 200rpx;
+  height: 200rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fff 0%, #f8f8f8 100%);
+  border-radius: 50%;
+  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.15);
+  margin-bottom: 20rpx;
+  border: 4rpx solid #f0f0f0;
+}
+
+.player-choice.animating {
+  animation: shake 0.3s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  75% { transform: rotate(-15deg); }
+}
+
+.choice-icon {
+  font-size: 100rpx;
+}
+
+.choice-placeholder {
+  font-size: 100rpx;
+  color: #ddd;
+  font-weight: bold;
+}
+
+.player-name {
+  font-size: 32rpx;
+  color: #666;
+  font-weight: bold;
+}
+
+.vs-icon {
+  font-size: 56rpx;
+  margin: 0 48rpx;
+  color: #FF9800;
+}
+
+.round-result {
+  text-align: center;
+  margin-bottom: 48rpx;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { transform: translateY(20rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 48rpx;
+  border-radius: 48rpx;
+  background: #fff;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+}
+
+.result-badge.win {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+.result-badge.lose {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+}
+
+.result-badge.draw {
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+}
+
+.result-icon {
+  font-size: 72rpx;
+  margin-bottom: 0;
+}
+
+.result-text {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.game-result {
+  text-align: center;
+  background: #fff;
+  padding: 56rpx;
+  border-radius: 32rpx;
+  margin-bottom: 48rpx;
+  box-shadow: 0 12rpx 40rpx rgba(0, 0, 0, 0.12);
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.game-result-badge {
+  margin-bottom: 32rpx;
+}
+
+.game-result-icon {
+  font-size: 96rpx;
+  margin-bottom: 16rpx;
+}
+
+.game-result-text {
+  font-size: 56rpx;
+  font-weight: bold;
+  color: #E91E63;
+  margin-bottom: 16rpx;
+}
+
+.game-result-score {
+  font-size: 72rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 40rpx;
+}
+
+.game-result-actions {
+  display: flex;
+  gap: 32rpx;
+}
+
+.result-btn {
+  flex: 1;
+  padding: 28rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.result-btn.primary {
+  background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+  color: #fff;
+}
+
+.result-btn.secondary {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.choice-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 40rpx;
+}
+
+.choice-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.choice-btn-inner {
+  width: 140rpx;
+  height: 140rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fff 0%, #f8f8f8 100%);
+  border-radius: 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+  border: 4rpx solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.choice-btn:active .choice-btn-inner {
+  transform: scale(0.95);
+  background: #FFE0E6;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.choice-btn-icon {
+  font-size: 80rpx;
+}
+
+.choice-btn-text {
+  font-size: 28rpx;
+  color: #666;
+  font-weight: bold;
+}
+
+.next-round {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin-top: 48rpx;
+  padding: 24rpx;
+  background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+/* 亲子模式专用样式 */
+.player-prompt {
+  text-align: center;
+  margin-bottom: 48rpx;
+}
+
+.player-done {
+  font-size: 28rpx;
+  color: #4CAF50;
+  background: #E8F5E9;
+  padding: 12rpx 24rpx;
+  border-radius: 24rpx;
+  display: inline-block;
+  margin-bottom: 24rpx;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.player-avatar {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.player-turn {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #E91E63;
+  margin-bottom: 8rpx;
+}
+
+.player-hint {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 随机对战模式样式 */
+.phase-random {
+  padding-top: 20rpx;
+}
+
+.random-header {
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.random-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #FF9800;
+  margin-bottom: 8rpx;
+}
+
+.random-desc {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.random-battle-btn {
+  text-align: center;
+  margin-top: 32rpx;
+}
+
+.random-battle-btn .random-battle-inner {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  padding: 32rpx 64rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(255, 152, 0, 0.3);
+}
+
+.random-battle-btn:active .random-battle-inner {
+  transform: scale(0.98);
+}
+
+.random-battle-icon {
+  font-size: 64rpx;
+  margin-bottom: 12rpx;
+}
+
+.random-battle-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* 再玩一次按钮 */
+.random-battle-inner.replay {
+  background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+}
+
+/* 模式选择按钮 */
+.random-btn {
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+}
+
+/* 出拳占位符 */
+.choice-placeholder {
+  font-size: 72rpx;
+  color: #ddd;
+  font-weight: bold;
+}
+
+/* 亲子模式专用 - 更大的按钮 */
+.phase-parent .choice-buttons {
+  gap: 48rpx;
+}
+
+.phase-parent .choice-btn-inner {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 36rpx;
+}
+
+.phase-parent .choice-btn-icon {
+  font-size: 100rpx;
+}
+
+.phase-parent .choice-btn-text {
+  font-size: 32rpx;
+}

@@ -1,0 +1,482 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFE0B2 0%, #FFF5F5 100%);
+  padding: 32rpx;
+}
+
+/* 选择阶段 */
+.phase-select {
+  text-align: center;
+  padding-top: 80rpx;
+}
+
+.phase-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #FF5722;
+  margin-bottom: 60rpx;
+}
+
+.mode-buttons,
+.dice-count-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+}
+
+.mode-btn,
+.dice-count-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 40rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(255, 87, 34, 0.15);
+  transition: all 0.2s ease;
+}
+
+.mode-btn:active,
+.dice-count-btn:active {
+  transform: scale(0.98);
+}
+
+.dice-count-btn.active {
+  background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
+  color: #fff;
+}
+
+.mode-btn-icon,
+.dice-count-icon {
+  font-size: 64rpx;
+  margin-bottom: 16rpx;
+}
+
+.mode-btn-text,
+.dice-count-text {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.mode-desc {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.dice-count-btn.active .dice-count-text {
+  color: #fff;
+}
+
+.start-btn {
+  margin-top: 40rpx;
+  padding: 24rpx 48rpx;
+  background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  display: inline-block;
+  box-shadow: 0 8rpx 24rpx rgba(255, 87, 34, 0.3);
+}
+
+.start-btn:active {
+  transform: scale(0.98);
+}
+
+.back-btn {
+  margin-top: 24rpx;
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 游戏阶段 */
+.phase-playing {
+  padding-top: 20rpx;
+}
+
+/* 比分板 */
+.scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 24rpx;
+  border-radius: 16rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.score-side {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.score-side.score-win {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+.score-label {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+
+.score-value {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #FF5722;
+}
+
+.score-divider {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 0 16rpx;
+}
+
+.divider-line {
+  width: 2rpx;
+  height: 40rpx;
+  background: #eee;
+}
+
+.divider-text {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #ccc;
+}
+
+/* 骰子展示区域 */
+.dice-area {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
+
+.player-dice-area {
+  flex: 1;
+  text-align: center;
+}
+
+.player-label {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #666;
+  margin-bottom: 16rpx;
+}
+
+.dice-container {
+  display: flex;
+  justify-content: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+  min-height: 100rpx;
+}
+
+.dice {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.dice.rolling {
+  animation: diceRoll 0.15s ease-in-out infinite;
+}
+
+.dice.dice-win {
+  box-shadow: 0 0 0 4rpx rgba(76, 175, 80, 0.5);
+  transform: scale(1.1);
+}
+
+.dice.dice-lose {
+  opacity: 0.6;
+}
+
+@keyframes diceRoll {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(90deg) scale(1.1); }
+  50% { transform: rotate(180deg) scale(1); }
+  75% { transform: rotate(270deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+.dice-face {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.dice-placeholder {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+}
+
+.placeholder-icon {
+  font-size: 40rpx;
+  opacity: 0.5;
+}
+
+.player-sum {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.sum-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.sum-value {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #FF5722;
+}
+
+.special-combination {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.special-icon {
+  font-size: 28rpx;
+}
+
+.special-text {
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #FF9800;
+}
+
+.vs-divider {
+  display: flex;
+  align-items: center;
+  padding: 0 16rpx;
+  margin-top: 60rpx;
+}
+
+.vs-icon {
+  font-size: 40rpx;
+  color: #FF9800;
+  transition: all 0.3s ease;
+}
+
+.vs-icon.vs-animate {
+  animation: vsPulse 0.5s ease-in-out;
+}
+
+@keyframes vsPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+
+/* 回合结果 */
+.round-result {
+  text-align: center;
+  margin-bottom: 32rpx;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { transform: translateY(20rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 32rpx;
+  border-radius: 40rpx;
+  background: #fff;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.result-badge.win {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+.result-badge.lose {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+}
+
+.result-badge.draw {
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+}
+
+.result-icon {
+  font-size: 36rpx;
+}
+
+.result-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 游戏结果 */
+.game-result {
+  text-align: center;
+  margin-bottom: 32rpx;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.game-result-badge {
+  background: #fff;
+  padding: 48rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+  margin-bottom: 24rpx;
+}
+
+.game-result-badge.win {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+.game-result-badge.lose {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+}
+
+.game-result-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+.game-result-text {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.game-result-score {
+  font-size: 56rpx;
+  font-weight: bold;
+  color: #FF5722;
+}
+
+.game-result-actions {
+  display: flex;
+  gap: 24rpx;
+}
+
+.result-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 24rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.result-btn.primary {
+  background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
+  color: #fff;
+}
+
+.result-btn.secondary {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.result-btn:active {
+  transform: scale(0.98);
+}
+
+.btn-icon {
+  font-size: 28rpx;
+}
+
+.btn-text {
+  font-size: 28rpx;
+}
+
+/* 摇骰子按钮 */
+.roll-btn-container {
+  text-align: center;
+}
+
+.roll-btn {
+  display: inline-block;
+  background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
+  border-radius: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(255, 87, 34, 0.3);
+  overflow: hidden;
+}
+
+.roll-btn:active {
+  transform: scale(0.98);
+}
+
+.roll-btn-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32rpx 64rpx;
+}
+
+.roll-btn-icon {
+  font-size: 64rpx;
+  margin-bottom: 12rpx;
+}
+
+.roll-btn-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* 下一局按钮 */
+.next-round {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin-top: 32rpx;
+  padding: 24rpx;
+  background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.next-round:active {
+  transform: scale(0.98);
+}
+
+.next-round-icon {
+  font-size: 28rpx;
+}
+
+.next-round-text {
+  font-size: 32rpx;
+}

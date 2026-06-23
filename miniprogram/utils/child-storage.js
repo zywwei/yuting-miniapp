@@ -24,7 +24,18 @@ var CHILD_KEYS = [
   'stallDailyChallenges',
   'stallBusinessHours',
   'stallDiary',
-  'stallRestockList'
+  'stallRestockList',
+  'rpsRecords',
+  'rpsStory',
+  'rpsChallenge',
+  'rpsTournament',
+  'rpsStats',
+  'diceRecords',
+  'diceFlight',
+  'diceMonopoly',
+  'diceMissions',
+  'diceStats',
+  'gameSettings'
 ]
 
 function getKey(key) {

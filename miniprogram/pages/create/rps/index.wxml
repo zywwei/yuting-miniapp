@@ -1,0 +1,75 @@
+<view class="container">
+  <view class="header">
+    <view class="header-bg"></view>
+    <view class="header-content">
+      <view class="header-icon">✊</view>
+      <view class="header-title">猜拳大战</view>
+      <view class="header-desc">剪刀石头布，智慧与运气的较量</view>
+    </view>
+    <view class="stats-bar">
+      <view class="stat-item">
+        <text class="stat-value">{{totalGames}}</text>
+        <text class="stat-label">总对战</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{winRate}}%</text>
+        <text class="stat-label">胜率</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{bestStreak}}</text>
+        <text class="stat-label">最佳连胜</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="mode-grid">
+    <view class="mode-card classic-card" bindtap="goClassic">
+      <view class="mode-icon">🎮</view>
+      <view class="mode-info">
+        <view class="mode-title">经典对战</view>
+        <view class="mode-desc">三局两胜，一决高下</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+
+    <view class="mode-card challenge-card" bindtap="goChallenge">
+      <view class="mode-icon">🏆</view>
+      <view class="mode-info">
+        <view class="mode-title">闯关挑战</view>
+        <view class="mode-desc">10关难度递增，挑战极限</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+
+    <view class="mode-card story-card" bindtap="goStory">
+      <view class="mode-icon">⚔️</view>
+      <view class="mode-info">
+        <view class="mode-title">故事冒险</view>
+        <view class="mode-desc">7章奇幻剧情，勇者之路</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+
+    <view class="mode-card tournament-card" bindtap="goTournament">
+      <view class="mode-icon">🏅</view>
+      <view class="mode-info">
+        <view class="mode-title">锦标赛</view>
+        <view class="mode-desc">家庭淘汰赛，谁是冠军</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="recent-section" wx:if="{{recentRecords.length > 0}}">
+    <view class="section-title">最近战绩</view>
+    <view class="record-list">
+      <view class="record-item" wx:for="{{recentRecords}}" wx:key="id">
+        <view class="record-mode">{{item.mode === 'classic' ? '经典' : item.mode === 'challenge' ? '闯关' : item.mode === 'story' ? '故事' : '锦标赛'}}</view>
+        <view class="record-result {{item.result}}">{{item.result === 'win' ? '胜' : item.result === 'lose' ? '负' : '平'}}</view>
+        <view class="record-score">{{item.score}}</view>
+      </view>
+    </view>
+  </view>
+</view>

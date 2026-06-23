@@ -1,0 +1,406 @@
+<view class="container">
+  <!-- 选择模式阶段 -->
+  <view class="phase-select" wx:if="{{phase === 'select' && !playMode}}">
+    <view class="phase-title">选择对战模式</view>
+    <view class="mode-buttons">
+      <view class="mode-btn" bindtap="selectMode" data-mode="parent">
+        <view class="mode-btn-icon">👨‍👩‍👧</view>
+        <view class="mode-btn-text">亲子对战</view>
+        <view class="mode-desc">和家人一起玩</view>
+      </view>
+      <view class="mode-btn random-btn" bindtap="selectMode" data-mode="parentRandom">
+        <view class="mode-btn-icon">🎲</view>
+        <view class="mode-btn-text">亲子随机</view>
+        <view class="mode-desc">运气大比拼</view>
+      </view>
+      <view class="mode-btn" bindtap="selectMode" data-mode="ai">
+        <view class="mode-btn-icon">🤖</view>
+        <view class="mode-btn-text">人机对战</view>
+        <view class="mode-desc">挑战AI对手</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 选择难度阶段（人机模式） -->
+  <view class="phase-select" wx:if="{{phase === 'select' && playMode === 'ai'}}">
+    <view class="phase-title">选择AI难度</view>
+    <view class="difficulty-buttons">
+      <view class="difficulty-btn easy" bindtap="selectDifficulty" data-difficulty="simple">
+        <view class="difficulty-icon">😊</view>
+        <view class="difficulty-text">简单</view>
+        <view class="difficulty-desc">随机出拳</view>
+      </view>
+      <view class="difficulty-btn medium" bindtap="selectDifficulty" data-difficulty="medium">
+        <view class="difficulty-icon">😐</view>
+        <view class="difficulty-text">中等</view>
+        <view class="difficulty-desc">会分析你的习惯</view>
+      </view>
+      <view class="difficulty-btn hard" bindtap="selectDifficulty" data-difficulty="hard">
+        <view class="difficulty-icon">😤</view>
+        <view class="difficulty-text">困难</view>
+        <view class="difficulty-desc">能预测你的出拳</view>
+      </view>
+    </view>
+    <view class="back-btn" bindtap="goBack">返回</view>
+  </view>
+
+  <!-- 游戏阶段（人机模式） -->
+  <view class="phase-playing" wx:if="{{phase === 'playing'}}">
+    <!-- 比分板 -->
+    <view class="scoreboard">
+      <view class="score-side {{roundResult === 'win' ? 'score-win' : ''}}">
+        <view class="score-label">我</view>
+        <view class="score-value {{scoreChanged && roundResult === 'win' ? 'score-animate' : ''}}">{{player1Wins}}</view>
+      </view>
+      <view class="score-divider">
+        <view class="divider-line"></view>
+        <text class="divider-text">VS</text>
+        <view class="divider-line"></view>
+      </view>
+      <view class="score-side {{roundResult === 'lose' ? 'score-win' : ''}}">
+        <view class="score-label">AI</view>
+        <view class="score-value {{scoreChanged && roundResult === 'lose' ? 'score-animate' : ''}}">{{player2Wins}}</view>
+      </view>
+    </view>
+
+    <!-- 倒计时 -->
+    <view class="countdown-overlay" wx:if="{{countdown > 0}}">
+      <view class="countdown-container">
+        <view class="countdown-ring"></view>
+        <text class="countdown-num">{{countdown}}</text>
+      </view>
+    </view>
+
+    <!-- 出拳区域 -->
+    <view class="battle-area">
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
+          <text class="choice-icon">{{player1Icon}}</text>
+        </view>
+        <view class="player-name">我</view>
+      </view>
+
+      <view class="vs-icon-container">
+        <view class="vs-icon {{isAnimating ? 'vs-animate' : ''}}">⚡</view>
+      </view>
+
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
+          <text class="choice-icon">{{player2Icon}}</text>
+        </view>
+        <view class="player-name">AI</view>
+      </view>
+    </view>
+
+    <!-- 回合结果 -->
+    <view class="round-result" wx:if="{{roundResult}}">
+      <view class="result-badge {{roundResult}}">
+        <view class="result-icon">{{roundResultIcon}}</view>
+        <view class="result-text">{{roundResultText}}</view>
+      </view>
+    </view>
+
+    <!-- 撒花效果（胜利时） -->
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <view class="confetti confetti-1">🎉</view>
+      <view class="confetti confetti-2">🎊</view>
+      <view class="confetti confetti-3">✨</view>
+      <view class="confetti confetti-4">🎉</view>
+      <view class="confetti confetti-5">🎊</view>
+      <view class="confetti confetti-6">✨</view>
+    </view>
+
+    <!-- 游戏结果 -->
+    <view class="game-result" wx:if="{{gameResult}}">
+      <view class="game-result-badge {{gameResult}}">
+        <view class="game-result-icon">{{gameResult === 'win' ? '🏆' : '💪'}}</view>
+        <view class="game-result-text">{{gameResultText}}</view>
+        <view class="game-result-score">{{player1Wins}} : {{player2Wins}}</view>
+      </view>
+      <view class="game-result-actions">
+        <view class="result-btn primary" bindtap="playAgain">
+          <text class="btn-icon">🔄</text>
+          <text class="btn-text">再来一局</text>
+        </view>
+        <view class="result-btn secondary" bindtap="endGame">
+          <text class="btn-icon">🏠</text>
+          <text class="btn-text">返回</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 选择出拳 -->
+    <view class="choice-buttons" wx:if="{{!isAnimating && !gameResult}}">
+      <view class="choice-btn" bindtap="aiPlayerChoice" data-choice="rock">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✊</text>
+        </view>
+        <text class="choice-btn-text">石头</text>
+      </view>
+      <view class="choice-btn" bindtap="aiPlayerChoice" data-choice="scissors">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✌️</text>
+        </view>
+        <text class="choice-btn-text">剪刀</text>
+      </view>
+      <view class="choice-btn" bindtap="aiPlayerChoice" data-choice="paper">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✋</text>
+        </view>
+        <text class="choice-btn-text">布</text>
+      </view>
+    </view>
+
+    <!-- 下一局按钮 -->
+    <view class="next-round" wx:if="{{roundResult && !gameResult}}" bindtap="nextRound">
+      <text class="next-round-icon">▶</text>
+      <text class="next-round-text">下一局</text>
+    </view>
+  </view>
+
+  <!-- 亲子模式：玩家1选择 -->
+  <view class="phase-parent" wx:if="{{phase === 'player1Select' && currentPlayer === 1}}">
+    <view class="player-prompt">
+      <view class="player-avatar">👤</view>
+      <view class="player-turn">玩家1 请出拳</view>
+      <view class="player-hint">选择后交给玩家2</view>
+    </view>
+
+    <view class="choice-buttons">
+      <view class="choice-btn" bindtap="playerSelectChoice" data-choice="rock">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✊</text>
+        </view>
+        <text class="choice-btn-text">石头</text>
+      </view>
+      <view class="choice-btn" bindtap="playerSelectChoice" data-choice="scissors">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✌️</text>
+        </view>
+        <text class="choice-btn-text">剪刀</text>
+      </view>
+      <view class="choice-btn" bindtap="playerSelectChoice" data-choice="paper">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✋</text>
+        </view>
+        <text class="choice-btn-text">布</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 亲子模式：玩家2选择 -->
+  <view class="phase-parent" wx:if="{{phase === 'player1Select' && currentPlayer === 2}}">
+    <view class="player-prompt">
+      <view class="player-done">✅ 玩家1已出拳</view>
+      <view class="player-avatar">👤</view>
+      <view class="player-turn">玩家2 请出拳</view>
+      <view class="player-hint">请凭感觉选择</view>
+    </view>
+
+    <view class="choice-buttons">
+      <view class="choice-btn" bindtap="playerSelectChoice" data-choice="rock">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✊</text>
+        </view>
+        <text class="choice-btn-text">石头</text>
+      </view>
+      <view class="choice-btn" bindtap="playerSelectChoice" data-choice="scissors">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✌️</text>
+        </view>
+        <text class="choice-btn-text">剪刀</text>
+      </view>
+      <view class="choice-btn" bindtap="playerSelectChoice" data-choice="paper">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✋</text>
+        </view>
+        <text class="choice-btn-text">布</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 亲子模式：结果展示 -->
+  <view class="phase-result" wx:if="{{phase === 'result' && playMode === 'parent'}}">
+    <!-- 比分板 -->
+    <view class="scoreboard">
+      <view class="score-side {{roundResult === 'win' ? 'score-win' : ''}}">
+        <view class="score-label">玩家1</view>
+        <view class="score-value">{{player1Wins}}</view>
+      </view>
+      <view class="score-divider">
+        <view class="divider-line"></view>
+        <text class="divider-text">VS</text>
+        <view class="divider-line"></view>
+      </view>
+      <view class="score-side {{roundResult === 'lose' ? 'score-win' : ''}}">
+        <view class="score-label">玩家2</view>
+        <view class="score-value">{{player2Wins}}</view>
+      </view>
+    </view>
+
+    <!-- 出拳展示 -->
+    <view class="battle-area">
+      <view class="player-side">
+        <view class="player-choice {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
+          <text class="choice-icon">{{player1Icon}}</text>
+        </view>
+        <view class="player-name">玩家1</view>
+      </view>
+
+      <view class="vs-icon-container">
+        <view class="vs-icon">⚡</view>
+      </view>
+
+      <view class="player-side">
+        <view class="player-choice {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
+          <text class="choice-icon">{{player2Icon}}</text>
+        </view>
+        <view class="player-name">玩家2</view>
+      </view>
+    </view>
+
+    <!-- 回合结果 -->
+    <view class="round-result">
+      <view class="result-badge {{roundResult}}">
+        <view class="result-icon">{{roundResultIcon}}</view>
+        <view class="result-text">{{roundResult === 'win' ? '玩家1胜！' : roundResult === 'lose' ? '玩家2胜！' : '平局！'}}</view>
+      </view>
+    </view>
+
+    <!-- 撒花效果（胜利时） -->
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <view class="confetti confetti-1">🎉</view>
+      <view class="confetti confetti-2">🎊</view>
+      <view class="confetti confetti-3">✨</view>
+      <view class="confetti confetti-4">🎉</view>
+      <view class="confetti confetti-5">🎊</view>
+      <view class="confetti confetti-6">✨</view>
+    </view>
+
+    <!-- 游戏结果 -->
+    <view class="game-result" wx:if="{{gameResult}}">
+      <view class="game-result-badge {{gameResult}}">
+        <view class="game-result-icon">{{gameResult === 'win' ? '🏆' : '💪'}}</view>
+        <view class="game-result-text">{{gameResultText}}</view>
+        <view class="game-result-score">{{player1Wins}} : {{player2Wins}}</view>
+      </view>
+      <view class="game-result-actions">
+        <view class="result-btn primary" bindtap="playAgain">
+          <text class="btn-icon">🔄</text>
+          <text class="btn-text">再来一局</text>
+        </view>
+        <view class="result-btn secondary" bindtap="endGame">
+          <text class="btn-icon">🏠</text>
+          <text class="btn-text">返回</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 下一局按钮 -->
+    <view class="next-round" wx:if="{{!gameResult}}" bindtap="nextRound">
+      <text class="next-round-icon">▶</text>
+      <text class="next-round-text">下一局</text>
+    </view>
+  </view>
+
+  <!-- 亲子随机模式 -->
+  <view class="phase-random" wx:if="{{phase === 'randomPlaying'}}">
+    <view class="random-header">
+      <view class="random-title">🎲 亲子随机</view>
+      <view class="random-desc">{{currentPlayer === 1 ? '玩家1 点击随机出拳' : '玩家1已出拳，玩家2 点击随机出拳'}}</view>
+    </view>
+
+    <!-- 比分板 -->
+    <view class="scoreboard">
+      <view class="score-side {{roundResult === 'win' ? 'score-win' : ''}}">
+        <view class="score-label">玩家1</view>
+        <view class="score-value">{{player1Wins}}</view>
+      </view>
+      <view class="score-divider">
+        <view class="divider-line"></view>
+        <text class="divider-text">VS</text>
+        <view class="divider-line"></view>
+      </view>
+      <view class="score-side {{roundResult === 'lose' ? 'score-win' : ''}}">
+        <view class="score-label">玩家2</view>
+        <view class="score-value">{{player2Wins}}</view>
+      </view>
+    </view>
+
+    <!-- 出拳区域 -->
+    <view class="battle-area">
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
+          <text class="choice-icon" wx:if="{{player1Icon}}">{{player1Icon}}</text>
+          <text class="choice-placeholder" wx:else>?</text>
+        </view>
+        <view class="player-name">玩家1</view>
+      </view>
+
+      <view class="vs-icon-container">
+        <view class="vs-icon {{isAnimating ? 'vs-animate' : ''}}">⚡</view>
+      </view>
+
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
+          <text class="choice-icon" wx:if="{{player2Icon}}">{{player2Icon}}</text>
+          <text class="choice-placeholder" wx:else>?</text>
+        </view>
+        <view class="player-name">玩家2</view>
+      </view>
+    </view>
+
+    <!-- 回合结果 -->
+    <view class="round-result" wx:if="{{roundResult}}">
+      <view class="result-badge {{roundResult}}">
+        <view class="result-icon">{{roundResultIcon}}</view>
+        <view class="result-text">{{roundResult === 'win' ? '玩家1胜！' : roundResult === 'lose' ? '玩家2胜！' : '平局！'}}</view>
+      </view>
+    </view>
+
+    <!-- 撒花效果 -->
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <view class="confetti confetti-1">🎉</view>
+      <view class="confetti confetti-2">🎊</view>
+      <view class="confetti confetti-3">✨</view>
+      <view class="confetti confetti-4">🎉</view>
+      <view class="confetti confetti-5">🎊</view>
+      <view class="confetti confetti-6">✨</view>
+    </view>
+
+    <!-- 游戏结果 -->
+    <view class="game-result" wx:if="{{gameResult}}">
+      <view class="game-result-badge {{gameResult}}">
+        <view class="game-result-icon">{{gameResult === 'win' ? '🏆' : '💪'}}</view>
+        <view class="game-result-text">{{gameResultText}}</view>
+        <view class="game-result-score">{{player1Wins}} : {{player2Wins}}</view>
+      </view>
+      <view class="game-result-actions">
+        <view class="result-btn primary" bindtap="playAgain">
+          <text class="btn-icon">🔄</text>
+          <text class="btn-text">再来一局</text>
+        </view>
+        <view class="result-btn secondary" bindtap="endGame">
+          <text class="btn-icon">🏠</text>
+          <text class="btn-text">返回</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 随机出拳按钮 -->
+    <view class="random-battle-btn" wx:if="{{!isAnimating && !gameResult && !roundFinished}}" bindtap="startRandomBattle">
+      <view class="random-battle-inner">
+        <text class="random-battle-icon">🎲</text>
+        <text class="random-battle-text">{{currentPlayer === 1 ? '玩家1 随机出拳' : '玩家2 随机出拳'}}</text>
+      </view>
+    </view>
+
+    <!-- 再玩一次按钮 -->
+    <view class="random-battle-btn" wx:if="{{roundFinished && !gameResult}}" bindtap="playRandomAgain">
+      <view class="random-battle-inner replay">
+        <text class="random-battle-icon">🔄</text>
+        <text class="random-battle-text">再玩一次</text>
+      </view>
+    </view>
+  </view>
+</view>

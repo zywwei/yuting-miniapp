@@ -326,7 +326,8 @@ Page({
       aiChat: '/pages/create/ai-chat/index',
       draw: '/pages/create/draw/index',
       stall: '/pages/create/stall/index',
-      changeCalc: '/pages/create/stall/change-calc/change-calc'
+      changeCalc: '/pages/create/stall/change-calc/change-calc',
+      rps: '/pages/create/rps/index'
     }
     var url = urlMap[module]
     if (url) {

@@ -1,0 +1,149 @@
+<view class="container">
+  <!-- 选择模式阶段 -->
+  <view class="phase-select" wx:if="{{phase === 'select' && !playMode}}">
+    <view class="phase-title">选择对战模式</view>
+    <view class="mode-buttons">
+      <view class="mode-btn" bindtap="selectMode" data-mode="parent">
+        <view class="mode-btn-icon">👨‍👩‍👧</view>
+        <view class="mode-btn-text">亲子对战</view>
+        <view class="mode-desc">和家人一起玩</view>
+      </view>
+      <view class="mode-btn" bindtap="selectMode" data-mode="ai">
+        <view class="mode-btn-icon">🤖</view>
+        <view class="mode-btn-text">人机对战</view>
+        <view class="mode-desc">挑战AI对手</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 选择骰子数量 -->
+  <view class="phase-select" wx:if="{{phase === 'select' && playMode}}">
+    <view class="phase-title">选择骰子数量</view>
+    <view class="dice-count-buttons">
+      <view class="dice-count-btn {{diceCount === 1 ? 'active' : ''}}" bindtap="selectDiceCount" data-count="1">
+        <view class="dice-count-icon">🎲</view>
+        <view class="dice-count-text">1颗</view>
+      </view>
+      <view class="dice-count-btn {{diceCount === 2 ? 'active' : ''}}" bindtap="selectDiceCount" data-count="2">
+        <view class="dice-count-icon">🎲🎲</view>
+        <view class="dice-count-text">2颗</view>
+      </view>
+      <view class="dice-count-btn {{diceCount === 3 ? 'active' : ''}}" bindtap="selectDiceCount" data-count="3">
+        <view class="dice-count-icon">🎲🎲🎲</view>
+        <view class="dice-count-text">3颗</view>
+      </view>
+    </view>
+    <view class="start-btn" bindtap="startGame">开始游戏</view>
+    <view class="back-btn" bindtap="goBack">返回</view>
+  </view>
+
+  <!-- 游戏阶段 -->
+  <view class="phase-playing" wx:if="{{phase === 'playing' || phase === 'result'}}">
+    <!-- 比分板 -->
+    <view class="scoreboard">
+      <view class="score-side {{roundResult === 'win' ? 'score-win' : ''}}">
+        <view class="score-label">我</view>
+        <view class="score-value">{{player1Wins}}</view>
+      </view>
+      <view class="score-divider">
+        <view class="divider-line"></view>
+        <text class="divider-text">VS</text>
+        <view class="divider-line"></view>
+      </view>
+      <view class="score-side {{roundResult === 'lose' ? 'score-win' : ''}}">
+        <view class="score-label">{{playMode === 'ai' ? 'AI' : '对手'}}</view>
+        <view class="score-value">{{player2Wins}}</view>
+      </view>
+    </view>
+
+    <!-- 骰子展示区域 -->
+    <view class="dice-area">
+      <view class="player-dice-area">
+        <view class="player-label">我</view>
+        <view class="dice-container">
+          <view class="dice {{isRolling ? 'rolling' : ''}} {{roundResult === 'win' ? 'dice-win' : roundResult === 'lose' ? 'dice-lose' : ''}}" wx:for="{{player1Dice}}" wx:key="index">
+            <text class="dice-face">{{item}}</text>
+          </view>
+          <view class="dice-placeholder" wx:if="{{player1Dice.length === 0}}">
+            <text class="placeholder-icon">🎲</text>
+          </view>
+        </view>
+        <view class="player-sum" wx:if="{{player1Sum > 0}}">
+          <text class="sum-label">总计</text>
+          <text class="sum-value">{{player1Sum}}</text>
+        </view>
+        <view class="special-combination" wx:if="{{player1Special}}">
+          <text class="special-icon">{{player1Special.icon}}</text>
+          <text class="special-text">{{player1Special.name}}</text>
+        </view>
+      </view>
+
+      <view class="vs-divider">
+        <view class="vs-icon {{isRolling ? 'vs-animate' : ''}}">⚡</view>
+      </view>
+
+      <view class="player-dice-area">
+        <view class="player-label">{{playMode === 'ai' ? 'AI' : '对手'}}</view>
+        <view class="dice-container">
+          <view class="dice {{isRolling ? 'rolling' : ''}} {{roundResult === 'lose' ? 'dice-win' : roundResult === 'win' ? 'dice-lose' : ''}}" wx:for="{{player2Dice}}" wx:key="index">
+            <text class="dice-face">{{item}}</text>
+          </view>
+          <view class="dice-placeholder" wx:if="{{player2Dice.length === 0}}">
+            <text class="placeholder-icon">🎲</text>
+          </view>
+        </view>
+        <view class="player-sum" wx:if="{{player2Sum > 0}}">
+          <text class="sum-label">总计</text>
+          <text class="sum-value">{{player2Sum}}</text>
+        </view>
+        <view class="special-combination" wx:if="{{player2Special}}">
+          <text class="special-icon">{{player2Special.icon}}</text>
+          <text class="special-text">{{player2Special.name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 回合结果 -->
+    <view class="round-result" wx:if="{{roundResult}}">
+      <view class="result-badge {{roundResult}}">
+        <view class="result-icon">{{roundResultIcon}}</view>
+        <view class="result-text">{{roundResultText}}</view>
+      </view>
+    </view>
+
+    <!-- 游戏结果 -->
+    <view class="game-result" wx:if="{{gameResult}}">
+      <view class="game-result-badge {{gameResult}}">
+        <view class="game-result-icon">{{gameResult === 'win' ? '🏆' : '💪'}}</view>
+        <view class="game-result-text">{{gameResultText}}</view>
+        <view class="game-result-score">{{player1Wins}} : {{player2Wins}}</view>
+      </view>
+      <view class="game-result-actions">
+        <view class="result-btn primary" bindtap="playAgain">
+          <text class="btn-icon">🔄</text>
+          <text class="btn-text">再来一局</text>
+        </view>
+        <view class="result-btn secondary" bindtap="endGame">
+          <text class="btn-icon">🏠</text>
+          <text class="btn-text">返回</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 摇骰子按钮 -->
+    <view class="roll-btn-container" wx:if="{{phase === 'playing' && !isAnimating}}">
+      <view class="roll-btn" bindtap="rollDice">
+        <view class="roll-btn-inner">
+          <text class="roll-btn-icon">🎲</text>
+          <text class="roll-btn-text">摇骰子</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 下一局按钮 -->
+    <view class="next-round" wx:if="{{phase === 'result' && !gameResult}}" bindtap="nextRound">
+      <text class="next-round-icon">▶</text>
+      <text class="next-round-text">下一局</text>
+    </view>
+  </view>
+</view>

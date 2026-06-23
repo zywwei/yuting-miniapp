@@ -1,0 +1,63 @@
+<view class="container">
+  <view class="header">
+    <view class="header-title">任务骰子</view>
+    <view class="header-desc">掷骰子，执行趣味任务</view>
+    <view class="progress-bar">
+      <view class="progress-text">已完成 {{completedMissions.length}}/{{totalMissions}} 个任务</view>
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{completionRate}}%"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 准备阶段 -->
+  <view class="phase-ready" wx:if="{{phase === 'ready'}}">
+    <view class="dice-preview">
+      <text class="preview-icon">🎲</text>
+      <text class="preview-text">准备好了吗？</text>
+    </view>
+    <view class="roll-btn" bindtap="rollDice">
+      <text class="roll-btn-text">摇骰子</text>
+    </view>
+    <view class="back-btn" bindtap="goBack">返回</view>
+  </view>
+
+  <!-- 摇骰子阶段 -->
+  <view class="phase-rolling" wx:if="{{phase === 'rolling'}}">
+    <view class="rolling-dice">
+      <text class="rolling-num">{{currentDice}}</text>
+    </view>
+    <view class="rolling-text">摇骰子中...</view>
+  </view>
+
+  <!-- 任务阶段 -->
+  <view class="phase-task" wx:if="{{phase === 'task' && currentTask}}">
+    <view class="task-dice">
+      <text class="dice-value">{{currentDice}}</text>
+    </view>
+    <view class="task-card">
+      <view class="task-icon">{{currentTask.icon}}</view>
+      <view class="task-title">{{currentTask.title}}</view>
+      <view class="task-desc">{{currentTask.desc}}</view>
+      <view class="task-type">{{currentTask.type === 'performance' ? '表演类' : currentTask.type === 'knowledge' ? '知识类' : currentTask.type === 'social' ? '互动类' : currentTask.type === 'creative' ? '创意类' : currentTask.type === 'challenge' ? '挑战类' : '奖励类'}}</view>
+    </view>
+    <view class="task-actions">
+      <view class="action-btn complete" bindtap="completeTask">
+        <text>完成任务</text>
+      </view>
+      <view class="action-btn skip" bindtap="skipTask">
+        <text>跳过</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 完成阶段 -->
+  <view class="phase-done" wx:if="{{phase === 'done'}}">
+    <view class="done-icon">🎉</view>
+    <view class="done-text">太棒了！</view>
+    <view class="done-desc">任务已完成</view>
+    <view class="play-again-btn" bindtap="playAgain">
+      <text>继续挑战</text>
+    </view>
+  </view>
+</view>
