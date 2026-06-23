@@ -1,0 +1,7 @@
+<view class="container">
+  <view class="placeholder">
+    <view class="placeholder-icon">🏅</view>
+    <view class="placeholder-text">锦标赛功能开发中...</view>
+    <view class="back-btn" bindtap="goBack">返回</view>
+  </view>
+</view>

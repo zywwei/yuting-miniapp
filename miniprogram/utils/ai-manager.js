@@ -594,7 +594,7 @@ function saveToLocal(sessionId, role, content, thinking, image) {
  */
 function isConfigured() {
   var config = childStorage.get(CONFIG_KEY)
-  if (!config) return false
+  if (!config || !config.models) return false
   
   var currentModel = config.currentModel || 'minimax'
   var modelConfig = config.models[currentModel]
@@ -607,12 +607,16 @@ function isConfigured() {
  */
 function getCurrentModelInfo() {
   var config = childStorage.get(CONFIG_KEY)
-  if (!config) return null
+  if (!config) return {
+    key: 'minimax',
+    info: MODELS['minimax'],
+    configured: false
+  }
   
   var currentModel = config.currentModel || 'minimax'
   return {
     key: currentModel,
-    info: MODELS[currentModel],
+    info: MODELS[currentModel] || MODELS['minimax'],
     configured: isConfigured()
   }
 }

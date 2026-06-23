@@ -1,0 +1,150 @@
+<view class="container">
+  <!-- 菜单阶段 -->
+  <view class="phase-menu" wx:if="{{phase === 'menu'}}">
+    <view class="header">
+      <view class="header-icon">🏆</view>
+      <view class="header-title">闯关挑战</view>
+      <view class="header-desc">10关难度递增，挑战极限</view>
+    </view>
+
+    <view class="progress-info">
+      <view class="info-item">
+        <text class="info-label">当前关卡</text>
+        <text class="info-value">{{currentLevel}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">最高关卡</text>
+        <text class="info-value">{{bestLevel}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">剩余生命</text>
+        <text class="info-value">{{lives}}</text>
+      </view>
+    </view>
+
+    <view class="start-btn" bindtap="startLevel">开始挑战</view>
+    <view class="reset-btn" bindtap="resetGame">重置进度</view>
+    <view class="back-btn" bindtap="goBack">返回</view>
+  </view>
+
+  <!-- 游戏阶段 -->
+  <view class="phase-playing" wx:if="{{phase === 'playing'}}">
+    <view class="level-header">
+      <view class="level-num">第 {{currentLevel}} 关</view>
+      <view class="level-info">
+        <text class="level-wins">需赢 {{levelConfig.winsRequired}} 局</text>
+        <text class="level-lives">❤️ {{lives}}</text>
+      </view>
+    </view>
+
+    <!-- 比分板 -->
+    <view class="scoreboard">
+      <view class="score-side {{roundResult === 'win' ? 'score-win' : ''}}">
+        <view class="score-label">我</view>
+        <view class="score-value">{{player1Wins}}</view>
+      </view>
+      <view class="score-divider">VS</view>
+      <view class="score-side {{roundResult === 'lose' ? 'score-win' : ''}}">
+        <view class="score-label">AI</view>
+        <view class="score-value">{{player2Wins}}</view>
+      </view>
+    </view>
+
+    <!-- 出拳区域 -->
+    <view class="battle-area">
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
+          <text class="choice-icon">{{player1Icon}}</text>
+        </view>
+        <view class="player-name">我</view>
+      </view>
+
+      <view class="vs-icon-container">
+        <view class="vs-icon {{isAnimating ? 'vs-animate' : ''}}">⚡</view>
+      </view>
+
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
+          <text class="choice-icon">{{player2Icon}}</text>
+        </view>
+        <view class="player-name">AI</view>
+      </view>
+    </view>
+
+    <!-- 回合结果 -->
+    <view class="round-result" wx:if="{{roundResult}}">
+      <view class="result-badge {{roundResult}}">
+        <view class="result-icon">{{roundResult === 'win' ? '🎉' : roundResult === 'lose' ? '😢' : '🤝'}}</view>
+        <view class="result-text">{{roundResult === 'win' ? '你赢了！' : roundResult === 'lose' ? 'AI赢了！' : '平局！'}}</view>
+      </view>
+    </view>
+
+    <!-- 选择出拳 -->
+    <view class="choice-buttons" wx:if="{{!isAnimating}}">
+      <view class="choice-btn" bindtap="playerChoice" data-choice="rock">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✊</text>
+        </view>
+        <text class="choice-btn-text">石头</text>
+      </view>
+      <view class="choice-btn" bindtap="playerChoice" data-choice="scissors">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✌️</text>
+        </view>
+        <text class="choice-btn-text">剪刀</text>
+      </view>
+      <view class="choice-btn" bindtap="playerChoice" data-choice="paper">
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✋</text>
+        </view>
+        <text class="choice-btn-text">布</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 关卡完成 -->
+  <view class="phase-levelComplete" wx:if="{{phase === 'levelComplete'}}">
+    <view class="complete-container">
+      <view class="complete-icon">🎉</view>
+      <view class="complete-title">恭喜过关！</view>
+      <view class="complete-desc">第 {{currentLevel - 1}} 关完成</view>
+      <view class="complete-reward">
+        <text class="reward-icon">⭐</text>
+        <text class="reward-text">+1 星</text>
+      </view>
+      <view class="next-btn" bindtap="nextLevel">
+        <text class="btn-text">下一关</text>
+        <text class="btn-icon">▶</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 游戏结束 -->
+  <view class="phase-gameOver" wx:if="{{phase === 'gameOver'}}">
+    <view class="gameover-container">
+      <view class="gameover-icon">😢</view>
+      <view class="gameover-title">挑战失败</view>
+      <view class="gameover-desc">生命已用完</view>
+      <view class="gameover-stats">
+        <view class="stat-item">
+          <text class="stat-label">到达关卡</text>
+          <text class="stat-value">{{currentLevel}}</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-label">最高记录</text>
+          <text class="stat-value">{{bestLevel}}</text>
+        </view>
+      </view>
+      <view class="gameover-actions">
+        <view class="action-btn" bindtap="retryLevel">
+          <text class="btn-icon">🔄</text>
+          <text class="btn-text">重试本关</text>
+        </view>
+        <view class="action-btn secondary" bindtap="resetGame">
+          <text class="btn-icon">🏠</text>
+          <text class="btn-text">重新开始</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

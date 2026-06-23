@@ -44,5 +44,35 @@
         </view>
       </view>
     </view>
+
+    <view class="category-card rps-card" bindtap="goRps">
+      <view class="card-bg" style="background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);"></view>
+      <view class="card-content">
+        <view class="card-icon">✊</view>
+        <view class="card-info">
+          <view class="card-title">猜拳大战</view>
+          <view class="card-desc">剪刀石头布、冒险闯关</view>
+        </view>
+        <view class="card-stat">
+          <text class="stat-num">{{rpsGames}}</text>
+          <text class="stat-label">局对战</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="category-card dice-card" bindtap="goDice">
+      <view class="card-bg" style="background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);"></view>
+      <view class="card-content">
+        <view class="card-icon">🎲</view>
+        <view class="card-info">
+          <view class="card-title">骰子乐园</view>
+          <view class="card-desc">比大小、趣味任务</view>
+        </view>
+        <view class="card-stat">
+          <text class="stat-num">{{diceGames}}</text>
+          <text class="stat-label">局游戏</text>
+        </view>
+      </view>
+    </view>
   </view>
 </view>

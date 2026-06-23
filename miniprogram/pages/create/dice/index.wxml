@@ -1,0 +1,75 @@
+<view class="container">
+  <view class="header">
+    <view class="header-bg"></view>
+    <view class="header-content">
+      <view class="header-icon">🎲</view>
+      <view class="header-title">骰子乐园</view>
+      <view class="header-desc">摇一摇，乐趣无限</view>
+    </view>
+    <view class="stats-bar">
+      <view class="stat-item">
+        <text class="stat-value">{{totalGames}}</text>
+        <text class="stat-label">总游戏</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{winRate}}%</text>
+        <text class="stat-label">胜率</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-value">{{leopardCount}}</text>
+        <text class="stat-label">豹子次数</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="mode-grid">
+    <view class="mode-card compare-card" bindtap="goCompare">
+      <view class="mode-icon">⚖️</view>
+      <view class="mode-info">
+        <view class="mode-title">比大小</view>
+        <view class="mode-desc">点数大者胜，简单刺激</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+
+    <view class="mode-card collection-card" bindtap="goCollection">
+      <view class="mode-icon">🎯</view>
+      <view class="mode-info">
+        <view class="mode-title">游戏合集</view>
+        <view class="mode-desc">飞行棋、大富翁等你来玩</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+
+    <view class="mode-card mission-card" bindtap="goMission">
+      <view class="mode-icon">🎪</view>
+      <view class="mode-info">
+        <view class="mode-title">任务骰子</view>
+        <view class="mode-desc">掷骰子，执行趣味任务</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+
+    <view class="mode-card slots-card" bindtap="goSlots">
+      <view class="mode-icon">🎰</view>
+      <view class="mode-info">
+        <view class="mode-title">趣味模拟</view>
+        <view class="mode-desc">虚拟抽奖，学习概率</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="recent-section" wx:if="{{recentRecords.length > 0}}">
+    <view class="section-title">最近战绩</view>
+    <view class="record-list">
+      <view class="record-item" wx:for="{{recentRecords}}" wx:key="id">
+        <view class="record-mode">{{item.mode === 'compare' ? '比大小' : item.mode === 'collection' ? '合集' : item.mode === 'mission' ? '任务' : '趣味'}}</view>
+        <view class="record-result {{item.result}}">{{item.result === 'win' ? '胜' : item.result === 'lose' ? '负' : '平'}}</view>
+        <view class="record-score">{{item.score}}</view>
+      </view>
+    </view>
+  </view>
+</view>

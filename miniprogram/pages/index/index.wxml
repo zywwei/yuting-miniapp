@@ -73,9 +73,9 @@
   <view class="section">
     <view class="section-title">🎯 快捷入口</view>
     <view class="quick-grid">
-      <view class="quick-item" bindtap="goModule" data-module="aiChat">
-        <view class="quick-icon">🤖</view>
-        <view class="quick-text">AI助手</view>
+      <view class="quick-item" bindtap="goModule" data-module="rps">
+        <view class="quick-icon">✊</view>
+        <view class="quick-text">猜拳大战</view>
       </view>
       <view class="quick-item" bindtap="goModule" data-module="draw">
         <view class="quick-icon">🎨</view>
@@ -85,9 +85,9 @@
         <view class="quick-icon">🏪</view>
         <view class="quick-text">摆摊</view>
       </view>
-      <view class="quick-item" bindtap="goModule" data-module="changeCalc">
-        <view class="quick-icon">💰</view>
-        <view class="quick-text">找零器</view>
+      <view class="quick-item" bindtap="goModule" data-module="aiChat">
+        <view class="quick-icon">🤖</view>
+        <view class="quick-text">AI助手</view>
       </view>
     </view>
   </view>

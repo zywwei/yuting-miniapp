@@ -6,7 +6,9 @@ Page({
     drawingCount: 0,
     todaySales: 0,
     aiModelIcon: '🤖',
-    aiModelName: '未配置'
+    aiModelName: '未配置',
+    rpsGames: 0,
+    diceGames: 0
   },
 
   onLoad: function() {
@@ -49,11 +51,17 @@ Page({
       aiModelName = modelInfo.info.name
     }
 
+    // 获取游戏统计
+    var rpsRecords = childStorage.get('rpsRecords') || []
+    var diceRecords = childStorage.get('diceRecords') || []
+
     this.setData({
       drawingCount: drawings.length,
       todaySales: todaySales.length,
       aiModelIcon: aiModelIcon,
-      aiModelName: aiModelName
+      aiModelName: aiModelName,
+      rpsGames: rpsRecords.length,
+      diceGames: diceRecords.length
     })
   },
 
@@ -72,5 +80,13 @@ Page({
 
   goAiChat: function() {
     wx.navigateTo({ url: '/pages/create/ai-chat/index' })
+  },
+
+  goRps: function() {
+    wx.navigateTo({ url: '/pages/create/rps/index' })
+  },
+
+  goDice: function() {
+    wx.navigateTo({ url: '/pages/create/dice/index' })
   }
 })

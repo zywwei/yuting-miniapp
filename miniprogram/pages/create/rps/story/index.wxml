@@ -1,0 +1,84 @@
+<view class="container">
+  <!-- 剧情介绍 -->
+  <view class="phase-intro" wx:if="{{phase === 'intro' && chapterInfo}}">
+    <view class="chapter-header">
+      <view class="chapter-num">第 {{currentChapter}} 章</view>
+      <view class="chapter-name">{{chapterInfo.name}}</view>
+    </view>
+
+    <view class="enemy-card">
+      <view class="enemy-icon">{{chapterInfo.enemyIcon}}</view>
+      <view class="enemy-name">{{chapterInfo.enemy}}</view>
+    </view>
+
+    <view class="story-text">{{chapterInfo.story}}</view>
+
+    <view class="battle-info">
+      <view class="info-item">
+        <text class="info-label">难度</text>
+        <text class="info-value">{{chapterInfo.difficulty === 'simple' ? '简单' : chapterInfo.difficulty === 'medium' ? '中等' : '困难'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">胜利条件</text>
+        <text class="info-value">赢 {{chapterInfo.winsRequired}} 局</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">奖励</text>
+        <text class="info-value">{{chapterInfo.reward.coins}} 金币</text>
+      </view>
+    </view>
+
+    <view class="start-btn" bindtap="startBattle">开始战斗</view>
+    <view class="back-btn" bindtap="goBack">返回</view>
+  </view>
+
+  <!-- 战斗阶段 -->
+  <view class="phase-battle" wx:if="{{phase === 'battle'}}">
+    <view class="battle-header">
+      <view class="player-info">
+        <text class="player-name">我</text>
+        <text class="player-score">{{player1Wins}}</text>
+      </view>
+      <view class="vs">VS</view>
+      <view class="player-info">
+        <text class="player-name">{{chapterInfo.enemy}}</text>
+        <text class="player-score">{{player2Wins}}</text>
+      </view>
+    </view>
+
+    <view class="choice-buttons">
+      <view class="choice-btn" bindtap="playerChoice" data-choice="rock">
+        <text class="choice-icon">✊</text>
+        <text class="choice-text">石头</text>
+      </view>
+      <view class="choice-btn" bindtap="playerChoice" data-choice="scissors">
+        <text class="choice-icon">✌️</text>
+        <text class="choice-text">剪刀</text>
+      </view>
+      <view class="choice-btn" bindtap="playerChoice" data-choice="paper">
+        <text class="choice-icon">✋</text>
+        <text class="choice-text">布</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 胜利 -->
+  <view class="phase-victory" wx:if="{{phase === 'victory'}}">
+    <view class="victory-icon">🎉</view>
+    <view class="victory-title">战斗胜利！</view>
+    <view class="reward-info">
+      <text>获得 {{chapterInfo.reward.coins}} 金币</text>
+    </view>
+    <view class="next-btn" bindtap="nextChapter">继续冒险</view>
+  </view>
+
+  <!-- 失败 -->
+  <view class="phase-defeat" wx:if="{{phase === 'defeat'}}">
+    <view class="defeat-icon">😢</view>
+    <view class="defeat-title">战斗失败</view>
+    <view class="defeat-actions">
+      <view class="action-btn" bindtap="retryBattle">再试一次</view>
+      <view class="action-btn secondary" bindtap="goBack">返回</view>
+    </view>
+  </view>
+</view>
