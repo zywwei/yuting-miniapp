@@ -1,6 +1,7 @@
 const util = require('../../../utils/util.js')
 const audio = require('../../../utils/audio.js')
 const cloud = require('../../../utils/cloud.js')
+const childStorage = require('../../../utils/child-storage.js')
 const achievements = require('../../../utils/achievements.js')
 const auth = require('../../../utils/auth.js')
 const { getNavBarInfo, previewImage, getTodayStr, getYesterdayStr } = require('../../../utils/page-helpers.js')
@@ -88,7 +89,7 @@ Page({
 
     // 计算今日战斗进度
     const today = util.getTodayStr()
-    const records = wx.getStorageSync('brushingRecords') || []
+    const records = childStorage.get('brushingRecords') || []
     const todayRecords = records.filter(r => r.date === today && r.fromTimer)
     const areasCompleted = todayRecords.reduce((sum, r) => sum + (r.completedAreas ? r.completedAreas.length : 0), 0)
     // 每2个区域消灭1个小怪物
@@ -152,7 +153,7 @@ Page({
     wx.removeStorageSync('brushingEditOriginalPath')
 
     const today = util.getTodayStr()
-    const records = wx.getStorageSync('brushingRecords') || []
+    const records = childStorage.get('brushingRecords') || []
     const index = records.findIndex(r => r.date === today && r.timeOfDay === targetTimeOfDay)
     if (index === -1) return
 
@@ -179,7 +180,7 @@ Page({
         const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: editedPath })
         const cloudImageIDs = images.map(img => img === editedPath ? uploadRes.fileID : img)
         records[index] = { ...record, images: cloudImageIDs, imagePath: cloudImageIDs[0] }
-        wx.setStorageSync('brushingRecords', records)
+        childStorage.set('brushingRecords', records)
         try {
           await wx.cloud.database().collection('brushingRecords').doc(record.id).update({
             data: { images: cloudImageIDs, cloudFileID: cloudImageIDs[0] }
@@ -187,12 +188,12 @@ Page({
         } catch (e) {}
       } else {
         records[index] = { ...record, images, imagePath: images[0] }
-        wx.setStorageSync('brushingRecords', records)
+        childStorage.set('brushingRecords', records)
       }
     } catch (err) {
       console.error('保存编辑失败:', err)
       records[index] = { ...record, images, imagePath: images[0] }
-      wx.setStorageSync('brushingRecords', records)
+      childStorage.set('brushingRecords', records)
     }
 
     wx.hideLoading()
@@ -351,7 +352,7 @@ Page({
       const today = util.getTodayStr()
 
       // 检查是否已有同日同时段记录
-      const existingRecords = wx.getStorageSync('brushingRecords') || []
+      const existingRecords = childStorage.get('brushingRecords') || []
       const duplicate = existingRecords.find(r => r.date === today && r.timeOfDay === modalTime)
       if (duplicate) {
         wx.hideLoading()
@@ -584,7 +585,7 @@ Page({
   onDetailUpdated() {
     this.loadRecords()
     // 重新读取当前详情记录，确保组件数据同步
-    const records = wx.getStorageSync('brushingRecords') || []
+    const records = childStorage.get('brushingRecords') || []
     const timeOfDay = this.data.detailRecord ? this.data.detailRecord.timeOfDay : null
     if (timeOfDay) {
       const today = util.getTodayStr()

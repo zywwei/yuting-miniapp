@@ -1,5 +1,6 @@
 var childStorage = require('./child-storage.js')
 var cloud = require('./cloud.js')
+var auth = require('./auth.js')
 var pageHelpers = require('./page-helpers.js')
 
 var PRODUCTS_KEY = 'stallProducts'
@@ -88,6 +89,7 @@ function syncProduct(product) {
 function addProduct(product) {
   var products = getProducts()
   product.id = generateId('prod')
+  product.childId = auth.getCurrentChildId()
   product.totalSold = 0
   product.totalRevenue = 0
   product.createdAt = new Date().toISOString()

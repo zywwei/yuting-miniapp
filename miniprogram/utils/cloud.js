@@ -948,6 +948,117 @@ async function uploadHabitRecord(record) {
   return fullRecord.imagePath
 }
 
+// 已删除习惯记录的墓碑清单（按孩子隔离）
+var DELETED_HABIT_RECORDS_KEY = 'deletedHabitRecordIds'
+
+function getDeletedHabitRecordIds() {
+  var tombstones = cleanExpiredTombstones(DELETED_HABIT_RECORDS_KEY)
+  return extractTombstoneIds(tombstones)
+}
+
+function addDeletedHabitRecordId(id) {
+  if (!id) return
+  var tombstones = cleanExpiredTombstones(DELETED_HABIT_RECORDS_KEY)
+  var exists = tombstones.some(function(item) {
+    return (typeof item === 'string' ? item : item.id) === id
+  })
+  if (!exists) {
+    tombstones.push({ id: id, ts: Date.now() })
+    childStorage.set(DELETED_HABIT_RECORDS_KEY, tombstones)
+  }
+}
+
+async function fetchHabitRecords() {
+  var localRecords = childStorage.get('habitRecords') || []
+  var member = auth.getMember()
+  if (!member) return localRecords
+
+  if (!isCloudReady()) {
+    return localRecords
+  }
+
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: {
+        action: 'list',
+        collection: 'habitRecords',
+        childId: auth.getCurrentChildId(),
+        page: 1,
+        pageSize: 500
+      }
+    })
+
+    if (res.result.code === 0) {
+      var cloudList = res.result.data.list || []
+      var deletedIds = getDeletedHabitRecordIds()
+      var deletedSet = {}
+      deletedIds.forEach(function(id) { deletedSet[id] = true })
+
+      var mergedMap = {}
+      localRecords.forEach(function(r) {
+        if (r && r.id && !deletedSet[r.id]) mergedMap[r.id] = r
+      })
+      cloudList.forEach(function(r) {
+        if (r && r.id && !deletedSet[r.id] && !deletedSet[r._id]) {
+          mergedMap[r.id] = {
+            ...r,
+            id: r.id || r._id,
+            imagePath: r.cloudFileID || r.imagePath || '',
+            images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+          }
+        }
+      })
+
+      var merged = []
+      for (var key in mergedMap) {
+        merged.push(mergedMap[key])
+      }
+
+      merged.sort(function(a, b) {
+        return new Date(b.createTime || 0) - new Date(a.createTime || 0)
+      })
+
+      childStorage.set('habitRecords', merged)
+
+      cloudList.forEach(function(r) {
+        if (r && r.id && (deletedSet[r.id] || deletedSet[r._id])) {
+          wx.cloud.callFunction({
+            name: 'record',
+            data: { action: 'remove', collection: 'habitRecords', id: r.id }
+          }).catch(function() {})
+        }
+      })
+
+      return merged
+    }
+  } catch (err) {
+    console.warn('习惯记录云端读取失败，使用本地缓存:', err)
+  }
+
+  return localRecords
+}
+
+async function removeHabitRecord(id) {
+  addDeletedHabitRecordId(id)
+
+  childStorage.set('habitRecords', (childStorage.get('habitRecords') || []).filter(function(r) { return r.id !== id }))
+
+  if (isCloudReady()) {
+    try {
+      var res = await wx.cloud.callFunction({
+        name: 'record',
+        data: { action: 'remove', collection: 'habitRecords', id: id }
+      })
+      if (res.result && res.result.code === 0) {
+        removeTombstone(DELETED_HABIT_RECORDS_KEY, id)
+      }
+    } catch (err) {
+      console.warn('习惯记录云端删除失败:', err)
+    }
+  }
+}
+
 // ===== 习惯定义 =====
 
 async function uploadHabits(habits) {
@@ -1679,6 +1790,8 @@ module.exports = {
   updateBrushingRecord: updateBrushingRecord,
   updateBrushingRecordById: updateBrushingRecordById,
   uploadHabitRecord: uploadHabitRecord,
+  fetchHabitRecords: fetchHabitRecords,
+  removeHabitRecord: removeHabitRecord,
   uploadNote: uploadNote,
   fetchNotes: fetchNotes,
   updateNoteInCloud: updateNoteInCloud,

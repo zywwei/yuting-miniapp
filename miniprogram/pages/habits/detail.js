@@ -1,5 +1,6 @@
 const util = require('../../utils/util.js')
 const cloud = require('../../utils/cloud.js')
+const childStorage = require('../../utils/child-storage.js')
 const { getNavBarInfo, previewImage } = require('../../utils/page-helpers.js')
 const { getHabitConfig } = require('./checkin/habit-config.js')
 
@@ -178,8 +179,16 @@ Page({
   },
 
   onShow: function() {
-    // 只刷新统计数据和记录，不重置表单状态
-    this.loadRecordsAndStats()
+    // 从云端拉取习惯定义和记录
+    var that = this
+    Promise.all([
+      cloud.fetchHabits().catch(function() {}),
+      cloud.fetchHabitRecords().catch(function() {})
+    ]).then(function() {
+      that.loadRecordsAndStats()
+    }).catch(function() {
+      that.loadRecordsAndStats()
+    })
     this.applyEditedPhoto()
   },
 
@@ -190,7 +199,7 @@ Page({
   // 只加载记录和统计（不重置表单）
   loadRecordsAndStats: function() {
     var type = this.data.type
-    var records = wx.getStorageSync('habitRecords') || []
+    var records = childStorage.get('habitRecords') || []
     var habitRecords = records.filter(function(r) { return r.type === type })
     habitRecords.sort(function(a, b) { return new Date(b.date) - new Date(a.date) })
 
@@ -259,8 +268,8 @@ Page({
 
   // 加载习惯详情
   loadHabitDetail: function(type) {
-    var habits = wx.getStorageSync('habits') || []
-    var records = wx.getStorageSync('habitRecords') || []
+    var habits = childStorage.get('habits') || []
+    var records = childStorage.get('habitRecords') || []
 
     // 默认习惯配置
     var defaultHabits = {
@@ -606,7 +615,7 @@ Page({
     var habit = this.data.habit
     var style = this.data.style
     var today = util.getTodayStr()
-    var records = wx.getStorageSync('habitRecords') || []
+    var records = childStorage.get('habitRecords') || []
     var now = new Date()
     var currentTime = now.toTimeString().slice(0, 5)
     var currentHour = now.getHours()
@@ -723,7 +732,7 @@ Page({
       }
 
       records.unshift(newRecord)
-      wx.setStorageSync('habitRecords', records)
+      childStorage.set('habitRecords', records)
 
       // 尝试同步云端
       if (cloud.isCloudReady && cloud.isCloudReady()) {
@@ -803,9 +812,9 @@ Page({
       confirmColor: '#FF4444',
       success: function(res) {
         if (res.confirm) {
-          const records = wx.getStorageSync('habitRecords') || []
+          const records = childStorage.get('habitRecords') || []
           const updated = records.filter(r => r.id !== id)
-          wx.setStorageSync('habitRecords', updated)
+          childStorage.set('habitRecords', updated)
           that.setData({ showDetail: false, detailRecord: null })
           that.loadHabitDetail(that.data.type)
           wx.showToast({ title: '已删除', icon: 'success' })

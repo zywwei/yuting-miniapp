@@ -35,7 +35,17 @@ var CHILD_KEYS = [
   'diceMonopoly',
   'diceMissions',
   'diceStats',
-  'gameSettings'
+  'diceSlots',
+  'gameCoins',
+  'coinLogs',
+  'gameSettings',
+  // 墓碑 key（删除标记，按孩子隔离）
+  'deletedDrawingIds',
+  'deletedNoteIds',
+  'deletedBrushingIds',
+  'deletedStallProductIds',
+  'deletedStallSaleIds',
+  'deletedHabitRecordIds'
 ]
 
 function getKey(key) {

@@ -30,6 +30,7 @@ Page({
     if (options.mode) {
       this.setData({ playMode: options.mode })
     }
+    this.gameStartTime = 0
   },
 
   selectMode: function(e) {
@@ -75,8 +76,11 @@ Page({
       roundResult: '',
       roundResultText: '',
       roundResultIcon: '',
+      showConfetti: false,
+      scoreChanged: false,
       currentPlayer: 1
     })
+    this.gameStartTime = Date.now()
   },
 
   // 亲子模式：玩家选择出拳
@@ -108,6 +112,11 @@ Page({
     var player1Choice = this.data.player1Choice
     var result = rpsManager.judge(player1Choice, player2Choice)
     var resultInfo = rpsUtils.formatResult(result)
+
+    // 亲子模式下玩家2赢也显示庆祝表情
+    if (result === 'lose') {
+      resultInfo.icon = '🎉'
+    }
 
     var player1Wins = this.data.player1Wins
     var player2Wins = this.data.player2Wins
@@ -144,7 +153,9 @@ Page({
       gameResultText: gameResultText,
       roundHistory: roundHistory,
       phase: 'result',
-      isAnimating: true
+      isAnimating: true,
+      showConfetti: result === 'win',
+      scoreChanged: true
     })
 
     // 振动反馈
@@ -154,10 +165,25 @@ Page({
       wx.vibrateShort({ type: 'light' })
     }
 
+    // 保存游戏记录（亲子模式整局结束时）
+    if (gameResult) {
+      var record = {
+        gameType: 'rps',
+        mode: 'classic',
+        playMode: 'parent',
+        result: gameResult,
+        score: rpsUtils.formatScore(player1Wins, player2Wins),
+        duration: this.gameStartTime ? Math.floor((Date.now() - this.gameStartTime) / 1000) : 0,
+        participants: [],
+        rounds: roundHistory
+      }
+      rpsManager.saveGameRecord(record)
+    }
+
     var that = this
     setTimeout(function() {
-      that.setData({ isAnimating: false })
-    }, 1000)
+      that.setData({ isAnimating: false, showConfetti: false, scoreChanged: false })
+    }, 1500)
   },
 
   // 亲子随机模式：随机出拳
@@ -216,6 +242,11 @@ Page({
     var result = rpsManager.judge(player1Choice, player2Choice)
     var resultInfo = rpsUtils.formatResult(result)
 
+    // 亲子模式下玩家2赢也显示庆祝表情
+    if (result === 'lose') {
+      resultInfo.icon = '🎉'
+    }
+
     var player1Wins = this.data.player1Wins
     var player2Wins = this.data.player2Wins
 
@@ -249,7 +280,8 @@ Page({
       gameResultText: gameResultText,
       roundHistory: roundHistory,
       roundFinished: true,
-      isAnimating: true
+      isAnimating: true,
+      showConfetti: result === 'win'
     })
 
     // 如果游戏结束，保存记录
@@ -260,7 +292,7 @@ Page({
         playMode: 'parentRandom',
         result: gameResult,
         score: rpsUtils.formatScore(player1Wins, player2Wins),
-        duration: 0,
+        duration: this.gameStartTime ? Math.floor((Date.now() - this.gameStartTime) / 1000) : 0,
         participants: [],
         rounds: roundHistory
       }
@@ -276,8 +308,8 @@ Page({
 
     var that = this
     setTimeout(function() {
-      that.setData({ isAnimating: false })
-    }, 1000)
+      that.setData({ isAnimating: false, showConfetti: false })
+    }, 1500)
   },
 
   // 人机模式：玩家选择出拳
@@ -287,7 +319,15 @@ Page({
     var choice = e.currentTarget.dataset.choice
     var player2Choice = rpsManager.aiChoice(this.data.difficulty, this.data.roundHistory)
 
-    this.setData({ isAnimating: true })
+    this.setData({ 
+      isAnimating: true,
+      player1Choice: choice,
+      player1Icon: rpsManager.CHOICE_ICONS[choice],
+      player2Icon: '',
+      roundResult: '',
+      roundResultText: '',
+      roundResultIcon: ''
+    })
 
     // 倒计时动画
     this.startCountdown(choice, player2Choice)
@@ -345,9 +385,7 @@ Page({
     }
 
     this.setData({
-      player1Choice: player1Choice,
       player2Choice: player2Choice,
-      player1Icon: rpsManager.CHOICE_ICONS[player1Choice],
       player2Icon: rpsManager.CHOICE_ICONS[player2Choice],
       player1Wins: player1Wins,
       player2Wins: player2Wins,
@@ -357,7 +395,9 @@ Page({
       gameResult: gameResult,
       gameResultText: gameResultText,
       roundHistory: roundHistory,
-      phase: nextPhase
+      phase: nextPhase,
+      showConfetti: result === 'win',
+      scoreChanged: true
     })
 
     // 振动反馈
@@ -369,8 +409,8 @@ Page({
 
     var that = this
     setTimeout(function() {
-      that.setData({ isAnimating: false })
-    }, 1000)
+      that.setData({ isAnimating: false, showConfetti: false, scoreChanged: false })
+    }, 1500)
   },
 
   nextRound: function() {
@@ -415,15 +455,15 @@ Page({
   },
 
   endGame: function() {
-    // 保存游戏记录
-    if (this.data.gameResult) {
+    // 保存游戏记录（人机模式在showResult中已保存整局结果，这里只处理返回）
+    if (this.data.gameResult && this.data.playMode === 'ai') {
       var record = {
         gameType: 'rps',
         mode: 'classic',
-        playMode: this.data.playMode,
+        playMode: 'ai',
         result: this.data.gameResult,
         score: rpsUtils.formatScore(this.data.player1Wins, this.data.player2Wins),
-        duration: 0,
+        duration: this.gameStartTime ? Math.floor((Date.now() - this.gameStartTime) / 1000) : 0,
         participants: [],
         rounds: this.data.roundHistory
       }

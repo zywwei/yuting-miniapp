@@ -1,4 +1,6 @@
 var util = require('../../utils/util.js')
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 
 Page({
   data: {
@@ -11,7 +13,12 @@ Page({
   },
 
   onShow: function() {
-    this.loadNotes()
+    var that = this
+    cloud.fetchNotes().then(function() {
+      that.loadNotes()
+    }).catch(function() {
+      that.loadNotes()
+    })
 
     // 更新 tabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -21,7 +28,7 @@ Page({
 
   // 加载笔记列表
   loadNotes: function() {
-    var notes = wx.getStorageSync('notes') || []
+    var notes = childStorage.get('notes') || []
     // 按创建时间倒序
     var sortedNotes = notes.slice().sort(function(a, b) {
       return new Date(b.createTime) - new Date(a.createTime)

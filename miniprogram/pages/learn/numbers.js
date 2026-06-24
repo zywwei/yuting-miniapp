@@ -1,4 +1,6 @@
 var speak = require('../../utils/speak.js')
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 var achievements = require('../../utils/achievements.js')
 
 // 数字启蒙页面
@@ -23,7 +25,7 @@ Page({
 
   loadNumbers: function() {
     var self = this
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     var numberProgress = learnProgress.numbers || {}
 
     var numbers = []
@@ -85,7 +87,7 @@ Page({
     var currentIndex = self.data.currentIndex
     var number = numbers[currentIndex]
 
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     if (!learnProgress.numbers) learnProgress.numbers = {}
 
     learnProgress.numbers[number.number] = {
@@ -93,7 +95,10 @@ Page({
       number: number.number
     }
 
-    wx.setStorageSync('learnProgress', learnProgress)
+    childStorage.set('learnProgress', learnProgress)
+
+    // 同步云端
+    cloud.uploadLearnProgress(learnProgress).catch(function(err) { console.warn('学习进度同步失败:', err) })
 
     numbers[currentIndex].learned = true
     var learnedCount = numbers.filter(function(n) { return n.learned }).length

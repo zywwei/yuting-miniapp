@@ -1,5 +1,6 @@
 const util = require('../../../utils/util.js')
 const cloud = require('../../../utils/cloud.js')
+const childStorage = require('../../../utils/child-storage.js')
 const achievements = require('../../../utils/achievements.js')
 const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 const { getHabitConfig } = require('./habit-config.js')
@@ -100,7 +101,7 @@ Page({
   // 加载今日记录
   loadTodayRecords: function() {
     var today = util.getTodayStr()
-    var records = wx.getStorageSync('habitRecords') || []
+    var records = childStorage.get('habitRecords') || []
     var todayRecords = records.filter(function(r) {
       return r.date === today && r.type === this.data.habitType
     }.bind(this))
@@ -361,9 +362,9 @@ Page({
       }
 
       // 保存到本地
-      var records = wx.getStorageSync('habitRecords') || []
+      var records = childStorage.get('habitRecords') || []
       records.unshift(record)
-      wx.setStorageSync('habitRecords', records)
+      childStorage.set('habitRecords', records)
 
       // 尝试同步云端
       if (cloud.isCloudReady && cloud.isCloudReady()) {

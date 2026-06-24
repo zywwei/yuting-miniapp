@@ -1,4 +1,6 @@
 var util = require('../../utils/util.js')
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 var achievements = require('../../utils/achievements.js')
 var { previewImage } = require('../../utils/page-helpers.js')
 
@@ -254,7 +256,7 @@ Page({
     }
 
     saveImages(function(savedImages) {
-      var notes = wx.getStorageSync('notes') || []
+      var notes = childStorage.get('notes') || []
 
       var newNote = {
         id: util.generateId(),
@@ -269,7 +271,10 @@ Page({
       }
 
       notes.unshift(newNote)
-      wx.setStorageSync('notes', notes)
+      childStorage.set('notes', notes)
+
+      // 同步云端
+      cloud.uploadNote(newNote).catch(function() {})
 
       wx.disableAlertBeforeUnload()
       wx.hideLoading()

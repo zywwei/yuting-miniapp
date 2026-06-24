@@ -1,4 +1,6 @@
 var speak = require('../../utils/speak.js')
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 var achievements = require('../../utils/achievements.js')
 
 // 内置古诗数据（25首经典古诗）
@@ -42,7 +44,7 @@ Page({
   },
 
   loadPoems: function() {
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     var poemProgress = learnProgress.poems || {}
 
     var poems = BUILTIN_POEMS.map(function(poem) {
@@ -86,7 +88,7 @@ Page({
     var currentIndex = self.data.currentIndex
     var poem = poems[currentIndex]
 
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     if (!learnProgress.poems) learnProgress.poems = {}
 
     learnProgress.poems[poem.id] = {
@@ -94,7 +96,10 @@ Page({
       title: poem.title
     }
 
-    wx.setStorageSync('learnProgress', learnProgress)
+    childStorage.set('learnProgress', learnProgress)
+
+    // 同步云端
+    cloud.uploadLearnProgress(learnProgress).catch(function(err) { console.warn('学习进度同步失败:', err) })
 
     poems[currentIndex].memorized = true
     var memorizedCount = poems.filter(function(p) { return p.memorized }).length

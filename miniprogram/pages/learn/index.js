@@ -1,3 +1,6 @@
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
+
 Page({
   data: {
     categories: [
@@ -14,7 +17,12 @@ Page({
   },
 
   onShow: function() {
-    this.loadProgress()
+    var that = this
+    cloud.fetchLearnProgress().then(function() {
+      that.loadProgress()
+    }).catch(function() {
+      that.loadProgress()
+    })
 
     // 更新 tabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -24,7 +32,7 @@ Page({
 
   // 加载学习进度
   loadProgress: function() {
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     var progress = {
       cards: Object.keys(learnProgress.cards || {}).length,
       poems: Object.keys(learnProgress.poems || {}).length,

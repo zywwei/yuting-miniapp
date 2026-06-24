@@ -21,7 +21,7 @@ const getStoryProgress = () => {
     defeatedEnemies: [],
     enemyCurrentHp: {}
   }
-  return wx.getStorageSync('brushingStory') || defaultProgress
+  return childStorage.get('brushingStory') || defaultProgress
 }
 
 /**
@@ -29,7 +29,7 @@ const getStoryProgress = () => {
  * @param {Object} progress - 故事进度对象
  */
 const saveStoryProgress = (progress) => {
-  wx.setStorageSync('brushingStory', progress)
+  childStorage.set('brushingStory', progress)
 }
 
 /**
@@ -155,7 +155,7 @@ const getAvatarData = () => {
     unlockedOutfits: ['default'],
     skills: []
   }
-  return wx.getStorageSync('brushingAvatar') || defaultAvatar
+  return childStorage.get('brushingAvatar') || defaultAvatar
 }
 
 /**
@@ -163,7 +163,7 @@ const getAvatarData = () => {
  * @param {Object} avatar - 角色数据对象
  */
 const saveAvatarData = (avatar) => {
-  wx.setStorageSync('brushingAvatar', avatar)
+  childStorage.set('brushingAvatar', avatar)
 }
 
 /**
@@ -238,19 +238,19 @@ const getYesterdayStr = () => {
  * 保存刷牙打卡记录到本地存储
  */
 const saveBrushingRecord = (record) => {
-  const records = wx.getStorageSync('brushingRecords') || []
+  const records = childStorage.get('brushingRecords') || []
   records.unshift(record)
-  wx.setStorageSync('brushingRecords', records)
+  childStorage.set('brushingRecords', records)
 }
 
 // 获取所有刷牙记录
 const getBrushingRecords = () => {
-  return wx.getStorageSync('brushingRecords') || []
+  return childStorage.get('brushingRecords') || []
 }
 
 // 删除刷牙记录
 const deleteBrushingRecord = (id) => {
-  let records = wx.getStorageSync('brushingRecords') || []
+  let records = childStorage.get('brushingRecords') || []
   const target = records.find(r => r.id === id)
 
   if (target && target.imagePath) {
@@ -263,7 +263,7 @@ const deleteBrushingRecord = (id) => {
   }
 
   records = records.filter(r => r.id !== id)
-  wx.setStorageSync('brushingRecords', records)
+  childStorage.set('brushingRecords', records)
 }
 
 /**
