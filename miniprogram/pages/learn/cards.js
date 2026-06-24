@@ -1,4 +1,6 @@
 var speak = require('../../utils/speak.js')
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 var achievements = require('../../utils/achievements.js')
 
 // 内置识字卡片数据（120个常用汉字）
@@ -140,7 +142,7 @@ Page({
 
   // 加载卡片
   loadCards: function() {
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     var cardProgress = learnProgress.cards || {}
 
     var cards = BUILTIN_CARDS.map(function(card) {
@@ -192,7 +194,7 @@ Page({
     var currentIndex = self.data.currentIndex
     var card = cards[currentIndex]
 
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     if (!learnProgress.cards) learnProgress.cards = {}
 
     learnProgress.cards[card.id] = {
@@ -200,7 +202,10 @@ Page({
       word: card.word
     }
 
-    wx.setStorageSync('learnProgress', learnProgress)
+    childStorage.set('learnProgress', learnProgress)
+
+    // 同步云端
+    cloud.uploadLearnProgress(learnProgress).catch(function(err) { console.warn('学习进度同步失败:', err) })
 
     // 更新本地状态
     cards[currentIndex].learned = true

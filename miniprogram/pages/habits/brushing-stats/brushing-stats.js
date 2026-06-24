@@ -1,5 +1,6 @@
 const util = require('../../../utils/util.js')
 const cloud = require('../../../utils/cloud.js')
+const childStorage = require('../../../utils/child-storage.js')
 const auth = require('../../../utils/auth.js')
 const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 
@@ -62,6 +63,10 @@ Page({
 
   async loadData() {
     const records = await cloud.fetchBrushingRecords()
+    await Promise.all([
+      cloud.fetchBrushPoints().catch(function() {}),
+      cloud.fetchToothDecorations().catch(function() {})
+    ])
     const stats = util.getBrushingStats()
 
     // 格式化时间
@@ -76,8 +81,8 @@ Page({
       : formattedRecords
 
     // 加载积分和贴纸
-    const totalPoints = wx.getStorageSync('totalBrushPoints') || 0
-    const decorations = wx.getStorageSync('toothDecorations') || []
+    const totalPoints = childStorage.get('totalBrushPoints') || 0
+    const decorations = childStorage.get('toothDecorations') || []
 
     // 本周趋势数据
     const weekTrend = this.buildWeekTrend(records)
@@ -210,7 +215,7 @@ Page({
     // 重新读取当前详情记录，确保组件数据同步
     const record = this.data.detailRecord
     if (record && record.id) {
-      const records = wx.getStorageSync('brushingRecords') || []
+      const records = childStorage.get('brushingRecords') || []
       const updated = records.find(r => r.id === record.id)
       if (updated) {
         this.setData({ detailRecord: updated })

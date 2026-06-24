@@ -1,4 +1,6 @@
 var speak = require('../../utils/speak.js')
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 var achievements = require('../../utils/achievements.js')
 
 // 内置英语字母数据
@@ -103,7 +105,7 @@ Page({
 
   // ===== 字母学习 =====
   loadLetters: function() {
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     var englishProgress = learnProgress.english || {}
 
     var letters = BUILTIN_LETTERS.map(function(item) {
@@ -152,7 +154,7 @@ Page({
     var currentIndex = self.data.currentLetterIndex
     var letter = letters[currentIndex]
 
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     if (!learnProgress.english) learnProgress.english = {}
 
     learnProgress.english[letter.id] = {
@@ -160,7 +162,10 @@ Page({
       letter: letter.letter
     }
 
-    wx.setStorageSync('learnProgress', learnProgress)
+    childStorage.set('learnProgress', learnProgress)
+
+    // 同步云端
+    cloud.uploadLearnProgress(learnProgress).catch(function(err) { console.warn('学习进度同步失败:', err) })
 
     letters[currentIndex].learned = true
     var learnedLetterCount = letters.filter(function(l) { return l.learned }).length
@@ -197,7 +202,7 @@ Page({
 
   // ===== 单词学习 =====
   loadWords: function() {
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     var englishProgress = learnProgress.english || {}
 
     var words = BUILTIN_WORDS.map(function(item) {
@@ -245,7 +250,7 @@ Page({
     var currentIndex = self.data.currentWordIndex
     var word = words[currentIndex]
 
-    var learnProgress = wx.getStorageSync('learnProgress') || {}
+    var learnProgress = childStorage.get('learnProgress') || {}
     if (!learnProgress.english) learnProgress.english = {}
 
     learnProgress.english[word.id] = {
@@ -253,7 +258,10 @@ Page({
       word: word.word
     }
 
-    wx.setStorageSync('learnProgress', learnProgress)
+    childStorage.set('learnProgress', learnProgress)
+
+    // 同步云端
+    cloud.uploadLearnProgress(learnProgress).catch(function(err) { console.warn('学习进度同步失败:', err) })
 
     words[currentIndex].learned = true
     var learnedWordCount = words.filter(function(w) { return w.learned }).length

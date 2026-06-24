@@ -479,3 +479,100 @@
 .phase-parent .choice-btn-text {
   font-size: 32rpx;
 }
+
+/* 撒花效果 */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  font-size: 48rpx;
+  animation: confettiFall 1.5s ease-out forwards;
+}
+
+.confetti-1 {
+  left: 10%;
+  animation-delay: 0s;
+}
+
+.confetti-2 {
+  left: 25%;
+  animation-delay: 0.1s;
+}
+
+.confetti-3 {
+  left: 40%;
+  animation-delay: 0.2s;
+}
+
+.confetti-4 {
+  left: 55%;
+  animation-delay: 0.3s;
+}
+
+.confetti-5 {
+  left: 70%;
+  animation-delay: 0.4s;
+}
+
+.confetti-6 {
+  left: 85%;
+  animation-delay: 0.5s;
+}
+
+@keyframes confettiFall {
+  0% {
+    top: -20%;
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: rotate(180deg) scale(1.2);
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+    transform: rotate(360deg) scale(0.8);
+  }
+}
+
+/* 胜负状态样式 */
+.player-choice.winner {
+  border-color: #4CAF50;
+  box-shadow: 0 0 20rpx rgba(76, 175, 80, 0.5);
+  animation: winnerPulse 0.5s ease-in-out;
+}
+
+.player-choice.loser {
+  border-color: #FF5722;
+  opacity: 0.6;
+}
+
+@keyframes winnerPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* 比分高亮 */
+.score-side.score-win .score-value {
+  color: #4CAF50;
+  transform: scale(1.1);
+}
+
+.score-animate {
+  animation: scoreBounce 0.5s ease-out;
+}
+
+@keyframes scoreBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}

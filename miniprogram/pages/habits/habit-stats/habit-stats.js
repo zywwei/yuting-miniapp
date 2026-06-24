@@ -1,4 +1,5 @@
 const util = require('../../../utils/util.js')
+const childStorage = require('../../../utils/child-storage.js')
 const habitUtils = require('../../../utils/habit-utils.js')
 const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 
@@ -73,7 +74,7 @@ Page({
   },
 
   loadData: function() {
-    var records = wx.getStorageSync('habitRecords') || []
+    var records = childStorage.get('habitRecords') || []
     var typeRecords = records.filter(function(r) { return r.type === this.data.type }.bind(this))
 
     // 格式化时间
@@ -256,9 +257,9 @@ Page({
       confirmColor: '#FF4444',
       success: function(res) {
         if (res.confirm) {
-          var records = wx.getStorageSync('habitRecords') || []
+          var records = childStorage.get('habitRecords') || []
           records = records.filter(function(r) { return r.id !== id })
-          wx.setStorageSync('habitRecords', records)
+          childStorage.set('habitRecords', records)
           that.loadData()
           wx.showToast({ title: '已删除', icon: 'success' })
         }

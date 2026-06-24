@@ -75,7 +75,8 @@
     <view class="battle-area">
       <view class="player-side">
         <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
-          <text class="choice-icon">{{player1Icon}}</text>
+          <text class="choice-icon" wx:if="{{player1Icon}}">{{player1Icon}}</text>
+          <text class="choice-placeholder" wx:else>?</text>
         </view>
         <view class="player-name">我</view>
       </view>
@@ -86,7 +87,8 @@
 
       <view class="player-side">
         <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
-          <text class="choice-icon">{{player2Icon}}</text>
+          <text class="choice-icon" wx:if="{{player2Icon}}">{{player2Icon}}</text>
+          <text class="choice-placeholder" wx:else>?</text>
         </view>
         <view class="player-name">AI</view>
       </view>
@@ -113,7 +115,7 @@
     <!-- 游戏结果 -->
     <view class="game-result" wx:if="{{gameResult}}">
       <view class="game-result-badge {{gameResult}}">
-        <view class="game-result-icon">{{gameResult === 'win' ? '🏆' : '💪'}}</view>
+        <view class="game-result-icon">🏆</view>
         <view class="game-result-text">{{gameResultText}}</view>
         <view class="game-result-score">{{player1Wins}} : {{player2Wins}}</view>
       </view>
@@ -280,7 +282,7 @@
     <!-- 游戏结果 -->
     <view class="game-result" wx:if="{{gameResult}}">
       <view class="game-result-badge {{gameResult}}">
-        <view class="game-result-icon">{{gameResult === 'win' ? '🏆' : '💪'}}</view>
+        <view class="game-result-icon">🏆</view>
         <view class="game-result-text">{{gameResultText}}</view>
         <view class="game-result-score">{{player1Wins}} : {{player2Wins}}</view>
       </view>
@@ -371,7 +373,7 @@
     <!-- 游戏结果 -->
     <view class="game-result" wx:if="{{gameResult}}">
       <view class="game-result-badge {{gameResult}}">
-        <view class="game-result-icon">{{gameResult === 'win' ? '🏆' : '💪'}}</view>
+        <view class="game-result-icon">🏆</view>
         <view class="game-result-text">{{gameResultText}}</view>
         <view class="game-result-score">{{player1Wins}} : {{player2Wins}}</view>
       </view>

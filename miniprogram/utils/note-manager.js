@@ -6,9 +6,10 @@
 
 var util = require('./util.js')
 var cloud = require('./cloud.js')
+var childStorage = require('./child-storage.js')
 
 var getAllNotes = function() {
-  return wx.getStorageSync('notes') || []
+  return childStorage.get('notes') || []
 }
 
 var getNotes = function(limit) {
@@ -39,7 +40,7 @@ var addNote = function(note) {
     createTime: new Date().toISOString()
   }
   notes.unshift(newNote)
-  wx.setStorageSync('notes', notes)
+  childStorage.set('notes', notes)
 
   cloud.uploadNote(newNote).catch(function() {})
 
@@ -64,7 +65,7 @@ var updateNote = function(id, updates) {
       updated[key] = updates[key]
     }
     notes[index] = updated
-    wx.setStorageSync('notes', notes)
+    childStorage.set('notes', notes)
 
     cloud.updateNoteInCloud(id, updated).catch(function() {})
 
@@ -76,7 +77,7 @@ var updateNote = function(id, updates) {
 var deleteNote = function(id) {
   var notes = getAllNotes()
   var filtered = notes.filter(function(n) { return n.id !== id })
-  wx.setStorageSync('notes', filtered)
+  childStorage.set('notes', filtered)
 
   cloud.removeNote(id).catch(function() {})
 }

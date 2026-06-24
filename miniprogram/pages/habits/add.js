@@ -1,4 +1,6 @@
 var util = require('../../utils/util.js')
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 
 Page({
   data: {
@@ -36,7 +38,7 @@ Page({
       return
     }
 
-    var habits = wx.getStorageSync('habits') || []
+    var habits = childStorage.get('habits') || []
 
     var newHabit = {
       id: util.generateId(),
@@ -49,7 +51,10 @@ Page({
     }
 
     habits.push(newHabit)
-    wx.setStorageSync('habits', habits)
+    childStorage.set('habits', habits)
+
+    // 同步云端
+    cloud.uploadHabits(habits).catch(function() {})
 
     wx.showToast({ title: '添加成功', icon: 'success' })
     setTimeout(function() { wx.navigateBack() }, 1500)

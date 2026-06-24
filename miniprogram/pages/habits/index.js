@@ -1,6 +1,7 @@
 var util = require('../../utils/util.js')
 var auth = require('../../utils/auth.js')
 var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 
 var app = getApp()
 
@@ -39,7 +40,22 @@ Page({
       currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
     })
 
-    this.loadHabits()
+    var that = this
+    // 刷新家庭信息（包括小孩头像等）
+    app.refreshFamilyInfo().then(function() {
+      that.setData({
+        children: app.globalData.children || [],
+        currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+      })
+    }).catch(function() {})
+
+    cloud.fetchHabitRecords().then(function() {
+      return cloud.fetchHabits()
+    }).then(function() {
+      that.loadHabits()
+    }).catch(function() {
+      that.loadHabits()
+    })
 
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })

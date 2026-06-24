@@ -48,6 +48,12 @@ Page({
     // 每次显示时刷新数据
     this.updateFromApp()
 
+    // 刷新家庭信息（包括小孩头像等），完成后更新UI
+    var that = this
+    app.refreshFamilyInfo().then(function() {
+      that.updateFromApp()
+    }).catch(function() {})
+
     this.setGreeting()
     this.loadTodayHabits()
     this.loadAchievements()
