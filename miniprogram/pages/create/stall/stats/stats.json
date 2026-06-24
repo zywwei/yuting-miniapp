@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "销售报表"
+  "navigationBarTitleText": "销售报表",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
 }

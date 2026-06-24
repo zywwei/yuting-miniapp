@@ -1,0 +1,326 @@
+<!-- 飞行棋游戏页面 -->
+<view class="container">
+  <!-- 选择游戏模式 phase -->
+  <view class="phase-select" wx:if="{{phase === 'select'}}">
+    <view class="header">
+      <view class="back-btn" bindtap="goBack">
+        <text class="back-icon">←</text>
+      </view>
+      <text class="title">✈️ 飞行棋</text>
+      <view class="placeholder"></view>
+    </view>
+    
+    <view class="mode-cards">
+      <view class="mode-card {{playMode === 'ai' ? 'active' : ''}}" bindtap="selectMode" data-mode="ai">
+        <text class="mode-icon">🤖</text>
+        <text class="mode-name">人机对战</text>
+        <text class="mode-desc">与AI对手对战</text>
+      </view>
+      
+      <view class="mode-card {{playMode === 'parent' ? 'active' : ''}}" bindtap="selectMode" data-mode="parent">
+        <text class="mode-icon">👨‍👧‍👦</text>
+        <text class="mode-name">亲子对战</text>
+        <text class="mode-desc">和家人一起玩</text>
+      </view>
+    </view>
+    
+    <button class="next-btn" bindtap="goToConfig" disabled="{{!playMode}}">
+      <text>下一步</text>
+    </button>
+  </view>
+  
+  <!-- 游戏配置 phase -->
+  <view class="phase-config" wx:if="{{phase === 'config'}}">
+    <view class="header">
+      <view class="back-btn" bindtap="goBackToSelect">
+        <text class="back-icon">←</text>
+      </view>
+      <text class="title">游戏设置</text>
+      <view class="placeholder"></view>
+    </view>
+    
+    <!-- 难度选择（人机模式） -->
+    <view class="config-section" wx:if="{{playMode === 'ai'}}">
+      <text class="config-label">难度选择</text>
+      <view class="difficulty-options">
+        <view class="diff-btn {{difficulty === 'easy' ? 'active' : ''}}" bindtap="selectDifficulty" data-diff="easy">
+          <text class="diff-icon">😊</text>
+          <text class="diff-name">简单</text>
+        </view>
+        <view class="diff-btn {{difficulty === 'medium' ? 'active' : ''}}" bindtap="selectDifficulty" data-diff="medium">
+          <text class="diff-icon">😐</text>
+          <text class="diff-name">中等</text>
+        </view>
+        <view class="diff-btn {{difficulty === 'hard' ? 'active' : ''}}" bindtap="selectDifficulty" data-diff="hard">
+          <text class="diff-icon">😈</text>
+          <text class="diff-name">困难</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- AI数量选择（人机模式） -->
+    <view class="config-section" wx:if="{{playMode === 'ai'}}">
+      <text class="config-label">AI对手数量</text>
+      <view class="ai-count-options">
+        <view class="count-btn {{aiCount === 1 ? 'active' : ''}}" bindtap="selectAICount" data-count="1">
+          <text>1个</text>
+        </view>
+        <view class="count-btn {{aiCount === 2 ? 'active' : ''}}" bindtap="selectAICount" data-count="2">
+          <text>2个</text>
+        </view>
+        <view class="count-btn {{aiCount === 3 ? 'active' : ''}}" bindtap="selectAICount" data-count="3">
+          <text>3个</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 玩家颜色选择 -->
+    <view class="config-section">
+      <text class="config-label">选择你的颜色</text>
+      <view class="color-options">
+        <view class="color-btn red {{playerColor === 'red' ? 'active' : ''}}" bindtap="selectColor" data-color="red">
+          <text class="color-icon">🔴</text>
+        </view>
+        <view class="color-btn yellow {{playerColor === 'yellow' ? 'active' : ''}}" bindtap="selectColor" data-color="yellow">
+          <text class="color-icon">🟡</text>
+        </view>
+        <view class="color-btn blue {{playerColor === 'blue' ? 'active' : ''}}" bindtap="selectColor" data-color="blue">
+          <text class="color-icon">🔵</text>
+        </view>
+        <view class="color-btn green {{playerColor === 'green' ? 'active' : ''}}" bindtap="selectColor" data-color="green">
+          <text class="color-icon">🟢</text>
+        </view>
+      </view>
+    </view>
+    
+    <button class="start-btn" bindtap="startGame">
+      <text>开始游戏</text>
+    </button>
+  </view>
+  
+  <!-- 游戏进行中 phase -->
+  <view class="phase-playing" wx:if="{{phase === 'playing' || phase === 'animating'}}">
+    <view class="game-header">
+      <view class="back-btn" bindtap="confirmExit">
+        <text class="back-icon">←</text>
+      </view>
+      <text class="round-info">第 {{roundCount}} 回合</text>
+      <view class="sound-btn" bindtap="toggleSound">
+        <text class="sound-icon">{{soundEnabled ? '🔊' : '🔇'}}</text>
+      </view>
+    </view>
+    
+    <!-- 棋盘区域 -->
+    <view class="board-container">
+      <!-- 主赛道格子 -->
+      <view class="cell {{item.type}} {{item.special ? 'special' : ''}} {{item.isStart ? 'start-cell' : ''}}"
+            wx:for="{{mainTrack}}" wx:key="index"
+            style="left:{{item.x}}rpx; top:{{item.y}}rpx;">
+        <!-- 特殊格子图标 -->
+        <text class="cell-icon" wx:if="{{item.specialIcon}}">{{item.specialIcon}}</text>
+        <!-- 飞机 -->
+        <view class="plane {{plane.color}} {{plane.isMoving ? 'moving' : ''}} {{plane.isKnocked ? 'knocked' : ''}}"
+              wx:for="{{item.planes}}" wx:for-item="plane"
+              wx:key="id"
+              style="left:{{plane.offsetX}}rpx; top:{{plane.offsetY}}rpx;">
+        </view>
+      </view>
+      
+      <!-- 终点跑道 -->
+      <view wx:for="{{homeStretchCells}}" wx:key="index"
+            class="cell home {{item.color}}"
+            style="left:{{item.x}}rpx; top:{{item.y}}rpx;">
+        <view class="plane {{plane.color}}"
+              wx:for="{{item.planes}}" wx:for-item="plane"
+              wx:key="id">
+        </view>
+      </view>
+      
+      <!-- 停机坪 -->
+      <view wx:for="{{hangarCells}}" wx:key="index"
+            class="hangar {{item.color}}"
+            style="left:{{item.x}}rpx; top:{{item.y}}rpx;">
+        <view class="plane {{plane.color}} {{plane.isMovable ? 'movable' : ''}}"
+              wx:for="{{item.planes}}" wx:for-item="plane"
+              wx:key="id"
+              bindtap="selectPlane"
+              data-player="{{plane.playerIndex}}"
+              data-plane="{{plane.planeIndex}}">
+        </view>
+      </view>
+    </view>
+    
+    <!-- 玩家信息栏 -->
+    <view class="players-info">
+      <view class="player-info {{index === currentPlayer ? 'active' : ''}} {{item.isFinished ? 'finished' : ''}}"
+            wx:for="{{playersInfo}}" wx:key="index">
+        <text class="player-icon">{{item.emoji}}</text>
+        <text class="player-name">{{item.name}}</text>
+        <text class="player-planes">{{item.finishedCount}}/4</text>
+      </view>
+    </view>
+    
+    <!-- 骰子区域 -->
+    <view class="dice-area">
+      <view class="dice-container" wx:if="{{showDice}}">
+        <dice-face value="{{diceValue}}" rolling="{{isRolling}}" size="{{100}}"></dice-face>
+      </view>
+      
+      <view class="dice-buttons">
+        <button class="roll-btn" wx:if="{{showRollButton}}" bindtap="rollDice" disabled="{{isAnimating}}">
+          <text>🎲 摇骰子</text>
+        </button>
+        
+        <button class="roll-btn again" wx:if="{{showRollAgain}}" bindtap="rollDiceAgain">
+          <text>🎲 再摇一次</text>
+        </button>
+        
+        <button class="item-btn" wx:if="{{showRollButton && playerItems.length > 0}}" bindtap="toggleItemPanel">
+          <text>🎒 道具 ({{playerItems.length}})</text>
+        </button>
+      </view>
+      
+      <text class="turn-hint" wx:if="{{turnHint}}">{{turnHint}}</text>
+    </view>
+    
+    <!-- 道具面板 -->
+    <view class="item-panel" wx:if="{{showItemPanel}}">
+      <view class="item-panel-header">
+        <text class="item-panel-title">我的道具</text>
+        <view class="item-panel-close" bindtap="toggleItemPanel">
+          <text>✕</text>
+        </view>
+      </view>
+      <view class="item-list">
+        <view class="item-card" wx:for="{{playerItems}}" wx:key="index"
+              bindtap="useItem" data-id="{{item}}">
+          <text class="item-icon">{{item === 'remote_dice' ? '🎯' : item === 'speed_card' ? '⚡' : item === 'teleport' ? '🌀' : item === 'shield' ? '🛡️' : item === 'freeze' ? '❄️' : '💣'}}</text>
+          <text class="item-name">{{item === 'remote_dice' ? '遥控骰' : item === 'speed_card' ? '加速卡' : item === 'teleport' ? '传送门' : item === 'shield' ? '护盾' : item === 'freeze' ? '冰冻' : '炸弹'}}</text>
+        </view>
+      </view>
+      <button class="shop-btn" bindtap="showShop">
+        <text>🛒 道具商店</text>
+      </button>
+    </view>
+    
+    <!-- 骰子选择器（遥控骰道具） -->
+    <view class="dice-chooser" wx:if="{{showDiceChooser}}">
+      <view class="chooser-overlay" bindtap="cancelItem"></view>
+      <view class="chooser-content">
+        <text class="chooser-title">选择骰子点数</text>
+        <view class="chooser-dice">
+          <view class="chooser-dice-item" wx:for="{{[1,2,3,4,5,6]}}" wx:key="*this"
+                bindtap="chooseDiceValue" data-value="{{item}}">
+            <dice-face value="{{item}}" size="{{60}}"></dice-face>
+          </view>
+        </view>
+        <button class="cancel-btn" bindtap="cancelItem">取消</button>
+      </view>
+    </view>
+    
+    <!-- 目标选择器（传送门道具） -->
+    <view class="target-selector" wx:if="{{showTargetSelector}}">
+      <view class="selector-overlay" bindtap="cancelItem"></view>
+      <view class="selector-content">
+        <text class="selector-title">选择要传送的飞机</text>
+        <view class="target-list">
+          <button class="target-btn" wx:for="{{targetPlanes}}" wx:key="index"
+                  bindtap="selectTeleportTarget" data-index="{{item}}">
+            <text>飞机 {{item + 1}}</text>
+          </button>
+        </view>
+        <button class="cancel-btn" bindtap="cancelItem">取消</button>
+      </view>
+    </view>
+    
+    <!-- 飞机选择提示 -->
+    <view class="plane-selector" wx:if="{{showPlaneSelector}}">
+      <text class="selector-title">选择要移动的飞机</text>
+      <view class="selector-buttons">
+        <button class="plane-btn" wx:for="{{movablePlanes}}" wx:key="index"
+                bindtap="confirmMovePlane" data-index="{{item}}">
+          <text>飞机 {{item + 1}}</text>
+        </button>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 道具商店 -->
+  <view class="item-shop" wx:if="{{showItemShop}}">
+    <view class="shop-overlay" bindtap="hideShop"></view>
+    <view class="shop-content">
+      <view class="shop-header">
+        <text class="shop-title">道具商店</text>
+        <view class="shop-coins">
+          <text class="coin-icon">🪙</text>
+          <text class="coin-value">{{playerCoins}}</text>
+        </view>
+        <view class="shop-close" bindtap="hideShop">
+          <text>✕</text>
+        </view>
+      </view>
+      <view class="shop-list">
+        <view class="shop-item {{item.canBuy ? '' : 'disabled'}}" wx:for="{{itemList}}" wx:key="id"
+              bindtap="buyItem" data-id="{{item.id}}">
+          <text class="shop-item-icon">{{item.icon}}</text>
+          <view class="shop-item-info">
+            <text class="shop-item-name">{{item.name}}</text>
+            <text class="shop-item-desc">{{item.desc}}</text>
+          </view>
+          <view class="shop-item-price">
+            <text class="coin-icon">🪙</text>
+            <text class="price-value">{{item.price}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 游戏结果 phase -->
+  <view class="phase-result" wx:if="{{phase === 'result'}}">
+    <view class="result-container">
+      <text class="result-icon">{{gameResult === 'win' ? '🏆' : '😢'}}</text>
+      <text class="result-title">{{gameResult === 'win' ? '恭喜获胜！' : '再接再厉'}}</text>
+      
+      <view class="rankings">
+        <view class="rank-item {{index === 0 ? 'first' : ''}}" wx:for="{{rankings}}" wx:key="index">
+          <text class="rank-number">{{index + 1}}</text>
+          <text class="rank-icon">{{item.emoji}}</text>
+          <text class="rank-name">{{item.name}}</text>
+        </view>
+      </view>
+      
+      <view class="result-stats">
+        <view class="stat-item">
+          <text class="stat-value">{{stats.rounds}}</text>
+          <text class="stat-label">回合数</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{stats.duration}}</text>
+          <text class="stat-label">用时</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-value">{{stats.planesKnocked}}</text>
+          <text class="stat-label">撞机次数</text>
+        </view>
+      </view>
+      
+      <view class="result-buttons">
+        <button class="play-again-btn" bindtap="playAgain">
+          <text>再来一局</text>
+        </button>
+        <button class="back-home-btn" bindtap="goBack">
+          <text>返回</text>
+        </button>
+      </view>
+    </view>
+    
+    <!-- 撒花效果 -->
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <text class="confetti" wx:for="{{confettiList}}" wx:key="index"
+            style="left:{{item.x}}%; animation-delay:{{item.delay}}s;">
+        {{item.emoji}}
+      </text>
+    </view>
+  </view>
+</view>

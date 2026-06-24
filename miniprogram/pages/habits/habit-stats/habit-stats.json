@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "习惯统计",
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
 }

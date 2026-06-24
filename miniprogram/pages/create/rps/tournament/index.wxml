@@ -1,7 +1,249 @@
 <view class="container">
-  <view class="placeholder">
-    <view class="placeholder-icon">🏅</view>
-    <view class="placeholder-text">锦标赛功能开发中...</view>
+  <!-- 对阵图阶段 -->
+  <view class="phase-bracket" wx:if="{{phase === 'bracket'}}">
+    <view class="bracket-header">
+      <view class="bracket-icon">🏅</view>
+      <view class="bracket-title">猜拳锦标赛</view>
+      <view class="bracket-subtitle">8强单败淘汰赛</view>
+    </view>
+
+    <!-- 统计 -->
+    <view class="bracket-stats">
+      <view class="stat-item">
+        <text class="stat-value">{{totalPlayed}}</text>
+        <text class="stat-label">参赛次数</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{championCount}}</text>
+        <text class="stat-label">夺冠次数</text>
+      </view>
+    </view>
+
+    <!-- 对阵图 -->
+    <view class="bracket-tree">
+      <!-- 8强 -->
+      <view class="bracket-round">
+        <view class="round-title">8强赛</view>
+        <view class="match-card {{currentRound === 0 ? 'current' : ''}}" bindtap="startMatch" wx:if="{{currentRound === 0}}">
+          <view class="match-player">
+            <text class="player-icon">👤</text>
+            <text class="player-name">我</text>
+          </view>
+          <view class="match-vs">VS</view>
+          <view class="match-player">
+            <text class="player-icon">{{bracket[0].matches[0].player2.icon}}</text>
+            <text class="player-name">{{bracket[0].matches[0].player2.name}}</text>
+          </view>
+        </view>
+        <view class="match-card completed" wx:if="{{currentRound > 0}}">
+          <view class="match-player {{bracket[0].matches[0].winner.isPlayer ? 'winner' : ''}}">
+            <text class="player-icon">👤</text>
+            <text class="player-name">我</text>
+          </view>
+          <view class="match-vs">VS</view>
+          <view class="match-player">
+            <text class="player-icon">{{bracket[0].matches[0].player2.icon}}</text>
+            <text class="player-name">{{bracket[0].matches[0].player2.name}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 半决赛 -->
+      <view class="bracket-round" wx:if="{{currentRound >= 1}}">
+        <view class="round-title">半决赛</view>
+        <view class="match-card {{currentRound === 1 ? 'current' : ''}}" bindtap="startMatch" wx:if="{{currentRound === 1}}">
+          <view class="match-player">
+            <text class="player-icon">{{bracket[1].matches[0].player1.icon}}</text>
+            <text class="player-name">{{bracket[1].matches[0].player1.name}}</text>
+          </view>
+          <view class="match-vs">VS</view>
+          <view class="match-player">
+            <text class="player-icon">{{bracket[1].matches[0].player2.icon}}</text>
+            <text class="player-name">{{bracket[1].matches[0].player2.name}}</text>
+          </view>
+        </view>
+        <view class="match-card completed" wx:if="{{currentRound > 1}}">
+          <view class="match-player">
+            <text class="player-icon">{{bracket[1].matches[0].player1.icon}}</text>
+            <text class="player-name">{{bracket[1].matches[0].player1.name}}</text>
+          </view>
+          <view class="match-vs">VS</view>
+          <view class="match-player">
+            <text class="player-icon">{{bracket[1].matches[0].player2.icon}}</text>
+            <text class="player-name">{{bracket[1].matches[0].player2.name}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 决赛 -->
+      <view class="bracket-round" wx:if="{{currentRound >= 2}}">
+        <view class="round-title">决赛</view>
+        <view class="match-card {{currentRound === 2 ? 'current' : ''}}" bindtap="startMatch" wx:if="{{currentRound === 2}}">
+          <view class="match-player">
+            <text class="player-icon">{{bracket[2].matches[0].player1.icon}}</text>
+            <text class="player-name">{{bracket[2].matches[0].player1.name}}</text>
+          </view>
+          <view class="match-vs">VS</view>
+          <view class="match-player">
+            <text class="player-icon">{{bracket[2].matches[0].player2.icon}}</text>
+            <text class="player-name">{{bracket[2].matches[0].player2.name}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <view class="back-btn" bindtap="goBack">返回</view>
+  </view>
+
+  <!-- 对手介绍 -->
+  <view class="phase-matchIntro" wx:if="{{phase === 'matchIntro' && currentOpponent}}">
+    <view class="intro-round">{{roundNames[currentRound]}}</view>
+    <view class="intro-card">
+      <view class="intro-icon">{{currentOpponent.icon}}</view>
+      <view class="intro-name">{{currentOpponent.name}}</view>
+      <view class="intro-difficulty">
+        难度: {{currentOpponent.difficulty === 'simple' ? '简单' : currentOpponent.difficulty === 'medium' ? '中等' : currentOpponent.difficulty === 'hard' ? '困难' : '大师'}}
+      </view>
+    </view>
+    <view class="intro-rule">三局两胜制</view>
+    <view class="start-btn" bindtap="beginBattle">开始比赛</view>
+  </view>
+
+  <!-- 对战阶段 -->
+  <view class="phase-match" wx:if="{{phase === 'match'}}">
+    <view class="match-header">
+      <view class="match-round">{{roundNames[currentRound]}}</view>
+      <view class="match-score">
+        <view class="score-side">
+          <text class="score-name">我</text>
+          <text class="score-value">{{playerWins}}</text>
+        </view>
+        <view class="score-vs">:</view>
+        <view class="score-side">
+          <text class="score-name">{{currentOpponent.name}}</text>
+          <text class="score-value">{{opponentWins}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 出拳展示 -->
+    <view class="battle-area">
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
+          <text class="choice-icon" wx:if="{{playerIcon}}">{{playerIcon}}</text>
+          <text class="choice-placeholder" wx:else>❓</text>
+        </view>
+        <view class="player-name">我</view>
+      </view>
+
+      <view class="vs-icon {{isAnimating ? 'vs-animate' : ''}}">⚡</view>
+
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
+          <text class="choice-icon" wx:if="{{opponentIcon}}">{{opponentIcon}}</text>
+          <text class="choice-placeholder" wx:else>❓</text>
+        </view>
+        <view class="player-name">{{currentOpponent.name}}</view>
+      </view>
+    </view>
+
+    <!-- 回合结果 -->
+    <view class="round-result" wx:if="{{roundResult}}">
+      <view class="result-badge {{roundResult}}">
+        <text class="result-icon">{{roundResultIcon}}</text>
+        <text class="result-text">{{roundResultText}}</text>
+      </view>
+    </view>
+
+    <!-- 撒花 -->
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <view class="confetti confetti-1">🎉</view>
+      <view class="confetti confetti-2">🎊</view>
+      <view class="confetti confetti-3">✨</view>
+      <view class="confetti confetti-4">🎉</view>
+      <view class="confetti confetti-5">🎊</view>
+      <view class="confetti confetti-6">✨</view>
+    </view>
+
+    <!-- 出拳按钮 -->
+    <view class="choice-buttons" wx:if="{{!isAnimating}}">
+      <view class="choice-btn" bindtap="playerChoiceAction" data-choice="rock">
+        <text class="choice-btn-icon">✊</text>
+        <text class="choice-btn-text">石头</text>
+      </view>
+      <view class="choice-btn" bindtap="playerChoiceAction" data-choice="scissors">
+        <text class="choice-btn-icon">✌️</text>
+        <text class="choice-btn-text">剪刀</text>
+      </view>
+      <view class="choice-btn" bindtap="playerChoiceAction" data-choice="paper">
+        <text class="choice-btn-icon">✋</text>
+        <text class="choice-btn-text">布</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 比赛结果 -->
+  <view class="phase-matchResult" wx:if="{{phase === 'matchResult'}}">
+    <view class="result-container">
+      <view class="result-icon">{{matchResult === 'win' ? '🎉' : '😢'}}</view>
+      <view class="result-title">{{matchResult === 'win' ? '比赛胜利！' : '比赛失败'}}</view>
+      <view class="result-score">{{playerWins}} : {{opponentWins}}</view>
+      <view class="result-desc" wx:if="{{matchResult === 'win'}}">
+        {{currentRound < 2 ? '晋级' + roundNames[currentRound + 1] : '恭喜夺冠！'}}
+      </view>
+      <view class="result-actions">
+        <view class="action-btn primary" bindtap="nextMatch" wx:if="{{matchResult === 'win'}}">
+          <text>继续</text>
+        </view>
+        <view class="action-btn primary" bindtap="restart" wx:if="{{matchResult === 'lose'}}">
+          <text>重新开始</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <view class="confetti confetti-1">🎉</view>
+      <view class="confetti confetti-2">🎊</view>
+      <view class="confetti confetti-3">✨</view>
+      <view class="confetti confetti-4">🎉</view>
+      <view class="confetti confetti-5">🎊</view>
+      <view class="confetti confetti-6">✨</view>
+    </view>
+  </view>
+
+  <!-- 夺冠 -->
+  <view class="phase-champion" wx:if="{{phase === 'champion'}}">
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <view class="confetti confetti-1">🎉</view>
+      <view class="confetti confetti-2">🎊</view>
+      <view class="confetti confetti-3">✨</view>
+      <view class="confetti confetti-4">🎉</view>
+      <view class="confetti confetti-5">🎊</view>
+      <view class="confetti confetti-6">✨</view>
+    </view>
+
+    <view class="champion-crown">👑</view>
+    <view class="champion-title">恭喜夺冠！</view>
+    <view class="champion-subtitle">你是猜拳之王！</view>
+
+    <view class="champion-stats">
+      <view class="stat-item">
+        <text class="stat-value">{{championCount}}</text>
+        <text class="stat-label">累计夺冠</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{totalPlayed}}</text>
+        <text class="stat-label">参赛次数</text>
+      </view>
+    </view>
+
+    <view class="champion-actions">
+      <view class="action-btn primary" bindtap="restart">
+        <text>再战一届</text>
+      </view>
+      <view class="action-btn secondary" bindtap="goBack">
+        <text>返回</text>
+      </view>
+    </view>
   </view>
 </view>

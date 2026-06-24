@@ -486,3 +486,52 @@
 .action-btn:active {
   transform: scale(0.98);
 }
+
+/* 星级统计 */
+.complete-stars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin-bottom: 32rpx;
+}
+
+.stars-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.stars-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #FF9800;
+}
+
+/* 撒花效果 */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.confetti {
+  position: absolute;
+  font-size: 48rpx;
+  animation: confettiFall 2s ease-in forwards;
+}
+
+.confetti-1 { left: 10%; animation-delay: 0s; }
+.confetti-2 { left: 30%; animation-delay: 0.2s; }
+.confetti-3 { left: 50%; animation-delay: 0.4s; }
+.confetti-4 { left: 70%; animation-delay: 0.1s; }
+.confetti-5 { left: 85%; animation-delay: 0.3s; }
+.confetti-6 { left: 45%; animation-delay: 0.5s; }
+
+@keyframes confettiFall {
+  0% { top: -10%; opacity: 1; transform: rotate(0deg); }
+  100% { top: 110%; opacity: 0; transform: rotate(720deg); }
+}

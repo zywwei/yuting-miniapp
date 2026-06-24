@@ -1,10 +1,4 @@
 <view class="container">
-  <!-- 头部 -->
-  <view class="header">
-    <text class="header-title">{{stallName}}</text>
-    <text class="header-subtitle">商品一览</text>
-  </view>
-
   <!-- 搜索框 -->
   <view class="search-bar">
     <text class="search-icon">🔍</text>

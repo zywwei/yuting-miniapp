@@ -114,6 +114,65 @@ function init() {
       writeTone(view, s6, total, 1047, 0.3, 0.3)
       writeTone(view, s6, total, 1318, 0.3, 0.3)
       writeTone(view, s6, total, 1568, 0.3, 0.25)
+    }},
+    // 出拳声 - 短促扫频
+    rpsShoot: { duration: 0.12, build: (view, total) => {
+      writeTone(view, 0, total, 800, 0.06, 0.3)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.04), total, 1200, 0.08, 0.35)
+    }},
+    // 摇骰子声 - 低频震动
+    diceRoll: { duration: 0.25, build: (view, total) => {
+      writeTone(view, 0, total, 200, 0.15, 0.2)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.05), total, 250, 0.1, 0.15)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.1), total, 180, 0.1, 0.18)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.15), total, 220, 0.1, 0.15)
+    }},
+    // 骰子落定声 - 短促打击
+    diceSettle: { duration: 0.08, build: (view, total) => {
+      writeTone(view, 0, total, 600, 0.03, 0.4)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.02), total, 400, 0.06, 0.25)
+    }},
+    // 胜利声 - 明亮上行
+    win: { duration: 0.5, build: (view, total) => {
+      writeTone(view, 0, total, 659, 0.1, 0.35)  // E
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.1), total, 784, 0.1, 0.4)  // G
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.2), total, 988, 0.1, 0.45) // B
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.3), total, 1318, 0.2, 0.5) // E高
+    }},
+    // 失败声 - 下行小三度
+    lose: { duration: 0.4, build: (view, total) => {
+      writeTone(view, 0, total, 659, 0.15, 0.3)  // E
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.15), total, 523, 0.15, 0.25) // C
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.3), total, 440, 0.1, 0.2)  // A
+    }},
+    // 飞机移动 - 轻快的跳跃声
+    planeMove: { duration: 0.15, build: (view, total) => {
+      writeTone(view, 0, total, 800, 0.08, 0.25)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.05), total, 1000, 0.1, 0.3)
+    }},
+    // 飞机起飞 - 上行音效
+    planeTakeoff: { duration: 0.3, build: (view, total) => {
+      writeTone(view, 0, total, 400, 0.1, 0.3)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.1), total, 600, 0.1, 0.35)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.2), total, 800, 0.1, 0.4)
+    }},
+    // 飞机降落 - 下行音效
+    planeLand: { duration: 0.25, build: (view, total) => {
+      writeTone(view, 0, total, 800, 0.08, 0.3)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.05), total, 600, 0.1, 0.25)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.1), total, 400, 0.15, 0.2)
+    }},
+    // 撞机 - 碰撞声
+    planeKnock: { duration: 0.4, build: (view, total) => {
+      writeTone(view, 0, total, 300, 0.15, 0.35)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.1), total, 200, 0.15, 0.3)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.2), total, 150, 0.2, 0.25)
+    }},
+    // 使用道具 - 叮咚声
+    itemUse: { duration: 0.35, build: (view, total) => {
+      writeTone(view, 0, total, 600, 0.1, 0.3)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.1), total, 800, 0.1, 0.35)
+      writeTone(view, Math.floor(SAMPLE_RATE * 0.2), total, 1000, 0.15, 0.4)
     }}
   }
 

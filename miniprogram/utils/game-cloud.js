@@ -95,13 +95,17 @@ function fetchGameRecords(gameType) {
         action: 'list',
         collection: 'gameRecords',
         childId: auth.getCurrentChildId(),
-        gameType: gameType,
         page: 1,
         pageSize: 200
       }
     }).then(function(res) {
       if (res.result && res.result.code === 0) {
         var cloudList = res.result.data.list || []
+        
+        // 本地过滤 gameType
+        cloudList = cloudList.filter(function(r) {
+          return r && r.gameType === gameType
+        })
 
         // 合并云端与本地数据（以 id 去重）
         var mergedMap = {}

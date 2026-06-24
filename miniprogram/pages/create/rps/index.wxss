@@ -24,6 +24,20 @@
   text-align: center;
 }
 
+.sound-toggle {
+  position: absolute;
+  top: 32rpx;
+  right: 32rpx;
+  z-index: 10;
+  padding: 12rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.sound-icon {
+  font-size: 36rpx;
+}
+
 .header-icon {
   font-size: 80rpx;
   margin-bottom: 16rpx;

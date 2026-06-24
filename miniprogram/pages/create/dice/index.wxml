@@ -6,6 +6,9 @@
       <view class="header-title">骰子乐园</view>
       <view class="header-desc">摇一摇，乐趣无限</view>
     </view>
+    <view class="sound-toggle" bindtap="toggleSound">
+      <text class="sound-icon">{{soundEnabled ? '🔊' : '🔇'}}</text>
+    </view>
     <view class="stats-bar">
       <view class="stat-item">
         <text class="stat-value">{{totalGames}}</text>

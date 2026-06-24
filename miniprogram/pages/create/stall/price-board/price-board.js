@@ -3,7 +3,6 @@ var stallUtils = require('../../../../utils/stall-utils.js')
 
 Page({
   data: {
-    stallName: '',
     products: [],
     allProducts: [],
     searchKeyword: '',
@@ -24,12 +23,23 @@ Page({
     this.loadData()
   },
 
+  onPullDownRefresh: async function() {
+    try {
+      await stallManager.syncFromCloud()
+      this.loadData()
+      wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 })
+    } catch (err) {
+      console.warn('刷新失败:', err)
+      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1000 })
+    } finally {
+      wx.stopPullDownRefresh()
+    }
+  },
+
   loadData: function() {
-    var settings = stallManager.getSettings()
     var products = stallManager.getProducts()
 
     this.setData({
-      stallName: settings.stallName || '我的小铺',
       allProducts: products
     })
     this.applyFilterAndSort()

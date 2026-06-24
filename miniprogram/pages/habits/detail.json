@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "习惯详情",
-  "navigationStyle": "custom"
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
 }

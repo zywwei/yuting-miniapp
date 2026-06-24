@@ -33,6 +33,20 @@ Page({
     this.loadData()
   },
 
+  onPullDownRefresh: async function() {
+    var self = this
+    try {
+      await cloud.fetchDrawings()
+      self.loadData()
+      wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 })
+    } catch (err) {
+      console.warn('刷新失败:', err)
+      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1000 })
+    } finally {
+      wx.stopPullDownRefresh()
+    }
+  },
+
   // 加载数据
   loadData: function() {
     var self = this

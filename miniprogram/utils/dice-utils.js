@@ -13,10 +13,10 @@ var DICE_DOTS = {
 }
 
 // 格式化游戏结果
-function formatResult(result) {
+function formatResult(result, winnerName) {
   var resultMap = {
-    win: { text: '胜利', icon: '🎉', color: '#4CAF50' },
-    lose: { text: '失败', icon: '😢', color: '#F44336' },
+    win: { text: (winnerName || '玩家1') + '赢了', icon: '🎉', color: '#4CAF50' },
+    lose: { text: (winnerName || '玩家2') + '赢了', icon: '🎉', color: '#4CAF50' },
     draw: { text: '平局', icon: '🤝', color: '#FF9800' }
   }
   return resultMap[result] || resultMap.draw

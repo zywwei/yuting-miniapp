@@ -29,6 +29,7 @@
     </view>
 
     <view class="start-btn" bindtap="startBattle">开始战斗</view>
+    <view class="shop-btn" bindtap="openShop">🛒 道具商店</view>
     <view class="back-btn" bindtap="goBack">返回</view>
   </view>
 
@@ -46,18 +47,82 @@
       </view>
     </view>
 
-    <view class="choice-buttons">
+    <!-- 出拳展示区 -->
+    <view class="battle-area">
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
+          <text class="choice-icon" wx:if="{{player1Icon}}">{{player1Icon}}</text>
+          <text class="choice-placeholder" wx:else>❓</text>
+        </view>
+        <view class="player-name">我</view>
+      </view>
+
+      <view class="vs-icon-container">
+        <view class="vs-icon {{isAnimating ? 'vs-animate' : ''}}">⚡</view>
+      </view>
+
+      <view class="player-side">
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
+          <text class="choice-icon" wx:if="{{player2Icon}}">{{player2Icon}}</text>
+          <text class="choice-placeholder" wx:else>❓</text>
+        </view>
+        <view class="player-name">{{chapterInfo.enemy}}</view>
+      </view>
+    </view>
+
+    <!-- 回合结果 -->
+    <view class="round-result" wx:if="{{roundResult}}">
+      <view class="result-badge {{roundResult}}">
+        <view class="result-icon">{{roundResultIcon}}</view>
+        <view class="result-text">{{roundResultText}}</view>
+      </view>
+    </view>
+
+    <!-- 撒花效果 -->
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <view class="confetti confetti-1">🎉</view>
+      <view class="confetti confetti-2">🎊</view>
+      <view class="confetti confetti-3">✨</view>
+      <view class="confetti confetti-4">🎉</view>
+      <view class="confetti confetti-5">🎊</view>
+      <view class="confetti confetti-6">✨</view>
+    </view>
+
+    <!-- 道具按钮 -->
+    <view class="item-buttons" wx:if="{{!isAnimating && (hasLuckyCharm || hasSkipCard || hasShield)}}">
+      <view class="item-use-btn" wx:if="{{hasLuckyCharm}}">
+        <text class="item-use-icon">🍀</text>
+        <text class="item-use-text">幸运符(自动)</text>
+      </view>
+      <view class="item-use-btn" wx:if="{{hasSkipCard}}" bindtap="useSkipCard">
+        <text class="item-use-icon">⏭️</text>
+        <text class="item-use-text">跳过一局</text>
+      </view>
+      <view class="item-use-btn" wx:if="{{hasShield}}">
+        <text class="item-use-icon">🛡️</text>
+        <text class="item-use-text">护盾(自动)</text>
+      </view>
+    </view>
+
+    <!-- 选择出拳 -->
+    <view class="choice-buttons" wx:if="{{!isAnimating}}">
       <view class="choice-btn" bindtap="playerChoice" data-choice="rock">
-        <text class="choice-icon">✊</text>
-        <text class="choice-text">石头</text>
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✊</text>
+        </view>
+        <text class="choice-btn-text">石头</text>
       </view>
       <view class="choice-btn" bindtap="playerChoice" data-choice="scissors">
-        <text class="choice-icon">✌️</text>
-        <text class="choice-text">剪刀</text>
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✌️</text>
+        </view>
+        <text class="choice-btn-text">剪刀</text>
       </view>
       <view class="choice-btn" bindtap="playerChoice" data-choice="paper">
-        <text class="choice-icon">✋</text>
-        <text class="choice-text">布</text>
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✋</text>
+        </view>
+        <text class="choice-btn-text">布</text>
       </view>
     </view>
   </view>
@@ -79,6 +144,93 @@
     <view class="defeat-actions">
       <view class="action-btn" bindtap="retryBattle">再试一次</view>
       <view class="action-btn secondary" bindtap="goBack">返回</view>
+    </view>
+  </view>
+
+  <!-- 道具商店 -->
+  <view class="phase-shop" wx:if="{{phase === 'shop'}}">
+    <view class="shop-header">
+      <view class="shop-title">🛒 道具商店</view>
+      <view class="shop-coins">💰 {{coins}} 金币</view>
+    </view>
+
+    <view class="shop-list">
+      <view class="shop-item" wx:for="{{shopItems}}" wx:key="id">
+        <view class="item-icon">{{item.icon}}</view>
+        <view class="item-info">
+          <view class="item-name">{{item.name}}</view>
+          <view class="item-desc">{{item.desc}}</view>
+        </view>
+        <view class="item-buy" bindtap="buyItem" data-id="{{item.id}}">
+          <text class="buy-price">{{item.price}} 💰</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 已拥有的道具 -->
+    <view class="owned-section" wx:if="{{playerItemsList.length > 0}}">
+      <view class="owned-title">已拥有</view>
+      <view class="owned-list">
+        <view class="owned-item" wx:for="{{playerItemsList}}" wx:key="id">
+          <text class="owned-icon">{{item.icon}}</text>
+          <text class="owned-name">{{item.name}}</text>
+          <text class="owned-count">×{{item.count}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="shop-close" bindtap="closeShop">关闭商店</view>
+  </view>
+
+  <!-- 通关结局 -->
+  <view class="phase-ending" wx:if="{{phase === 'ending'}}">
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <view class="confetti confetti-1">🎉</view>
+      <view class="confetti confetti-2">🎊</view>
+      <view class="confetti confetti-3">✨</view>
+      <view class="confetti confetti-4">🎉</view>
+      <view class="confetti confetti-5">🎊</view>
+      <view class="confetti confetti-6">✨</view>
+    </view>
+
+    <view class="ending-crown">👑</view>
+    <view class="ending-title">恭喜通关！</view>
+    <view class="ending-subtitle">大魔王已被击败！</view>
+
+    <view class="ending-stats">
+      <view class="stat-item">
+        <text class="stat-icon">💰</text>
+        <text class="stat-value">{{coins}}</text>
+        <text class="stat-label">累计金币</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-icon">⚔️</text>
+        <text class="stat-value">{{storyProgress.totalEnemiesDefeated}}</text>
+        <text class="stat-label">击败敌人</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-icon">🔄</text>
+        <text class="stat-value">{{storyProgress.storyRound}}</text>
+        <text class="stat-label">冒险轮次</text>
+      </view>
+    </view>
+
+    <view class="ending-enemies">
+      <view class="enemies-title">已击败的敌人</view>
+      <view class="enemies-list">
+        <text wx:for="{{storyProgress.defeatedEnemies}}" wx:key="*this" class="enemy-tag">{{item}}</text>
+      </view>
+    </view>
+
+    <view class="ending-actions">
+      <view class="action-btn primary" bindtap="restartStory">
+        <text class="btn-icon">🔄</text>
+        <text class="btn-text">再玩一轮</text>
+      </view>
+      <view class="action-btn secondary" bindtap="goBack">
+        <text class="btn-icon">🏠</text>
+        <text class="btn-text">返回</text>
+      </view>
     </view>
   </view>
 </view>

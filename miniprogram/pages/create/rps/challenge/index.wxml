@@ -18,7 +18,11 @@
       </view>
       <view class="info-item">
         <text class="info-label">剩余生命</text>
-        <text class="info-value">{{lives}}</text>
+        <text class="info-value">❤️ {{lives}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">累计星星</text>
+        <text class="info-value">⭐ {{totalStars}}</text>
       </view>
     </view>
 
@@ -110,12 +114,25 @@
       <view class="complete-desc">第 {{currentLevel - 1}} 关完成</view>
       <view class="complete-reward">
         <text class="reward-icon">⭐</text>
-        <text class="reward-text">+1 星</text>
+        <text class="reward-text">+{{levelConfig.winsRequired}} 星</text>
+      </view>
+      <view class="complete-stars">
+        <text class="stars-label">累计星星</text>
+        <text class="stars-value">{{totalStars}} ⭐</text>
       </view>
       <view class="next-btn" bindtap="nextLevel">
         <text class="btn-text">下一关</text>
         <text class="btn-icon">▶</text>
       </view>
+    </view>
+    <!-- 撒花效果 -->
+    <view class="confetti-container" wx:if="{{showConfetti}}">
+      <view class="confetti confetti-1">🎉</view>
+      <view class="confetti confetti-2">🎊</view>
+      <view class="confetti confetti-3">✨</view>
+      <view class="confetti confetti-4">🎉</view>
+      <view class="confetti confetti-5">🎊</view>
+      <view class="confetti confetti-6">✨</view>
     </view>
   </view>
 

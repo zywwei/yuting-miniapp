@@ -29,6 +29,8 @@ exports.main = async (event, context) => {
       return await saveConfig(member, event.childId, event.config)
     case 'chat':
       return await chat(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID)
+    case 'testConfig':
+      return await testConfig(member, event.childId, event.model, event.apiKey, event.secretKey)
     case 'getHistory':
       return await getHistory(member, event.childId, event.sessionId, event.page, event.pageSize)
     case 'clearHistory':
@@ -129,6 +131,64 @@ async function saveConfig(member, childId, config) {
     return { code: 0, msg: '配置保存成功' }
   } catch (err) {
     return { code: -2, msg: '保存配置失败: ' + err.message }
+  }
+}
+
+// 测试API配置
+async function testConfig(member, childId, model, apiKey, secretKey) {
+  try {
+    if (!apiKey) {
+      return { code: -3, msg: '请先输入API Key' }
+    }
+
+    // 构建测试消息
+    const messages = [{ role: 'user', content: '你好' }]
+    
+    // 调用AI模型测试
+    let result
+    switch (model) {
+      case 'minimax':
+      case 'minimax-plan':
+        result = await minimax.callAPI(apiKey, messages, 'MiniMax-M3')
+        break
+      case 'zhipu':
+      case 'zhipu-plan':
+        result = await zhipu.callAPI(apiKey, messages, 'glm-5.2')
+        break
+      case 'kimi':
+      case 'kimi-plan':
+        result = await kimi.callAPI(apiKey, messages, 'kimi-k2.6')
+        break
+      case 'wenxin':
+      case 'wenxin-plan':
+        result = await wenxin.callAPI(apiKey, secretKey || '', messages, 'ernie-4.0-turbo-8k')
+        break
+      case 'qwen':
+        result = await qwen.callAPI(apiKey, messages, 'qwen3.7-max')
+        break
+      case 'deepseek':
+        result = await deepseek.callAPI(apiKey, messages, 'deepseek-v4-flash')
+        break
+      case 'siliconflow':
+        result = await siliconflow.callAPI(apiKey, messages, 'deepseek-ai/DeepSeek-V4')
+        break
+      case 'mimo':
+        result = await mimo.callAPI(apiKey, messages, 'mimo-v2.5-pro', 'https://api.xiaomimimo.com/v1')
+        break
+      case 'mimo-plan':
+        result = await mimo.callAPI(apiKey, messages, 'mimo-v2.5-pro', 'https://token-plan-cn.xiaomimimo.com/v1')
+        break
+      default:
+        return { code: -4, msg: '不支持的模型: ' + model }
+    }
+
+    if (result.code === 0) {
+      return { code: 0, msg: '测试成功！' }
+    } else {
+      return result
+    }
+  } catch (err) {
+    return { code: -2, msg: '测试失败: ' + err.message }
   }
 }
 

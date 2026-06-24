@@ -26,6 +26,20 @@ Page({
     }
   },
 
+  onPullDownRefresh: async function() {
+    var that = this
+    try {
+      await cloud.fetchNotes()
+      that.loadNotes()
+      wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 })
+    } catch (err) {
+      console.warn('刷新失败:', err)
+      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1000 })
+    } finally {
+      wx.stopPullDownRefresh()
+    }
+  },
+
   // 加载笔记列表
   loadNotes: function() {
     var notes = childStorage.get('notes') || []

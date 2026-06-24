@@ -100,6 +100,57 @@ var STORY_ITEMS = [
   { id: 'skip', name: '跳过卡', icon: '⏭️', desc: '跳过一局（算平局）', price: 15 }
 ]
 
+// 获取道具列表
+function getStoryItems() {
+  return STORY_ITEMS
+}
+
+// 购买道具
+function buyItem(itemId) {
+  var gameEconomy = require('./game-economy.js')
+  var item = null
+  for (var i = 0; i < STORY_ITEMS.length; i++) {
+    if (STORY_ITEMS[i].id === itemId) {
+      item = STORY_ITEMS[i]
+      break
+    }
+  }
+  if (!item) return { success: false, msg: '道具不存在' }
+  if (!gameEconomy.canAfford(item.price)) return { success: false, msg: '金币不足' }
+
+  gameEconomy.spendCoins(item.price, '购买道具：' + item.name)
+
+  // 添加到玩家道具列表
+  var progress = getStoryProgress()
+  if (!progress.items) progress.items = []
+  progress.items.push(itemId)
+  saveStoryProgress(progress)
+
+  return { success: true, msg: '购买成功' }
+}
+
+// 使用道具
+function useItem(itemId, progress) {
+  if (!progress.items) progress.items = []
+  var index = progress.items.indexOf(itemId)
+  if (index < 0) return false
+
+  progress.items.splice(index, 1)
+  saveStoryProgress(progress)
+  return true
+}
+
+// 获取玩家拥有的道具
+function getPlayerItems() {
+  var progress = getStoryProgress()
+  var items = progress.items || []
+  var result = {}
+  items.forEach(function(id) {
+    result[id] = (result[id] || 0) + 1
+  })
+  return result
+}
+
 // 获取克制拳
 function getCounter(choice) {
   var counters = {
@@ -240,7 +291,7 @@ function saveGameRecord(record) {
 function getStoryProgress() {
   return childStorage.get('rpsStory') || {
     currentChapter: 1,
-    currentRound: 1,
+    storyRound: 1,
     defeatedEnemies: [],
     coins: 0,
     items: [],
@@ -259,6 +310,7 @@ function getChallengeProgress() {
     currentLevel: 1,
     lives: 3,
     bestLevel: 1,
+    totalStars: 0,
     totalAttempts: 0,
     completedLevels: []
   }
@@ -299,5 +351,9 @@ module.exports = {
   getChallengeProgress: getChallengeProgress,
   saveChallengeProgress: saveChallengeProgress,
   getTournamentRecord: getTournamentRecord,
-  saveTournamentRecord: saveTournamentRecord
+  saveTournamentRecord: saveTournamentRecord,
+  getStoryItems: getStoryItems,
+  buyItem: buyItem,
+  useItem: useItem,
+  getPlayerItems: getPlayerItems
 }
