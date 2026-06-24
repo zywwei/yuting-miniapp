@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "商品一览",
-  "pageOrientation": "auto"
+  "pageOrientation": "auto",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
 }

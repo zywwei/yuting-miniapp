@@ -10,7 +10,7 @@ var habitManager = require('./habit-manager.js')
 var childStorage = require('./child-storage.js')
 
 // 成就总数常量（用于 legend 成就的 maxProgress）
-var TOTAL_ACHIEVEMENTS = 48
+var TOTAL_ACHIEVEMENTS = 64
 
 // 稀有度定义
 var RARITY = {
@@ -169,6 +169,80 @@ var ACHIEVEMENTS = [
     condition: function(data) { return data.stallProductTypes >= 5 },
     progress: function(data) { return Math.min(data.stallProductTypes, 5) }, maxProgress: 5 },
 
+  // ===== 猜拳游戏成就 =====
+  { id: 'rps_first_win', icon: '🥊', title: '初战告捷', desc: '猜拳首次获胜', category: 'game', rarity: 'common',
+    condition: function(data) { return data.rpsWins >= 1 },
+    progress: function(data) { return Math.min(data.rpsWins, 1) }, maxProgress: 1 },
+  { id: 'rps_10_wins', icon: '✊', title: '猜拳高手', desc: '猜拳累计获胜10次', category: 'game', rarity: 'common',
+    condition: function(data) { return data.rpsWins >= 10 },
+    progress: function(data) { return Math.min(data.rpsWins, 10) }, maxProgress: 10 },
+  { id: 'rps_50_wins', icon: '🏆', title: '猜拳大师', desc: '猜拳累计获胜50次', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.rpsWins >= 50 },
+    progress: function(data) { return Math.min(data.rpsWins, 50) }, maxProgress: 50 },
+  { id: 'rps_streak_5', icon: '🔥', title: '连胜达人', desc: '猜拳5连胜', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.rpsBestStreak >= 5 },
+    progress: function(data) { return Math.min(data.rpsBestStreak, 5) }, maxProgress: 5 },
+  { id: 'rps_challenge_5', icon: '⚔️', title: '闯关勇士', desc: '闯关挑战达到第5关', category: 'game', rarity: 'common',
+    condition: function(data) { return data.rpsChallengeLevel >= 5 },
+    progress: function(data) { return Math.min(data.rpsChallengeLevel - 1, 5) }, maxProgress: 5 },
+  { id: 'rps_challenge_10', icon: '👑', title: '闯关王者', desc: '通关闯关挑战第10关', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.rpsChallengeLevel >= 11 },
+    progress: function(data) { return Math.min(data.rpsChallengeLevel - 1, 10) }, maxProgress: 10 },
+  { id: 'rps_story_done', icon: '🐉', title: '故事英雄', desc: '通关故事冒险模式', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.rpsStoryDone },
+    progress: function(data) { return data.rpsStoryDone ? 1 : 0 }, maxProgress: 1 },
+
+  // ===== 骰子游戏成就 =====
+  { id: 'dice_first_win', icon: '🎲', title: '首掷制胜', desc: '骰子游戏首次获胜', category: 'game', rarity: 'common',
+    condition: function(data) { return data.diceWins >= 1 },
+    progress: function(data) { return Math.min(data.diceWins, 1) }, maxProgress: 1 },
+  { id: 'dice_10_wins', icon: '🎯', title: '骰子高手', desc: '骰子累计获胜10次', category: 'game', rarity: 'common',
+    condition: function(data) { return data.diceWins >= 10 },
+    progress: function(data) { return Math.min(data.diceWins, 10) }, maxProgress: 10 },
+  { id: 'dice_leopard', icon: '🐆', title: '豹子玩家', desc: '摇出1次豹子', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.diceLeopardCount >= 1 },
+    progress: function(data) { return Math.min(data.diceLeopardCount, 1) }, maxProgress: 1 },
+  { id: 'dice_leopard_5', icon: '💎', title: '豹子大师', desc: '摇出5次豹子', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.diceLeopardCount >= 5 },
+    progress: function(data) { return Math.min(data.diceLeopardCount, 5) }, maxProgress: 5 },
+  { id: 'dice_mission_10', icon: '📋', title: '任务达人', desc: '完成10个任务骰子任务', category: 'game', rarity: 'common',
+    condition: function(data) { return data.diceMissionsDone >= 10 },
+    progress: function(data) { return Math.min(data.diceMissionsDone, 10) }, maxProgress: 10 },
+  { id: 'dice_mission_all', icon: '🌟', title: '任务大师', desc: '完成全部30个任务骰子任务', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.diceMissionsDone >= 30 },
+    progress: function(data) { return Math.min(data.diceMissionsDone, 30) }, maxProgress: 30 },
+  { id: 'dice_streak_5', icon: '🔥', title: '连胜骰神', desc: '骰子游戏5连胜', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.diceBestStreak >= 5 },
+    progress: function(data) { return Math.min(data.diceBestStreak, 5) }, maxProgress: 5 },
+
+  // ===== 飞行棋成就 =====
+  { id: 'flight_first_win', icon: '✈️', title: '首次飞行', desc: '赢得第一局飞行棋', category: 'game', rarity: 'common',
+    condition: function(data) { return data.flightWins >= 1 },
+    progress: function(data) { return Math.min(data.flightWins, 1) }, maxProgress: 1 },
+  { id: 'flight_10_wins', icon: '🛫', title: '飞行达人', desc: '赢得10局飞行棋', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.flightWins >= 10 },
+    progress: function(data) { return Math.min(data.flightWins, 10) }, maxProgress: 10 },
+  { id: 'flight_perfect', icon: '🏆', title: '完美飞行', desc: '4架飞机全部到达且无人被撞回', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.flightPerfect >= 1 },
+    progress: function(data) { return Math.min(data.flightPerfect, 1) }, maxProgress: 1 },
+  { id: 'flight_speed', icon: '⚡', title: '闪电飞行', desc: '20回合内完成一局', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.flightSpeedWin >= 1 },
+    progress: function(data) { return Math.min(data.flightSpeedWin, 1) }, maxProgress: 1 },
+  { id: 'flight_item_master', icon: '🎁', title: '道具大师', desc: '一局中使用3个道具', category: 'game', rarity: 'common',
+    condition: function(data) { return data.flightItemMaster >= 1 },
+    progress: function(data) { return Math.min(data.flightItemMaster, 1) }, maxProgress: 1 },
+  { id: 'flight_hard_win', icon: '💎', title: '困难征服者', desc: '在困难模式下获胜', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.flightHardWin >= 1 },
+    progress: function(data) { return Math.min(data.flightHardWin, 1) }, maxProgress: 1 },
+
+  // ===== 游戏综合成就 =====
+  { id: 'game_play_30', icon: '🎮', title: '游戏迷', desc: '游戏累计游玩30局', category: 'game', rarity: 'common',
+    condition: function(data) { return data.gameTotalPlays >= 30 },
+    progress: function(data) { return Math.min(data.gameTotalPlays, 30) }, maxProgress: 30 },
+  { id: 'game_play_100', icon: '🎪', title: '游戏狂人', desc: '游戏累计游玩100局', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.gameTotalPlays >= 100 },
+    progress: function(data) { return Math.min(data.gameTotalPlays, 100) }, maxProgress: 100 },
+
   // ===== 特殊成就 =====
   { id: 'early_bird', icon: '🐦', title: '早起鸟儿', desc: '早上7点前完成打卡', category: 'special', rarity: 'rare',
     condition: function(data) { return data.hasEarlyBird },
@@ -326,6 +400,33 @@ var getStallExtraData = function() {
   }
 }
 
+// 获取游戏额外数据
+var getGameExtraData = function() {
+  // 猜拳数据
+  var rpsStats = childStorage.get('rpsStats') || {}
+  var rpsStory = childStorage.get('rpsStory') || {}
+  var rpsChallenge = childStorage.get('rpsChallenge') || {}
+
+  // 骰子数据
+  var diceStats = childStorage.get('diceStats') || {}
+  var diceMissions = childStorage.get('diceMissions') || []
+
+  return {
+    rpsWins: rpsStats.wins || 0,
+    rpsTotalGames: rpsStats.totalGames || 0,
+    rpsBestStreak: rpsStats.bestStreak || 0,
+    rpsStoryDone: (rpsStory.currentChapter || 1) > 7,
+    rpsChallengeLevel: rpsChallenge.currentLevel || 1,
+    rpsChallengeStars: rpsChallenge.totalStars || 0,
+    diceWins: diceStats.wins || 0,
+    diceTotalGames: diceStats.totalGames || 0,
+    diceBestStreak: diceStats.bestStreak || 0,
+    diceLeopardCount: diceStats.leopardCount || 0,
+    diceMissionsDone: diceMissions.length,
+    gameTotalPlays: (rpsStats.totalGames || 0) + (diceStats.totalGames || 0)
+  }
+}
+
 // 获取当前完整数据
 var getCurrentData = function(records) {
   var drawings = childStorage.get('drawings') || []
@@ -353,6 +454,9 @@ var getCurrentData = function(records) {
   // 摆摊额外数据
   var stallData = getStallExtraData()
 
+  // 游戏额外数据
+  var gameData = getGameExtraData()
+
   return {
     brushingStreak: brushingStats.streak,
     cardsLearned: cardsLearned,
@@ -374,7 +478,19 @@ var getCurrentData = function(records) {
     stallSalesCount: stallData.stallSalesCount,
     stallTotalRevenue: stallData.stallTotalRevenue,
     stallTotalProfit: stallData.stallTotalProfit,
-    stallProductTypes: stallData.stallProductTypes
+    stallProductTypes: stallData.stallProductTypes,
+    rpsWins: gameData.rpsWins,
+    rpsTotalGames: gameData.rpsTotalGames,
+    rpsBestStreak: gameData.rpsBestStreak,
+    rpsStoryDone: gameData.rpsStoryDone,
+    rpsChallengeLevel: gameData.rpsChallengeLevel,
+    rpsChallengeStars: gameData.rpsChallengeStars,
+    diceWins: gameData.diceWins,
+    diceTotalGames: gameData.diceTotalGames,
+    diceBestStreak: gameData.diceBestStreak,
+    diceLeopardCount: gameData.diceLeopardCount,
+    diceMissionsDone: gameData.diceMissionsDone,
+    gameTotalPlays: gameData.gameTotalPlays
   }
 }
 

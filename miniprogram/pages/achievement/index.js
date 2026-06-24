@@ -8,6 +8,7 @@ Page({
       { key: 'habit', name: '习惯' },
       { key: 'learn', name: '学习' },
       { key: 'story', name: '故事' },
+      { key: 'game', name: '游戏' },
       { key: 'special', name: '特殊' }
     ],
     currentCategory: 'all',

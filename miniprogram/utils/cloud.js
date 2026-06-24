@@ -179,7 +179,8 @@ async function uploadDrawing(tempFilePath, drawing) {
   var record = {
     ...drawing,
     ...meta,
-    likes: []
+    likes: [],
+    synced: false  // 标记为未同步
   }
 
   if (!isCloudReady() || !db()) {
@@ -198,6 +199,7 @@ async function uploadDrawing(tempFilePath, drawing) {
 
     record.cloudFileID = uploadRes.fileID
     record.imagePath = uploadRes.fileID
+    record.synced = true  // 标记为已同步
 
     var localDrawings = childStorage.get('drawings') || []
     localDrawings.unshift(record)
@@ -263,18 +265,37 @@ async function fetchDrawings() {
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
-      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致画作丢失
-      var mergedMap = {}
-      localDrawings.forEach(function(d) {
-        if (d && d.id && !deletedSet[d.id]) mergedMap[d.id] = d
-      })
+      // 构建云端数据映射
+      var cloudMap = {}
       cloudList.forEach(function(d) {
-        if (d && d.id && !deletedSet[d.id]) mergedMap[d.id] = d
+        if (d && d.id && !deletedSet[d.id]) {
+          cloudMap[d.id] = d
+        }
       })
+
+      // 合并策略：
+      // 1. 云端有的数据 → 使用云端数据
+      // 2. 云端没有但本地有且 synced=true → 删除（云端已删除）
+      // 3. 云端没有但本地有且 synced!=true → 保留（新添加未同步）
       var merged = []
-      for (var key in mergedMap) {
-        merged.push(mergedMap[key])
-      }
+      var mergedIds = {}
+
+      // 先添加云端数据
+      cloudList.forEach(function(d) {
+        if (d && d.id && !deletedSet[d.id]) {
+          merged.push(d)
+          mergedIds[d.id] = true
+        }
+      })
+
+      // 再添加本地独有数据（未同步到云端的）
+      localDrawings.forEach(function(d) {
+        if (d && d.id && !mergedIds[d.id] && !deletedSet[d.id]) {
+          if (!d.synced) {
+            merged.push(d)
+          }
+        }
+      })
 
       // 按创建时间倒序排序
       merged.sort(function(a, b) {
@@ -293,9 +314,6 @@ async function fetchDrawings() {
           }).catch(function() {})
         }
       })
-
-      // 将本地独有（云端缺失）的记录补传到云端，实现数据自愈
-      selfHealDrawings(cloudList, localDrawings, deletedSet)
 
       return merged
     }
@@ -409,7 +427,8 @@ async function uploadBrushingRecord(record) {
   var fullRecord = {
     ...record,
     ...meta,
-    likes: []
+    likes: [],
+    synced: false  // 标记为未同步
   }
 
   var images = record.images || (record.imagePath ? [record.imagePath] : [])
@@ -466,6 +485,16 @@ async function uploadBrushingRecord(record) {
       data: { action: 'add', collection: 'brushingRecords', data: syncedData }
     })
     syncQueue.dequeue(record.id)
+    
+    // 同步成功，标记 synced=true
+    var localRecords = childStorage.get('brushingRecords') || []
+    for (var i = 0; i < localRecords.length; i++) {
+      if (localRecords[i].id === record.id) {
+        localRecords[i].synced = true
+        break
+      }
+    }
+    childStorage.set('brushingRecords', localRecords)
   } catch (err) {
     console.warn('刷牙记录同步失败，已入队列:', err)
   }
@@ -500,14 +529,11 @@ async function fetchBrushingRecords() {
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
-      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致记录丢失
-      var mergedMap = {}
-      localRecords.forEach(function(r) {
-        if (r && r.id && !deletedSet[r.id]) mergedMap[r.id] = r
-      })
+      // 构建云端数据映射
+      var cloudMap = {}
       cloudList.forEach(function(r) {
-        if (r && r.id && !deletedSet[r.id] && !deletedSet[r._id]) {
-          mergedMap[r.id] = {
+        if (r && r.id && !deletedSet[r.id]) {
+          cloudMap[r.id] = {
             ...r,
             id: r.id || r._id,
             imagePath: r.cloudFileID || r.imagePath || '',
@@ -516,10 +542,31 @@ async function fetchBrushingRecords() {
         }
       })
 
+      // 合并策略
       var merged = []
-      for (var key in mergedMap) {
-        merged.push(mergedMap[key])
-      }
+      var mergedIds = {}
+
+      // 先添加云端数据
+      cloudList.forEach(function(r) {
+        if (r && r.id && !deletedSet[r.id]) {
+          merged.push({
+            ...r,
+            id: r.id || r._id,
+            imagePath: r.cloudFileID || r.imagePath || '',
+            images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+          })
+          mergedIds[r.id] = true
+        }
+      })
+
+      // 再添加本地独有数据（未同步到云端的）
+      localRecords.forEach(function(r) {
+        if (r && r.id && !mergedIds[r.id] && !deletedSet[r.id]) {
+          if (!r.synced) {
+            merged.push(r)
+          }
+        }
+      })
 
       // 按创建时间倒序排序
       merged.sort(function(a, b) {
@@ -633,7 +680,8 @@ async function uploadNote(note) {
   var record = {
     ...note,
     ...meta,
-    likes: []
+    likes: [],
+    synced: false  // 标记为未同步
   }
 
   var images = note.images || []
@@ -706,6 +754,16 @@ async function uploadNote(note) {
       data: { action: 'add', collection: 'notes', data: syncedData }
     })
     syncQueue.dequeue(note.id)
+    
+    // 同步成功，标记 synced=true
+    var localNotes = childStorage.get('notes') || []
+    for (var i = 0; i < localNotes.length; i++) {
+      if (localNotes[i].id === note.id) {
+        localNotes[i].synced = true
+        break
+      }
+    }
+    childStorage.set('notes', localNotes)
   } catch (err) {
     console.warn('笔记同步失败，已入队列:', err)
   }
@@ -740,21 +798,37 @@ async function fetchNotes() {
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
-      // 合并云端与本地数据（以 id 去重），避免任一方缺失导致笔记丢失
-      var mergedMap = {}
-      localNotes.forEach(function(n) {
-        if (n && n.id && !deletedSet[n.id]) mergedMap[n.id] = n
-      })
+      // 构建云端数据映射
+      var cloudMap = {}
       cloudList.forEach(function(n) {
-        if (n && n.id && !deletedSet[n.id] && !deletedSet[n._id]) {
-          mergedMap[n.id] = n
+        if (n && n.id && !deletedSet[n.id]) {
+          cloudMap[n.id] = n
         }
       })
 
+      // 合并策略：
+      // 1. 云端有的数据 → 使用云端数据
+      // 2. 云端没有但本地有且 synced=true → 删除（云端已删除）
+      // 3. 云端没有但本地有且 synced!=true → 保留（新添加未同步）
       var merged = []
-      for (var key in mergedMap) {
-        merged.push(mergedMap[key])
-      }
+      var mergedIds = {}
+
+      // 先添加云端数据
+      cloudList.forEach(function(n) {
+        if (n && n.id && !deletedSet[n.id]) {
+          merged.push(n)
+          mergedIds[n.id] = true
+        }
+      })
+
+      // 再添加本地独有数据（未同步到云端的）
+      localNotes.forEach(function(n) {
+        if (n && n.id && !mergedIds[n.id] && !deletedSet[n.id]) {
+          if (!n.synced) {
+            merged.push(n)
+          }
+        }
+      })
 
       // 按创建时间倒序排序
       merged.sort(function(a, b) {
@@ -886,7 +960,8 @@ async function uploadHabitRecord(record) {
   var fullRecord = {
     ...record,
     ...meta,
-    likes: []
+    likes: [],
+    synced: false  // 标记为未同步
   }
 
   var images = record.images || (record.imagePath ? [record.imagePath] : [])
@@ -941,6 +1016,16 @@ async function uploadHabitRecord(record) {
       data: { action: 'add', collection: 'habitRecords', data: syncedData }
     })
     syncQueue.dequeue(record.id)
+    
+    // 同步成功，标记 synced=true
+    var localRecords = childStorage.get('habitRecords') || []
+    for (var i = 0; i < localRecords.length; i++) {
+      if (localRecords[i].id === record.id) {
+        localRecords[i].synced = true
+        break
+      }
+    }
+    childStorage.set('habitRecords', localRecords)
   } catch (err) {
     console.warn('习惯记录同步失败，已入队列:', err)
   }
@@ -995,13 +1080,11 @@ async function fetchHabitRecords() {
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
-      var mergedMap = {}
-      localRecords.forEach(function(r) {
-        if (r && r.id && !deletedSet[r.id]) mergedMap[r.id] = r
-      })
+      // 构建云端数据映射
+      var cloudMap = {}
       cloudList.forEach(function(r) {
-        if (r && r.id && !deletedSet[r.id] && !deletedSet[r._id]) {
-          mergedMap[r.id] = {
+        if (r && r.id && !deletedSet[r.id]) {
+          cloudMap[r.id] = {
             ...r,
             id: r.id || r._id,
             imagePath: r.cloudFileID || r.imagePath || '',
@@ -1010,10 +1093,31 @@ async function fetchHabitRecords() {
         }
       })
 
+      // 合并策略
       var merged = []
-      for (var key in mergedMap) {
-        merged.push(mergedMap[key])
-      }
+      var mergedIds = {}
+
+      // 先添加云端数据
+      cloudList.forEach(function(r) {
+        if (r && r.id && !deletedSet[r.id]) {
+          merged.push({
+            ...r,
+            id: r.id || r._id,
+            imagePath: r.cloudFileID || r.imagePath || '',
+            images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+          })
+          mergedIds[r.id] = true
+        }
+      })
+
+      // 再添加本地独有数据（未同步到云端的）
+      localRecords.forEach(function(r) {
+        if (r && r.id && !mergedIds[r.id] && !deletedSet[r.id]) {
+          if (!r.synced) {
+            merged.push(r)
+          }
+        }
+      })
 
       merged.sort(function(a, b) {
         return new Date(b.createTime || 0) - new Date(a.createTime || 0)
@@ -1451,14 +1555,63 @@ async function fetchToothDecorations() {
 // 上传单个商品（带 _id 走 upsert，同 id 覆盖而非新建）
 async function uploadStallProduct(product) {
   if (!isCloudReady()) return
+  
+  var productData = { ...product }
+  
+  // 如果 imagePath 是本地路径，先上传到云端
+  if (productData.imagePath && !productData.imagePath.startsWith('cloud://')) {
+    try {
+      var util = require('./util.js')
+      var savedPath = await util.saveImageToPersistent(productData.imagePath)
+      var cloudPath = 'stall/products/' + product.id + '.png'
+      var uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: savedPath })
+      productData.imagePath = uploadRes.fileID
+      
+      // 更新本地缓存中的图片路径
+      var localProducts = childStorage.get('stallProducts') || []
+      for (var i = 0; i < localProducts.length; i++) {
+        if (localProducts[i].id === product.id) {
+          localProducts[i].imagePath = uploadRes.fileID
+          break
+        }
+      }
+      childStorage.set('stallProducts', localProducts)
+    } catch (imgErr) {
+      console.warn('商品图片上传失败:', imgErr)
+      // 图片上传失败，入队列重试
+      syncQueue.enqueue({ 
+        id: productData.id, 
+        action: 'add', 
+        collection: 'stallProducts', 
+        data: { _id: productData.id, ...productData },
+        uploadImages: [{
+          field: 'imagePath',
+          localPath: productData.imagePath,
+          cloudPath: 'stall/products/' + product.id + '.png'
+        }]
+      })
+      return
+    }
+  }
+  
   try {
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'stallProducts', data: { _id: product.id, ...product } }
+      data: { action: 'add', collection: 'stallProducts', data: { _id: productData.id, ...productData } }
     })
+    
+    // 同步成功，标记 synced=true
+    var localProducts = childStorage.get('stallProducts') || []
+    for (var i = 0; i < localProducts.length; i++) {
+      if (localProducts[i].id === product.id) {
+        localProducts[i].synced = true
+        break
+      }
+    }
+    childStorage.set('stallProducts', localProducts)
   } catch (err) {
     console.warn('云端同步摆摊商品失败，入队列重试:', err)
-    syncQueue.enqueue({ id: product.id, action: 'add', collection: 'stallProducts', data: { _id: product.id, ...product } })
+    syncQueue.enqueue({ id: productData.id, action: 'add', collection: 'stallProducts', data: { _id: productData.id, ...productData } })
   }
 }
 
@@ -1476,7 +1629,7 @@ async function fetchStallProducts() {
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
-      // 兼容旧格式：展开数组类型的文档（旧 uploadStallProduct 传入整个数组）
+      // 兼容旧格式：展开数组类型的文档
       var expandedList = []
       cloudList.forEach(function(item) {
         if (Array.isArray(item)) {
@@ -1486,32 +1639,32 @@ async function fetchStallProducts() {
         }
       })
 
-      // 合并云端与本地数据（以 id 去重，取 updatedAt 较新者）
-      var mergedMap = {}
-      localProducts.forEach(function(p) {
-        if (p && p.id && !deletedSet[p.id]) mergedMap[p.id] = p
-      })
+      // 合并策略（过滤已删除的记录）
+      var merged = []
+      var mergedIds = {}
+
+      // 先添加云端数据（排除已删除的）
       expandedList.forEach(function(p) {
         if (p && p.id && !deletedSet[p.id] && !deletedSet[p._id]) {
-          var existing = mergedMap[p.id]
-          if (!existing || (p.updatedAt && existing.updatedAt && p.updatedAt > existing.updatedAt)) {
-            mergedMap[p.id] = p
-          } else if (!existing) {
-            mergedMap[p.id] = p
-          }
+          merged.push(p)
+          mergedIds[p.id] = true
         }
       })
 
-      var merged = []
-      for (var key in mergedMap) {
-        merged.push(mergedMap[key])
-      }
+      // 再添加本地独有数据（未同步到云端的）
+      localProducts.forEach(function(p) {
+        if (p && p.id && !mergedIds[p.id] && !deletedSet[p.id]) {
+          if (!p.synced) {
+            merged.push(p)
+          }
+        }
+      })
 
       childStorage.set('stallProducts', merged)
 
       // 云端仍存在但本地已删除的记录，再次尝试删除
       expandedList.forEach(function(p) {
-        if (p && p.id && (deletedSet[p.id] || deletedSet[p._id])) {
+        if (p && p.id && deletedSet[p.id]) {
           wx.cloud.callFunction({
             name: 'record',
             data: { action: 'remove', collection: 'stallProducts', id: p._id || p.id }
@@ -1519,7 +1672,7 @@ async function fetchStallProducts() {
         }
       })
 
-      // 清理云端旧格式的数组文档（一次性迁移）
+      // 清理云端旧格式的数组文档
       cleanLegacyArrayDocs('stallProducts', cloudList)
 
       return merged
@@ -1527,30 +1680,34 @@ async function fetchStallProducts() {
   } catch (err) {
     console.warn('云端读取摆摊商品失败:', err)
   }
-  return childStorage.get('stallProducts') || []
+  return localProducts
 }
 
 async function removeStallProduct(id) {
-  // 记录墓碑，防止 fetchStallProducts 合并时把已删除记录拉回来
+  // 先记录墓碑，防止 fetch 时把已删除记录拉回来
   addDeletedStallProductId(id)
 
   // 从本地缓存删除
   childStorage.set('stallProducts', (childStorage.get('stallProducts') || []).filter(function(p) { return p.id !== id }))
 
   // 尝试删除云端记录
-  if (!isCloudReady()) return
+  if (!isCloudReady()) return true
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
       data: { action: 'remove', collection: 'stallProducts', id: id }
     })
-    // 只有云端删除成功后，才清除墓碑
+    // 云端删除成功后，清除墓碑
     if (res.result && res.result.code === 0) {
       removeTombstone(DELETED_STALL_PRODUCTS_KEY, id)
+      return true
+    } else {
+      console.warn('云端删除失败:', res.result)
+      return false
     }
   } catch (err) {
-    console.warn('云端删除摆摊商品失败，入队列重试:', err)
-    syncQueue.enqueue({ id: id, action: 'remove', collection: 'stallProducts', data: {} })
+    console.warn('云端删除摆摊商品失败:', err)
+    return false
   }
 }
 
@@ -1562,6 +1719,16 @@ async function uploadStallSale(sale) {
       name: 'record',
       data: { action: 'add', collection: 'stallSales', data: { _id: sale.id, ...sale } }
     })
+    
+    // 同步成功，标记 synced=true
+    var localSales = childStorage.get('stallSales') || []
+    for (var i = 0; i < localSales.length; i++) {
+      if (localSales[i].id === sale.id) {
+        localSales[i].synced = true
+        break
+      }
+    }
+    childStorage.set('stallSales', localSales)
   } catch (err) {
     console.warn('云端同步销售记录失败，入队列重试:', err)
     syncQueue.enqueue({ id: sale.id, action: 'add', collection: 'stallSales', data: { _id: sale.id, ...sale } })
@@ -1592,32 +1759,32 @@ async function fetchStallSales() {
         }
       })
 
-      // 合并云端与本地数据（以 id 去重，取 updatedAt 较新者）
-      var mergedMap = {}
-      localSales.forEach(function(s) {
-        if (s && s.id && !deletedSet[s.id]) mergedMap[s.id] = s
-      })
+      // 合并策略（过滤已删除的记录）
+      var merged = []
+      var mergedIds = {}
+
+      // 先添加云端数据（排除已删除的）
       expandedList.forEach(function(s) {
         if (s && s.id && !deletedSet[s.id] && !deletedSet[s._id]) {
-          var existing = mergedMap[s.id]
-          if (!existing || (s.createdAt && existing.createdAt && s.createdAt > existing.createdAt)) {
-            mergedMap[s.id] = s
-          } else if (!existing) {
-            mergedMap[s.id] = s
-          }
+          merged.push(s)
+          mergedIds[s.id] = true
         }
       })
 
-      var merged = []
-      for (var key in mergedMap) {
-        merged.push(mergedMap[key])
-      }
+      // 再添加本地独有数据（未同步到云端的）
+      localSales.forEach(function(s) {
+        if (s && s.id && !mergedIds[s.id] && !deletedSet[s.id]) {
+          if (!s.synced) {
+            merged.push(s)
+          }
+        }
+      })
 
       childStorage.set('stallSales', merged)
 
       // 云端仍存在但本地已删除的记录，再次尝试删除
       expandedList.forEach(function(s) {
-        if (s && s.id && (deletedSet[s.id] || deletedSet[s._id])) {
+        if (s && s.id && deletedSet[s.id]) {
           wx.cloud.callFunction({
             name: 'record',
             data: { action: 'remove', collection: 'stallSales', id: s._id || s.id }
@@ -1637,7 +1804,7 @@ async function fetchStallSales() {
 }
 
 async function removeStallSale(id) {
-  // 记录墓碑，防止 fetchStallSales 合并时把已删除记录拉回来
+  // 先记录墓碑，防止 fetch 时把已删除记录拉回来
   addDeletedStallSaleId(id)
 
   // 从本地缓存删除
@@ -1650,13 +1817,14 @@ async function removeStallSale(id) {
       name: 'record',
       data: { action: 'remove', collection: 'stallSales', id: id }
     })
-    // 只有云端删除成功后，才清除墓碑
+    // 云端删除成功后，清除墓碑
     if (res.result && res.result.code === 0) {
       removeTombstone(DELETED_STALL_SALES_KEY, id)
+    } else {
+      console.warn('云端删除销售记录失败:', res.result)
     }
   } catch (err) {
-    console.warn('云端删除销售记录失败，入队列重试:', err)
-    syncQueue.enqueue({ id: id, action: 'remove', collection: 'stallSales', data: {} })
+    console.warn('云端删除销售记录失败:', err)
   }
 }
 
@@ -1735,7 +1903,7 @@ async function fetchStallChallenges() {
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'get', collection: 'stallChallenges' }
+      data: { action: 'get', collection: 'stallChallenges', id: 'stall_challenges' }
     })
     if (res.result.code === 0) {
       return res.result.data
@@ -1767,7 +1935,7 @@ async function fetchStallBusinessHours() {
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'get', collection: 'stallBusinessHours' }
+      data: { action: 'get', collection: 'stallBusinessHours', id: 'stall_business_hours' }
     })
     if (res.result.code === 0) {
       return res.result.data

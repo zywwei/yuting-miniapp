@@ -39,6 +39,19 @@ Page({
     this.loadProducts()
   },
 
+  onPullDownRefresh: async function() {
+    try {
+      await stallManager.syncFromCloud()
+      this.loadProducts()
+      wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 })
+    } catch (err) {
+      console.warn('刷新失败:', err)
+      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1000 })
+    } finally {
+      wx.stopPullDownRefresh()
+    }
+  },
+
   loadItems: function() {
     var items = childStorage.get(RESTOCK_KEY) || []
     var checkedCount = items.filter(function(item) { return item.checked }).length

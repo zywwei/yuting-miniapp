@@ -30,6 +30,22 @@ Page({
     this.startDurationTimer()
   },
 
+  onPullDownRefresh: async function() {
+    var that = this
+    try {
+      // 从云端同步最新数据
+      await stallManager.syncFromCloud()
+      // 重新加载数据
+      that.loadData()
+      wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 })
+    } catch (err) {
+      console.warn('刷新失败:', err)
+      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1000 })
+    } finally {
+      wx.stopPullDownRefresh()
+    }
+  },
+
   onHide: function() {
     this.stopDurationTimer()
   },

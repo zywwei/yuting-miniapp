@@ -62,6 +62,21 @@ Page({
     }
   },
 
+  onPullDownRefresh: async function() {
+    var that = this
+    try {
+      await cloud.fetchHabitRecords()
+      await cloud.fetchHabits()
+      that.loadHabits()
+      wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 })
+    } catch (err) {
+      console.warn('刷新失败:', err)
+      wx.showToast({ title: '刷新失败', icon: 'none', duration: 1000 })
+    } finally {
+      wx.stopPullDownRefresh()
+    }
+  },
+
   onChildChanged: function(e) {
     var childId = e.detail.childId
     app.globalData.currentChildId = childId

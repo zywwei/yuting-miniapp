@@ -44,8 +44,13 @@ function canEdit(member, record) {
 }
 
 function canDelete(member, record) {
+  // 管理员可以删除任何记录
   if (isAdmin(member)) return true
-  return record.createdBy === member._id
+  // 记录创建者可以删除
+  if (record.createdBy === member._id) return true
+  // 同一家庭的成员可以删除（用于商品等共享数据）
+  if (record.familyId === member.familyId) return true
+  return false
 }
 
 async function addRecord(member, collection, data) {

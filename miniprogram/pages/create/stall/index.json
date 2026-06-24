@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "摆摊中心"
+  "navigationBarTitleText": "摆摊中心",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
 }

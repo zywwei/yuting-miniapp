@@ -6,6 +6,9 @@
       <view class="header-title">猜拳大战</view>
       <view class="header-desc">剪刀石头布，智慧与运气的较量</view>
     </view>
+    <view class="sound-toggle" bindtap="toggleSound">
+      <text class="sound-icon">{{soundEnabled ? '🔊' : '🔇'}}</text>
+    </view>
     <view class="stats-bar">
       <view class="stat-item">
         <text class="stat-value">{{totalGames}}</text>

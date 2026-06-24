@@ -1,0 +1,946 @@
+/* 飞行棋游戏样式 */
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 50%, #90CAF9 100%);
+  padding-bottom: 40rpx;
+}
+
+/* 头部导航 */
+.header, .game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 30rpx;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.1);
+}
+
+.back-btn {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  font-size: 36rpx;
+  color: #333;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.placeholder {
+  width: 60rpx;
+}
+
+.round-info {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.sound-btn {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sound-icon {
+  font-size: 36rpx;
+}
+
+/* 选择模式页面 */
+.phase-select {
+  padding: 40rpx;
+}
+
+.mode-cards {
+  margin-top: 60rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 30rpx;
+}
+
+.mode-card {
+  background: white;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 4rpx 15rpx rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.mode-card.active {
+  background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%);
+  transform: scale(1.02);
+}
+
+.mode-icon {
+  font-size: 60rpx;
+  margin-bottom: 20rpx;
+}
+
+.mode-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.mode-card.active .mode-name {
+  color: white;
+}
+
+.mode-desc {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.mode-card.active .mode-desc {
+  color: rgba(255,255,255,0.8);
+}
+
+.next-btn, .start-btn {
+  margin-top: 60rpx;
+  background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%);
+  color: white;
+  border-radius: 50rpx;
+  padding: 24rpx 0;
+  font-size: 32rpx;
+  font-weight: bold;
+  border: none;
+}
+
+.next-btn[disabled], .start-btn[disabled] {
+  background: #ccc;
+}
+
+/* 配置页面 */
+.phase-config {
+  padding: 40rpx;
+}
+
+.config-section {
+  margin-top: 40rpx;
+  background: white;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 15rpx rgba(0,0,0,0.1);
+}
+
+.config-label {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  display: block;
+}
+
+.difficulty-options, .ai-count-options {
+  display: flex;
+  gap: 20rpx;
+}
+
+.diff-btn, .count-btn {
+  flex: 1;
+  background: #f5f5f5;
+  border-radius: 15rpx;
+  padding: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.diff-btn.active, .count-btn.active {
+  background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%);
+}
+
+.diff-icon {
+  font-size: 40rpx;
+  margin-bottom: 10rpx;
+}
+
+.diff-name {
+  font-size: 24rpx;
+  color: #333;
+}
+
+.diff-btn.active .diff-name, .count-btn.active text {
+  color: white;
+}
+
+.color-options {
+  display: flex;
+  gap: 30rpx;
+  justify-content: center;
+}
+
+.color-btn {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border: 4rpx solid transparent;
+}
+
+.color-btn.active {
+  border-color: #333;
+  transform: scale(1.2);
+}
+
+.color-icon {
+  font-size: 40rpx;
+}
+
+/* 游戏进行页面 */
+.phase-playing {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.board-container {
+  flex: 1;
+  position: relative;
+  margin: 10rpx;
+  background: rgba(255,255,255,0.9);
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 15rpx rgba(0,0,0,0.1);
+}
+
+.cell {
+  position: absolute;
+  width: 50rpx;
+  height: 50rpx;
+  border-radius: 8rpx;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #ddd;
+}
+
+.cell.start {
+  background: #FFE0B2;
+  border-color: #FFB74D;
+}
+
+.cell.start.red { background: #FFCDD2; border-color: #EF5350; }
+.cell.start.yellow { background: #FFF9C4; border-color: #FFEE58; }
+.cell.start.blue { background: #BBDEFB; border-color: #42A5F5; }
+.cell.start.green { background: #C8E6C9; border-color: #66BB6A; }
+
+.cell.special {
+  background: #E1BEE7;
+  border-color: #AB47BC;
+}
+
+.cell-icon {
+  font-size: 24rpx;
+}
+
+.cell.home {
+  background: #E8F5E9;
+  border-color: #81C784;
+}
+
+.cell.home.red { background: #FFCDD2; border-color: #EF5350; }
+.cell.home.yellow { background: #FFF9C4; border-color: #FFEE58; }
+.cell.home.blue { background: #BBDEFB; border-color: #42A5F5; }
+.cell.home.green { background: #C8E6C9; border-color: #66BB6A; }
+
+/* 停机坪 */
+.hangar {
+  position: absolute;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 20rpx;
+  background: rgba(255,255,255,0.8);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  padding: 10rpx;
+}
+
+.hangar.red { background: rgba(255,205,210,0.5); }
+.hangar.yellow { background: rgba(255,249,196,0.5); }
+.hangar.blue { background: rgba(187,222,251,0.5); }
+.hangar.green { background: rgba(200,230,201,0.5); }
+
+/* 飞机 */
+.plane {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.3);
+}
+
+.plane.red { background: radial-gradient(circle at 30% 30%, #FF6B6B, #D32F2F); }
+.plane.yellow { background: radial-gradient(circle at 30% 30%, #FFD54F, #F9A825); }
+.plane.blue { background: radial-gradient(circle at 30% 30%, #64B5F6, #1976D2); }
+.plane.green { background: radial-gradient(circle at 30% 30%, #81C784, #388E3C); }
+
+.plane::after {
+  content: '✈️';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 20rpx;
+}
+
+.plane.movable {
+  animation: pulse 1s infinite;
+  cursor: pointer;
+}
+
+.plane.moving {
+  animation: bounce 0.3s ease;
+}
+
+.plane.knocked {
+  animation: knock 0.6s ease;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.3); }
+  50% { transform: scale(1.2); box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.4); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10rpx); }
+}
+
+@keyframes knock {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  25% { opacity: 0.5; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+  75% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* 玩家信息栏 */
+.players-info {
+  display: flex;
+  justify-content: space-around;
+  padding: 20rpx;
+  background: rgba(255,255,255,0.9);
+  margin: 10rpx;
+  border-radius: 15rpx;
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10rpx 20rpx;
+  border-radius: 10rpx;
+  transition: all 0.3s ease;
+}
+
+.player-info.active {
+  background: #E3F2FD;
+  transform: scale(1.05);
+}
+
+.player-info.finished {
+  opacity: 0.6;
+}
+
+.player-icon {
+  font-size: 36rpx;
+  margin-bottom: 5rpx;
+}
+
+.player-name {
+  font-size: 20rpx;
+  color: #333;
+}
+
+.player-planes {
+  font-size: 18rpx;
+  color: #666;
+}
+
+/* 骰子区域 */
+.dice-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx;
+  background: rgba(255,255,255,0.9);
+  margin: 10rpx;
+  border-radius: 15rpx;
+}
+
+.dice-container {
+  margin-bottom: 20rpx;
+}
+
+.roll-btn {
+  background: linear-gradient(135deg, #FF6B6B 0%, #EE5A24 100%);
+  color: white;
+  border-radius: 50rpx;
+  padding: 20rpx 60rpx;
+  font-size: 30rpx;
+  font-weight: bold;
+  border: none;
+  box-shadow: 0 4rpx 15rpx rgba(238,90,36,0.3);
+}
+
+.roll-btn.again {
+  background: linear-gradient(135deg, #FFD54F 0%, #FFA726 100%);
+  box-shadow: 0 4rpx 15rpx rgba(255,167,38,0.3);
+}
+
+.roll-btn[disabled] {
+  background: #ccc;
+  box-shadow: none;
+}
+
+.turn-hint {
+  font-size: 24rpx;
+  color: #666;
+  margin-top: 10rpx;
+}
+
+/* 骰子按钮区域 */
+.dice-buttons {
+  display: flex;
+  gap: 20rpx;
+  align-items: center;
+}
+
+.item-btn {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+  color: white;
+  border-radius: 50rpx;
+  padding: 20rpx 40rpx;
+  font-size: 26rpx;
+  font-weight: bold;
+  border: none;
+  box-shadow: 0 4rpx 15rpx rgba(156,39,176,0.3);
+}
+
+/* 道具面板 */
+.item-panel {
+  background: rgba(255,255,255,0.95);
+  padding: 20rpx;
+  margin: 10rpx;
+  border-radius: 15rpx;
+  box-shadow: 0 4rpx 15rpx rgba(0,0,0,0.1);
+}
+
+.item-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 2rpx solid #eee;
+}
+
+.item-panel-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.item-panel-close {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #999;
+}
+
+.item-list {
+  display: flex;
+  gap: 15rpx;
+  flex-wrap: wrap;
+  margin-bottom: 15rpx;
+}
+
+.item-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15rpx;
+  background: #f5f5f5;
+  border-radius: 10rpx;
+  min-width: 100rpx;
+  transition: all 0.3s ease;
+}
+
+.item-card:active {
+  transform: scale(0.95);
+  background: #e0e0e0;
+}
+
+.item-icon {
+  font-size: 36rpx;
+  margin-bottom: 5rpx;
+}
+
+.item-name {
+  font-size: 20rpx;
+  color: #333;
+}
+
+.shop-btn {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  color: white;
+  border-radius: 50rpx;
+  padding: 15rpx 0;
+  font-size: 26rpx;
+  border: none;
+  width: 100%;
+}
+
+/* 骰子选择器 */
+.dice-chooser {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chooser-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+}
+
+.chooser-content {
+  position: relative;
+  background: white;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  width: 80%;
+  max-width: 600rpx;
+  z-index: 101;
+}
+
+.chooser-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.chooser-dice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+  justify-content: center;
+  margin-bottom: 30rpx;
+}
+
+.chooser-dice-item {
+  padding: 15rpx;
+  background: #f5f5f5;
+  border-radius: 15rpx;
+  transition: all 0.3s ease;
+}
+
+.chooser-dice-item:active {
+  transform: scale(0.95);
+  background: #e0e0e0;
+}
+
+.cancel-btn {
+  background: #f5f5f5;
+  color: #333;
+  border-radius: 50rpx;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  border: none;
+  width: 100%;
+}
+
+/* 目标选择器 */
+.target-selector {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selector-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+}
+
+.selector-content {
+  position: relative;
+  background: white;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  width: 80%;
+  max-width: 600rpx;
+  z-index: 101;
+}
+
+.target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+  margin-bottom: 30rpx;
+}
+
+.target-btn {
+  background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%);
+  color: white;
+  border-radius: 15rpx;
+  padding: 20rpx;
+  font-size: 28rpx;
+  border: none;
+}
+
+/* 道具商店 */
+.item-shop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+
+.shop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+}
+
+.shop-content {
+  position: relative;
+  background: white;
+  border-radius: 30rpx 30rpx 0 0;
+  padding: 30rpx;
+  width: 100%;
+  max-height: 80vh;
+  z-index: 201;
+}
+
+.shop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 2rpx solid #eee;
+}
+
+.shop-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.shop-coins {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  background: #FFF8E1;
+  padding: 10rpx 20rpx;
+  border-radius: 50rpx;
+}
+
+.coin-icon {
+  font-size: 28rpx;
+}
+
+.coin-value {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #FF9800;
+}
+
+.shop-close {
+  width: 50rpx;
+  height: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #999;
+}
+
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  background: #f5f5f5;
+  border-radius: 15rpx;
+  transition: all 0.3s ease;
+}
+
+.shop-item:active {
+  transform: scale(0.98);
+  background: #e0e0e0;
+}
+
+.shop-item.disabled {
+  opacity: 0.5;
+}
+
+.shop-item-icon {
+  font-size: 48rpx;
+  margin-right: 20rpx;
+}
+
+.shop-item-info {
+  flex: 1;
+}
+
+.shop-item-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 5rpx;
+}
+
+.shop-item-desc {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.shop-item-price {
+  display: flex;
+  align-items: center;
+  gap: 5rpx;
+  background: #FFF8E1;
+  padding: 10rpx 15rpx;
+  border-radius: 10rpx;
+}
+
+.price-value {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #FF9800;
+}
+
+/* 飞机选择器 */
+.plane-selector {
+  background: rgba(255,255,255,0.95);
+  padding: 30rpx;
+  margin: 10rpx;
+  border-radius: 15rpx;
+  text-align: center;
+}
+
+.selector-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  display: block;
+}
+
+.selector-buttons {
+  display: flex;
+  gap: 20rpx;
+  justify-content: center;
+}
+
+.plane-btn {
+  background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%);
+  color: white;
+  border-radius: 15rpx;
+  padding: 15rpx 30rpx;
+  font-size: 26rpx;
+  border: none;
+}
+
+/* 结果页面 */
+.phase-result {
+  padding: 40rpx;
+  position: relative;
+}
+
+.result-container {
+  background: white;
+  border-radius: 30rpx;
+  padding: 40rpx;
+  box-shadow: 0 10rpx 30rpx rgba(0,0,0,0.15);
+  text-align: center;
+}
+
+.result-icon {
+  font-size: 100rpx;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.result-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 40rpx;
+}
+
+.rankings {
+  margin: 30rpx 0;
+}
+
+.rank-item {
+  display: flex;
+  align-items: center;
+  padding: 15rpx 20rpx;
+  margin: 10rpx 0;
+  background: #f5f5f5;
+  border-radius: 10rpx;
+}
+
+.rank-item.first {
+  background: linear-gradient(135deg, #FFD54F 0%, #FFA726 100%);
+}
+
+.rank-number {
+  width: 50rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.rank-icon {
+  font-size: 32rpx;
+  margin: 0 20rpx;
+}
+
+.rank-name {
+  flex: 1;
+  font-size: 26rpx;
+  color: #333;
+  text-align: left;
+}
+
+.result-stats {
+  display: flex;
+  justify-content: space-around;
+  margin: 30rpx 0;
+  padding: 20rpx;
+  background: #f9f9f9;
+  border-radius: 15rpx;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #4A90D9;
+}
+
+.stat-label {
+  font-size: 20rpx;
+  color: #666;
+  margin-top: 5rpx;
+}
+
+.result-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-top: 30rpx;
+}
+
+.play-again-btn {
+  background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+  color: white;
+  border-radius: 50rpx;
+  padding: 24rpx 0;
+  font-size: 30rpx;
+  font-weight: bold;
+  border: none;
+}
+
+.back-home-btn {
+  background: #f5f5f5;
+  color: #333;
+  border-radius: 50rpx;
+  padding: 24rpx 0;
+  font-size: 30rpx;
+  border: none;
+}
+
+/* 撒花效果 */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.confetti {
+  position: absolute;
+  top: -50rpx;
+  font-size: 40rpx;
+  animation: confettiFall 3s ease-in forwards;
+}
+
+@keyframes confettiFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}

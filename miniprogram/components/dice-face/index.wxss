@@ -1,0 +1,64 @@
+/* 点阵骰子组件样式 */
+.dice-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 50%, #e0e0e0 100%);
+  border-radius: 16rpx;
+  box-shadow: 
+    6rpx 6rpx 12rpx rgba(0, 0, 0, 0.15),
+    -2rpx -2rpx 6rpx rgba(255, 255, 255, 0.8),
+    inset 0 1rpx 2rpx rgba(255, 255, 255, 0.5);
+  transition: transform 0.2s ease;
+}
+
+.dice-face.rolling {
+  animation: diceShake 0.12s ease-in-out infinite alternate;
+}
+
+@keyframes diceShake {
+  0% { 
+    transform: rotate(-8deg) scale(1.02); 
+  }
+  100% { 
+    transform: rotate(8deg) scale(1.02); 
+  }
+}
+
+.dice-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 12%;
+  box-sizing: border-box;
+}
+
+.dice-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  flex: 1;
+}
+
+.dice-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.dice-dot {
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.dice-dot.active {
+  background: radial-gradient(circle at 40% 40%, #666 0%, #333 50%, #111 100%);
+  box-shadow: 
+    1rpx 1rpx 3rpx rgba(0, 0, 0, 0.4),
+    inset 0 0 2rpx rgba(255, 255, 255, 0.2);
+}

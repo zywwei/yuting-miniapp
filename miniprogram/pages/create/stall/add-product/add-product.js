@@ -81,9 +81,9 @@ Page({
           wx.showToast({ title: '上传成功', icon: 'success' })
         }.bind(this),
         fail: function(err) {
-          console.warn('云存储上传失败，使用本地路径:', err)
-          this.setData({ imagePath: tempPath })
-          wx.showToast({ title: '已保存本地', icon: 'none' })
+          console.warn('云存储上传失败:', err)
+          this.setData({ imagePath: '' })
+          wx.showToast({ title: '图片上传失败，请重试', icon: 'none' })
         }.bind(this),
         complete: function() {
           this.setData({ uploading: false })
@@ -91,9 +91,9 @@ Page({
         }.bind(this)
       })
     } else {
-      // 无云环境，直接用临时路径
       this.setData({ imagePath: tempPath, uploading: false })
       wx.hideLoading()
+      wx.showToast({ title: '无云环境，图片仅本机可见', icon: 'none' })
     }
   },
 

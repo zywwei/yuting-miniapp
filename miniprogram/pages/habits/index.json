@@ -1,6 +1,8 @@
 {
   "navigationBarTitleText": "习惯养成",
   "navigationBarBackgroundColor": "#FF9AAB",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
   "usingComponents": {
     "child-switcher": "/components/child-switcher/child-switcher"
   }

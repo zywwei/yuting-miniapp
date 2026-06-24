@@ -288,7 +288,7 @@ Page({
   },
 
   // 测试API Key
-  testApiKey: function() {
+  testApiKey: async function() {
     var that = this
     
     if (!this.data.apiKey) {
@@ -301,16 +301,18 @@ Page({
     
     this.setData({ testing: true })
     
-    wx.cloud.callFunction({
-      name: 'ai-chat',
-      data: {
-        action: 'chat',
-        childId: '',
-        sessionId: 'test_' + Date.now(),
-        message: '你好',
-        model: this.data.currentModel
-      }
-    }).then(function(res) {
+    try {
+      // 直接测试API Key，不需要先保存
+      var res = await wx.cloud.callFunction({
+        name: 'ai-chat',
+        data: {
+          action: 'testConfig',
+          model: this.data.currentModel,
+          apiKey: this.data.apiKey,
+          secretKey: this.data.secretKey || ''
+        }
+      })
+      
       that.setData({ testing: false })
       
       if (res.result.code === 0) {
@@ -321,16 +323,24 @@ Page({
       } else {
         wx.showToast({
           title: res.result.msg || '测试失败',
-          icon: 'none'
+          icon: 'none',
+          duration: 3000
         })
       }
-    }).catch(function(err) {
+    } catch (err) {
       that.setData({ testing: false })
+      var msg = '测试失败'
+      if (err.message && err.message.indexOf('timed out') >= 0) {
+        msg = '云函数超时，请稍后重试'
+      } else if (err.message) {
+        msg = err.message
+      }
       wx.showToast({
-        title: '测试失败：' + err.message,
-        icon: 'none'
+        title: msg,
+        icon: 'none',
+        duration: 3000
       })
-    })
+    }
   },
 
   // 保存配置

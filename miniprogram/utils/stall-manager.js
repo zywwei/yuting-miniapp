@@ -49,32 +49,40 @@ function getProducts() {
 }
 
 // 异步从云端同步数据
-function syncFromCloud() {
-  cloud.fetchStallProducts().then(function(products) {
-    if (products && products.length > 0) {
+async function syncFromCloud() {
+  try {
+    // 同步商品（fetchStallProducts 已处理删除逻辑）
+    var products = await cloud.fetchStallProducts()
+    if (products && products.length >= 0) {
       childStorage.set(PRODUCTS_KEY, products)
     }
-  })
-  cloud.fetchStallSales().then(function(sales) {
-    if (sales && sales.length > 0) {
+    
+    // 同步销售记录
+    var sales = await cloud.fetchStallSales()
+    if (sales && sales.length >= 0) {
       childStorage.set(SALES_KEY, sales)
     }
-  })
-  cloud.fetchStallSettings().then(function(settings) {
+    
+    // 同步设置
+    var settings = await cloud.fetchStallSettings()
     if (settings) {
       childStorage.set(SETTINGS_KEY, settings)
     }
-  })
-  cloud.fetchStallChallenges().then(function(challenges) {
+    
+    // 同步挑战
+    var challenges = await cloud.fetchStallChallenges()
     if (challenges) {
       childStorage.set(CHALLENGES_KEY, challenges)
     }
-  })
-  cloud.fetchStallBusinessHours().then(function(hours) {
+    
+    // 同步营业时间
+    var hours = await cloud.fetchStallBusinessHours()
     if (hours) {
       childStorage.set(BUSINESS_HOURS_KEY, hours)
     }
-  })
+  } catch (err) {
+    console.warn('云端同步失败:', err)
+  }
 }
 
 function saveProducts(products) {
@@ -94,6 +102,7 @@ function addProduct(product) {
   product.totalRevenue = 0
   product.createdAt = new Date().toISOString()
   product.updatedAt = new Date().toISOString()
+  product.synced = false  // 标记为未同步
   products.push(product)
   saveProducts(products)
   syncProduct(product)
@@ -114,12 +123,19 @@ function updateProduct(id, updates) {
 }
 
 function removeProduct(id) {
+  // 先从本地删除
   var products = getProducts()
   products = products.filter(function(p) { return p.id !== id })
   saveProducts(products)
   
-  // 使用墓碑机制删除云端记录
-  cloud.removeStallProduct(id)
+  // 删除云端记录（异步，失败会入队列重试）
+  cloud.removeStallProduct(id).then(function(success) {
+    if (success) {
+      console.log('云端删除成功:', id)
+    } else {
+      console.warn('云端删除失败，已入队列重试:', id)
+    }
+  })
 }
 
 function getProduct(id) {
@@ -147,6 +163,7 @@ function addSale(sale) {
   sale.date = getTodayStr()
   sale.time = getNowTime()
   sale.createdAt = new Date().toISOString()
+  sale.synced = false  // 标记为未同步
 
   // 保留前端传入的折扣信息（向后兼容）
   sale.originalTotal = sale.originalTotal || sale.total

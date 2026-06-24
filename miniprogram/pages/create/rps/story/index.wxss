@@ -216,3 +216,429 @@
   background: #f5f5f5;
   color: #666;
 }
+
+/* 出拳展示区 */
+.battle-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40rpx;
+  margin-bottom: 40rpx;
+}
+
+.player-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.player-choice {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.player-choice.animating {
+  animation: shake 0.5s ease-in-out;
+}
+
+.player-choice.winner {
+  box-shadow: 0 0 0 4rpx rgba(76, 175, 80, 0.5), 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
+  transform: scale(1.1);
+}
+
+.player-choice.loser {
+  opacity: 0.6;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10rpx); }
+  75% { transform: translateX(10rpx); }
+}
+
+.choice-icon {
+  font-size: 64rpx;
+}
+
+.choice-placeholder {
+  font-size: 48rpx;
+  color: #ccc;
+}
+
+.vs-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vs-icon {
+  font-size: 40rpx;
+  color: #FF9800;
+}
+
+.vs-icon.vs-animate {
+  animation: vsPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes vsPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+/* 回合结果 */
+.round-result {
+  margin-bottom: 40rpx;
+}
+
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 32rpx;
+  border-radius: 32rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.result-badge.win {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4CAF50;
+}
+
+.result-badge.lose {
+  background: rgba(244, 67, 54, 0.15);
+  color: #F44336;
+}
+
+.result-badge.draw {
+  background: rgba(255, 152, 0, 0.15);
+  color: #FF9800;
+}
+
+.result-icon {
+  font-size: 32rpx;
+}
+
+/* 撒花效果 */
+.confetti-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.confetti {
+  position: absolute;
+  font-size: 48rpx;
+  animation: confettiFall 2s ease-in forwards;
+}
+
+.confetti-1 { left: 10%; animation-delay: 0s; }
+.confetti-2 { left: 30%; animation-delay: 0.2s; }
+.confetti-3 { left: 50%; animation-delay: 0.4s; }
+.confetti-4 { left: 70%; animation-delay: 0.1s; }
+.confetti-5 { left: 85%; animation-delay: 0.3s; }
+.confetti-6 { left: 45%; animation-delay: 0.5s; }
+
+@keyframes confettiFall {
+  0% { top: -10%; opacity: 1; transform: rotate(0deg); }
+  100% { top: 110%; opacity: 0; transform: rotate(720deg); }
+}
+
+/* 道具按钮 */
+.item-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.item-use-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 10rpx 16rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  border: 2rpx solid #E8EAF6;
+}
+
+.item-use-btn:active {
+  background: #F3E5F5;
+}
+
+.item-use-icon {
+  font-size: 24rpx;
+}
+
+.item-use-text {
+  font-size: 20rpx;
+  color: #666;
+}
+
+/* 出拳按钮（战斗阶段） */
+.choice-btn-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.choice-btn-icon {
+  font-size: 64rpx;
+  margin-bottom: 8rpx;
+}
+
+.choice-btn-text {
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* 通关结局 */
+.phase-ending {
+  text-align: center;
+  padding-top: 60rpx;
+}
+
+.ending-crown {
+  font-size: 120rpx;
+  margin-bottom: 16rpx;
+  animation: crownBounce 1s ease-in-out infinite;
+}
+
+@keyframes crownBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16rpx); }
+}
+
+.ending-title {
+  font-size: 56rpx;
+  font-weight: bold;
+  color: #FF9800;
+  margin-bottom: 12rpx;
+}
+
+.ending-subtitle {
+  font-size: 32rpx;
+  color: #666;
+  margin-bottom: 48rpx;
+}
+
+.ending-stats {
+  display: flex;
+  justify-content: center;
+  gap: 48rpx;
+  margin-bottom: 40rpx;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-icon {
+  font-size: 40rpx;
+  margin-bottom: 8rpx;
+}
+
+.stat-value {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #9C27B0;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.ending-enemies {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+}
+
+.enemies-title {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+}
+
+.enemies-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.enemy-tag {
+  background: #E8EAF6;
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #9C27B0;
+}
+
+.ending-actions {
+  display: flex;
+  justify-content: center;
+  gap: 24rpx;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+}
+
+/* 商店按钮 */
+.shop-btn {
+  display: inline-block;
+  margin: 16rpx 0;
+  padding: 16rpx 32rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #9C27B0;
+  border: 2rpx solid #9C27B0;
+}
+
+.shop-btn:active {
+  background: #F3E5F5;
+}
+
+/* 道具商店 */
+.phase-shop {
+  padding-top: 40rpx;
+}
+
+.shop-header {
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.shop-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #9C27B0;
+  margin-bottom: 8rpx;
+}
+
+.shop-coins {
+  font-size: 28rpx;
+  color: #FF9800;
+}
+
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 32rpx;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.item-icon {
+  font-size: 48rpx;
+  margin-right: 16rpx;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+
+.item-desc {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.item-buy {
+  padding: 12rpx 20rpx;
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  border-radius: 12rpx;
+}
+
+.item-buy:active {
+  transform: scale(0.95);
+}
+
+.buy-price {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* 已拥有道具 */
+.owned-section {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.owned-title {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.owned-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.owned-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: #F3E5F5;
+  padding: 8rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+.owned-icon {
+  font-size: 28rpx;
+}
+
+.owned-name {
+  font-size: 24rpx;
+  color: #9C27B0;
+}
+
+.owned-count {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.shop-close {
+  text-align: center;
+  font-size: 28rpx;
+  color: #999;
+  padding: 16rpx;
+}

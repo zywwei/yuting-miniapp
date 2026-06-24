@@ -1,3 +1,5 @@
 {
-  "navigationBarTitleText": "销售历史"
+  "navigationBarTitleText": "销售历史",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
 }

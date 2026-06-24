@@ -42,6 +42,7 @@
     "pages/create/dice/collection/index",
     "pages/create/dice/mission/index",
     "pages/create/dice/slots/index",
+    "pages/create/dice/flight/index",
     "pages/notes/index",
     "pages/notes/add",
     "pages/notes/detail",

@@ -5,25 +5,6 @@
   padding-bottom: 200rpx;
 }
 
-/* 头部 */
-.header {
-  text-align: center;
-  margin-bottom: 32rpx;
-}
-
-.header-title {
-  font-size: 48rpx;
-  font-weight: bold;
-  color: #333;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.header-subtitle {
-  font-size: 32rpx;
-  color: #FF6B8A;
-}
-
 /* 搜索框 */
 .search-bar {
   display: flex;

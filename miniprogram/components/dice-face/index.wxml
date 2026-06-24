@@ -1,0 +1,10 @@
+<!-- 点阵骰子组件 -->
+<view class="dice-face {{rolling ? 'rolling' : ''}}" style="width: {{size}}rpx; height: {{size}}rpx;">
+  <view class="dice-grid">
+    <view class="dice-row" wx:for="{{dots}}" wx:for-item="row" wx:key="*this">
+      <view class="dice-cell" wx:for="{{row}}" wx:for-item="cell" wx:key="*this">
+        <view class="dice-dot {{cell ? 'active' : ''}}" style="width: {{dotSize}}rpx; height: {{dotSize}}rpx;"></view>
+      </view>
+    </view>
+  </view>
+</view>
