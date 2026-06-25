@@ -108,7 +108,7 @@
 ### 第四步：部署云函数
 右键点击 `cloudfunctions` 目录下的云函数，选择「上传并部署」
 
-## 📁 项目结构
+## 📁 项目结构（分包架构）
 
 ```
 miniprogram/
@@ -118,69 +118,50 @@ miniprogram/
 │   ├── family/              # 家庭管理
 │   ├── record/              # 通用记录
 │   └── interaction/         # 互动功能
-├── components/
+├── components/              # 主包公共组件
 │   ├── achievement-popup/   # 成就弹窗
 │   ├── child-switcher/      # 孩子切换器
 │   ├── comment-section/     # 评论组件
 │   ├── like-bar/            # 点赞栏
-│   ├── role-badge/          # 角色徽章
 │   └── family-switcher/     # 家庭切换器
-├── pages/
-│   ├── index/               # 首页
-│   ├── habits/              # 习惯养成
-│   │   ├── index/           # 习惯列表
-│   │   ├── detail/          # 习惯详情
-│   │   ├── add/             # 添加习惯
-│   │   ├── checkin/         # 打卡页面
-│   │   ├── brushing/        # 刷牙打卡
-│   │   ├── brushing-timer/  # 刷牙计时器
-│   │   ├── brushing-stats/  # 刷牙统计
-│   │   └── habit-stats/     # 习惯统计
-│   ├── learn/               # 学习乐园
-│   │   ├── index/           # 学习入口
-│   │   ├── cards/           # 识字卡片
-│   │   ├── poems/           # 古诗背诵
-│   │   ├── numbers/         # 数字启蒙
-│   │   └── english/         # 英语单词
-│   ├── create/              # 奇趣屋
-│   │   ├── index/           # 入口（画画+摆摊）
-│   │   ├── draw/
-│   │   │   ├── index/       # 画画子首页
-│   │   │   ├── draw/        # 画布
-│   │   │   ├── templates/   # 涂色模板
-│   │   │   └── gallery/     # 画廊
-│   │   └── stall/
-│   │       ├── index/       # 摆摊仪表盘
-│   │       ├── inventory/   # 商品库存
-│   │       ├── add-product/ # 添加商品
-│   │       ├── sale/        # 快速开单
-│   │       ├── history/     # 销售历史
-│   │       ├── stats/       # 统计报表
-│   │       ├── price-board/ # 价目表
-│   │       └── change-calc/ # 找零计算器
-│   ├── notes/               # 成长笔记
-│   ├── parent/              # 家长中心
+├── pages/                   # 主包页面（13个）
+│   ├── index/               # 首页（TabBar）
+│   ├── habits/index.*       # 习惯列表（TabBar）
+│   ├── learn/               # 学习乐园（TabBar）
+│   ├── notes/               # 成长笔记（TabBar）
+│   ├── create/index.*       # 奇趣屋入口（TabBar）
 │   ├── achievement/         # 成就页面
-│   └── family/              # 家庭管理
-│       ├── role-select/     # 角色选择
-│       ├── create/          # 创建家庭
-│       ├── join/            # 加入家庭
-│       └── settings/        # 家庭设置
-├── utils/
+│   └── parent/              # 家长中心
+├── utils/                   # 主包工具（被多模块共用）
+│   ├── cloud.js             # 云开发操作
 │   ├── auth.js              # 认证工具
 │   ├── child-storage.js     # 孩子数据存储
-│   ├── cloud.js             # 云开发操作
 │   ├── sync-queue.js        # 同步队列
-│   ├── stall-manager.js     # 摊位管理
 │   ├── achievements.js      # 成就系统
 │   ├── habit-manager.js     # 习惯管理
-│   ├── note-manager.js      # 笔记管理
-│   ├── backup.js            # 数据备份
-│   ├── templates.js         # 模板绘制
-│   ├── audio.js             # 音效
-│   └── util.js              # 通用工具
-└── audio/                   # 音频资源
+│   ├── util.js              # 通用工具
+│   ├── page-helpers.js      # 页面助手
+│   ├── beep.js              # 音效
+│   ├── audio.js             # 音频
+│   └── ...                  # 其他工具
+│
+├── packageCreate/           # 分包：奇趣屋子功能（~830K）
+│   ├── pages/create/        # 画画、摆摊、剪刀石头布、骰子、AI聊天
+│   ├── components/          # dice-face、enemy-card
+│   ├── utils/               # 专用工具（stall-manager、rps-manager等）
+│   └── audio/               # 画画音乐
+│
+├── packageHabits/           # 分包：习惯子功能（~480K）
+│   ├── pages/habits/        # 刷牙、签到、统计、习惯详情
+│   ├── components/          # brushing-detail、story-dialog等
+│   └── utils/               # habit-utils
+│
+└── packageFamily/           # 分包：家庭管理（~116K）
+    ├── pages/family/        # 角色选择、创建/加入家庭、设置
+    └── components/          # role-badge
 ```
+
+> **分包说明**：主包约 1MB，三个分包共约 1.4MB，总计约 2.4MB（原主包 2.6MB）。
 
 ## 🛠️ 技术栈
 
@@ -193,6 +174,26 @@ miniprogram/
 ---
 
 ## 📝 更新日志
+
+### 2026-06-25（分包处理 - 主包瘦身）
+
+**背景：** 主包超过 2MB 限制，需要分包处理。
+
+**分包方案：**
+- **主包**（~1MB）：13个TabBar页面 + 公共组件 + 核心工具
+- **packageCreate**（~830K）：画画、摆摊、剪刀石头布、骰子游戏、AI聊天（28个页面）
+- **packageHabits**（~480K）：刷牙打卡、签到、习惯统计（7个页面）
+- **packageFamily**（~116K）：家庭管理（4个页面）
+
+**技术细节：**
+- 修改约 165 处路径引用（页面跳转、require、组件引用、分享path）
+- 配置 preloadRule 预加载分包
+- 被多模块共用的 utils（beep.js、audio.js、achievements.js等）保留在主包
+- 只被单一模块使用的 utils 移动到对应分包
+
+**修改文件：** 215个文件（移动+路径修改）
+
+### 2026-06-19（奇趣屋模块 + 摆摊系统 + 多项优化）
 
 ### 2026-06-19（奇趣屋模块 + 摆摊系统 + 多项优化）
 
