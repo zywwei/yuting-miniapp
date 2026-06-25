@@ -1,5 +1,5 @@
-var stallManager = require('/packageCreate/utils/stall-manager.js')
-var stallUtils = require('/packageCreate/utils/stall-utils.js')
+var stallManager = require('../../../../utils/stall-manager.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 
 Page({
   data: {

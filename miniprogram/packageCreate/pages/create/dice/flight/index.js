@@ -1,11 +1,11 @@
-var engine = require('/packageCreate/utils/flight-engine.js')
-var board = require('/packageCreate/utils/flight-board.js')
-var ai = require('/packageCreate/utils/flight-ai.js')
-var beep = require('/utils/beep.js')
-var achievements = require('/utils/achievements.js')
-var childStorage = require('/utils/child-storage.js')
-var gameEconomy = require('/packageCreate/utils/game-economy.js')
-var items = require('/packageCreate/utils/flight-items.js')
+var engine = require('../../../../utils/flight-engine.js')
+var board = require('../../../../utils/flight-board.js')
+var ai = require('../../../../utils/flight-ai.js')
+var beep = require('../../../../../utils/beep.js')
+var achievements = require('../../../../../utils/achievements.js')
+var childStorage = require('../../../../../utils/child-storage.js')
+var gameEconomy = require('../../../../utils/game-economy.js')
+var items = require('../../../../utils/flight-items.js')
 
 Page({
   data: {

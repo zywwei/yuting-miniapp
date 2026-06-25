@@ -1,7 +1,7 @@
-var childStorage = require('/utils/child-storage.js')
-var cloud = require('/utils/cloud.js')
-var auth = require('/utils/auth.js')
-var pageHelpers = require('/utils/page-helpers.js')
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
+var auth = require('../../utils/auth.js')
+var pageHelpers = require('../../utils/page-helpers.js')
 
 var PRODUCTS_KEY = 'stallProducts'
 var SALES_KEY = 'stallSales'

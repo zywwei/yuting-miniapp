@@ -1,7 +1,7 @@
-var diceManager = require('/packageCreate/utils/dice-manager.js')
-var diceUtils = require('/packageCreate/utils/dice-utils.js')
-var achievements = require('/utils/achievements.js')
-var beep = require('/utils/beep.js')
+var diceManager = require('../../../../utils/dice-manager.js')
+var diceUtils = require('../../../../utils/dice-utils.js')
+var achievements = require('../../../../../utils/achievements.js')
+var beep = require('../../../../../utils/beep.js')
 
 Page({
   data: {

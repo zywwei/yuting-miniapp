@@ -3,7 +3,7 @@
  * 统一管理所有游戏模块的金币账户
  */
 
-var childStorage = require('/utils/child-storage.js')
+var childStorage = require('../../utils/child-storage.js')
 
 // 获取金币余额
 function getCoins() {

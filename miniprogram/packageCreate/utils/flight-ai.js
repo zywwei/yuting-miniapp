@@ -3,7 +3,7 @@
  * 简单/中等/困难三套策略
  */
 
-var engine = require('/packageCreate/utils/flight-engine.js')
+var engine = require('./flight-engine.js')
 
 // AI选择飞机
 function selectPlane(gameState, playerIndex, diceValue) {

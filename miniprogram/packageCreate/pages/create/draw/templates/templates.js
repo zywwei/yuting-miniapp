@@ -1,4 +1,4 @@
-var templateList = require('/packageCreate/utils/templates.js').templateList
+var templateList = require('../../../../utils/templates.js').templateList
 
 Page({
   data: {

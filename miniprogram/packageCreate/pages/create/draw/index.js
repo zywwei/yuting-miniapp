@@ -1,4 +1,4 @@
-var childStorage = require('/utils/child-storage.js')
+var childStorage = require('../../../../utils/child-storage.js')
 
 Page({
   data: {

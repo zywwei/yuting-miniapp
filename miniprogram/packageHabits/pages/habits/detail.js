@@ -1,7 +1,7 @@
-const util = require('/utils/util.js')
-const cloud = require('/utils/cloud.js')
-const childStorage = require('/utils/child-storage.js')
-const { getNavBarInfo, previewImage } = require('/utils/page-helpers.js')
+const util = require('../../../utils/util.js')
+const cloud = require('../../../utils/cloud.js')
+const childStorage = require('../../../utils/child-storage.js')
+const { getNavBarInfo, previewImage } = require('../../../utils/page-helpers.js')
 const { getHabitConfig } = require('./checkin/habit-config.js')
 
 // 每种习惯的打卡样式配置

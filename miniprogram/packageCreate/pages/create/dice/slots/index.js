@@ -1,6 +1,6 @@
-var beep = require('/utils/beep.js')
-var childStorage = require('/utils/child-storage.js')
-var gameEconomy = require('/packageCreate/utils/game-economy.js')
+var beep = require('../../../../../utils/beep.js')
+var childStorage = require('../../../../../utils/child-storage.js')
+var gameEconomy = require('../../../../utils/game-economy.js')
 
 // 转盘符号
 var SYMBOLS = ['🍒', '🍋', '🍊', '🔔', '⭐', '7️⃣']

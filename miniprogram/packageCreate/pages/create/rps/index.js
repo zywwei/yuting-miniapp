@@ -1,7 +1,7 @@
-var rpsManager = require('/packageCreate/utils/rps-manager.js')
-var rpsUtils = require('/packageCreate/utils/rps-utils.js')
-var childStorage = require('/utils/child-storage.js')
-var audio = require('/utils/audio.js')
+var rpsManager = require('../../../utils/rps-manager.js')
+var rpsUtils = require('../../../utils/rps-utils.js')
+var childStorage = require('../../../../utils/child-storage.js')
+var audio = require('../../../../utils/audio.js')
 
 Page({
   data: {

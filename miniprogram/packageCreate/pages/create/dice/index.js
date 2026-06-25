@@ -1,7 +1,7 @@
-var diceManager = require('/packageCreate/utils/dice-manager.js')
-var diceUtils = require('/packageCreate/utils/dice-utils.js')
-var childStorage = require('/utils/child-storage.js')
-var audio = require('/utils/audio.js')
+var diceManager = require('../../../utils/dice-manager.js')
+var diceUtils = require('../../../utils/dice-utils.js')
+var childStorage = require('../../../../utils/child-storage.js')
+var audio = require('../../../../utils/audio.js')
 
 Page({
   data: {

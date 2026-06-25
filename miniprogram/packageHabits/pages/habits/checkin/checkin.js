@@ -1,8 +1,8 @@
-const util = require('/utils/util.js')
-const cloud = require('/utils/cloud.js')
-const childStorage = require('/utils/child-storage.js')
-const achievements = require('/utils/achievements.js')
-const { getNavBarInfo, previewImage } = require('/utils/page-helpers.js')
+const util = require('../../../../utils/util.js')
+const cloud = require('../../../../utils/cloud.js')
+const childStorage = require('../../../../utils/child-storage.js')
+const achievements = require('../../../../utils/achievements.js')
+const { getNavBarInfo, previewImage } = require('../../../../utils/page-helpers.js')
 const { getHabitConfig } = require('./habit-config.js')
 
 Page({

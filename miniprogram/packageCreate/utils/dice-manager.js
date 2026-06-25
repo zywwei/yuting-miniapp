@@ -2,8 +2,8 @@
  * 摇骰子业务逻辑管理器
  */
 
-var childStorage = require('/utils/child-storage.js')
-var gameCloud = require('/packageCreate/utils/game-cloud.js')
+var childStorage = require('../../utils/child-storage.js')
+var gameCloud = require('./game-cloud.js')
 
 // 任务骰子任务库
 var MISSION_TASKS = [

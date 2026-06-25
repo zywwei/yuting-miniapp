@@ -1,4 +1,4 @@
-var auth = require('/utils/auth.js')
+var auth = require('../../../utils/auth.js')
 
 Page({
   data: {

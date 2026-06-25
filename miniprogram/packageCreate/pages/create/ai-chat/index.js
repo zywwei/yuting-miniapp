@@ -1,5 +1,5 @@
-var aiManager = require('/packageCreate/utils/ai-manager.js')
-var childStorage = require('/utils/child-storage.js')
+var aiManager = require('../../../utils/ai-manager.js')
+var childStorage = require('../../../../utils/child-storage.js')
 
 // 常用表情列表
 var EMOJI_LIST = [

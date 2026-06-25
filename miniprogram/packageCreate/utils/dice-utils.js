@@ -98,7 +98,7 @@ function generateStatsSummary(stats) {
 
 // 获取最近战绩
 function getRecentRecords(count) {
-  var childStorage = require('/utils/child-storage.js')
+  var childStorage = require('../../utils/child-storage.js')
   var records = childStorage.get('diceRecords') || []
   return records.slice(0, count || 5)
 }
