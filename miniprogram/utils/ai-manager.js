@@ -3,8 +3,8 @@
  * 封装所有与AI对话相关的前端操作
  */
 
-var childStorage = require('../../utils/child-storage.js')
-var auth = require('../../utils/auth.js')
+var childStorage = require('./child-storage.js')
+var auth = require('./auth.js')
 
 // 本地存储key
 var CONFIG_KEY = 'aiConfig'

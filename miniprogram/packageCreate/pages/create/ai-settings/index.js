@@ -1,4 +1,4 @@
-var aiManager = require('../../../utils/ai-manager.js')
+var aiManager = require('../../../../utils/ai-manager.js')
 
 Page({
   data: {

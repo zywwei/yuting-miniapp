@@ -1,4 +1,4 @@
-var aiManager = require('../../../utils/ai-manager.js')
+var aiManager = require('../../../../utils/ai-manager.js')
 var childStorage = require('../../../../utils/child-storage.js')
 
 // 常用表情列表
