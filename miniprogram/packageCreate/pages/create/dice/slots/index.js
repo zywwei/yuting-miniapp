@@ -1,5 +1,5 @@
-var beep = require('../../../../../utils/beep.js')
-var childStorage = require('../../../../../utils/child-storage.js')
+var beep = getApp().globalData.beep
+var childStorage = getApp().globalData.childStorage
 var gameEconomy = require('../../../../utils/game-economy.js')
 
 // 转盘符号

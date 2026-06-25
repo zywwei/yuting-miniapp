@@ -1,6 +1,6 @@
-var util = require('../../../utils/util.js')
-var childStorage = require('../../../utils/child-storage.js')
-var cloud = require('../../../utils/cloud.js')
+var util = getApp().globalData.util
+var childStorage = getApp().globalData.childStorage
+var cloud = getApp().globalData.cloud
 
 Page({
   data: {

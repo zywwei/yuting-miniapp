@@ -1,9 +1,9 @@
 var engine = require('../../../../utils/flight-engine.js')
 var board = require('../../../../utils/flight-board.js')
 var ai = require('../../../../utils/flight-ai.js')
-var beep = require('../../../../../utils/beep.js')
-var achievements = require('../../../../../utils/achievements.js')
-var childStorage = require('../../../../../utils/child-storage.js')
+var beep = getApp().globalData.beep
+var achievements = getApp().globalData.achievements
+var childStorage = getApp().globalData.childStorage
 var gameEconomy = require('../../../../utils/game-economy.js')
 var items = require('../../../../utils/flight-items.js')
 

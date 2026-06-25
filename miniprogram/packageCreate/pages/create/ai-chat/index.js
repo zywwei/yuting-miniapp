@@ -1,5 +1,5 @@
-var aiManager = require('../../../../utils/ai-manager.js')
-var childStorage = require('../../../../utils/child-storage.js')
+var aiManager = getApp().globalData.aiManager
+var childStorage = getApp().globalData.childStorage
 
 // 常用表情列表
 var EMOJI_LIST = [

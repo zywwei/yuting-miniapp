@@ -1,5 +1,5 @@
 var stallManager = require('../../../../utils/stall-manager.js')
-var auth = require('../../../../../utils/auth.js')
+var auth = getApp().globalData.auth
 var stallUtils = require('../../../../utils/stall-utils.js')
 
 Page({

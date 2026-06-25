@@ -1,5 +1,5 @@
 var stallManager = require('../../../../utils/stall-manager.js')
-var childStorage = require('../../../../../utils/child-storage.js')
+var childStorage = getApp().globalData.childStorage
 var stallUtils = require('../../../../utils/stall-utils.js')
 
 var RESTOCK_KEY = 'stallRestockList'

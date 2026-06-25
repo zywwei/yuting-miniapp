@@ -1,9 +1,9 @@
 const app = getApp()
-const util = require('../../../../utils/util.js')
-const audio = require('../../../../utils/audio.js')
-const cloud = require('../../../../utils/cloud.js')
-const achievements = require('../../../../utils/achievements.js')
-const auth = require('../../../../utils/auth.js')
+const util = getApp().globalData.util
+const audio = getApp().globalData.audio
+const cloud = getApp().globalData.cloud
+const achievements = getApp().globalData.achievements
+const auth = getApp().globalData.auth
 const { templateDrawers } = require('../../../utils/templates.js')
 
 // 画画音乐管理

@@ -1,4 +1,4 @@
-const cloud = require('../../utils/cloud.js')
+const cloud = getApp().globalData.cloud
 
 Component({
   properties: {

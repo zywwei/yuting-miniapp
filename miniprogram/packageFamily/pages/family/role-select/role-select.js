@@ -1,4 +1,4 @@
-var auth = require('../../../utils/auth.js')
+var auth = getApp().globalData.auth
 
 var ROLES = [
   { role: 'father', name: '爸爸', icon: '👨' },

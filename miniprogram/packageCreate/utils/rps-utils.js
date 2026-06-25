@@ -3,7 +3,7 @@
  */
 
 var rpsManager = require('./rps-manager.js')
-var childStorage = require('../../utils/child-storage.js')
+var childStorage = getApp().globalData.childStorage
 
 // 格式化游戏结果
 function formatResult(result) {

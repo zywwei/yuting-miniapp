@@ -1,7 +1,7 @@
 var diceManager = require('../../../utils/dice-manager.js')
 var diceUtils = require('../../../utils/dice-utils.js')
-var childStorage = require('../../../../utils/child-storage.js')
-var audio = require('../../../../utils/audio.js')
+var childStorage = getApp().globalData.childStorage
+var audio = getApp().globalData.audio
 
 Page({
   data: {

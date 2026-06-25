@@ -2,7 +2,7 @@
  * 剪刀石头布业务逻辑管理器
  */
 
-var childStorage = require('../../utils/child-storage.js')
+var childStorage = getApp().globalData.childStorage
 var gameCloud = require('./game-cloud.js')
 
 // 选择定义

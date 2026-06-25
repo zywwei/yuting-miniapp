@@ -1,6 +1,6 @@
-var util = require('../../../../../utils/util.js')
-var cloud = require('../../../../../utils/cloud.js')
-var auth = require('../../../../../utils/auth.js')
+var util = getApp().globalData.util
+var cloud = getApp().globalData.cloud
+var auth = getApp().globalData.auth
 
 Page({
   data: {
