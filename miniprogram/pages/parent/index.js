@@ -113,7 +113,7 @@ Page({
 
   // 家庭设置
   goFamilySettings: function() {
-    wx.navigateTo({ url: '/pages/family/settings/settings' })
+    wx.navigateTo({ url: '/packageFamily/pages/family/settings/settings' })
   },
 
   // 查看笔记详情

@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "比大小",
-  "navigationBarBackgroundColor": "#FF5722",
-  "usingComponents": {
-    "dice-face": "/components/dice-face/index"
-  }
-}

@@ -1,5 +1,5 @@
-var childStorage = require('../../utils/child-storage.js')
-var aiManager = require('../../utils/ai-manager.js')
+var childStorage = require('/utils/child-storage.js')
+var aiManager = require('/packageCreate/utils/ai-manager.js')
 
 Page({
   data: {
@@ -71,22 +71,22 @@ Page({
   },
 
   goDraw: function() {
-    wx.navigateTo({ url: '/pages/create/draw/index' })
+    wx.navigateTo({ url: '/packageCreate/pages/create/draw/index' })
   },
 
   goStall: function() {
-    wx.navigateTo({ url: '/pages/create/stall/index' })
+    wx.navigateTo({ url: '/packageCreate/pages/create/stall/index' })
   },
 
   goAiChat: function() {
-    wx.navigateTo({ url: '/pages/create/ai-chat/index' })
+    wx.navigateTo({ url: '/packageCreate/pages/create/ai-chat/index' })
   },
 
   goRps: function() {
-    wx.navigateTo({ url: '/pages/create/rps/index' })
+    wx.navigateTo({ url: '/packageCreate/pages/create/rps/index' })
   },
 
   goDice: function() {
-    wx.navigateTo({ url: '/pages/create/dice/index' })
+    wx.navigateTo({ url: '/packageCreate/pages/create/dice/index' })
   }
 })

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "刷牙打卡",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "brushing-detail": "/packageHabits/components/brushing-detail/brushing-detail"
+  }
+}

@@ -193,7 +193,7 @@ Page({
     var path = e.currentTarget.dataset.path
     wx.setStorageSync('noteEditPhoto', path)
     wx.navigateTo({
-      url: '/pages/create/draw/draw?mode=note&photo=' + encodeURIComponent(path)
+      url: '/packageCreate/pages/create/draw/draw?mode=note&photo=' + encodeURIComponent(path)
     })
   },
 
