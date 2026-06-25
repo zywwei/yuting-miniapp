@@ -63,7 +63,7 @@ Component({
 
     goCreate: function() {
       this.hidePanel()
-      wx.navigateTo({ url: '/pages/family/role-select/role-select' })
+      wx.navigateTo({ url: '/packageFamily/pages/family/role-select/role-select' })
     }
   }
 })

@@ -1,6 +1,6 @@
 {
   "component": true,
   "usingComponents": {
-    "score-selector": "/components/score-selector/score-selector"
+    "score-selector": "/packageHabits/components/score-selector/score-selector"
   }
 }
