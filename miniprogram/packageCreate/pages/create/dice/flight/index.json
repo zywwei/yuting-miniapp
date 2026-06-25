@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "dice-face": "/packageCreate/components/dice-face/index"
+  },
+  "navigationBarTitleText": "飞行棋",
+  "navigationBarBackgroundColor": "#4A90D9",
+  "navigationBarTextStyle": "white"
+}

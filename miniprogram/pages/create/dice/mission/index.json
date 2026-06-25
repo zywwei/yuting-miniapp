@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "任务骰子",
-  "navigationBarBackgroundColor": "#4CAF50",
-  "usingComponents": {
-    "dice-face": "/components/dice-face/index"
-  }
-}

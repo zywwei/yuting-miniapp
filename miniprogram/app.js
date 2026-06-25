@@ -33,7 +33,7 @@ App({
           if (families.length === 0) {
             // 没有家庭，跳转角色选择
             auth.clear()
-            wx.reLaunch({ url: '/pages/family/role-select/role-select' })
+            wx.reLaunch({ url: '/packageFamily/pages/family/role-select/role-select' })
             return
           }
 
@@ -99,7 +99,7 @@ App({
     if (auth.isLoggedIn()) {
       this.loadFromLocalCache()
     } else {
-      wx.reLaunch({ url: '/pages/family/role-select/role-select' })
+      wx.reLaunch({ url: '/packageFamily/pages/family/role-select/role-select' })
     }
   },
 
@@ -193,7 +193,7 @@ App({
 
     // 没有可用家庭
     auth.clear()
-    wx.reLaunch({ url: '/pages/family/role-select/role-select' })
+    wx.reLaunch({ url: '/packageFamily/pages/family/role-select/role-select' })
   },
 
   // 切换家庭

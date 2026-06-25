@@ -320,9 +320,9 @@ Page({
   goHabit: function(e) {
     var type = e.currentTarget.dataset.type
     if (type === 'brushing') {
-      wx.navigateTo({ url: '/pages/habits/brushing/brushing' })
+      wx.navigateTo({ url: '/packageHabits/pages/habits/brushing/brushing' })
     } else {
-      wx.navigateTo({ url: '/pages/habits/detail?type=' + type })
+      wx.navigateTo({ url: '/packageHabits/pages/habits/detail?type=' + type })
     }
   },
 
@@ -336,11 +336,11 @@ Page({
       learn: '/pages/learn/index',
       create: '/pages/create/index',
       notes: '/pages/notes/index',
-      aiChat: '/pages/create/ai-chat/index',
-      draw: '/pages/create/draw/index',
-      stall: '/pages/create/stall/index',
-      changeCalc: '/pages/create/stall/change-calc/change-calc',
-      rps: '/pages/create/rps/index'
+      aiChat: '/packageCreate/pages/create/ai-chat/index',
+      draw: '/packageCreate/pages/create/draw/index',
+      stall: '/packageCreate/pages/create/stall/index',
+      changeCalc: '/packageCreate/pages/create/stall/change-calc/change-calc',
+      rps: '/packageCreate/pages/create/rps/index'
     }
     var url = urlMap[module]
     if (url) {

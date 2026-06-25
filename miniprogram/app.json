@@ -2,57 +2,87 @@
   "pages": [
     "pages/index/index",
     "pages/habits/index",
-    "pages/habits/detail",
-    "pages/habits/add",
-    "pages/habits/checkin/checkin",
-    "pages/habits/habit-stats/habit-stats",
-    "pages/habits/brushing/brushing",
-    "pages/habits/brushing-timer/brushing-timer",
-    "pages/habits/brushing-stats/brushing-stats",
     "pages/learn/index",
     "pages/learn/cards",
     "pages/learn/poems",
     "pages/learn/numbers",
     "pages/learn/english",
-    "pages/create/index",
-    "pages/create/draw/index",
-    "pages/create/draw/draw",
-    "pages/create/draw/templates/templates",
-    "pages/create/draw/gallery/gallery",
-    "pages/create/stall/index",
-    "pages/create/stall/inventory/inventory",
-    "pages/create/stall/add-product/add-product",
-    "pages/create/stall/sale/sale",
-    "pages/create/stall/history/history",
-    "pages/create/stall/stats/stats",
-    "pages/create/stall/price-board/price-board",
-    "pages/create/stall/change-calc/change-calc",
-    "pages/create/stall/pricing-helper/pricing-helper",
-    "pages/create/stall/restock-list/restock-list",
-    "pages/create/stall/business-diary/business-diary",
-    "pages/create/ai-chat/index",
-    "pages/create/ai-settings/index",
-    "pages/create/rps/index",
-    "pages/create/rps/classic/index",
-    "pages/create/rps/challenge/index",
-    "pages/create/rps/story/index",
-    "pages/create/rps/tournament/index",
-    "pages/create/dice/index",
-    "pages/create/dice/compare/index",
-    "pages/create/dice/collection/index",
-    "pages/create/dice/mission/index",
-    "pages/create/dice/slots/index",
-    "pages/create/dice/flight/index",
     "pages/notes/index",
     "pages/notes/add",
     "pages/notes/detail",
-    "pages/parent/index",
+    "pages/create/index",
     "pages/achievement/index",
-    "pages/family/role-select/role-select",
-    "pages/family/create/create",
-    "pages/family/join/join",
-    "pages/family/settings/settings"
+    "pages/parent/index"
   ],
+  "subPackages": [
+    {
+      "root": "packageCreate",
+      "name": "create",
+      "pages": [
+        "pages/create/draw/index",
+        "pages/create/draw/draw",
+        "pages/create/draw/templates/templates",
+        "pages/create/draw/gallery/gallery",
+        "pages/create/stall/index",
+        "pages/create/stall/inventory/inventory",
+        "pages/create/stall/add-product/add-product",
+        "pages/create/stall/sale/sale",
+        "pages/create/stall/history/history",
+        "pages/create/stall/stats/stats",
+        "pages/create/stall/price-board/price-board",
+        "pages/create/stall/change-calc/change-calc",
+        "pages/create/stall/pricing-helper/pricing-helper",
+        "pages/create/stall/restock-list/restock-list",
+        "pages/create/stall/business-diary/business-diary",
+        "pages/create/rps/index",
+        "pages/create/rps/classic/index",
+        "pages/create/rps/challenge/index",
+        "pages/create/rps/story/index",
+        "pages/create/rps/tournament/index",
+        "pages/create/dice/index",
+        "pages/create/dice/compare/index",
+        "pages/create/dice/collection/index",
+        "pages/create/dice/mission/index",
+        "pages/create/dice/slots/index",
+        "pages/create/dice/flight/index",
+        "pages/create/ai-chat/index",
+        "pages/create/ai-settings/index"
+      ]
+    },
+    {
+      "root": "packageHabits",
+      "name": "habits",
+      "pages": [
+        "pages/habits/detail",
+        "pages/habits/add",
+        "pages/habits/checkin/checkin",
+        "pages/habits/habit-stats/habit-stats",
+        "pages/habits/brushing/brushing",
+        "pages/habits/brushing-timer/brushing-timer",
+        "pages/habits/brushing-stats/brushing-stats"
+      ]
+    },
+    {
+      "root": "packageFamily",
+      "name": "family",
+      "pages": [
+        "pages/family/role-select/role-select",
+        "pages/family/create/create",
+        "pages/family/join/join",
+        "pages/family/settings/settings"
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/create/index": {
+      "network": "all",
+      "packages": ["create"]
+    },
+    "pages/habits/index": {
+      "network": "all",
+      "packages": ["habits"]
+    }
+  },
   "window": {
     "navigationBarBackgroundColor": "#FF9AAB",
     "navigationBarTitleText": "钰婷成长小助手",

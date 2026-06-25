@@ -202,17 +202,17 @@ Page({
     var type = e.currentTarget.dataset.type
 
     if (type === 'brushing') {
-      wx.navigateTo({ url: '/pages/habits/brushing/brushing' })
+      wx.navigateTo({ url: '/packageHabits/pages/habits/brushing/brushing' })
     } else {
       wx.navigateTo({
-        url: '/pages/habits/detail?type=' + type
+        url: '/packageHabits/pages/habits/detail?type=' + type
       })
     }
   },
 
   // 添加自定义习惯
   addHabit: function() {
-    wx.navigateTo({ url: '/pages/habits/add' })
+    wx.navigateTo({ url: '/packageHabits/pages/habits/add' })
   },
 
   // 切换折叠状态

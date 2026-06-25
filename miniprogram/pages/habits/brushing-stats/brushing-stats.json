@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "刷牙统计",
-  "navigationStyle": "custom",
-  "enablePullDownRefresh": true,
-  "backgroundTextStyle": "dark",
-  "usingComponents": {
-    "brushing-detail": "/components/brushing-detail/brushing-detail"
-  }
-}
