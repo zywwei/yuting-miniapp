@@ -600,11 +600,64 @@ var checkAchievementsAsync = async function() {
   return checkAchievements(records)
 }
 
+// 从云端拉取成就并合并到本地（解决多设备成就不同步问题）
+// 合并策略：以 id 去重，同一成就保留更早的 unlockedAt（首次解锁时间）
+var syncAchievementsFromCloud = async function() {
+  var cloud = require('./cloud.js')
+  var cloudAchievements = await cloud.fetchAchievements()
+  if (!cloudAchievements || cloudAchievements.length === 0) {
+    return getUnlockedAchievements()
+  }
+
+  var local = getUnlockedAchievements()
+  var mergedMap = {}
+
+  // 先放本地
+  local.forEach(function(a) {
+    if (a && a.id) mergedMap[a.id] = a
+  })
+
+  // 再合并云端：同 id 取更早的解锁时间
+  cloudAchievements.forEach(function(a) {
+    if (!a || !a.id) return
+    var existing = mergedMap[a.id]
+    if (!existing) {
+      mergedMap[a.id] = a
+    } else {
+      // 保留更早的解锁时间，其余字段以已有为准
+      var existTime = existing.unlockedAt ? new Date(existing.unlockedAt).getTime() : Infinity
+      var cloudTime = a.unlockedAt ? new Date(a.unlockedAt).getTime() : Infinity
+      if (cloudTime < existTime) {
+        mergedMap[a.id] = a
+      }
+    }
+  })
+
+  var merged = []
+  for (var key in mergedMap) {
+    merged.push(mergedMap[key])
+  }
+  // 按解锁时间排序
+  merged.sort(function(a, b) {
+    return new Date(a.unlockedAt || 0) - new Date(b.unlockedAt || 0)
+  })
+
+  // 仅在发生变化时回写，避免无谓写入
+  if (merged.length !== local.length) {
+    childStorage.set('achievements', merged)
+    // 合并后若本地新增了云端成就，回传一份到云端保持一致
+    cloud.uploadAchievements(merged).catch(function() {})
+  }
+
+  return merged
+}
+
 module.exports = {
   RARITY: RARITY,
   ACHIEVEMENTS: ACHIEVEMENTS,
   checkAchievements: checkAchievements,
   checkAchievementsAsync: checkAchievementsAsync,
+  syncAchievementsFromCloud: syncAchievementsFromCloud,
   getUnlockedAchievements: getUnlockedAchievements,
   getAllAchievements: getAllAchievements,
   getAchievementsByCategory: getAchievementsByCategory,

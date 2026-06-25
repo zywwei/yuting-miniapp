@@ -256,6 +256,13 @@ Page({
 
   // 加载成就
   async loadAchievements() {
+    // 先从云端合并成就（解决多设备不同步：A 解锁的成就 B 也能看到）
+    try {
+      await achievements.syncAchievementsFromCloud()
+    } catch (e) {
+      console.warn('成就云端同步失败:', e)
+    }
+
     // 检查并解锁新成就（使用云端合并数据）
     var newAchievements = await achievements.checkAchievementsAsync()
 
