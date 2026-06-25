@@ -39,13 +39,24 @@ var CHILD_KEYS = [
   'gameCoins',
   'coinLogs',
   'gameSettings',
+  // 单例数据的乐观锁时间戳（按孩子隔离）
+  'habitsUpdatedAt',
+  'learnProgressUpdatedAt',
+  'settingsUpdatedAt',
+  'brushingStoryUpdatedAt',
+  'totalBrushPointsUpdatedAt',
+  'toothDecorationsUpdatedAt',
+  'stallSettingsUpdatedAt',
+  'stallDailyChallengesUpdatedAt',
+  'stallBusinessHoursUpdatedAt',
   // 墓碑 key（删除标记，按孩子隔离）
   'deletedDrawingIds',
   'deletedNoteIds',
   'deletedBrushingIds',
   'deletedStallProductIds',
   'deletedStallSaleIds',
-  'deletedHabitRecordIds'
+  'deletedHabitRecordIds',
+  'deletedGameRecordIds'
 ]
 
 function getKey(key) {

@@ -25,13 +25,28 @@ Page({
   },
 
   loadData: function() {
-    var stats = achievements.getAchievementStats()
+    // 先用本地数据快速渲染
+    this.renderAchievements()
 
+    // 异步从云端合并成就（解决多设备不同步：A 解锁的成就 B 也能看到）
+    this.syncFromCloud()
+  },
+
+  renderAchievements: function() {
+    var stats = achievements.getAchievementStats()
     this.setData({
       stats: stats
     })
-
     this.filterByCategory(this.data.currentCategory)
+  },
+
+  syncFromCloud: function() {
+    var that = this
+    achievements.syncAchievementsFromCloud().then(function() {
+      that.renderAchievements()
+    }).catch(function(err) {
+      console.warn('成就云端同步失败:', err)
+    })
   },
 
   // 切换分类

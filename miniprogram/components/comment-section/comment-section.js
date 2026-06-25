@@ -1,4 +1,5 @@
 var auth = require('../../utils/auth.js')
+var syncQueue = require('../../utils/sync-queue.js')
 
 var EMOJI_LIST = ['😊', '😂', '🥰', '😍', '🤩', '😘', '😋', '🤗', '👏', '👍', '❤️', '🎉', '✨', '🌟', '💪', '🥳']
 
@@ -40,7 +41,12 @@ Component({
         })
 
         if (res.result.code === 0) {
-          this.setData({ comments: res.result.data || [] })
+          var cloudComments = res.result.data || []
+          // 保留本地待同步的评论（_pending），避免联网拉取后 pending 评论闪现消失
+          var pendingLocal = (this.data.comments || []).filter(function(c) {
+            return c._pending
+          })
+          this.setData({ comments: cloudComments.concat(pendingLocal) })
         }
       } catch (err) {
         console.warn('加载评论失败:', err)
@@ -69,6 +75,30 @@ Component({
       var content = this.data.inputText.trim()
       if (!content) return
 
+      var member = auth.getMember()
+      // 乐观显示：先把评论加到本地列表，UI 即时反馈
+      var tempId = 'local_' + Date.now()
+      var optimisticComment = {
+        _id: tempId,
+        targetType: this.data.targetType,
+        targetId: this.data.targetId,
+        childId: this.data.childId,
+        authorId: member ? member._id : '',
+        authorName: member ? member.roleName : '',
+        authorRole: member ? member.role : '',
+        content: content,
+        type: 'text',
+        imageFileId: '',
+        emoji: '',
+        isDeleted: false,
+        createTime: new Date().toISOString(),
+        _pending: true  // 标记为待同步
+      }
+      this.setData({
+        comments: this.data.comments.concat([optimisticComment]),
+        inputText: ''
+      })
+
       try {
         var res = await wx.cloud.callFunction({
           name: 'interaction',
@@ -83,12 +113,27 @@ Component({
         })
 
         if (res.result.code === 0) {
-          this.setData({ inputText: '' })
           this.loadComments()
           this.triggerEvent('commentAdded')
         }
       } catch (err) {
-        wx.showToast({ title: '评论失败', icon: 'none' })
+        console.warn('评论失败，已入队等待重试:', err)
+        // 断网/失败：入队，联网后由 syncQueue 自动重试
+        syncQueue.enqueue({
+          id: 'comment_' + tempId,
+          action: 'addComment',
+          collection: 'comments',
+          funcName: 'interaction',
+          extra: {
+            targetType: this.data.targetType,
+            targetId: this.data.targetId,
+            childId: this.data.childId,
+            content: content,
+            type: 'text'
+          }
+        })
+        syncQueue.flush()
+        wx.showToast({ title: '评论将在联网后发送', icon: 'none' })
       }
     },
 
@@ -126,18 +171,30 @@ Component({
           this.triggerEvent('commentAdded')
         }
       } catch (err) {
-        console.warn('图片评论失败:', err)
+        console.warn('图片评论失败，已入队等待重试:', err)
+        wx.showToast({ title: '图片评论将在联网后发送', icon: 'none' })
       }
     },
 
     async deleteComment(e) {
       var commentId = e.currentTarget.dataset.id
+      // 本地待发送的评论直接移除即可
+      if (typeof commentId === 'string' && commentId.indexOf('local_') === 0) {
+        this.setData({
+          comments: this.data.comments.filter(function(c) { return c._id !== commentId })
+        })
+        return
+      }
 
       wx.showModal({
         title: '提示',
         content: '确定删除这条评论吗？',
         success: async (res) => {
           if (res.confirm) {
+            // 乐观隐藏
+            this.setData({
+              comments: this.data.comments.filter(function(c) { return c._id !== commentId })
+            })
             try {
               var result = await wx.cloud.callFunction({
                 name: 'interaction',
@@ -151,9 +208,19 @@ Component({
                 this.loadComments()
               } else {
                 wx.showToast({ title: result.result.msg || '删除失败', icon: 'none' })
+                this.loadComments()  // 恢复显示
               }
             } catch (err) {
-              wx.showToast({ title: '删除失败', icon: 'none' })
+              console.warn('删除评论失败，已入队等待重试:', err)
+              // 入队重试
+              syncQueue.enqueue({
+                id: 'delcomment_' + commentId,
+                action: 'deleteComment',
+                collection: 'comments',
+                funcName: 'interaction',
+                extra: { commentId: commentId }
+              })
+              syncQueue.flush()
             }
           }
         }

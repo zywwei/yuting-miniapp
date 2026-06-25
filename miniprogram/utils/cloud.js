@@ -172,6 +172,31 @@ function removeTombstone(key, id) {
   childStorage.set(key, tombstones)
 }
 
+// ===== 通用墓碑操作（供 game-cloud 等模块复用，按 key 隔离）=====
+// 读取指定 key 下的已删除 ID 列表（自动清理过期墓碑）
+function getDeletedIdsByKey(key) {
+  var tombstones = cleanExpiredTombstones(key)
+  return extractTombstoneIds(tombstones)
+}
+
+// 向指定 key 追加一个已删除 ID
+function addDeletedIdByKey(key, id) {
+  if (!id) return
+  var tombstones = cleanExpiredTombstones(key)
+  var exists = tombstones.some(function(item) {
+    return (typeof item === 'string' ? item : item.id) === id
+  })
+  if (!exists) {
+    tombstones.push({ id: id, ts: Date.now() })
+    childStorage.set(key, tombstones)
+  }
+}
+
+// 清除指定 key 下的某个墓碑
+function removeTombstoneByKey(key, id) {
+  removeTombstone(key, id)
+}
+
 // ===== 画作 =====
 
 async function uploadDrawing(tempFilePath, drawing) {
@@ -183,13 +208,29 @@ async function uploadDrawing(tempFilePath, drawing) {
     synced: false  // 标记为未同步
   }
 
+  var util = require('./util.js')
+  // 先把图片落到持久化目录，保证本地一定能展示
+  var savedPath = await util.saveImageToPersistent(tempFilePath)
+  record.imagePath = savedPath
+
+  // 写入本地缓存（立即生效，离线可见）
+  var localDrawings = childStorage.get('drawings') || []
+  localDrawings.unshift(record)
+  childStorage.set('drawings', localDrawings)
+
+  // 云端不可用：入队等待联网后重试（含图片上传任务）
   if (!isCloudReady() || !db()) {
-    var util = require('./util.js')
-    var savedPath = await util.saveImageToPersistent(tempFilePath)
-    record.imagePath = savedPath
-    var localDrawings = childStorage.get('drawings') || []
-    localDrawings.unshift(record)
-    childStorage.set('drawings', localDrawings)
+    syncQueue.enqueue({
+      id: drawing.id,
+      action: 'add',
+      collection: 'drawings',
+      data: record,
+      uploadImages: [{
+        field: 'imagePath',
+        localPath: savedPath,
+        cloudPath: 'drawings/' + drawing.id + '.png'
+      }]
+    })
     return savedPath
   }
 
@@ -201,35 +242,47 @@ async function uploadDrawing(tempFilePath, drawing) {
     record.imagePath = uploadRes.fileID
     record.synced = true  // 标记为已同步
 
-    var localDrawings = childStorage.get('drawings') || []
-    localDrawings.unshift(record)
-    childStorage.set('drawings', localDrawings)
-
-    syncQueue.enqueue({
-      id: drawing.id,
-      action: 'add',
-      collection: 'drawings',
-      data: record,
-      uploadImages: []
-    })
+    // 同步成功后回写本地缓存的图片路径为 fileID
+    var afterDrawings = childStorage.get('drawings') || []
+    for (var i = 0; i < afterDrawings.length; i++) {
+      if (afterDrawings[i].id === drawing.id) {
+        afterDrawings[i] = record
+        break
+      }
+    }
+    childStorage.set('drawings', afterDrawings)
 
     try {
       await wx.cloud.callFunction({
         name: 'record',
         data: { action: 'add', collection: 'drawings', data: record }
       })
-      syncQueue.dequeue(drawing.id)
-    } catch (e) {}
+    } catch (e) {
+      // 云函数调用失败：入队重试（图片已传，仅重试记录入库）
+      syncQueue.enqueue({
+        id: drawing.id,
+        action: 'add',
+        collection: 'drawings',
+        data: record,
+        uploadImages: []
+      })
+    }
 
     return uploadRes.fileID
   } catch (err) {
-    console.warn('云端上传失败，使用本地存储:', err)
-    var util = require('./util.js')
-    var savedPath = await util.saveImageToPersistent(tempFilePath)
-    record.imagePath = savedPath
-    var localDrawings = childStorage.get('drawings') || []
-    localDrawings.unshift(record)
-    childStorage.set('drawings', localDrawings)
+    console.warn('云端上传失败，已入队等待重试:', err)
+    // 图片上传或前置步骤失败：入队重试，联网后由 syncQueue 补传
+    syncQueue.enqueue({
+      id: drawing.id,
+      action: 'add',
+      collection: 'drawings',
+      data: record,
+      uploadImages: [{
+        field: 'imagePath',
+        localPath: savedPath,
+        cloudPath: 'drawings/' + drawing.id + '.png'
+      }]
+    })
     return savedPath
   }
 }
@@ -275,8 +328,8 @@ async function fetchDrawings() {
 
       // 合并策略：
       // 1. 云端有的数据 → 使用云端数据
-      // 2. 云端没有但本地有且 synced=true → 删除（云端已删除）
-      // 3. 云端没有但本地有且 synced!=true → 保留（新添加未同步）
+      // 2. 云端没有但本地有且 synced!=true → 保留（新添加未同步）
+      // 3. 云端没有但本地有且 synced=true → 触发自愈补传后保留（防止云端误删导致数据丢失）
       var merged = []
       var mergedIds = {}
 
@@ -288,14 +341,16 @@ async function fetchDrawings() {
         }
       })
 
-      // 再添加本地独有数据（未同步到云端的）
+      // 再添加本地独有数据
       localDrawings.forEach(function(d) {
         if (d && d.id && !mergedIds[d.id] && !deletedSet[d.id]) {
-          if (!d.synced) {
-            merged.push(d)
-          }
+          merged.push(d)
+          mergedIds[d.id] = true
         }
       })
+
+      // 自愈：本地有但云端缺失的记录补传到云端（含已标记 synced 但云端丢失的情况）
+      selfHealDrawings(cloudList, localDrawings, deletedSet)
 
       // 按创建时间倒序排序
       merged.sort(function(a, b) {
@@ -305,13 +360,25 @@ async function fetchDrawings() {
       // 用合并结果更新本地缓存
       childStorage.set('drawings', merged)
 
-      // 云端仍存在但本地已删除的记录，再次尝试删除
+      // 云端仍存在但本地已删除的记录：立即尝试删除，失败则入队重试（避免墓碑过期后孤儿记录复活）
       cloudList.forEach(function(d) {
         if (d && d.id && deletedSet[d.id]) {
           wx.cloud.callFunction({
             name: 'record',
             data: { action: 'remove', collection: 'drawings', id: d.id }
-          }).catch(function() {})
+          }).then(function(res) {
+            if (res.result && res.result.code === 0) {
+              removeTombstone(DELETED_DRAWINGS_KEY, d.id)
+            }
+          }).catch(function() {
+            // 失败入队，由 syncQueue 重试，确保云端记录最终被删除
+            syncQueue.enqueue({
+              id: 'remove_drawing_' + d.id,
+              action: 'remove',
+              collection: 'drawings',
+              extra: { id: d.id }
+            })
+          })
         }
       })
 
@@ -325,6 +392,7 @@ async function fetchDrawings() {
 }
 
 // 数据自愈：将本地有但云端缺失的画作补传到云端
+// 对图片是本地路径的记录，先上传图片再入库；已是 fileID 的直接入库
 function selfHealDrawings(cloudList, localDrawings, deletedSet) {
   deletedSet = deletedSet || {}
   var cloudIds = {}
@@ -334,11 +402,39 @@ function selfHealDrawings(cloudList, localDrawings, deletedSet) {
   localDrawings.forEach(function(d) {
     // 已删除的、或云端已有的，都不补传
     if (d && d.id && !cloudIds[d.id] && !deletedSet[d.id]) {
-      // 补传缺失的记录到云端（失败静默，不影响读取）
-      wx.cloud.callFunction({
-        name: 'record',
-        data: { action: 'add', collection: 'drawings', data: d }
-      }).catch(function() {})
+      // 图片已是云端 fileID，直接补传记录
+      if (d.imagePath && d.imagePath.startsWith('cloud://')) {
+        wx.cloud.callFunction({
+          name: 'record',
+          data: { action: 'add', collection: 'drawings', data: d }
+        }).catch(function() {})
+      } else if (d.imagePath) {
+        // 图片是本地路径，先上传图片再入库
+        var cloudPath = 'drawings/' + d.id + '.png'
+        var localPath = d.imagePath  // 保存原本地路径用于回写定位
+        wx.cloud.uploadFile({ cloudPath: cloudPath, filePath: localPath }).then(function(uploadRes) {
+          var fileID = uploadRes.fileID
+          var healed = Object.assign({}, d, { cloudFileID: fileID, imagePath: fileID, synced: true })
+          return wx.cloud.callFunction({
+            name: 'record',
+            data: { action: 'add', collection: 'drawings', data: healed }
+          }).then(function() { return fileID })
+        }).then(function(fileID) {
+          // 补传成功后回写本地缓存：imagePath 由本地路径更新为 fileID
+          var cur = childStorage.get('drawings') || []
+          for (var i = 0; i < cur.length; i++) {
+            if (cur[i].id === d.id && cur[i].imagePath === localPath) {
+              cur[i].cloudFileID = fileID
+              cur[i].imagePath = fileID
+              cur[i].synced = true
+              break
+            }
+          }
+          childStorage.set('drawings', cur)
+        }).catch(function(err) {
+          console.warn('画作自愈补传失败:', d.id, err)
+        })
+      }
     }
   })
 }
@@ -406,7 +502,7 @@ async function updateDrawingName(id, newName) {
     return d
   })
   childStorage.set('drawings', drawings)
-  
+
   // 更新云端
   if (isCloudReady()) {
     try {
@@ -415,7 +511,15 @@ async function updateDrawingName(id, newName) {
         data: { action: 'update', collection: 'drawings', id: id, data: { name: newName } }
       })
     } catch (err) {
-      console.warn('云端更新名称失败:', err)
+      console.warn('云端更新名称失败，已入队重试:', err)
+      // 入队重试，联网后由 syncQueue 自动同步
+      syncQueue.enqueue({
+        id: 'update_drawing_' + id,
+        action: 'update',
+        collection: 'drawings',
+        data: { name: newName },
+        extra: { id: id }
+      })
     }
   }
 }
@@ -471,21 +575,39 @@ async function uploadBrushingRecord(record) {
   })
 
   try {
-    var syncedData = { ...fullRecord }
+    // 逐张上传图片，每张成功后立即回写本地与 fullRecord，避免部分失败时丢失已传 fileID
     for (var k = 0; k < uploadImages.length; k++) {
       var img2 = uploadImages[k]
-      var uploadRes = await wx.cloud.uploadFile({
-        cloudPath: img2.cloudPath,
-        filePath: img2.localPath
-      })
-      syncedData.images[k] = uploadRes.fileID
+      try {
+        var uploadRes = await wx.cloud.uploadFile({
+          cloudPath: img2.cloudPath,
+          filePath: img2.localPath
+        })
+        fullRecord.images[k] = uploadRes.fileID
+        if (k === 0) fullRecord.imagePath = uploadRes.fileID
+        // 回写本地缓存
+        var tmpRecs = childStorage.get('brushingRecords') || []
+        for (var ti = 0; ti < tmpRecs.length; ti++) {
+          if (tmpRecs[ti].id === record.id) {
+            tmpRecs[ti].images[k] = uploadRes.fileID
+            if (k === 0) tmpRecs[ti].imagePath = uploadRes.fileID
+            break
+          }
+        }
+        childStorage.set('brushingRecords', tmpRecs)
+      } catch (imgErr) {
+        // 单张失败：把已传成功的 fileID 更新到队列项，抛出触发整体重试（flush 会跳过已传的图）
+        console.warn('刷牙图片上传失败:', img2.localPath, imgErr)
+        syncQueue.updateData(record.id, fullRecord)
+        throw imgErr
+      }
     }
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'brushingRecords', data: syncedData }
+      data: { action: 'add', collection: 'brushingRecords', data: fullRecord }
     })
     syncQueue.dequeue(record.id)
-    
+
     // 同步成功，标记 synced=true
     var localRecords = childStorage.get('brushingRecords') || []
     for (var i = 0; i < localRecords.length; i++) {
@@ -648,7 +770,14 @@ async function updateBrushingRecord(timeOfDay, updates) {
         data: { action: 'update', collection: 'brushingRecords', id: target.id, data: updates }
       })
     } catch (err) {
-      console.warn('云端更新失败:', err)
+      console.warn('云端更新失败，已入队重试:', err)
+      syncQueue.enqueue({
+        id: 'update_brushing_' + target.id,
+        action: 'update',
+        collection: 'brushingRecords',
+        data: updates,
+        extra: { id: target.id }
+      })
     }
   }
 }
@@ -668,7 +797,14 @@ async function updateBrushingRecordById(id, updates) {
         data: { action: 'update', collection: 'brushingRecords', id: id, data: updates }
       })
     } catch (err) {
-      console.warn('云端更新失败:', err)
+      console.warn('云端更新失败，已入队重试:', err)
+      syncQueue.enqueue({
+        id: 'update_brushing_' + id,
+        action: 'update',
+        collection: 'brushingRecords',
+        data: updates,
+        extra: { id: id }
+      })
     }
   }
 }
@@ -736,25 +872,37 @@ async function uploadNote(note) {
   })
 
   try {
-    var syncedData = { ...record }
+    // 逐个上传媒体（图片/语音），每个成功后立即回写本地与 record，避免部分失败时丢失已传 fileID
     for (var k = 0; k < uploadImages.length; k++) {
       var img = uploadImages[k]
-      var uploadRes = await wx.cloud.uploadFile({
-        cloudPath: img.cloudPath,
-        filePath: img.localPath
-      })
-      if (img.field === 'voice') {
-        syncedData.voice = uploadRes.fileID
-      } else {
-        syncedData.images[k] = uploadRes.fileID
+      try {
+        var uploadRes = await wx.cloud.uploadFile({
+          cloudPath: img.cloudPath,
+          filePath: img.localPath
+        })
+        // 按 field 正确回写（voice 或 images[n]）
+        setMediaField(record, img.field, uploadRes.fileID)
+        // 回写本地缓存
+        var tmpNotes = childStorage.get('notes') || []
+        for (var ti = 0; ti < tmpNotes.length; ti++) {
+          if (tmpNotes[ti].id === note.id) {
+            setMediaField(tmpNotes[ti], img.field, uploadRes.fileID)
+            break
+          }
+        }
+        childStorage.set('notes', tmpNotes)
+      } catch (imgErr) {
+        console.warn('笔记媒体上传失败:', img.localPath, imgErr)
+        syncQueue.updateData(note.id, record)
+        throw imgErr
       }
     }
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'notes', data: syncedData }
+      data: { action: 'add', collection: 'notes', data: record }
     })
     syncQueue.dequeue(note.id)
-    
+
     // 同步成功，标记 synced=true
     var localNotes = childStorage.get('notes') || []
     for (var i = 0; i < localNotes.length; i++) {
@@ -769,6 +917,21 @@ async function uploadNote(note) {
   }
 
   return localImages
+}
+
+// 按 field 字符串（如 'images[2]' 或 'voice'）设置对象中的媒体值
+function setMediaField(obj, field, value) {
+  if (field.indexOf('[') >= 0) {
+    // images[n] 形式
+    var match = field.match(/^(\w+)\[(\d+)\]$/)
+    if (match) {
+      var arr = obj[match[1]] || []
+      arr[parseInt(match[2], 10)] = value
+      obj[match[1]] = arr
+    }
+  } else {
+    obj[field] = value
+  }
 }
 
 async function fetchNotes() {
@@ -871,7 +1034,14 @@ async function updateNoteInCloud(id, updates) {
         data: { action: 'update', collection: 'notes', id: id, data: updates }
       })
     } catch (err) {
-      console.warn('笔记云端更新失败:', err)
+      console.warn('笔记云端更新失败，已入队重试:', err)
+      syncQueue.enqueue({
+        id: 'update_note_' + id,
+        action: 'update',
+        collection: 'notes',
+        data: updates,
+        extra: { id: id }
+      })
     }
   }
 }
@@ -1002,21 +1172,37 @@ async function uploadHabitRecord(record) {
   })
 
   try {
-    var syncedData = { ...fullRecord }
+    // 逐张上传图片，每张成功后立即回写本地与 fullRecord，避免部分失败时丢失已传 fileID
     for (var k = 0; k < uploadImages.length; k++) {
       var img = uploadImages[k]
-      var uploadRes = await wx.cloud.uploadFile({
-        cloudPath: img.cloudPath,
-        filePath: img.localPath
-      })
-      syncedData.images[k] = uploadRes.fileID
+      try {
+        var uploadRes = await wx.cloud.uploadFile({
+          cloudPath: img.cloudPath,
+          filePath: img.localPath
+        })
+        fullRecord.images[k] = uploadRes.fileID
+        if (k === 0) fullRecord.imagePath = uploadRes.fileID
+        var tmpRecs = childStorage.get('habitRecords') || []
+        for (var ti = 0; ti < tmpRecs.length; ti++) {
+          if (tmpRecs[ti].id === record.id) {
+            tmpRecs[ti].images[k] = uploadRes.fileID
+            if (k === 0) tmpRecs[ti].imagePath = uploadRes.fileID
+            break
+          }
+        }
+        childStorage.set('habitRecords', tmpRecs)
+      } catch (imgErr) {
+        console.warn('习惯图片上传失败:', img.localPath, imgErr)
+        syncQueue.updateData(record.id, fullRecord)
+        throw imgErr
+      }
     }
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'habitRecords', data: syncedData }
+      data: { action: 'add', collection: 'habitRecords', data: fullRecord }
     })
     syncQueue.dequeue(record.id)
-    
+
     // 同步成功，标记 synced=true
     var localRecords = childStorage.get('habitRecords') || []
     for (var i = 0; i < localRecords.length; i++) {
@@ -1170,12 +1356,14 @@ async function uploadHabits(habits) {
 
   if (isCloudReady()) {
     try {
+      var now = new Date().toISOString()
+      childStorage.set('habitsUpdatedAt', now)
       await wx.cloud.callFunction({
         name: 'record',
         data: {
           action: 'add',
           collection: 'userSettings',
-          data: { _id: 'habits', list: habits }
+          data: { _id: 'habits', list: habits, updatedAt: now }
         }
       })
     } catch (err) {
@@ -1207,8 +1395,12 @@ async function fetchHabits() {
     if (res.result.code === 0 && res.result.data.list.length > 0) {
       var habitsDoc = res.result.data.list.find(function(d) { return d._id && d._id.indexOf('habits') >= 0 })
       if (habitsDoc && habitsDoc.list) {
-        childStorage.set('habits', habitsDoc.list)
-        return habitsDoc.list
+        // 乐观锁：仅当云端比本地更新时才覆盖，避免本地新改动被旧云端数据覆盖
+        if (shouldUseCloud(habitsDoc.updatedAt, childStorage.get('habitsUpdatedAt'))) {
+          childStorage.set('habits', habitsDoc.list)
+          childStorage.set('habitsUpdatedAt', habitsDoc.updatedAt)
+        }
+        return childStorage.get('habits') || []
       }
     }
   } catch (err) {
@@ -1218,6 +1410,13 @@ async function fetchHabits() {
   return childStorage.get('habits') || []
 }
 
+// 乐观锁比较：云端 updatedAt 比本地新（或本地无记录）时返回 true
+function shouldUseCloud(cloudUpdatedAt, localUpdatedAt) {
+  if (!cloudUpdatedAt) return true  // 云端无时间戳（旧数据），兼容使用
+  if (!localUpdatedAt) return true  // 本地无时间戳，使用云端
+  return new Date(cloudUpdatedAt).getTime() > new Date(localUpdatedAt).getTime()
+}
+
 // ===== 学习进度 =====
 
 async function uploadLearnProgress(progress) {
@@ -1225,12 +1424,14 @@ async function uploadLearnProgress(progress) {
 
   if (isCloudReady()) {
     try {
+      var now = new Date().toISOString()
+      childStorage.set('learnProgressUpdatedAt', now)
       await wx.cloud.callFunction({
         name: 'record',
         data: {
           action: 'add',
           collection: 'userSettings',
-          data: { _id: 'learnProgress', ...progress }
+          data: { _id: 'learnProgress', ...progress, updatedAt: now }
         }
       })
     } catch (err) {
@@ -1262,9 +1463,14 @@ async function fetchLearnProgress() {
     if (res.result.code === 0 && res.result.data.list.length > 0) {
       var progressDoc = res.result.data.list.find(function(d) { return d._id && d._id.indexOf('learnProgress') >= 0 })
       if (progressDoc) {
-        var { _id, familyId, childId, createdBy, createdByName, likes, createTime, ...progress } = progressDoc
-        childStorage.set('learnProgress', progress)
-        return progress
+        var cloudUpdatedAt = progressDoc.updatedAt
+        var { _id, familyId, childId, createdBy, createdByName, likes, createTime, updatedAt, ...progress } = progressDoc
+        // 乐观锁：仅云端更新时覆盖本地
+        if (shouldUseCloud(cloudUpdatedAt, childStorage.get('learnProgressUpdatedAt'))) {
+          childStorage.set('learnProgress', progress)
+          childStorage.set('learnProgressUpdatedAt', cloudUpdatedAt)
+        }
+        return childStorage.get('learnProgress') || {}
       }
     }
   } catch (err) {
@@ -1281,12 +1487,14 @@ async function uploadSettings(settings) {
 
   if (isCloudReady()) {
     try {
+      var now = new Date().toISOString()
+      childStorage.set('settingsUpdatedAt', now)
       await wx.cloud.callFunction({
         name: 'record',
         data: {
           action: 'add',
           collection: 'userSettings',
-          data: { _id: 'settings', ...settings }
+          data: { _id: 'settings', ...settings, updatedAt: now }
         }
       })
     } catch (err) {
@@ -1318,9 +1526,13 @@ async function fetchSettings() {
     if (res.result.code === 0 && res.result.data.list.length > 0) {
       var settingsDoc = res.result.data.list.find(function(d) { return d._id === 'settings' })
       if (settingsDoc) {
-        var { _id, familyId, childId, createdBy, createdByName, likes, createTime, ...settings } = settingsDoc
-        childStorage.set('settings', settings)
-        return settings
+        var cloudUpdatedAt = settingsDoc.updatedAt
+        var { _id, familyId, childId, createdBy, createdByName, likes, createTime, updatedAt, ...settings } = settingsDoc
+        if (shouldUseCloud(cloudUpdatedAt, childStorage.get('settingsUpdatedAt'))) {
+          childStorage.set('settings', settings)
+          childStorage.set('settingsUpdatedAt', cloudUpdatedAt)
+        }
+        return childStorage.get('settings') || {}
       }
     }
   } catch (err) {
@@ -1337,12 +1549,14 @@ async function uploadBrushingStory(story) {
 
   if (isCloudReady()) {
     try {
+      var now = new Date().toISOString()
+      childStorage.set('brushingStoryUpdatedAt', now)
       await wx.cloud.callFunction({
         name: 'record',
         data: {
           action: 'add',
           collection: 'userSettings',
-          data: { _id: 'brushingStory', ...story }
+          data: { _id: 'brushingStory', ...story, updatedAt: now }
         }
       })
     } catch (err) {
@@ -1374,9 +1588,13 @@ async function fetchBrushingStory() {
     if (res.result.code === 0 && res.result.data.list.length > 0) {
       var storyDoc = res.result.data.list.find(function(d) { return d._id && d._id.indexOf('brushingStory') >= 0 })
       if (storyDoc) {
-        var { _id, familyId, childId, createdBy, createdByName, likes, createTime, ...story } = storyDoc
-        childStorage.set('brushingStory', story)
-        return story
+        var cloudUpdatedAt = storyDoc.updatedAt
+        var { _id, familyId, childId, createdBy, createdByName, likes, createTime, updatedAt, ...story } = storyDoc
+        if (shouldUseCloud(cloudUpdatedAt, childStorage.get('brushingStoryUpdatedAt'))) {
+          childStorage.set('brushingStory', story)
+          childStorage.set('brushingStoryUpdatedAt', cloudUpdatedAt)
+        }
+        return childStorage.get('brushingStory') || null
       }
     }
   } catch (err) {}
@@ -1453,12 +1671,14 @@ async function uploadBrushPoints(points) {
 
   if (isCloudReady()) {
     try {
+      var now = new Date().toISOString()
+      childStorage.set('totalBrushPointsUpdatedAt', now)
       await wx.cloud.callFunction({
         name: 'record',
         data: {
           action: 'add',
           collection: 'userSettings',
-          data: { _id: 'totalBrushPoints', value: points }
+          data: { _id: 'totalBrushPoints', value: points, updatedAt: now }
         }
       })
     } catch (err) {
@@ -1490,8 +1710,15 @@ async function fetchBrushPoints() {
     if (res.result.code === 0 && res.result.data.list.length > 0) {
       var pointsDoc = res.result.data.list.find(function(d) { return d._id && d._id.indexOf('totalBrushPoints') >= 0 })
       if (pointsDoc && pointsDoc.value !== undefined) {
-        childStorage.set('totalBrushPoints', pointsDoc.value)
-        return pointsDoc.value
+        // 乐观锁：仅云端更新时覆盖（积分取较大值，避免回退）
+        if (shouldUseCloud(pointsDoc.updatedAt, childStorage.get('totalBrushPointsUpdatedAt'))) {
+          var localPoints = childStorage.get('totalBrushPoints') || 0
+          // 积分取较大值，防止本地已增加的积分被旧云端覆盖
+          var finalPoints = Math.max(pointsDoc.value, localPoints)
+          childStorage.set('totalBrushPoints', finalPoints)
+          childStorage.set('totalBrushPointsUpdatedAt', pointsDoc.updatedAt)
+        }
+        return childStorage.get('totalBrushPoints') || 0
       }
     }
   } catch (err) {}
@@ -1504,12 +1731,14 @@ async function uploadToothDecorations(decorations) {
 
   if (isCloudReady()) {
     try {
+      var now = new Date().toISOString()
+      childStorage.set('toothDecorationsUpdatedAt', now)
       await wx.cloud.callFunction({
         name: 'record',
         data: {
           action: 'add',
           collection: 'userSettings',
-          data: { _id: 'toothDecorations', list: decorations }
+          data: { _id: 'toothDecorations', list: decorations, updatedAt: now }
         }
       })
     } catch (err) {
@@ -1541,8 +1770,18 @@ async function fetchToothDecorations() {
     if (res.result.code === 0 && res.result.data.list.length > 0) {
       var decoDoc = res.result.data.list.find(function(d) { return d._id && d._id.indexOf('toothDecorations') >= 0 })
       if (decoDoc && decoDoc.list) {
-        childStorage.set('toothDecorations', decoDoc.list)
-        return decoDoc.list
+        if (shouldUseCloud(decoDoc.updatedAt, childStorage.get('toothDecorationsUpdatedAt'))) {
+          // 装饰是已购列表（只增不减），用并集合并避免丢失本地新购项
+          var local = childStorage.get('toothDecorations') || []
+          var mergedMap = {}
+          decoDoc.list.forEach(function(d) { mergedMap[typeof d === 'string' ? d : d.id] = d })
+          local.forEach(function(d) { var k = typeof d === 'string' ? d : d.id; if (!mergedMap[k]) mergedMap[k] = d })
+          var merged = []
+          for (var key in mergedMap) merged.push(mergedMap[key])
+          childStorage.set('toothDecorations', merged)
+          childStorage.set('toothDecorationsUpdatedAt', decoDoc.updatedAt)
+        }
+        return childStorage.get('toothDecorations') || []
       }
     }
   } catch (err) {}
@@ -1830,14 +2069,17 @@ async function removeStallSale(id) {
 
 // 上传摊位设置（用固定 _id 的 upsert 一步到位）
 async function uploadStallSettings(settings) {
+  childStorage.set('stallSettings', settings)
   if (!isCloudReady()) return
   try {
+    var now = new Date().toISOString()
+    childStorage.set('stallSettingsUpdatedAt', now)
     await wx.cloud.callFunction({
       name: 'record',
       data: {
         action: 'add',
         collection: 'stallSettings',
-        data: { _id: 'stall_settings', ...settings }
+        data: { _id: 'stall_settings', ...settings, updatedAt: now }
       }
     })
   } catch (err) {
@@ -1847,19 +2089,27 @@ async function uploadStallSettings(settings) {
 }
 
 async function fetchStallSettings() {
-  if (!isCloudReady()) return null
+  if (!isCloudReady()) return childStorage.get('stallSettings') || null
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
       data: { action: 'get', collection: 'stallSettings', id: 'stall_settings' }
     })
     if (res.result.code === 0) {
-      return res.result.data
+      var doc = res.result.data
+      // 乐观锁：仅云端更新时覆盖本地
+      if (shouldUseCloud(doc.updatedAt, childStorage.get('stallSettingsUpdatedAt'))) {
+        var { _id, familyId, childId, createdBy, createdByName, likes, createTime, updatedAt, ...settings } = doc
+        childStorage.set('stallSettings', settings)
+        childStorage.set('stallSettingsUpdatedAt', doc.updatedAt)
+        return settings
+      }
+      return childStorage.get('stallSettings') || null
     }
   } catch (err) {
     console.warn('云端读取摊位设置失败:', err)
   }
-  return null
+  return childStorage.get('stallSettings') || null
 }
 
 // 清理云端旧格式的数组文档（一次性迁移，旧 uploadStallProduct 传整个数组导致每条文档是数组快照）
@@ -1883,14 +2133,17 @@ async function cleanLegacyArrayDocs(collection, cloudList) {
 // ===== 摆摊挑战和营业时间 =====
 
 async function uploadStallChallenges(challenges) {
+  childStorage.set('stallDailyChallenges', challenges)
   if (!isCloudReady()) return
   try {
+    var now = new Date().toISOString()
+    childStorage.set('stallDailyChallengesUpdatedAt', now)
     await wx.cloud.callFunction({
       name: 'record',
       data: {
         action: 'add',
         collection: 'stallChallenges',
-        data: { _id: 'stall_challenges', ...challenges }
+        data: { _id: 'stall_challenges', ...challenges, updatedAt: now }
       }
     })
   } catch (err) {
@@ -1899,30 +2152,40 @@ async function uploadStallChallenges(challenges) {
 }
 
 async function fetchStallChallenges() {
-  if (!isCloudReady()) return null
+  if (!isCloudReady()) return childStorage.get('stallDailyChallenges') || null
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
       data: { action: 'get', collection: 'stallChallenges', id: 'stall_challenges' }
     })
     if (res.result.code === 0) {
-      return res.result.data
+      var doc = res.result.data
+      if (shouldUseCloud(doc.updatedAt, childStorage.get('stallDailyChallengesUpdatedAt'))) {
+        var { _id, familyId, childId, createdBy, createdByName, likes, createTime, updatedAt, ...challenges } = doc
+        childStorage.set('stallDailyChallenges', challenges)
+        childStorage.set('stallDailyChallengesUpdatedAt', doc.updatedAt)
+        return challenges
+      }
+      return childStorage.get('stallDailyChallenges') || null
     }
   } catch (err) {
     console.warn('云端读取挑战数据失败:', err)
   }
-  return null
+  return childStorage.get('stallDailyChallenges') || null
 }
 
 async function uploadStallBusinessHours(hours) {
+  childStorage.set('stallBusinessHours', hours)
   if (!isCloudReady()) return
   try {
+    var now = new Date().toISOString()
+    childStorage.set('stallBusinessHoursUpdatedAt', now)
     await wx.cloud.callFunction({
       name: 'record',
       data: {
         action: 'add',
         collection: 'stallBusinessHours',
-        data: { _id: 'stall_business_hours', ...hours }
+        data: { _id: 'stall_business_hours', ...hours, updatedAt: now }
       }
     })
   } catch (err) {
@@ -1931,23 +2194,34 @@ async function uploadStallBusinessHours(hours) {
 }
 
 async function fetchStallBusinessHours() {
-  if (!isCloudReady()) return null
+  if (!isCloudReady()) return childStorage.get('stallBusinessHours') || null
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
       data: { action: 'get', collection: 'stallBusinessHours', id: 'stall_business_hours' }
     })
     if (res.result.code === 0) {
-      return res.result.data
+      var doc = res.result.data
+      if (shouldUseCloud(doc.updatedAt, childStorage.get('stallBusinessHoursUpdatedAt'))) {
+        var { _id, familyId, childId, createdBy, createdByName, likes, createTime, updatedAt, ...hours } = doc
+        childStorage.set('stallBusinessHours', hours)
+        childStorage.set('stallBusinessHoursUpdatedAt', doc.updatedAt)
+        return hours
+      }
+      return childStorage.get('stallBusinessHours') || null
     }
   } catch (err) {
     console.warn('云端读取营业时间失败:', err)
   }
-  return null
+  return childStorage.get('stallBusinessHours') || null
 }
 
 module.exports = {
   isCloudReady: isCloudReady,
+  // 通用墓碑操作（供 game-cloud 等模块复用）
+  getDeletedIdsByKey: getDeletedIdsByKey,
+  addDeletedIdByKey: addDeletedIdByKey,
+  removeTombstoneByKey: removeTombstoneByKey,
   uploadDrawing: uploadDrawing,
   fetchDrawings: fetchDrawings,
   removeDrawing: removeDrawing,
