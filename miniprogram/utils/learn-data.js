@@ -287,7 +287,7 @@ var getRecommendations = function() {
       type: 'create',
       icon: '🎨',
       text: '画一幅画',
-      target: '/pages/create/draw/draw?mode=free'
+      target: '/packageCreate/pages/create/draw/draw?mode=free'
     })
   }
 
