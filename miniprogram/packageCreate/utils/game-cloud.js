@@ -4,9 +4,9 @@
  * 详细统计在本地计算
  */
 
-var auth = require('/utils/auth.js')
-var childStorage = require('/utils/child-storage.js')
-var syncQueue = require('/utils/sync-queue.js')
+var auth = require('../../utils/auth.js')
+var childStorage = require('../../utils/child-storage.js')
+var syncQueue = require('../../utils/sync-queue.js')
 
 var isCloudReady = function() {
   try {
@@ -17,7 +17,7 @@ var isCloudReady = function() {
 }
 
 // 复用 cloud.js 的墓碑清理能力（游戏记录删除标记）
-var cloud = require('/utils/cloud.js')
+var cloud = require('../../utils/cloud.js')
 
 function getRecordMeta() {
   var member = auth.getMember()

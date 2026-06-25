@@ -1,8 +1,8 @@
-const util = require('/utils/util.js')
-const cloud = require('/utils/cloud.js')
-const childStorage = require('/utils/child-storage.js')
-const auth = require('/utils/auth.js')
-const { getNavBarInfo, previewImage } = require('/utils/page-helpers.js')
+const util = require('../../../../utils/util.js')
+const cloud = require('../../../../utils/cloud.js')
+const childStorage = require('../../../../utils/child-storage.js')
+const auth = require('../../../../utils/auth.js')
+const { getNavBarInfo, previewImage } = require('../../../../utils/page-helpers.js')
 
 Page({
   data: {

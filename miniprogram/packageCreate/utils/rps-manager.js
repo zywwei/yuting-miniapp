@@ -2,8 +2,8 @@
  * 剪刀石头布业务逻辑管理器
  */
 
-var childStorage = require('/utils/child-storage.js')
-var gameCloud = require('/packageCreate/utils/game-cloud.js')
+var childStorage = require('../../utils/child-storage.js')
+var gameCloud = require('./game-cloud.js')
 
 // 选择定义
 var CHOICES = ['rock', 'paper', 'scissors']
@@ -107,7 +107,7 @@ function getStoryItems() {
 
 // 购买道具
 function buyItem(itemId) {
-  var gameEconomy = require('/packageCreate/utils/game-economy.js')
+  var gameEconomy = require('./game-economy.js')
   var item = null
   for (var i = 0; i < STORY_ITEMS.length; i++) {
     if (STORY_ITEMS[i].id === itemId) {

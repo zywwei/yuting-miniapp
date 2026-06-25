@@ -2,8 +2,8 @@
  * 剪刀石头布工具函数
  */
 
-var rpsManager = require('/packageCreate/utils/rps-manager.js')
-var childStorage = require('/utils/child-storage.js')
+var rpsManager = require('./rps-manager.js')
+var childStorage = require('../../utils/child-storage.js')
 
 // 格式化游戏结果
 function formatResult(result) {

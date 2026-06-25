@@ -1,5 +1,5 @@
-var childStorage = require('/utils/child-storage.js')
-var stallUtils = require('/packageCreate/utils/stall-utils.js')
+var childStorage = require('../../../../../utils/child-storage.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 var DIARY_KEY = 'stallDiary'
 
 Page({

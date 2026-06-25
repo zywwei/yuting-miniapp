@@ -3,7 +3,7 @@
  * 棋盘逻辑、规则判定、移动计算
  */
 
-var board = require('/packageCreate/utils/flight-board.js')
+var board = require('./flight-board.js')
 
 var COLORS = ['red', 'yellow', 'blue', 'green']
 var COLOR_NAMES = {

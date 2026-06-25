@@ -1,4 +1,4 @@
-var stallUtils = require('/packageCreate/utils/stall-utils.js')
+var stallUtils = require('../../../../utils/stall-utils.js')
 
 Page({
   data: {
