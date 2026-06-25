@@ -195,7 +195,12 @@ Page({
         currentModelKey: currentModelKey,
         currentSubModelName: currentSubModelName,
         currentTemplateKey: currentTemplateKey,
-        currentTemplateName: currentTemplateName
+        currentTemplateName: currentTemplateName,
+        isConfigured: !!(configuredModels[currentProvider] && configuredModels[currentProvider].apiKey),
+        modelInfo: {
+          icon: (models[currentProvider] || MODELS['minimax']).icon,
+          name: (models[currentProvider] || MODELS['minimax']).name
+        }
       })
     }).catch(function(err) {
       console.error('获取配置失败:', err)
@@ -387,6 +392,13 @@ Page({
         },
         expandProvider: true
       })
+
+      // 保存供应商切换到云端
+      var saveConfig = {
+        currentModel: key,
+        models: config.models || {}
+      }
+      aiManager.saveConfig(saveConfig)
     })
   },
 
