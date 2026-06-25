@@ -1,4 +1,4 @@
-var auth = require('../../../utils/auth.js')
+var auth = getApp().globalData.auth
 
 var THEMES = [
   { id: 'pink', name: '粉色', color: '#FF9AAB', bg: '#FFF5F7', gradient: 'linear-gradient(135deg, #FF9AAB 0%, #FFB6C1 100%)' },

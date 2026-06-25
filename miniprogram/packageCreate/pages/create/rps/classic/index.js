@@ -1,6 +1,6 @@
 var rpsManager = require('../../../../utils/rps-manager.js')
 var rpsUtils = require('../../../../utils/rps-utils.js')
-var childStorage = require('../../../../../utils/child-storage.js')
+var childStorage = getApp().globalData.childStorage
 
 Page({
   data: {

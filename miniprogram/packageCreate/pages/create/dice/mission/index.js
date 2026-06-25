@@ -1,6 +1,6 @@
 var diceManager = require('../../../../utils/dice-manager.js')
-var achievements = require('../../../../../utils/achievements.js')
-var beep = require('../../../../../utils/beep.js')
+var achievements = getApp().globalData.achievements
+var beep = getApp().globalData.beep
 
 Page({
   data: {

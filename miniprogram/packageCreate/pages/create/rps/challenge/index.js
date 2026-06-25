@@ -1,7 +1,7 @@
 var rpsManager = require('../../../../utils/rps-manager.js')
 var rpsUtils = require('../../../../utils/rps-utils.js')
-var achievements = require('../../../../../utils/achievements.js')
-var beep = require('../../../../../utils/beep.js')
+var achievements = getApp().globalData.achievements
+var beep = getApp().globalData.beep
 
 Page({
   data: {

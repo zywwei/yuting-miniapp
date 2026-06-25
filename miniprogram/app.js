@@ -1,5 +1,13 @@
 var auth = require('./utils/auth.js')
 var syncQueue = require('./utils/sync-queue.js')
+var aiManager = require('./utils/ai-manager.js')
+var childStorage = require('./utils/child-storage.js')
+var cloud = require('./utils/cloud.js')
+var util = require('./utils/util.js')
+var achievements = require('./utils/achievements.js')
+var beep = require('./utils/beep.js')
+var audio = require('./utils/audio.js')
+var pageHelpers = require('./utils/page-helpers.js')
 
 App({
   onLaunch() {
@@ -275,6 +283,16 @@ App({
   },
 
   globalData: {
+    aiManager: aiManager,
+    auth: auth,
+    childStorage: childStorage,
+    cloud: cloud,
+    util: util,
+    achievements: achievements,
+    beep: beep,
+    audio: audio,
+    pageHelpers: pageHelpers,
+    syncQueue: syncQueue,
     cloudEnabled: false,
     growthDays: 0,
     member: null,

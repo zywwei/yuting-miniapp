@@ -1,7 +1,7 @@
-const util = require('../../../../utils/util.js')
-const childStorage = require('../../../../utils/child-storage.js')
+const util = getApp().globalData.util
+const childStorage = getApp().globalData.childStorage
 const habitUtils = require('../../../utils/habit-utils.js')
-const { getNavBarInfo, previewImage } = require('../../../../utils/page-helpers.js')
+const { getNavBarInfo, previewImage } = getApp().globalData.pageHelpers
 
 Page({
   data: {

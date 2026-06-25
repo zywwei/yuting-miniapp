@@ -1,9 +1,9 @@
-const util = require('../../../../utils/util.js')
-const audio = require('../../../../utils/audio.js')
-const beep = require('../../../../utils/beep.js')
-const cloud = require('../../../../utils/cloud.js')
-const achievements = require('../../../../utils/achievements.js')
-const { getNavBarInfo } = require('../../../../utils/page-helpers.js')
+const util = getApp().globalData.util
+const audio = getApp().globalData.audio
+const beep = getApp().globalData.beep
+const cloud = getApp().globalData.cloud
+const achievements = getApp().globalData.achievements
+const { getNavBarInfo } = getApp().globalData.pageHelpers
 const {
   BRUSH_AREAS, BRUSHING_TIPS, THEMES, REWARD_TEXTS, getCompletedTexts,
   CHEER_LEFT, CHEER_RIGHT, RING_MODES, BUBBLE_LIST, PRE_GERM_TYPES,

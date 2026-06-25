@@ -1,7 +1,7 @@
 var rpsManager = require('../../../utils/rps-manager.js')
 var rpsUtils = require('../../../utils/rps-utils.js')
-var childStorage = require('../../../../utils/child-storage.js')
-var audio = require('../../../../utils/audio.js')
+var childStorage = getApp().globalData.childStorage
+var audio = getApp().globalData.audio
 
 Page({
   data: {

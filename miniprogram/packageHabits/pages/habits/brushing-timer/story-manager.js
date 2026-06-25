@@ -1,4 +1,4 @@
-const util = require('../../../../utils/util.js')
+const util = getApp().globalData.util
 const { CHAPTERS, HIDDEN_CHAPTERS, getOrSelectTodayChapter, STORY_DIALOGUES } = require('./constants.js')
 
 /**

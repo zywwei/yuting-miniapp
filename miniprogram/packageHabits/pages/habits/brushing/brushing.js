@@ -1,10 +1,10 @@
-const util = require('../../../../utils/util.js')
-const audio = require('../../../../utils/audio.js')
-const cloud = require('../../../../utils/cloud.js')
-const childStorage = require('../../../../utils/child-storage.js')
-const achievements = require('../../../../utils/achievements.js')
-const auth = require('../../../../utils/auth.js')
-const { getNavBarInfo, previewImage, getTodayStr, getYesterdayStr } = require('../../../../utils/page-helpers.js')
+const util = getApp().globalData.util
+const audio = getApp().globalData.audio
+const cloud = getApp().globalData.cloud
+const childStorage = getApp().globalData.childStorage
+const achievements = getApp().globalData.achievements
+const auth = getApp().globalData.auth
+const { getNavBarInfo, previewImage, getTodayStr, getYesterdayStr } = getApp().globalData.pageHelpers
 const { CHAPTERS, getOrSelectTodayChapter } = require('../brushing-timer/constants.js')
 
 Page({
