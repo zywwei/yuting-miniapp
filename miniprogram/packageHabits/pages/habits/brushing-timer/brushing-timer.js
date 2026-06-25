@@ -2,6 +2,7 @@ const util = getApp().globalData.util
 const audio = getApp().globalData.audio
 const beep = getApp().globalData.beep
 const cloud = getApp().globalData.cloud
+const auth = getApp().globalData.auth
 const achievements = getApp().globalData.achievements
 const { getNavBarInfo } = getApp().globalData.pageHelpers
 const {
@@ -1289,6 +1290,36 @@ Page({
     }
     beep.playBeep('complete')
     this.generateConfetti()
+
+    // 时间到，确保当前正在刷的最后一个区域也被标记为已完成
+    const { currentAreaIndex, currentArea, completedAreas, toothZones } = this.data
+    if (currentArea && !completedAreas.includes(currentArea.name)) {
+      const finishedZone = toothZones.find(z => z.index === currentAreaIndex)
+      const germBonus = finishedZone ? finishedZone.germs.length * BATTLE_CONFIG.GERM_BONUS_POINTS : 0
+      const areaPoints = BATTLE_CONFIG.AREA_COMPLETE_POINTS + germBonus
+      const newPoints = this.data.brushPoints + areaPoints
+      const newCleaned = this.data.totalDirtyCleaned + (finishedZone ? finishedZone.germs.length : 0)
+      const updatedAreas = [...completedAreas, currentArea.name]
+
+      // 对最后一个区域触发攻击动画
+      const { currentEnemy, isEnemyDefeated, minions, showMinions } = this.data
+      if (currentEnemy && !isEnemyDefeated) {
+        const aliveMinions = minions.filter(m => !m.defeated && !m.defeating)
+        if (showMinions && aliveMinions.length > 0) {
+          this.attackMinion()
+        }
+        this.triggerAttackAnimation(1)
+      }
+
+      this.setData({
+        completedAreas: updatedAreas,
+        brushPoints: newPoints,
+        totalDirtyCleaned: newCleaned,
+        areaRemaining: 0
+      })
+      this.updateZoneStates()
+      this._areaElapsed = 0
+    }
 
     // 时间到，确保敌人被击败
     const wasEnemyDefeated = this.data.isEnemyDefeated
