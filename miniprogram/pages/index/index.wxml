@@ -28,7 +28,7 @@
           <text class="days-big">{{growthDays}}</text>
           <text class="days-unit">天</text>
         </view>
-        <text class="days-detail">{{growthYears}}年{{growthMonths}}月{{growthDaysRemain}}天</text>
+        <text class="days-detail">{{growthYears > 0 ? growthYears + '年' : ''}}{{growthMonths > 0 ? growthMonths + '个月' : ''}}{{growthDaysRemain > 0 ? growthDaysRemain + '天' : (growthYears === 0 && growthMonths === 0 ? '第1天' : '')}}</text>
       </view>
     </view>
   </view>
