@@ -1,0 +1,60 @@
+/* 拼图模式 */
+page { height: 100%; margin: 0; }
+.game-container { height: 100%; display: flex; flex-direction: column; background: linear-gradient(180deg, #1A1A2E, #16213E); overflow: hidden; }
+
+/* 关卡选择 */
+.sel-screen { padding: 16rpx; overflow-y: auto; }
+.sel-hd { text-align: center; padding: 16rpx 0; }
+.sel-ico { font-size: 48rpx; }
+.sel-t { display: block; font-size: 32rpx; font-weight: bold; color: #fff; }
+.sel-d { display: block; font-size: 20rpx; color: rgba(255,255,255,0.7); }
+.sel-c { display: block; font-size: 22rpx; color: #FFD700; margin-top: 8rpx; }
+.lv-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10rpx; }
+.lv-item { background: rgba(255,255,255,0.08); border-radius: 10rpx; padding: 10rpx; text-align: center; }
+.lv-item:active { transform: scale(0.95); }
+.lv-item.locked { opacity: 0.3; pointer-events: none; }
+.lv-item.done { background: rgba(76,175,80,0.15); }
+.lv-n { display: block; font-size: 26rpx; font-weight: bold; color: #fff; }
+.lv-na { display: block; font-size: 16rpx; color: rgba(255,255,255,0.7); margin: 2rpx 0; }
+.emp { font-size: 16rpx; color: rgba(255,255,255,0.3); }
+
+/* 游戏中 */
+.play-screen { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.lv-info { text-align: center; margin-bottom: 2rpx; padding: 4rpx 0; flex-shrink: 0; }
+.li-t { font-size: 22rpx; font-weight: bold; color: #fff; }
+.li-d { font-size: 16rpx; color: rgba(255,255,255,0.7); display: block; }
+
+.stats { display: flex; gap: 8rpx; justify-content: center; margin-bottom: 2rpx; flex-shrink: 0; }
+.gs { font-size: 16rpx; color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.08); padding: 3rpx 8rpx; border-radius: 5rpx; }
+
+.piece-info { text-align: center; font-size: 16rpx; color: rgba(255,255,255,0.7); margin-bottom: 2rpx; flex-shrink: 0; }
+.pi-l { color: rgba(255,255,255,0.6); }
+.pi-t { font-weight: bold; color: #FFD700; }
+.pi-r { color: rgba(255,255,255,0.5); }
+
+.board-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden; }
+.board-canvas { display: block; border-radius: 4rpx; border: 2rpx solid rgba(255,255,255,0.12); box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.4); }
+
+.btn-bar { flex-shrink: 0; padding: 6rpx 16rpx 12rpx; background: rgba(0,0,0,0.2); }
+.btn-row { display: flex; justify-content: center; gap: 10rpx; }
+.btn { width: 68rpx; height: 56rpx; background: rgba(255,255,255,0.18); border-radius: 10rpx; display: flex; align-items: center; justify-content: center; border: 2rpx solid rgba(255,255,255,0.2); }
+.btn:active { background: rgba(255,255,255,0.35); }
+.btn-a { font-size: 26rpx; color: #fff; }
+.btn-t { font-size: 18rpx; color: #fff; font-weight: bold; }
+.btn-big { width: 76rpx; height: 60rpx; background: rgba(255,255,255,0.25); }
+.btn-big .btn-a { font-size: 32rpx; }
+.btn-purple { background: rgba(124,77,255,0.4); width: 84rpx; }
+.btn-gold { background: rgba(255,215,0,0.3); width: 84rpx; }
+.back-link { text-align: center; font-size: 18rpx; color: rgba(255,255,255,0.5); padding: 4rpx 0 12rpx; flex-shrink: 0; }
+
+/* 弹窗 */
+.overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.dialog { background: linear-gradient(135deg, #2A2A4E, #1A1A3E); border-radius: 24rpx; padding: 28rpx 24rpx; min-width: 400rpx; text-align: center; border: 2rpx solid rgba(255,255,255,0.1); }
+.dt { display: block; font-size: 36rpx; font-weight: bold; color: #fff; margin-bottom: 12rpx; }
+.dd { display: block; font-size: 22rpx; color: rgba(255,255,255,0.7); margin-bottom: 8rpx; }
+.stars-r { font-size: 36rpx; margin-bottom: 8rpx; }
+.dr { display: block; font-size: 24rpx; color: #FFD700; margin-bottom: 12rpx; }
+.db-row { display: flex; gap: 8rpx; justify-content: center; flex-wrap: wrap; }
+.db { background: rgba(124,77,255,0.4); border-radius: 24rpx; padding: 12rpx 20rpx; margin-top: 6rpx; color: #fff; font-size: 24rpx; font-weight: bold; }
+.db:active { background: rgba(124,77,255,0.6); }
+.db.gray { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }

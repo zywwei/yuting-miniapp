@@ -1,0 +1,117 @@
+<view class="game-container">
+  <!-- 顶部信息区：暂存 + 分数/等级/消行/金币 + 下一个 -->
+  <view class="top-bar">
+    <!-- 左侧：暂存 -->
+    <view class="top-hold">
+      <text class="top-label">暂存</text>
+      <view class="preview-box">
+        <block wx:if="{{holdGrid && holdGrid.length > 0}}">
+          <view wx:for="{{holdGrid}}" wx:for-item="row" wx:for-index="r" class="preview-row">
+            <view wx:for="{{row}}" wx:for-item="c" wx:for-index="ci" class="preview-cell" style="background:{{c}}"></view>
+          </view>
+        </block>
+        <text wx:else class="preview-empty">-</text>
+      </view>
+    </view>
+
+    <!-- 中间：分数/等级/消行/金币 -->
+    <view class="top-scores">
+      <view class="top-score-item">
+        <text class="top-score-val">{{score}}</text>
+        <text class="top-score-lbl">分数</text>
+      </view>
+      <view class="top-divider"></view>
+      <view class="top-score-item">
+        <text class="top-score-val">{{level}}</text>
+        <text class="top-score-lbl">等级</text>
+      </view>
+      <view class="top-divider"></view>
+      <view class="top-score-item">
+        <text class="top-score-val">{{lines}}</text>
+        <text class="top-score-lbl">消行</text>
+      </view>
+      <view class="top-divider"></view>
+      <view class="top-score-item">
+        <text class="top-score-val coin-val">{{coins}}</text>
+        <text class="top-score-lbl">金币</text>
+      </view>
+    </view>
+
+    <!-- 右侧：下一个 -->
+    <view class="top-next">
+      <text class="top-label">下一个</text>
+      <view class="next-row">
+        <view wx:for="{{nextGrids}}" wx:key="*this" class="preview-box mini-box">
+          <view wx:for="{{item}}" wx:for-item="row" wx:for-index="r" class="preview-row">
+            <view wx:for="{{row}}" wx:for-item="c" wx:for-index="ci" class="preview-cell" style="background:{{c}}"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 中间游戏区域：棋盘撑满，弹窗显示时隐藏 -->
+  <view class="board-wrap">
+    <canvas type="2d" id="tetris-canvas" class="board-canvas"
+      hidden="{{isPaused || isGameOver || showResumeDialog}}"
+      style="width:{{boardWidth}}px;height:{{boardHeight}}px"
+      catchtouchstart="onCanvasTouchStart" catchtouchend="onCanvasTouchEnd"></canvas>
+  </view>
+
+  <!-- 底部操作按钮 -->
+  <view class="control-bar">
+    <view class="control-row-1">
+      <view class="ctrl-btn ctrl-hold" catchtouchstart="onHold">
+        <text class="ctrl-icon">🔄</text>
+        <text class="ctrl-text">暂存</text>
+      </view>
+      <view class="ctrl-spacer"></view>
+      <view class="ctrl-btn ctrl-rotate" catchtouchstart="onRotate">
+        <text class="ctrl-icon rotate-icon">⟳</text>
+      </view>
+      <view class="ctrl-spacer"></view>
+      <view class="ctrl-btn ctrl-drop" catchtouchstart="onHardDrop">
+        <text class="ctrl-icon">⏬</text>
+        <text class="ctrl-text">下落</text>
+      </view>
+    </view>
+    <view class="control-row-2">
+      <view class="ctrl-btn ctrl-dir" catchtouchstart="onMoveLeft">
+        <text class="ctrl-arrow">◀</text>
+      </view>
+      <view class="ctrl-btn ctrl-dir" catchtouchstart="onSoftDrop">
+        <text class="ctrl-arrow">▼</text>
+      </view>
+      <view class="ctrl-btn ctrl-dir" catchtouchstart="onMoveRight">
+        <text class="ctrl-arrow">▶</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 弹窗：canvas 隐藏后普通 view 即可覆盖 -->
+  <view class="overlay" wx:if="{{isPaused && !isGameOver}}">
+    <view class="dialog">
+      <text class="dialog-title">已暂停</text>
+      <view class="dialog-btn" catchtap="onTapResume">继续游戏</view>
+      <view class="dialog-btn gray" catchtap="goBack">返回</view>
+    </view>
+  </view>
+  <view class="overlay" wx:if="{{isGameOver}}">
+    <view class="dialog">
+      <text class="dialog-title">游戏结束</text>
+      <text class="dialog-score">{{score}}</text>
+      <text class="dialog-info">等级 {{level}}  消行 {{lines}}行</text>
+      <text class="dialog-coin">金币 +{{earnedCoins}}</text>
+      <view class="dialog-btn" bindtap="restartGame">再来一局</view>
+      <view class="dialog-btn gray" bindtap="goBack">返回</view>
+    </view>
+  </view>
+  <view class="overlay" wx:if="{{showResumeDialog}}">
+    <view class="dialog">
+      <text class="dialog-title">发现存档</text>
+      <text class="dialog-info">是否继续上次的游戏？</text>
+      <view class="dialog-btn" bindtap="onTapResumeGame">继续游戏</view>
+      <view class="dialog-btn gray" bindtap="onTapNewGame">新游戏</view>
+    </view>
+  </view>
+</view>

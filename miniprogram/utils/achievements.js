@@ -10,7 +10,7 @@ var habitManager = require('./habit-manager.js')
 var childStorage = require('./child-storage.js')
 
 // 成就总数常量（用于 legend 成就的 maxProgress）
-var TOTAL_ACHIEVEMENTS = 64
+var TOTAL_ACHIEVEMENTS = 80
 
 // 稀有度定义
 var RARITY = {
@@ -235,6 +235,38 @@ var ACHIEVEMENTS = [
     condition: function(data) { return data.flightHardWin >= 1 },
     progress: function(data) { return Math.min(data.flightHardWin, 1) }, maxProgress: 1 },
 
+  // ===== 俄罗斯方块成就 =====
+  { id: 'tetris_first_game', icon: '🧱', title: '方块新手', desc: '完成第一局俄罗斯方块', category: 'game', rarity: 'common',
+    condition: function(data) { return data.tetrisGames >= 1 },
+    progress: function(data) { return Math.min(data.tetrisGames, 1) }, maxProgress: 1 },
+  { id: 'tetris_100_lines', icon: '📏', title: '消行达人', desc: '累计消除100行', category: 'game', rarity: 'common',
+    condition: function(data) { return data.tetrisTotalLines >= 100 },
+    progress: function(data) { return Math.min(data.tetrisTotalLines, 100) }, maxProgress: 100 },
+  { id: 'tetris_1000_lines', icon: '🏅', title: '消行大师', desc: '累计消除1000行', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.tetrisTotalLines >= 1000 },
+    progress: function(data) { return Math.min(data.tetrisTotalLines, 1000) }, maxProgress: 1000 },
+  { id: 'tetris_tetris', icon: '💎', title: '完美四消', desc: '一次消除4行（Tetris）', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.tetrisTetrisCount >= 1 },
+    progress: function(data) { return Math.min(data.tetrisTetrisCount, 1) }, maxProgress: 1 },
+  { id: 'tetris_level_5', icon: '⭐', title: '速度挑战者', desc: '达到5级速度', category: 'game', rarity: 'common',
+    condition: function(data) { return data.tetrisBestLevel >= 5 },
+    progress: function(data) { return Math.min(data.tetrisBestLevel, 5) }, maxProgress: 5 },
+  { id: 'tetris_level_10', icon: '🔥', title: '极速王者', desc: '达到满级10级', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.tetrisBestLevel >= 10 },
+    progress: function(data) { return Math.min(data.tetrisBestLevel, 10) }, maxProgress: 10 },
+  { id: 'tetris_adventure_clear', icon: '⚔️', title: '冒险英雄', desc: '通关冒险模式全部7章', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.tetrisAdventureDone },
+    progress: function(data) { return data.tetrisAdventureDone ? 1 : 0 }, maxProgress: 1 },
+  { id: 'tetris_puzzle_20', icon: '🧩', title: '拼图大师', desc: '通关全部20个拼图关卡', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.tetrisPuzzleLevels >= 20 },
+    progress: function(data) { return Math.min(data.tetrisPuzzleLevels, 20) }, maxProgress: 20 },
+  { id: 'tetris_all_stars', icon: '🌟', title: '满星通关', desc: '拼图模式获得全部60颗星', category: 'game', rarity: 'legendary',
+    condition: function(data) { return data.tetrisPuzzleStars >= 60 },
+    progress: function(data) { return Math.min(data.tetrisPuzzleStars, 60) }, maxProgress: 60 },
+  { id: 'tetris_score_10000', icon: '🏆', title: '万分先生', desc: '单局得分超过10000', category: 'game', rarity: 'rare',
+    condition: function(data) { return data.tetrisBestScore >= 10000 },
+    progress: function(data) { return Math.min(data.tetrisBestScore, 10000) }, maxProgress: 10000 },
+
   // ===== 游戏综合成就 =====
   { id: 'game_play_30', icon: '🎮', title: '游戏迷', desc: '游戏累计游玩30局', category: 'game', rarity: 'common',
     condition: function(data) { return data.gameTotalPlays >= 30 },
@@ -411,6 +443,11 @@ var getGameExtraData = function() {
   var diceStats = childStorage.get('diceStats') || {}
   var diceMissions = childStorage.get('diceMissions') || []
 
+  // 俄罗斯方块数据
+  var tetrisStats = childStorage.get('tetrisStats') || {}
+  var tetrisAdventure = childStorage.get('tetrisAdventure') || {}
+  var tetrisPuzzle = childStorage.get('tetrisPuzzle') || {}
+
   return {
     rpsWins: rpsStats.wins || 0,
     rpsTotalGames: rpsStats.totalGames || 0,
@@ -423,7 +460,15 @@ var getGameExtraData = function() {
     diceBestStreak: diceStats.bestStreak || 0,
     diceLeopardCount: diceStats.leopardCount || 0,
     diceMissionsDone: diceMissions.length,
-    gameTotalPlays: (rpsStats.totalGames || 0) + (diceStats.totalGames || 0)
+    tetrisGames: tetrisStats.totalGames || 0,
+    tetrisTotalLines: tetrisStats.totalLines || 0,
+    tetrisBestScore: tetrisStats.bestScore || 0,
+    tetrisBestLevel: tetrisStats.bestLevel || 0,
+    tetrisTetrisCount: tetrisStats.tetrisCount || 0,
+    tetrisAdventureDone: (tetrisAdventure.currentChapter || 1) > 7,
+    tetrisPuzzleLevels: tetrisPuzzle.currentLevel ? tetrisPuzzle.currentLevel - 1 : 0,
+    tetrisPuzzleStars: tetrisPuzzle.totalStars || 0,
+    gameTotalPlays: (rpsStats.totalGames || 0) + (diceStats.totalGames || 0) + (tetrisStats.totalGames || 0)
   }
 }
 
@@ -490,6 +535,14 @@ var getCurrentData = function(records) {
     diceBestStreak: gameData.diceBestStreak,
     diceLeopardCount: gameData.diceLeopardCount,
     diceMissionsDone: gameData.diceMissionsDone,
+    tetrisGames: gameData.tetrisGames,
+    tetrisTotalLines: gameData.tetrisTotalLines,
+    tetrisBestScore: gameData.tetrisBestScore,
+    tetrisBestLevel: gameData.tetrisBestLevel,
+    tetrisTetrisCount: gameData.tetrisTetrisCount,
+    tetrisAdventureDone: gameData.tetrisAdventureDone,
+    tetrisPuzzleLevels: gameData.tetrisPuzzleLevels,
+    tetrisPuzzleStars: gameData.tetrisPuzzleStars,
     gameTotalPlays: gameData.gameTotalPlays
   }
 }
