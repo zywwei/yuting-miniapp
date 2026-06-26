@@ -64,6 +64,7 @@ function uploadGameRecord(record) {
   // 写本地（完整记录，保留客户端完整字段）
   var storageKey = getStorageKey(record.gameType)
   var localRecords = childStorage.get(storageKey) || []
+  record.synced = false
   localRecords.unshift(record)
   childStorage.set(storageKey, localRecords)
 
@@ -83,6 +84,15 @@ function uploadGameRecord(record) {
       data: { action: 'add', collection: 'gameRecords', data: cloudRecord }
     }).then(function() {
       syncQueue.dequeue(record.id, 'add')
+      // 标记本地记录为已同步
+      var stored = childStorage.get(storageKey) || []
+      for (var i = 0; i < stored.length; i++) {
+        if (stored[i].id === record.id) {
+          stored[i].synced = true
+          break
+        }
+      }
+      childStorage.set(storageKey, stored)
       resolve()
     }).catch(function(err) {
       console.warn('游戏记录同步失败:', err)
@@ -131,7 +141,7 @@ function fetchGameRecords(gameType) {
         // 合并策略：
         // 1. 云端有的数据 → 使用云端数据（排除已删除的）
         // 2. 本地独有且未同步的 → 保留（新添加未同步）
-        // 3. 本地独有且已同步但云端缺失 → 保留并触发补传（自愈）
+        // 3. 本地独有且已同步但云端缺失 → 不保留（已被其他设备删除）
         var mergedMap = {}
         var merged = []
         var mergedIds = {}
@@ -145,9 +155,9 @@ function fetchGameRecords(gameType) {
           }
         })
 
-        // 再合并本地独有数据
+        // 再合并本地独有数据（仅保留未同步的，已同步但云端缺失的说明已被其他设备删除）
         localRecords.forEach(function(r) {
-          if (r && r.id && !mergedIds[r.id] && !deletedSet[r.id]) {
+          if (r && r.id && !mergedIds[r.id] && !deletedSet[r.id] && !r.synced) {
             mergedMap[r.id] = r
             merged.push(r)
             mergedIds[r.id] = true

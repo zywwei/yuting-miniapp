@@ -29,6 +29,14 @@ exports.main = async (event, context) => {
       return await saveConfig(member, event.childId, event.config)
     case 'chat':
       return await chat(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID)
+    case 'chatStream':
+      return await chatStream(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID)
+    case 'getThinkingProgress':
+      return await getThinkingProgress(event.taskId)
+    case 'getUserPreference':
+      return await getUserPreference(member, event.key)
+    case 'saveUserPreference':
+      return await saveUserPreference(member, event.key, event.value)
     case 'testConfig':
       return await testConfig(member, event.childId, event.model, event.apiKey, event.secretKey)
     case 'getHistory':
@@ -164,10 +172,13 @@ async function testConfig(member, childId, model, apiKey, secretKey) {
         result = await wenxin.callAPI(apiKey, secretKey || '', messages, 'ernie-4.0-turbo-8k')
         break
       case 'qwen':
-        result = await qwen.callAPI(apiKey, messages, 'qwen3.7-max')
+        result = await qwen.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'qwen3.7-max')
         break
       case 'deepseek':
-        result = await deepseek.callAPI(apiKey, messages, 'deepseek-v4-flash')
+        result = await deepseek.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-v4-flash')
+        break
+      case 'deepseek-plan':
+        result = await deepseek.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-v4-flash')
         break
       case 'siliconflow':
         result = await siliconflow.callAPI(apiKey, messages, 'deepseek-ai/DeepSeek-V4')
@@ -231,9 +242,9 @@ async function chat(member, childId, sessionId, message, model, imageFileID) {
     const history = historyResult.code === 0 ? historyResult.data.list : []
 
     // 5. 构建消息列表（支持图片）
-    const messages = buildMessages(config, history, message, imageFileID)
+    const messages = await buildMessages(config, history, message, imageFileID)
 
-    // 5. 调用AI模型 - 国内模型（2026年6月最新版本）
+    // 6. 调用AI模型 - 国内模型（2026年6月最新版本）
     const aiModel = model || config.currentModel
     let result
     switch (aiModel) {
@@ -304,7 +315,7 @@ async function chat(member, childId, sessionId, message, model, imageFileID) {
 }
 
 // 构建消息列表
-function buildMessages(config, history, newMessage, imageFileID) {
+async function buildMessages(config, history, newMessage, imageFileID) {
   const messages = []
 
   // 系统提示词
@@ -340,13 +351,26 @@ function buildMessages(config, history, newMessage, imageFileID) {
 
   // 新消息（支持图片）
   if (imageFileID) {
+    // 将云文件ID转换为临时URL
+    let imageUrl = imageFileID
+    if (imageFileID.startsWith('cloud://')) {
+      try {
+        const urlRes = await cloud.getTempFileURL({ fileList: [imageFileID] })
+        if (urlRes.fileList && urlRes.fileList.length > 0 && urlRes.fileList[0].tempFileURL) {
+          imageUrl = urlRes.fileList[0].tempFileURL
+        }
+      } catch (err) {
+        console.error('获取图片临时链接失败:', err)
+      }
+    }
+    
     // 多模态消息：包含图片和文本
     messages.push({
       role: 'user',
       content: [
         {
           type: 'image_url',
-          image_url: { url: imageFileID }
+          image_url: { url: imageUrl }
         },
         {
           type: 'text',
@@ -382,6 +406,233 @@ async function saveMessage(member, childId, sessionId, role, content, model, usa
     })
   } catch (err) {
     console.error('保存消息失败:', err)
+  }
+}
+
+// 流式聊天 - 支持思考过程实时展示
+async function chatStream(member, childId, sessionId, message, model, imageFileID) {
+  try {
+    // 1. 输入验证
+    if (!message && !imageFileID) {
+      return { code: -5, msg: '消息内容不能为空' }
+    }
+    
+    // 消息长度限制（4000字符）
+    if (message && message.length > 4000) {
+      return { code: -5, msg: '消息内容过长，请限制在4000字符以内' }
+    }
+    
+    // 模型白名单验证
+    const allowedModels = ['minimax', 'minimax-plan', 'zhipu', 'zhipu-plan', 'kimi', 'kimi-plan', 
+                          'wenxin', 'wenxin-plan', 'qwen', 'deepseek', 'siliconflow', 'mimo', 'mimo-plan']
+    if (model && !allowedModels.includes(model)) {
+      return { code: -5, msg: '不支持的模型类型' }
+    }
+
+    // 2. 获取配置
+    const configResult = await getConfig(member, childId)
+    if (configResult.code !== 0) {
+      return configResult
+    }
+    const config = configResult.data
+
+    // 3. 检查API Key
+    const modelConfig = config.models[model || config.currentModel]
+    if (!modelConfig || !modelConfig.apiKey) {
+      return { code: -3, msg: '请先配置API Key' }
+    }
+
+    // 4. 获取对话历史
+    const historyResult = await getHistory(member, childId, sessionId, 1, 20)
+    const history = historyResult.code === 0 ? historyResult.data.list : []
+
+    // 5. 构建消息列表（支持图片）
+    const messages = await buildMessages(config, history, message, imageFileID)
+
+    // 6. 创建任务记录
+    const taskId = 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+    await db.collection('aiThinkingProgress').add({
+      data: {
+        taskId: taskId,
+        familyId: member.familyId,
+        childId: childId || '',
+        sessionId: sessionId,
+        status: 'thinking',
+        thinkingContent: '',
+        finalContent: '',
+        model: model || config.currentModel,
+        createTime: new Date(),
+        updateTime: new Date(),
+        expireAt: new Date(Date.now() + 2 * 60 * 60 * 1000) // 2小时后过期
+      }
+    })
+
+    // 清理过期的思考记录（24小时前）
+    const expireTime = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    await db.collection('aiThinkingProgress')
+      .where({ createTime: db.command.lt(expireTime) })
+      .limit(50)
+      .get()
+      .then(async function(res) {
+        if (res.data && res.data.length > 0) {
+          const deletePromises = res.data.map(item =>
+            db.collection('aiThinkingProgress').doc(item._id).remove()
+          )
+          await Promise.all(deletePromises)
+        }
+      })
+      .catch(function() {})
+
+    // 7. 异步调用AI模型
+    const aiModel = model || config.currentModel
+    callAIWithProgress(aiModel, modelConfig, messages, taskId, member, childId, sessionId, message).catch(function(err) {
+      console.error('流式AI调用异常:', err)
+      updateThinkingProgress(taskId, 'error', err.message || '未知错误')
+    })
+
+    // 8. 立即返回任务ID
+    return {
+      code: 0,
+      data: {
+        taskId: taskId,
+        status: 'thinking'
+      }
+    }
+  } catch (err) {
+    return { code: -2, msg: '对话失败: ' + err.message }
+  }
+}
+
+// 异步调用AI并更新思考进度
+async function callAIWithProgress(aiModel, modelConfig, messages, taskId, member, childId, sessionId, message) {
+  try {
+    // 更新状态为思考中
+    await updateThinkingProgress(taskId, 'thinking', '正在思考中...')
+    
+    let result
+    switch (aiModel) {
+      case 'minimax':
+        result = await minimax.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'MiniMax-M3')
+        break
+      case 'minimax-plan':
+        result = await minimax.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'MiniMax-M3')
+        break
+      case 'zhipu':
+        result = await zhipu.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'glm-5.2')
+        break
+      case 'zhipu-plan':
+        result = await zhipu.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'glm-5.2')
+        break
+      case 'kimi':
+        result = await kimi.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'kimi-k2.6')
+        break
+      case 'kimi-plan':
+        result = await kimi.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'kimi-k2.7-code')
+        break
+      case 'wenxin':
+        result = await wenxin.callAPI(modelConfig.apiKey, modelConfig.secretKey, messages, modelConfig.model || 'ernie-4.0-turbo-8k')
+        break
+      case 'wenxin-plan':
+        result = await wenxin.callAPI(modelConfig.apiKey, modelConfig.secretKey, messages, modelConfig.model || 'ernie-4.0-turbo-8k')
+        break
+      case 'qwen':
+        result = await qwen.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'qwen3.7-max')
+        break
+      case 'deepseek':
+        result = await deepseek.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-v4-flash')
+        break
+      case 'siliconflow':
+        result = await siliconflow.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-ai/DeepSeek-V4')
+        break
+      case 'mimo':
+        result = await mimo.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'mimo-v2.5-pro', 'https://api.xiaomimimo.com/v1')
+        break
+      case 'mimo-plan':
+        result = await mimo.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'mimo-v2.5-pro', 'https://token-plan-cn.xiaomimimo.com/v1')
+        break
+      default:
+        throw new Error('不支持的模型: ' + aiModel)
+    }
+
+    if (result.code !== 0) {
+      await updateThinkingProgress(taskId, 'error', result.msg)
+      return
+    }
+
+    // 更新思考内容
+    if (result.data.thinking) {
+      await updateThinkingProgress(taskId, 'thinking', result.data.thinking)
+    }
+
+    // 保存消息
+    await Promise.all([
+      saveMessage(member, childId, sessionId, 'user', message, aiModel),
+      saveMessage(member, childId, sessionId, 'assistant', result.data.content, aiModel, result.data.usage, result.data.thinking)
+    ])
+
+    // 更新为完成状态
+    await updateThinkingProgress(taskId, 'completed', result.data.thinking || '', result.data.content, result.data.usage)
+
+  } catch (err) {
+    console.error('AI调用失败:', err)
+    await updateThinkingProgress(taskId, 'error', err.message)
+  }
+}
+
+// 更新思考进度
+async function updateThinkingProgress(taskId, status, thinkingContent, finalContent, usage) {
+  try {
+    const data = {
+      status: status,
+      updateTime: new Date()
+    }
+    
+    if (thinkingContent !== undefined) {
+      data.thinkingContent = thinkingContent
+    }
+    if (finalContent !== undefined) {
+      data.finalContent = finalContent
+    }
+    if (usage !== undefined) {
+      data.usage = usage
+    }
+
+    await db.collection('aiThinkingProgress')
+      .where({ taskId: taskId })
+      .update({ data: data })
+  } catch (err) {
+    console.error('更新思考进度失败:', err)
+  }
+}
+
+// 获取思考进度
+async function getThinkingProgress(taskId) {
+  try {
+    if (!taskId) {
+      return { code: -5, msg: '缺少任务ID' }
+    }
+
+    const res = await db.collection('aiThinkingProgress')
+      .where({ taskId: taskId })
+      .get()
+
+    if (res.data.length === 0) {
+      return { code: -1, msg: '任务不存在' }
+    }
+
+    const progress = res.data[0]
+    return {
+      code: 0,
+      data: {
+        taskId: progress.taskId,
+        status: progress.status,
+        thinkingContent: progress.thinkingContent,
+        finalContent: progress.finalContent,
+        usage: progress.usage
+      }
+    }
+  } catch (err) {
+    return { code: -2, msg: '获取进度失败: ' + err.message }
   }
 }
 
@@ -522,5 +773,63 @@ async function deleteSession(member, childId, sessionId) {
     return { code: 0, msg: '会话已删除' }
   } catch (err) {
     return { code: -2, msg: '删除会话失败: ' + err.message }
+  }
+}
+
+// 获取用户偏好设置
+async function getUserPreference(member, key) {
+  try {
+    const res = await db.collection('userPreferences')
+      .where({
+        openid: member.openid,
+        key: key
+      })
+      .get()
+
+    if (res.data.length > 0) {
+      return { code: 0, data: { value: res.data[0].value } }
+    }
+
+    return { code: 0, data: { value: null } }
+  } catch (err) {
+    return { code: -2, msg: '获取偏好设置失败: ' + err.message }
+  }
+}
+
+// 保存用户偏好设置
+async function saveUserPreference(member, key, value) {
+  try {
+    const existing = await db.collection('userPreferences')
+      .where({
+        openid: member.openid,
+        key: key
+      })
+      .get()
+
+    if (existing.data.length > 0) {
+      await db.collection('userPreferences')
+        .doc(existing.data[0]._id)
+        .update({
+          data: {
+            value: value,
+            updateTime: new Date()
+          }
+        })
+    } else {
+      await db.collection('userPreferences')
+        .add({
+          data: {
+            openid: member.openid,
+            key: key,
+            value: value,
+            createTime: new Date(),
+            updateTime: new Date()
+          }
+        })
+    }
+
+    return { code: 0, msg: '保存成功' }
+  } catch (err) {
+    return { code: -2, msg: '保存偏好设置失败: ' + err.message }
   }
 }

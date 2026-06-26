@@ -343,12 +343,43 @@ function getDefaultConfig() {
 }
 
 /**
- * 保存AI配置
+ * 保存AI配置（合并模式，不会丢失已有字段）
  */
 function saveConfig(config) {
   return new Promise(function(resolve, reject) {
-    // 先保存到本地缓存
-    childStorage.set(CONFIG_KEY, config)
+    // 先读取本地配置，合并后再保存
+    var localConfig = childStorage.get(CONFIG_KEY) || getDefaultConfig()
+    var merged = {}
+    
+    // 复制本地配置的所有字段
+    for (var k in localConfig) {
+      merged[k] = localConfig[k]
+    }
+    
+    // 合并传入的字段
+    for (var k in config) {
+      if (k === 'models' && config.models && localConfig.models) {
+        // models 做深度合并
+        merged.models = {}
+        for (var mk in localConfig.models) {
+          merged.models[mk] = {}
+          for (var fk in localConfig.models[mk]) {
+            merged.models[mk][fk] = localConfig.models[mk][fk]
+          }
+        }
+        for (var mk in config.models) {
+          if (!merged.models[mk]) merged.models[mk] = {}
+          for (var fk in config.models[mk]) {
+            merged.models[mk][fk] = config.models[mk][fk]
+          }
+        }
+      } else {
+        merged[k] = config[k]
+      }
+    }
+    
+    // 保存合并后的完整配置到本地缓存
+    childStorage.set(CONFIG_KEY, merged)
     
     wx.cloud.callFunction({
       name: 'ai-chat',
@@ -408,6 +439,129 @@ function sendMessage(message, model, imageFileID) {
       }
     }).catch(function(err) {
       console.error('发送消息失败:', err)
+      reject(err)
+    }
+    )
+  })
+}
+
+/**
+ * 流式发送消息 - 支持思考过程实时展示
+ * @param {string} message - 文本消息
+ * @param {string} model - 模型名称（可选）
+ * @param {string} imageFileID - 图片文件ID（可选）
+ * @returns {Promise} 返回taskId用于轮询
+ */
+function sendMessageStream(message, model, imageFileID) {
+  return new Promise(function(resolve, reject) {
+    var sessionId = getCurrentSessionId()
+    
+    var data = {
+      action: 'chatStream',
+      childId: auth.getCurrentChildId(),
+      sessionId: sessionId,
+      message: message || '',
+      model: model
+    }
+    
+    if (imageFileID) {
+      data.imageFileID = imageFileID
+    }
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: data
+    }).then(function(res) {
+      if (res.result.code === 0) {
+        // 保存用户消息到本地
+        saveToLocal(sessionId, 'user', message, null, imageFileID)
+        resolve(res.result.data)
+      } else {
+        reject(new Error(res.result.msg))
+      }
+    }).catch(function(err) {
+      console.error('发送消息失败:', err)
+      reject(err)
+    }
+    )
+  })
+}
+
+/**
+ * 获取思考进度
+ * @param {string} taskId - 任务ID
+ * @returns {Promise} 返回思考进度
+ */
+function getThinkingProgress(taskId) {
+  return new Promise(function(resolve, reject) {
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'getThinkingProgress',
+        taskId: taskId
+      }
+    }).then(function(res) {
+      if (res.result.code === 0) {
+        resolve(res.result.data)
+      } else {
+        reject(new Error(res.result.msg))
+      }
+    }).catch(function(err) {
+      console.error('获取思考进度失败:', err)
+      reject(err)
+    })
+  })
+}
+
+/**
+ * 获取用户偏好设置
+ * @param {string} key - 设置键名
+ * @returns {Promise} 返回设置值
+ */
+function getUserPreference(key) {
+  return new Promise(function(resolve, reject) {
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'getUserPreference',
+        key: key
+      }
+    }).then(function(res) {
+      if (res.result.code === 0) {
+        resolve(res.result.data.value)
+      } else {
+        reject(new Error(res.result.msg))
+      }
+    }).catch(function(err) {
+      console.error('获取用户偏好失败:', err)
+      reject(err)
+    })
+  })
+}
+
+/**
+ * 保存用户偏好设置
+ * @param {string} key - 设置键名
+ * @param {*} value - 设置值
+ * @returns {Promise}
+ */
+function saveUserPreference(key, value) {
+  return new Promise(function(resolve, reject) {
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'saveUserPreference',
+        key: key,
+        value: value
+      }
+    }).then(function(res) {
+      if (res.result.code === 0) {
+        resolve(res.result)
+      } else {
+        reject(new Error(res.result.msg))
+      }
+    }).catch(function(err) {
+      console.error('保存用户偏好失败:', err)
       reject(err)
     })
   })
@@ -628,6 +782,10 @@ module.exports = {
   getConfig: getConfig,
   saveConfig: saveConfig,
   sendMessage: sendMessage,
+  sendMessageStream: sendMessageStream,
+  getThinkingProgress: getThinkingProgress,
+  getUserPreference: getUserPreference,
+  saveUserPreference: saveUserPreference,
   getHistory: getHistory,
   getSessions: getSessions,
   clearHistory: clearHistory,

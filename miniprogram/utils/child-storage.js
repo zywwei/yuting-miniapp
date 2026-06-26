@@ -45,6 +45,11 @@ var CHILD_KEYS = [
   'tetrisPuzzle',
   'tetrisSave',
   'tetrisSettings',
+  // 记账本（按孩子隔离）
+  'accountBooks',
+  'accountEntries',
+  'accountSettings',
+  'accountTemplates',
   // 单例数据的乐观锁时间戳（按孩子隔离）
   'habitsUpdatedAt',
   'learnProgressUpdatedAt',
@@ -63,6 +68,8 @@ var CHILD_KEYS = [
   'deletedStallSaleIds',
   'deletedHabitRecordIds',
   'deletedGameRecordIds',
+  'deletedBookIds',
+  'deletedEntryIds',
   // 单例数据迁移标志（按孩子隔离，确保每个孩子只迁移一次）
   'singletonMigratedV2'
 ]

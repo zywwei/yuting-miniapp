@@ -1,0 +1,85 @@
+<view class="container" wx:if="{{book}}">
+  <!-- 分享模式 -->
+  <view class="section">
+    <view class="section-title">分享模式</view>
+    <view class="mode-switch">
+      <view class="mode-option {{book.sharedMode === 'private' ? 'active' : ''}}" bindtap="toggleShareMode">
+        <view class="mode-icon">🔒</view>
+        <view class="mode-name">私有</view>
+        <view class="mode-desc">仅自己可见</view>
+      </view>
+      <view class="mode-option {{book.sharedMode === 'shared' ? 'active' : ''}}" bindtap="toggleShareMode">
+        <view class="mode-icon">👥</view>
+        <view class="mode-name">共享</view>
+        <view class="mode-desc">家庭成员可协作</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成员管理 -->
+  <view class="section" wx:if="{{book.sharedMode === 'shared'}}">
+    <view class="section-header">
+      <view class="section-title">成员管理</view>
+      <view class="section-action" bindtap="showAddMemberDialog">+ 添加</view>
+    </view>
+    <view class="member-list">
+      <view class="member-item" wx:for="{{book.members}}" wx:key="memberId">
+        <view class="member-avatar">{{item.name[0] || '?'}}</view>
+        <view class="member-info">
+          <view class="member-name">{{item.name || '未知'}}</view>
+          <view class="member-role" bindtap="changeRole" data-id="{{item.memberId}}" data-role="{{item.role}}">
+            {{item.role === 'admin' ? '管理员' : item.role === 'writer' ? '记账员' : '查看者'}} ▼
+          </view>
+        </view>
+        <view class="member-remove" bindtap="removeMember" data-id="{{item.memberId}}">移除</view>
+      </view>
+      <view class="empty-tip" wx:if="{{book.members.length === 0}}">暂无成员</view>
+    </view>
+  </view>
+
+  <!-- 权限说明 -->
+  <view class="section" wx:if="{{book.sharedMode === 'shared'}}">
+    <view class="section-title">权限说明</view>
+    <view class="permission-list">
+      <view class="permission-item">
+        <view class="permission-role">管理员</view>
+        <view class="permission-desc">可记账、编辑、删除所有记录，管理成员</view>
+      </view>
+      <view class="permission-item">
+        <view class="permission-role">记账员</view>
+        <view class="permission-desc">可记账，编辑和删除自己的记录</view>
+      </view>
+      <view class="permission-item">
+        <view class="permission-role">查看者</view>
+        <view class="permission-desc">仅可查看和导出数据</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 添加成员弹窗 -->
+  <view class="modal-mask" wx:if="{{showAddMember}}" bindtap="hideAddMemberDialog">
+    <view class="modal-content" catchtap="preventBubble">
+      <view class="modal-title">添加成员</view>
+      <view class="member-select">
+        <view class="select-label">选择家庭成员</view>
+        <view class="select-list">
+          <view class="select-item {{selectedMember === item._id ? 'active' : ''}}" wx:for="{{familyMembers}}" wx:key="_id" bindtap="selectMember" data-id="{{item._id}}">
+            <view class="select-avatar">{{item.name[0] || '?'}}</view>
+            <view class="select-name">{{item.name || '未知'}}</view>
+          </view>
+        </view>
+      </view>
+      <view class="role-select">
+        <view class="select-label">选择角色</view>
+        <view class="role-options">
+          <view class="role-option {{selectedRole === 'writer' ? 'active' : ''}}" bindtap="selectRole" data-role="writer">记账员</view>
+          <view class="role-option {{selectedRole === 'viewer' ? 'active' : ''}}" bindtap="selectRole" data-role="viewer">查看者</view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn cancel" bindtap="hideAddMemberDialog">取消</view>
+        <view class="modal-btn confirm" bindtap="confirmAddMember">确定</view>
+      </view>
+    </view>
+  </view>
+</view>

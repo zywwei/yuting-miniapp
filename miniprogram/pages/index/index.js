@@ -337,7 +337,7 @@ Page({
       create: '/pages/create/index',
       notes: '/pages/notes/index',
       aiChat: '/packageCreate/pages/create/ai-chat/index',
-      draw: '/packageCreate/pages/create/draw/index',
+      book: '/packageCreate/pages/create/book/index',
       stall: '/packageCreate/pages/create/stall/index',
       changeCalc: '/packageCreate/pages/create/stall/change-calc/change-calc',
       rps: '/packageCreate/pages/create/rps/index'
