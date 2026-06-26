@@ -5,6 +5,7 @@
 
 var util = require('./util.js')
 var childStorage = require('./child-storage.js')
+var cloud = require('./cloud.js')
 
 // 获取所有习惯（默认 + 自定义）
 var getAllHabits = function() {
@@ -55,9 +56,10 @@ var getTodayHabits = function() {
 }
 
 // 添加打卡记录
+// 通过 cloud.uploadHabitRecord 统一写本地 + 入队 + 同步云端，
+// 避免出现"只存本地不上云"的数据，与各页面打卡入口保持一致行为。
 var addRecord = function(type) {
   var today = util.getTodayStr()
-  var records = childStorage.get('habitRecords') || []
 
   var newRecord = {
     id: util.generateId(),
@@ -67,8 +69,8 @@ var addRecord = function(type) {
     createTime: new Date().toISOString()
   }
 
-  records.unshift(newRecord)
-  childStorage.set('habitRecords', records)
+  // cloud 层负责写入本地缓存与云端同步（离线时自动入队重试）
+  cloud.uploadHabitRecord(newRecord).catch(function() {})
   return newRecord
 }
 

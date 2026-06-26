@@ -62,7 +62,9 @@ var CHILD_KEYS = [
   'deletedStallProductIds',
   'deletedStallSaleIds',
   'deletedHabitRecordIds',
-  'deletedGameRecordIds'
+  'deletedGameRecordIds',
+  // 单例数据迁移标志（按孩子隔离，确保每个孩子只迁移一次）
+  'singletonMigratedV2'
 ]
 
 function getKey(key) {
