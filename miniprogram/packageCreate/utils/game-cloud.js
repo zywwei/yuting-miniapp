@@ -82,7 +82,7 @@ function uploadGameRecord(record) {
       name: 'record',
       data: { action: 'add', collection: 'gameRecords', data: cloudRecord }
     }).then(function() {
-      syncQueue.dequeue(record.id)
+      syncQueue.dequeue(record.id, 'add')
       resolve()
     }).catch(function(err) {
       console.warn('游戏记录同步失败:', err)

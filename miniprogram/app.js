@@ -96,6 +96,8 @@ App({
           this.globalData.currentChildId = auth.getCurrentChildId()
           this.globalData.myFamilies = families
           this.calcGrowthDays()
+          // 单例数据迁移到 V2（家庭+孩子复合 _id 隔离），按孩子标志位防重复
+          cloud.migrateSingletonsToV2()
           return
         }
       } catch (err) {
@@ -148,6 +150,8 @@ App({
         this.globalData.children = data.children
         this.globalData.currentChildId = currentChildId
         this.calcGrowthDays()
+        // 单例数据迁移到 V2（家庭+孩子复合 _id 隔离），按孩子标志位防重复
+        cloud.migrateSingletonsToV2()
 
         // 更新家庭列表中的当前家庭数据
         this.updateFamilyInList(currentFamilyId, data)

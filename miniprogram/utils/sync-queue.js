@@ -52,10 +52,15 @@ function enqueue(operation) {
   saveQueue(queue)
 }
 
-// 按 id 移除队列项（兼容旧调用，会移除所有同 id 项）
-function dequeue(id) {
+// 按 id 移除队列项；可选 action 仅移除指定操作类型，避免误删同 id 的其他操作
+function dequeue(id, action) {
   var queue = getQueue()
-  var filtered = queue.filter(function(item) { return item.id !== id })
+  var filtered = queue.filter(function(item) {
+    if (item.id !== id) return true
+    // 指定了 action 时，仅移除匹配该 action 的项（如只移除 add，保留 update）
+    if (action && item.action !== action) return true
+    return false
+  })
   saveQueue(filtered)
 }
 
