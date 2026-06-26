@@ -1,0 +1,54 @@
+<view class="container">
+  <!-- 类型切换 -->
+  <view class="type-tabs">
+    <view class="type-tab {{currentType === item.value ? 'active' : ''}}" wx:for="{{typeOptions}}" wx:key="value" bindtap="switchType" data-type="{{item.value}}">{{item.label}}</view>
+  </view>
+
+  <!-- 预设分类 -->
+  <view class="section">
+    <view class="section-title">预设分类</view>
+    <view class="category-grid">
+      <view class="category-item" wx:for="{{categories}}" wx:key="id">
+        <view class="category-icon">{{item.icon}}</view>
+        <view class="category-name">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 自定义分类 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-title">自定义分类</view>
+      <view class="section-action" bindtap="showAddCategoryDialog">+ 添加</view>
+    </view>
+    <view class="custom-list">
+      <view class="custom-item" wx:for="{{customCategories}}" wx:key="id">
+        <view class="custom-icon">{{item.icon}}</view>
+        <view class="custom-name">{{item.name}}</view>
+        <view class="custom-remove" bindtap="removeCategory" data-id="{{item.id}}">删除</view>
+      </view>
+      <view class="empty-tip" wx:if="{{customCategories.length === 0}}">暂无自定义分类</view>
+    </view>
+  </view>
+
+  <!-- 添加分类弹窗 -->
+  <view class="modal-mask" wx:if="{{showAddCategory}}" bindtap="hideAddCategoryDialog">
+    <view class="modal-content" catchtap="preventBubble">
+      <view class="modal-title">添加分类</view>
+      <view class="form-group">
+        <view class="form-label">分类名称</view>
+        <input class="form-input" placeholder="输入分类名称" value="{{newCategoryName}}" bindinput="onCategoryNameInput" />
+      </view>
+      <view class="form-group">
+        <view class="form-label">选择图标</view>
+        <view class="icon-grid">
+          <view class="icon-item {{newCategoryIcon === item ? 'active' : ''}}" wx:for="{{iconOptions}}" wx:key="*this" bindtap="selectIcon" data-icon="{{item}}">{{item}}</view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn cancel" bindtap="hideAddCategoryDialog">取消</view>
+        <view class="modal-btn confirm" bindtap="confirmAddCategory">确定</view>
+      </view>
+    </view>
+  </view>
+</view>

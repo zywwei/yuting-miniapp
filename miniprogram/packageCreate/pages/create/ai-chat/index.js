@@ -55,17 +55,39 @@ Page({
     currentModelKey: '',
     templateList: [],
     currentTemplateKey: 'default',
-    expandProvider: false
+    expandProvider: false,
+    // 流式思考相关
+    streamThinkingEnabled: false,
+    currentTaskId: null,
+    thinkingPollTimer: null,
+    currentThinkingContent: '',
+    // 上下文统计
+    contextTokens: 0,
+    outputTokens: 0,
+    totalTokensUsed: 0,
+    estimatedCost: '0.0000',
+    costModelName: '',
+    showContextStats: false
   },
 
   onLoad: function() {
     this.checkConfig()
     this.initSession()
+    // 读取流式思考开关状态
+    var streamEnabled = childStorage.get('streamThinkingEnabled') || false
+    this.setData({ streamThinkingEnabled: streamEnabled })
   },
 
   onShow: function() {
     this.setThemeColor()
     this.checkConfig()
+  },
+
+  onUnload: function() {
+    // 页面卸载时清除定时器
+    if (this.data.thinkingPollTimer) {
+      clearInterval(this.data.thinkingPollTimer)
+    }
   },
 
   setThemeColor: function() {
@@ -224,6 +246,7 @@ Page({
     var sessionId = aiManager.getCurrentSessionId()
     this.setData({ currentSessionId: sessionId })
     this.loadHistory()
+    this.loadTokenStats(sessionId)
   },
 
   // 加载历史消息
@@ -426,6 +449,9 @@ Page({
           expandProvider: false
         })
         
+        // 重新计算费用
+        that.estimateCost()
+        
         wx.showToast({
           title: '已切换到' + name,
           icon: 'success'
@@ -539,8 +565,8 @@ Page({
     
     this.scrollToBottom()
     
-    // 如果有图片，先上传再发送
-    if (image && !options) {
+    // 如果有图片，先上传再发送（本地路径需要上传，云文件ID直接发送）
+    if (image && image.indexOf('cloud://') === -1) {
       this.uploadAndSend(message, image)
     } else {
       this.sendToAI(message, image)
@@ -573,26 +599,286 @@ Page({
     var modelInfo = aiManager.getCurrentModelInfo()
     var model = modelInfo ? modelInfo.key : null
     
-    aiManager.sendMessage(message, model, imageFileID).then(function(result) {
-      messageIdCounter++
-      var aiMsg = {
-        id: 'msg_' + messageIdCounter,
-        role: 'assistant',
-        content: result.content,
-        image: null,
-        thinking: result.thinking || null,
-        showThinking: false,
-        timeStr: that.formatTime(new Date())
-      }
-      
+    // 根据开关选择流式或普通模式
+    if (this.data.streamThinkingEnabled) {
+      this.sendToAIStream(message, model, imageFileID)
+    } else {
+      aiManager.sendMessage(message, model, imageFileID).then(function(result) {
+        messageIdCounter++
+        var aiMsg = {
+          id: 'msg_' + messageIdCounter,
+          role: 'assistant',
+          content: result.content,
+          image: null,
+          thinking: result.thinking || null,
+          showThinking: false,
+          timeStr: that.formatTime(new Date())
+        }
+        
+        // 累计token用量
+        that.updateTokenUsage(result.usage)
+        
+        that.setData({
+          messages: that.data.messages.concat(aiMsg),
+          loading: false
+        })
+        
+        that.scrollToBottom()
+      }).catch(function(err) {
+        that.showError('发送失败：' + (err.message || '网络错误，请稍后重试'), message, imageFileID)
+      })
+    }
+  },
+
+  // 流式发送到AI
+  sendToAIStream: function(message, model, imageFileID) {
+    var that = this
+    
+    aiManager.sendMessageStream(message, model, imageFileID).then(function(data) {
       that.setData({
-        messages: that.data.messages.concat(aiMsg),
-        loading: false
+        currentTaskId: data.taskId,
+        currentThinkingContent: ''
       })
       
-      that.scrollToBottom()
+      // 开始轮询思考进度
+      that.startThinkingPoll(data.taskId)
     }).catch(function(err) {
       that.showError('发送失败：' + (err.message || '网络错误，请稍后重试'), message, imageFileID)
+    })
+  },
+
+  // 累计token用量
+  updateTokenUsage: function(usage) {
+    if (!usage) return
+    var promptTokens = usage.prompt_tokens || 0
+    var completionTokens = usage.completion_tokens || 0
+    var totalTokens = promptTokens + completionTokens
+    
+    var newContextTokens = this.data.contextTokens + promptTokens
+    var newOutputTokens = this.data.outputTokens + completionTokens
+    var newTotalTokensUsed = this.data.totalTokensUsed + totalTokens
+    
+    this.setData({
+      contextTokens: newContextTokens,
+      outputTokens: newOutputTokens,
+      totalTokensUsed: newTotalTokensUsed
+    })
+    
+    // 计算预估费用
+    this.estimateCost()
+    
+    // 持久化到本地存储
+    this.saveTokenStats()
+  },
+
+  // 保存token统计到本地
+  saveTokenStats: function() {
+    var sessionId = this.data.currentSessionId || aiManager.getCurrentSessionId()
+    if (!sessionId) return
+    var modelInfo = aiManager.getCurrentModelInfo()
+    childStorage.set('tokenStats_' + sessionId, {
+      contextTokens: this.data.contextTokens,
+      outputTokens: this.data.outputTokens,
+      totalTokensUsed: this.data.totalTokensUsed,
+      estimatedCost: this.data.estimatedCost,
+      lastModelKey: modelInfo ? modelInfo.key : ''
+    })
+  },
+
+  // 从本地加载token统计
+  loadTokenStats: function(sessionId) {
+    var stats = childStorage.get('tokenStats_' + sessionId)
+    if (stats) {
+      this.setData({
+        contextTokens: stats.contextTokens || 0,
+        outputTokens: stats.outputTokens || 0,
+        totalTokensUsed: stats.totalTokensUsed || 0,
+        estimatedCost: stats.estimatedCost || '0.0000'
+      })
+    } else {
+      this.setData({
+        contextTokens: 0,
+        outputTokens: 0,
+        totalTokensUsed: 0,
+        estimatedCost: '0.0000'
+      })
+    }
+  },
+
+  // 预估费用（根据模型价格计算）
+  estimateCost: function() {
+    var modelInfo = aiManager.getCurrentModelInfo()
+    var key = modelInfo ? modelInfo.key : 'minimax'
+    
+    // 每百万token价格（元）- 2026年6月官网最新价格
+    var priceMap = {
+      'minimax': { input: 2.1, output: 8.4, name: 'MiniMax-M3' },
+      'minimax-plan': { input: 2.1, output: 8.4, name: 'MiniMax-M3' },
+      'deepseek': { input: 1, output: 2, name: 'DeepSeek-V4-Flash' },
+      'deepseek-plan': { input: 1, output: 2, name: 'DeepSeek-V4-Flash' },
+      'qwen': { input: 12, output: 36, name: 'Qwen3.7-Max' },
+      'zhipu': { input: 5, output: 5, name: 'GLM-5.2' },
+      'zhipu-plan': { input: 5, output: 5, name: 'GLM-5.2' },
+      'kimi': { input: 4, output: 12, name: 'Kimi-K2.6' },
+      'kimi-plan': { input: 4, output: 12, name: 'Kimi-K2.6' },
+      'wenxin': { input: 8, output: 8, name: 'ERNIE-4.0-Turbo' },
+      'wenxin-plan': { input: 8, output: 8, name: 'ERNIE-4.0-Turbo' },
+      'siliconflow': { input: 1, output: 2, name: 'DeepSeek-V4' },
+      'mimo': { input: 3, output: 6, name: 'MiMo-V2.5-Pro' },
+      'mimo-plan': { input: 3, output: 6, name: 'MiMo-V2.5-Pro' }
+    }
+    
+    var price = priceMap[key] || priceMap['minimax']
+    var inputCost = (this.data.contextTokens / 1000000) * price.input
+    var outputCost = (this.data.outputTokens / 1000000) * price.output
+    var totalCost = inputCost + outputCost
+    
+    this.setData({
+      estimatedCost: totalCost.toFixed(4),
+      costModelName: price.name
+    })
+    
+    // 持久化
+    this.saveTokenStats()
+  },
+
+  // 开始轮询思考进度
+  startThinkingPoll: function(taskId) {
+    var that = this
+    var pollCount = 0
+    var maxPolls = 120 // 最多轮询120次（约60秒）
+    var failCount = 0
+    var maxFails = 5 // 连续失败5次后放弃
+    
+    // 清除之前的定时器
+    if (this.data.thinkingPollTimer) {
+      clearInterval(this.data.thinkingPollTimer)
+    }
+    
+    var timer = setInterval(function() {
+      pollCount++
+      
+      if (pollCount > maxPolls) {
+        clearInterval(timer)
+        that.showError('请求超时，请重试')
+        return
+      }
+      
+      aiManager.getThinkingProgress(taskId).then(function(progress) {
+        // 更新思考内容
+        if (progress.thinkingContent && progress.thinkingContent !== that.data.currentThinkingContent) {
+          that.setData({
+            currentThinkingContent: progress.thinkingContent,
+            loadingText: '思考中...'
+          })
+          
+          // 更新加载中的消息显示思考内容
+          that.updateLoadingMessage(progress.thinkingContent)
+        }
+        
+        // 检查是否完成
+        if (progress.status === 'completed') {
+          clearInterval(timer)
+          failCount = 0
+          that.setData({
+            thinkingPollTimer: null,
+            currentTaskId: null,
+            currentThinkingContent: ''
+          })
+          
+          // 累计token用量
+          that.updateTokenUsage(progress.usage)
+          
+          // 添加AI回复消息
+          messageIdCounter++
+          var aiMsg = {
+            id: 'msg_' + messageIdCounter,
+            role: 'assistant',
+            content: progress.finalContent,
+            image: null,
+            thinking: progress.thinkingContent || null,
+            showThinking: !!progress.thinkingContent,
+            timeStr: that.formatTime(new Date())
+          }
+          
+          that.setData({
+            messages: that.data.messages.concat(aiMsg),
+            loading: false
+          })
+          
+          that.scrollToBottom()
+          
+          // 保存到本地缓存
+          var sessionId = aiManager.getCurrentSessionId()
+          var childStorage = getApp().globalData.childStorage
+          var localChats = childStorage.get('aiChats') || {}
+          if (!localChats[sessionId]) localChats[sessionId] = []
+          localChats[sessionId].push({
+            role: 'assistant',
+            content: progress.finalContent,
+            thinking: progress.thinkingContent || null,
+            time: new Date().toISOString()
+          })
+          childStorage.set('aiChats', localChats)
+          
+        } else if (progress.status === 'error') {
+          clearInterval(timer)
+          failCount = 0
+          that.setData({
+            thinkingPollTimer: null,
+            currentTaskId: null,
+            currentThinkingContent: ''
+          })
+          that.showError('AI回复失败：' + (progress.thinkingContent || '未知错误'))
+        }
+      }).catch(function(err) {
+        failCount++
+        console.error('轮询思考进度失败:', failCount + '/' + maxFails, err)
+        if (failCount >= maxFails) {
+          clearInterval(timer)
+          that.setData({
+            thinkingPollTimer: null,
+            currentTaskId: null,
+            currentThinkingContent: ''
+          })
+          that.showError('网络异常，请重试')
+        }
+      })
+    }, 500) // 每500ms轮询一次
+    
+    this.setData({ thinkingPollTimer: timer })
+  },
+
+  // 更新加载中的消息显示思考内容
+  updateLoadingMessage: function(thinkingContent) {
+    // 这里可以更新UI显示思考过程
+    // 由于微信小程序的限制，我们通过loadingText来展示状态
+    var shortContent = thinkingContent.length > 50 ? thinkingContent.substring(0, 50) + '...' : thinkingContent
+    this.setData({
+      loadingText: '思考中: ' + shortContent
+    })
+  },
+
+  // 切换流式思考开关
+  toggleStreamThinking: function() {
+    var newValue = !this.data.streamThinkingEnabled
+    this.setData({
+      streamThinkingEnabled: newValue
+    })
+    
+    // 保存开关状态到本地存储
+    childStorage.set('streamThinkingEnabled', newValue)
+    
+    wx.showToast({
+      title: newValue ? '已开启实时思考' : '已关闭实时思考',
+      icon: 'none'
+    })
+  },
+
+  // 切换上下文统计显示
+  toggleContextStats: function() {
+    this.setData({
+      showContextStats: !this.data.showContextStats
     })
   },
 
@@ -647,7 +933,12 @@ Page({
     
     this.setData({
       currentSessionId: sessionId,
-      messages: []
+      messages: [],
+      contextTokens: 0,
+      outputTokens: 0,
+      totalTokensUsed: 0,
+      estimatedCost: '0.0000',
+      costModelName: ''
     })
     
     wx.showToast({
@@ -812,6 +1103,7 @@ Page({
     })
     
     this.loadHistory()
+    this.loadTokenStats(sessionId)
   },
 
   // 删除会话

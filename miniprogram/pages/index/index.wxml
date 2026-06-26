@@ -77,9 +77,9 @@
         <view class="quick-icon">✊</view>
         <view class="quick-text">猜拳大战</view>
       </view>
-      <view class="quick-item" bindtap="goModule" data-module="draw">
-        <view class="quick-icon">🎨</view>
-        <view class="quick-text">画画</view>
+      <view class="quick-item" bindtap="goModule" data-module="book">
+        <view class="quick-icon">📝</view>
+        <view class="quick-text">记账本</view>
       </view>
       <view class="quick-item" bindtap="goModule" data-module="stall">
         <view class="quick-icon">🏪</view>

@@ -1,91 +1,140 @@
 <view class="container">
-  <view class="category-grid">
-    <view class="category-card draw-card" bindtap="goDraw">
-      <view class="card-bg" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);"></view>
-      <view class="card-content">
-        <view class="card-icon">🎨</view>
-        <view class="card-info">
-          <view class="card-title">画画</view>
-          <view class="card-desc">自由创作、涂色模板</view>
-        </view>
-        <view class="card-stat">
-          <text class="stat-num">{{drawingCount}}</text>
-          <text class="stat-label">幅作品</text>
+  <!-- 创意创作 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-icon">🎨</view>
+      <view class="section-title">创意创作</view>
+    </view>
+    <view class="category-grid">
+      <view class="category-card draw-card" bindtap="goDraw">
+        <view class="card-bg" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);"></view>
+        <view class="card-content">
+          <view class="card-icon">🎨</view>
+          <view class="card-info">
+            <view class="card-title">画画</view>
+            <view class="card-desc">自由创作</view>
+          </view>
+          <view class="card-stat">
+            <text class="stat-num">{{drawingCount}}</text>
+            <text class="stat-label">幅作品</text>
+          </view>
         </view>
       </view>
     </view>
+  </view>
 
-    <view class="category-card stall-card" bindtap="goStall">
-      <view class="card-bg" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);"></view>
-      <view class="card-content">
-        <view class="card-icon">🏪</view>
-        <view class="card-info">
-          <view class="card-title">摆摊</view>
-          <view class="card-desc">小小老板、体验经商</view>
+  <!-- 趣味游戏 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-icon">🎮</view>
+      <view class="section-title">趣味游戏</view>
+    </view>
+    <view class="category-grid">
+      <view class="category-card rps-card" bindtap="goRps">
+        <view class="card-bg" style="background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);"></view>
+        <view class="card-content">
+          <view class="card-icon">✊</view>
+          <view class="card-info">
+            <view class="card-title">猜拳大战</view>
+            <view class="card-desc">剪刀石头布</view>
+          </view>
+          <view class="card-stat">
+            <text class="stat-num">{{rpsGames}}</text>
+            <text class="stat-label">局对战</text>
+          </view>
         </view>
-        <view class="card-stat">
-          <text class="stat-num">{{todaySales}}</text>
-          <text class="stat-label">笔今日</text>
+      </view>
+
+      <view class="category-card dice-card" bindtap="goDice">
+        <view class="card-bg" style="background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);"></view>
+        <view class="card-content">
+          <view class="card-icon">🎲</view>
+          <view class="card-info">
+            <view class="card-title">骰子乐园</view>
+            <view class="card-desc">比大小</view>
+          </view>
+          <view class="card-stat">
+            <text class="stat-num">{{diceGames}}</text>
+            <text class="stat-label">局游戏</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="category-card" bindtap="goTetris">
+        <view class="card-bg" style="background: linear-gradient(135deg, #7C4DFF 0%, #536DFE 100%);"></view>
+        <view class="card-content">
+          <view class="card-icon">🧱</view>
+          <view class="card-info">
+            <view class="card-title">俄罗斯方块</view>
+            <view class="card-desc">经典闯关</view>
+          </view>
+          <view class="card-stat">
+            <text class="stat-num">{{tetrisGames}}</text>
+            <text class="stat-label">局游戏</text>
+          </view>
         </view>
       </view>
     </view>
+  </view>
 
-    <view class="category-card ai-card" bindtap="goAiChat">
-      <view class="card-bg" style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);"></view>
-      <view class="card-content">
-        <view class="card-icon">🤖</view>
-        <view class="card-info">
-          <view class="card-title">AI助手</view>
-          <view class="card-desc">智能陪伴、成长互动</view>
+  <!-- 生活工具 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-icon">🛠️</view>
+      <view class="section-title">生活工具</view>
+    </view>
+    <view class="category-grid">
+      <view class="category-card stall-card" bindtap="goStall">
+        <view class="card-bg" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);"></view>
+        <view class="card-content">
+          <view class="card-icon">🏪</view>
+          <view class="card-info">
+            <view class="card-title">摆摊</view>
+            <view class="card-desc">小小老板</view>
+          </view>
+          <view class="card-stat">
+            <text class="stat-num">{{todaySales}}</text>
+            <text class="stat-label">笔今日</text>
+          </view>
         </view>
-        <view class="card-stat">
-          <text class="stat-icon">{{aiModelIcon}}</text>
-          <text class="stat-label">{{aiModelName}}</text>
+      </view>
+
+      <view class="category-card book-card" bindtap="goBook">
+        <view class="card-bg" style="background: linear-gradient(135deg, #FF9AAB 0%, #FF6B8A 100%);"></view>
+        <view class="card-content">
+          <view class="card-icon">📝</view>
+          <view class="card-info">
+            <view class="card-title">记账本</view>
+            <view class="card-desc">收支记录</view>
+          </view>
+          <view class="card-stat">
+            <text class="stat-num">{{bookEntries}}</text>
+            <text class="stat-label">笔记录</text>
+          </view>
         </view>
       </view>
     </view>
+  </view>
 
-    <view class="category-card rps-card" bindtap="goRps">
-      <view class="card-bg" style="background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);"></view>
-      <view class="card-content">
-        <view class="card-icon">✊</view>
-        <view class="card-info">
-          <view class="card-title">猜拳大战</view>
-          <view class="card-desc">剪刀石头布、冒险闯关</view>
-        </view>
-        <view class="card-stat">
-          <text class="stat-num">{{rpsGames}}</text>
-          <text class="stat-label">局对战</text>
-        </view>
-      </view>
+  <!-- AI互动 -->
+  <view class="section">
+    <view class="section-header">
+      <view class="section-icon">🤖</view>
+      <view class="section-title">AI互动</view>
     </view>
-
-    <view class="category-card dice-card" bindtap="goDice">
-      <view class="card-bg" style="background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);"></view>
-      <view class="card-content">
-        <view class="card-icon">🎲</view>
-        <view class="card-info">
-          <view class="card-title">骰子乐园</view>
-          <view class="card-desc">比大小、趣味任务</view>
-        </view>
-        <view class="card-stat">
-          <text class="stat-num">{{diceGames}}</text>
-          <text class="stat-label">局游戏</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="category-card" bindtap="goTetris">
-      <view class="card-bg" style="background: linear-gradient(135deg, #7C4DFF 0%, #536DFE 100%);"></view>
-      <view class="card-content">
-        <view class="card-icon">🧱</view>
-        <view class="card-info">
-          <view class="card-title">俄罗斯方块</view>
-          <view class="card-desc">经典方块、冒险闯关、趣味拼图</view>
-        </view>
-        <view class="card-stat">
-          <text class="stat-num">{{tetrisGames}}</text>
-          <text class="stat-label">局游戏</text>
+    <view class="category-grid">
+      <view class="category-card ai-card" bindtap="goAiChat">
+        <view class="card-bg" style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);"></view>
+        <view class="card-content">
+          <view class="card-icon">🤖</view>
+          <view class="card-info">
+            <view class="card-title">AI助手</view>
+            <view class="card-desc">智能陪伴</view>
+          </view>
+          <view class="card-stat">
+            <text class="stat-icon">{{aiModelIcon}}</text>
+            <text class="stat-label">{{aiModelName}}</text>
+          </view>
         </view>
       </view>
     </view>

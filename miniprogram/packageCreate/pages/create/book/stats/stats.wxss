@@ -1,0 +1,178 @@
+.container {
+  padding: 20rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.time-tabs {
+  display: flex;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  margin-bottom: 20rpx;
+}
+
+.time-tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx;
+  font-size: 26rpx;
+  color: #666;
+  border-radius: 12rpx;
+}
+
+.time-tab.active {
+  background: #FF6B8A;
+  color: #fff;
+}
+
+.overview-card {
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  color: #fff;
+}
+
+.overview-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.overview-item {
+  text-align: center;
+}
+
+.overview-label {
+  font-size: 24rpx;
+  opacity: 0.8;
+  margin-bottom: 10rpx;
+}
+
+.overview-value {
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.income {
+  color: #fff;
+}
+
+.expense {
+  color: #ffe0e0;
+}
+
+.overview-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 22rpx;
+  opacity: 0.8;
+}
+
+.section {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.category-list {
+  margin-bottom: 20rpx;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.category-item:last-child {
+  border-bottom: none;
+}
+
+.category-icon {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+}
+
+.category-info {
+  flex: 1;
+}
+
+.category-name {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.category-count {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.category-amount {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #ff4d4f;
+}
+
+.calendar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.calendar-day {
+  width: calc(14.28% - 6rpx);
+  text-align: center;
+  padding: 12rpx 4rpx;
+  border-radius: 8rpx;
+}
+
+.calendar-day.has-data {
+  background: #fff0f3;
+}
+
+.day-number {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.day-dot {
+  width: 8rpx;
+  height: 8rpx;
+  background: #FF6B8A;
+  border-radius: 50%;
+  margin: 4rpx auto 0;
+}
+
+.empty-tip {
+  text-align: center;
+  font-size: 26rpx;
+  color: #999;
+  padding: 20rpx;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 100rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+}

@@ -10,6 +10,10 @@
       <text class="model-badge-arrow">▾</text>
     </view>
     <view class="top-actions">
+      <view class="action-btn stats-btn" bindtap="toggleContextStats">
+        <text>📊</text>
+        <text class="stats-cost-badge" wx:if="{{totalTokensUsed > 0}}">¥{{estimatedCost}}</text>
+      </view>
       <view class="action-btn" bindtap="showSessions">
         <text>💬</text>
       </view>
@@ -18,6 +22,28 @@
       </view>
       <view class="action-btn" bindtap="goSettings">
         <text>⚙️</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 上下文统计详情（展开时显示） -->
+  <view class="context-stats" wx:if="{{showContextStats}}">
+    <view class="stats-row">
+      <view class="stat-item">
+        <text class="stat-label">上下文</text>
+        <text class="stat-value">{{contextTokens}}</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-label">输出</text>
+        <text class="stat-value">{{outputTokens}}</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-label">总计</text>
+        <text class="stat-value">{{totalTokensUsed}}</text>
+      </view>
+      <view class="stat-item cost">
+        <text class="stat-label">预估费用</text>
+        <text class="stat-value">¥{{estimatedCost}}</text>
       </view>
     </view>
   </view>
@@ -229,6 +255,10 @@
     
     <!-- 输入区域 -->
     <view class="input-area">
+      <!-- 流式思考开关 -->
+      <view class="action-btn {{streamThinkingEnabled ? 'active' : ''}}" bindtap="toggleStreamThinking">
+        <text>🧠</text>
+      </view>
       <!-- 表情按钮 -->
       <view class="action-btn {{showEmojiBar ? 'active' : ''}}" bindtap="toggleEmojiBar">
         <text>😊</text>

@@ -1,0 +1,72 @@
+<view class="container">
+  <!-- 类型切换 -->
+  <view class="type-tabs">
+    <view class="type-tab {{type === item.value ? 'active' : ''}}" wx:for="{{typeOptions}}" wx:key="value" bindtap="switchType" data-type="{{item.value}}">{{item.label}}</view>
+  </view>
+
+  <!-- 金额输入 -->
+  <view class="amount-section">
+    <view class="amount-label">金额</view>
+    <view class="amount-input-row">
+      <view class="amount-prefix">¥</view>
+      <input class="amount-input" type="digit" placeholder="0.00" value="{{amount}}" bindinput="onAmountInput" />
+    </view>
+  </view>
+
+  <!-- 分类选择 -->
+  <view class="section">
+    <view class="section-title">分类</view>
+    <view class="category-grid">
+      <view class="category-item {{category === item.id ? 'active' : ''}}" wx:for="{{categories}}" wx:key="id" bindtap="selectCategory" data-id="{{item.id}}">
+        <view class="category-icon">{{item.icon}}</view>
+        <view class="category-name">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 备注 -->
+  <view class="section">
+    <view class="section-title">备注</view>
+    <textarea class="note-input" placeholder="添加备注..." value="{{note}}" bindinput="onNoteInput" />
+  </view>
+
+  <!-- 日期时间 -->
+  <view class="section">
+    <view class="datetime-row">
+      <view class="datetime-item">
+        <view class="datetime-label">日期</view>
+        <picker mode="date" value="{{date}}" bindchange="onDateChange">
+          <view class="datetime-value">{{date}}</view>
+        </picker>
+      </view>
+      <view class="datetime-item">
+        <view class="datetime-label">时间</view>
+        <picker mode="time" value="{{time}}" bindchange="onTimeChange">
+          <view class="datetime-value">{{time}}</view>
+        </picker>
+      </view>
+    </view>
+  </view>
+
+  <!-- 标签 -->
+  <view class="section">
+    <view class="section-title">标签</view>
+    <view class="tags-row">
+      <view class="tag-item" wx:for="{{tags}}" wx:key="*this">
+        <text>{{item}}</text>
+        <view class="tag-remove" bindtap="removeTag" data-index="{{index}}">×</view>
+      </view>
+      <view class="tag-input-row">
+        <input class="tag-input" placeholder="添加标签" value="{{tagInput}}" bindinput="onTagInput" />
+        <view class="tag-add" bindtap="addTag">+</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-buttons">
+    <view class="btn btn-save" bindtap="save">{{isEdit ? '更新' : '保存'}}</view>
+    <view class="btn btn-template" bindtap="saveAsTemplate" wx:if="{{!isEdit}}">存为模板</view>
+    <view class="btn btn-delete" bindtap="deleteEntry" wx:if="{{isEdit}}">删除</view>
+  </view>
+</view>

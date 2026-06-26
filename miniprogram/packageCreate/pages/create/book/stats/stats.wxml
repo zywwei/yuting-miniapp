@@ -1,0 +1,61 @@
+<view class="container">
+  <!-- 时间范围选择 -->
+  <view class="time-tabs">
+    <view class="time-tab {{timeRange === item.value ? 'active' : ''}}" wx:for="{{timeRangeOptions}}" wx:key="value" bindtap="switchTimeRange" data-value="{{item.value}}">{{item.label}}</view>
+  </view>
+
+  <!-- 收支概览 -->
+  <view class="overview-card" wx:if="{{stats}}">
+    <view class="overview-row">
+      <view class="overview-item">
+        <view class="overview-label">收入</view>
+        <view class="overview-value income">+{{stats.income || 0}}</view>
+      </view>
+      <view class="overview-item">
+        <view class="overview-label">支出</view>
+        <view class="overview-value expense">-{{stats.expense || 0}}</view>
+      </view>
+      <view class="overview-item">
+        <view class="overview-label">结余</view>
+        <view class="overview-value {{stats.balance >= 0 ? 'income' : 'expense'}}">{{stats.balance >= 0 ? '+' : ''}}{{stats.balance || 0}}</view>
+      </view>
+    </view>
+    <view class="overview-footer">
+      <text>共 {{stats.entryCount || 0}} 笔记录</text>
+      <text wx:if="{{comparison}}">{{getComparisonText()}}</text>
+    </view>
+  </view>
+
+  <!-- 分类排行 -->
+  <view class="section" wx:if="{{categoryStats}}">
+    <view class="section-title">支出分类排行</view>
+    <view class="category-list">
+      <view class="category-item" wx:for="{{getTopCategories()}}" wx:key="id">
+        <view class="category-icon">{{item.icon}}</view>
+        <view class="category-info">
+          <view class="category-name">{{item.name}}</view>
+          <view class="category-count">{{item.count}} 笔</view>
+        </view>
+        <view class="category-amount">{{item.amount}}</view>
+      </view>
+      <view class="empty-tip" wx:if="{{getTopCategories().length === 0}}">暂无数据</view>
+    </view>
+  </view>
+
+  <!-- 日历热力图 -->
+  <view class="section" wx:if="{{calendarData}}">
+    <view class="section-title">本月记账日历</view>
+    <view class="calendar-grid">
+      <view class="calendar-day {{calendarData[item] ? 'has-data' : ''}}" wx:for="{{31}}" wx:key="*this">
+        <view class="day-number">{{item + 1}}</view>
+        <view class="day-dot" wx:if="{{calendarData[item]}}"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!stats || stats.entryCount === 0}}">
+    <view class="empty-icon">📊</view>
+    <view class="empty-text">暂无统计数据</view>
+  </view>
+</view>

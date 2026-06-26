@@ -9,7 +9,8 @@ Page({
     aiModelName: '未配置',
     rpsGames: 0,
     diceGames: 0,
-    tetrisGames: 0
+    tetrisGames: 0,
+    bookEntries: 0
   },
 
   onLoad: function() {
@@ -56,6 +57,7 @@ Page({
     var rpsRecords = childStorage.get('rpsRecords') || []
     var diceRecords = childStorage.get('diceRecords') || []
     var tetrisRecords = childStorage.get('tetrisRecords') || []
+    var bookEntries = childStorage.get('accountEntries') || []
 
     this.setData({
       drawingCount: drawings.length,
@@ -64,7 +66,8 @@ Page({
       aiModelName: aiModelName,
       rpsGames: rpsRecords.length,
       diceGames: diceRecords.length,
-      tetrisGames: tetrisRecords.length
+      tetrisGames: tetrisRecords.length,
+      bookEntries: bookEntries.length
     })
   },
 
@@ -95,5 +98,9 @@ Page({
 
   goTetris: function() {
     wx.navigateTo({ url: '/packageCreate/pages/create/tetris/index' })
+  },
+
+  goBook: function() {
+    wx.navigateTo({ url: '/packageCreate/pages/create/book/index' })
   }
 })

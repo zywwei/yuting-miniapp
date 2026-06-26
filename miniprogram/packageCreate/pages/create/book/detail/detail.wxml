@@ -1,0 +1,84 @@
+<view class="container">
+  <!-- 账本信息 -->
+  <view class="book-header" wx:if="{{book}}">
+    <view class="book-icon">{{book.icon}}</view>
+    <view class="book-info">
+      <view class="book-name">{{book.name}}</view>
+      <view class="book-meta">{{entries.length}} 笔记录</view>
+    </view>
+    <view class="book-actions">
+      <view class="action-btn" bindtap="goStats">📊</view>
+      <view class="action-btn" bindtap="goShare">👥</view>
+      <view class="action-btn" bindtap="goSettings">⚙️</view>
+    </view>
+  </view>
+
+  <!-- 预算进度 -->
+  <view class="budget-card" wx:if="{{budgetProgress}}">
+    <view class="budget-header">
+      <view class="budget-label">本月预算</view>
+      <view class="budget-amount">{{budgetProgress.spent}} / {{budgetProgress.budget}}</view>
+    </view>
+    <view class="budget-bar">
+      <view class="budget-fill {{budgetProgress.isOverBudget ? 'over' : ''}}" style="width: {{budgetProgress.percentage > 1 ? 100 : budgetProgress.percentage * 100}}%"></view>
+    </view>
+    <view class="budget-tip {{budgetProgress.isAlert ? 'alert' : ''}}">
+      {{budgetProgress.isOverBudget ? '已超支' : '剩余'}} {{budgetProgress.remaining}}
+    </view>
+  </view>
+
+  <!-- 筛选栏 -->
+  <view class="filter-bar">
+    <view class="filter-btn {{showFilter ? 'active' : ''}}" bindtap="toggleFilter">筛选</view>
+    <view class="filter-btn" bindtap="goAddEntry">+ 记一笔</view>
+  </view>
+
+  <!-- 筛选面板 -->
+  <view class="filter-panel" wx:if="{{showFilter}}">
+    <view class="filter-row">
+      <view class="filter-label">类型</view>
+      <picker bindchange="onFilterType" value="{{filters.type}}" range="{{typeOptions}}" range-key="label">
+        <view class="filter-value">{{typeOptions[0].label}}</view>
+      </picker>
+    </view>
+    <view class="filter-row">
+      <view class="filter-label">搜索</view>
+      <input class="filter-input" placeholder="输入关键词" value="{{filters.keyword}}" bindinput="onFilterKeyword" />
+    </view>
+    <view class="filter-clear" bindtap="clearFilters">清除筛选</view>
+  </view>
+
+  <!-- 记录列表 -->
+  <view class="entry-groups">
+    <view class="entry-group" wx:for="{{groupedEntries}}" wx:key="date">
+      <view class="group-header">
+        <view class="group-date">{{item.date}}</view>
+        <view class="group-summary">
+          <text wx:if="{{item.totalIncome > 0}}" class="income">+{{item.totalIncome}}</text>
+          <text wx:if="{{item.totalExpense > 0}}" class="expense"> -{{item.totalExpense}}</text>
+        </view>
+      </view>
+      <view class="group-entries">
+        <view class="entry-item" wx:for="{{item.entries}}" wx:for-item="entry" wx:key="id" bindtap="goEditEntry" data-id="{{entry.id}}" bindlongpress="deleteEntry">
+          <view class="entry-category">{{entry.categoryIcon}}</view>
+          <view class="entry-info">
+            <view class="entry-note">{{entry.categoryName}}</view>
+            <view class="entry-time">{{entry.time}}</view>
+          </view>
+          <view class="entry-amount {{entry.type}}">
+            {{entry.type === 'income' ? '+' : '-'}}{{entry.amount}}
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{entries.length === 0}}">
+    <view class="empty-icon">📝</view>
+    <view class="empty-text">还没有记录，点击"+ 记一笔"开始记账</view>
+  </view>
+
+  <!-- 悬浮按钮 -->
+  <view class="fab" bindtap="goAddEntry">+</view>
+</view>

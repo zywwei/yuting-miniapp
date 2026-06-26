@@ -1,0 +1,285 @@
+.container {
+  padding: 20rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding-bottom: 120rpx;
+}
+
+.book-header {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.book-icon {
+  font-size: 48rpx;
+  margin-right: 20rpx;
+}
+
+.book-info {
+  flex: 1;
+}
+
+.book-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.book-meta {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.book-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.action-btn {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  background: #f5f5f5;
+  border-radius: 50%;
+}
+
+.budget-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.budget-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.budget-label {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.budget-amount {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: bold;
+}
+
+.budget-bar {
+  height: 16rpx;
+  background: #f0f0f0;
+  border-radius: 8rpx;
+  overflow: hidden;
+  margin-bottom: 12rpx;
+}
+
+.budget-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #52c41a, #73d13d);
+  border-radius: 8rpx;
+  transition: width 0.3s;
+}
+
+.budget-fill.over {
+  background: linear-gradient(90deg, #ff4d4f, #ff7875);
+}
+
+.budget-tip {
+  font-size: 24rpx;
+  color: #52c41a;
+  text-align: right;
+}
+
+.budget-tip.alert {
+  color: #ff4d4f;
+}
+
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.filter-btn {
+  padding: 16rpx 32rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.filter-btn.active {
+  color: #FF6B8A;
+  background: #fff0f3;
+}
+
+.filter-panel {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.filter-label {
+  width: 120rpx;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.filter-value {
+  flex: 1;
+  font-size: 26rpx;
+  color: #333;
+}
+
+.filter-input {
+  flex: 1;
+  font-size: 26rpx;
+  padding: 12rpx;
+  border: 1rpx solid #eee;
+  border-radius: 8rpx;
+}
+
+.filter-clear {
+  text-align: center;
+  font-size: 26rpx;
+  color: #FF6B8A;
+  margin-top: 16rpx;
+}
+
+.entry-groups {
+  margin-bottom: 20rpx;
+}
+
+.entry-group {
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  background: #fafafa;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.group-date {
+  font-size: 26rpx;
+  color: #666;
+  font-weight: bold;
+}
+
+.group-summary {
+  font-size: 24rpx;
+}
+
+.income {
+  color: #52c41a;
+}
+
+.expense {
+  color: #ff4d4f;
+}
+
+.group-entries {
+  padding: 0 24rpx;
+}
+
+.entry-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.entry-item:last-child {
+  border-bottom: none;
+}
+
+.entry-category {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+}
+
+.entry-info {
+  flex: 1;
+}
+
+.entry-note {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 6rpx;
+}
+
+.entry-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.entry-amount {
+  font-size: 30rpx;
+  font-weight: bold;
+}
+
+.entry-amount.income {
+  color: #52c41a;
+}
+
+.entry-amount.expense {
+  color: #ff4d4f;
+}
+
+.entry-amount.transfer {
+  color: #1890ff;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 100rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.fab {
+  position: fixed;
+  right: 40rpx;
+  bottom: 40rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48rpx;
+  color: #fff;
+  box-shadow: 0 8rpx 24rpx rgba(255, 107, 138, 0.4);
+}

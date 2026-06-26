@@ -369,7 +369,7 @@ async function fetchDrawings() {
       // 合并策略：
       // 1. 云端有的数据 → 使用云端数据
       // 2. 云端没有但本地有且 synced!=true → 保留（新添加未同步）
-      // 3. 云端没有但本地有且 synced=true → 触发自愈补传后保留（防止云端误删导致数据丢失）
+      // 3. 云端没有但本地有且 synced=true → 不保留（已被其他设备合法删除）
       var merged = []
       var mergedIds = {}
 
@@ -381,15 +381,15 @@ async function fetchDrawings() {
         }
       })
 
-      // 再添加本地独有数据
+      // 再添加本地独有数据（仅保留未同步的，已同步但云端缺失的说明已被其他设备删除）
       localDrawings.forEach(function(d) {
-        if (d && d.id && !mergedIds[d.id] && !deletedSet[d.id]) {
+        if (d && d.id && !mergedIds[d.id] && !deletedSet[d.id] && !d.synced) {
           merged.push(d)
           mergedIds[d.id] = true
         }
       })
 
-      // 自愈：本地有但云端缺失的记录补传到云端（含已标记 synced 但云端丢失的情况）
+      // 自愈：本地未同步的记录补传到云端（synced=true 的不补传，可能已被其他设备合法删除）
       selfHealDrawings(cloudList, localDrawings, deletedSet)
 
       // 按创建时间倒序排序
@@ -440,8 +440,9 @@ function selfHealDrawings(cloudList, localDrawings, deletedSet) {
     if (d && d.id) cloudIds[d.id] = true
   })
   localDrawings.forEach(function(d) {
-    // 已删除的、或云端已有的，都不补传
-    if (d && d.id && !cloudIds[d.id] && !deletedSet[d.id]) {
+    // 已删除的、或云端已有的、或已同步过的，都不补传
+    // synced=true 的记录如果云端缺失，说明被其他设备合法删除，不应复活
+    if (d && d.id && !cloudIds[d.id] && !deletedSet[d.id] && !d.synced) {
       // 图片已是云端 fileID，直接补传记录
       if (d.imagePath && d.imagePath.startsWith('cloud://')) {
         wx.cloud.callFunction({
@@ -691,36 +692,6 @@ async function fetchBrushingRecords() {
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
-      // 构建云端数据映射
-      var cloudMap = {}
-      cloudList.forEach(function(r) {
-        if (r && r.id && !deletedSet[r.id]) {
-          cloudMap[r.id] = {
-            ...r,
-            id: r.id || r._id,
-            imagePath: r.cloudFileID || r.imagePath || '',
-            images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
-          }
-        }
-      })
-
-      // 合并策略
-      var merged = []
-      var mergedIds = {}
-
-      // 先添加云端数据
-      cloudList.forEach(function(r) {
-        if (r && r.id && !deletedSet[r.id]) {
-          merged.push({
-            ...r,
-            id: r.id || r._id,
-            imagePath: r.cloudFileID || r.imagePath || '',
-            images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
-          })
-          mergedIds[r.id] = true
-        }
-      })
-
       var merged = mergeAndHeal('brushingRecords', 'brushingRecords', localRecords, cloudList, deletedSet, function(r) {
         return {
           ...r,
@@ -957,22 +928,17 @@ function setMediaField(obj, field, value) {
   }
 }
 
-// 通用自愈：本地存在但云端缺失的"已同步"记录重新补传，防止云端异常导致数据丢失。
+// 通用自愈：本地存在但云端缺失的"未同步"记录补传到云端，防止创建后同步失败导致数据丢失。
 // 依赖 record 云函数 addRecord 按客户端 id 幂等去重，补传不会产生重复记录。
-// 限制：单次最多补传 5 条（防 thundering herd），仅补传 30 天内的记录（防跨设备删除复活）。
+// 注意：synced=true 但云端缺失的记录不补传（可能被其他设备合法删除），由删除逻辑处理。
 var SELF_HEAL_MAX = 5
-var SELF_HEAL_DAYS = 30
 
 function selfHealRecords(collection, localList, cloudIdSet, deletedSet) {
   if (!isCloudReady()) return
-  var cutoff = Date.now() - SELF_HEAL_DAYS * 24 * 60 * 60 * 1000
   var count = 0
   localList.forEach(function(r) {
     if (count >= SELF_HEAL_MAX) return
-    if (r && r.id && r.synced && !cloudIdSet[r.id] && !deletedSet[r.id]) {
-      // 仅补传近期记录：老记录更可能已被其他设备合法删除，而非云端异常丢失
-      var created = r.createTime ? new Date(r.createTime).getTime() : 0
-      if (created < cutoff) return
+    if (r && r.id && !r.synced && !cloudIdSet[r.id] && !deletedSet[r.id]) {
       wx.cloud.callFunction({
         name: 'record',
         data: { action: 'add', collection: collection, data: r }
@@ -995,14 +961,14 @@ function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, 
     }
   })
 
-  // 再添加本地独有数据（云端缺失的都保留，避免云端异常导致丢数据）
+  // 再添加本地独有数据：仅保留未同步的（新创建的），已同步但云端缺失的视为被其他设备删除
   localList.forEach(function(r) {
-    if (r && r.id && !mergedIds[r.id] && !deletedSet[r.id]) {
+    if (r && r.id && !mergedIds[r.id] && !deletedSet[r.id] && !r.synced) {
       merged.push(r)
     }
   })
 
-  // 自愈：本地已同步但云端缺失的记录重新补传
+  // 自愈：本地未同步的记录补传到云端
   var cloudIdSet = {}
   cloudList.forEach(function(r) { if (r && r.id) cloudIdSet[r.id] = true })
   selfHealRecords(collection, localList, cloudIdSet, deletedSet)
@@ -1059,21 +1025,6 @@ async function fetchNotes() {
       cloudList.forEach(function(n) {
         if (n && n.id && !deletedSet[n.id]) {
           cloudMap[n.id] = n
-        }
-      })
-
-      // 合并策略：
-      // 1. 云端有的数据 → 使用云端数据
-      // 2. 云端没有但本地有且 synced=true → 删除（云端已删除）
-      // 3. 云端没有但本地有且 synced!=true → 保留（新添加未同步）
-      var merged = []
-      var mergedIds = {}
-
-      // 先添加云端数据
-      cloudList.forEach(function(n) {
-        if (n && n.id && !deletedSet[n.id]) {
-          merged.push(n)
-          mergedIds[n.id] = true
         }
       })
 
@@ -1318,36 +1269,6 @@ async function fetchHabitRecords() {
       var deletedIds = getDeletedHabitRecordIds()
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
-
-      // 构建云端数据映射
-      var cloudMap = {}
-      cloudList.forEach(function(r) {
-        if (r && r.id && !deletedSet[r.id]) {
-          cloudMap[r.id] = {
-            ...r,
-            id: r.id || r._id,
-            imagePath: r.cloudFileID || r.imagePath || '',
-            images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
-          }
-        }
-      })
-
-      // 合并策略
-      var merged = []
-      var mergedIds = {}
-
-      // 先添加云端数据
-      cloudList.forEach(function(r) {
-        if (r && r.id && !deletedSet[r.id]) {
-          merged.push({
-            ...r,
-            id: r.id || r._id,
-            imagePath: r.cloudFileID || r.imagePath || '',
-            images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
-          })
-          mergedIds[r.id] = true
-        }
-      })
 
       var merged = mergeAndHeal('habitRecords', 'habitRecords', localRecords, cloudList, deletedSet, function(r) {
         return {
@@ -2151,6 +2072,170 @@ async function migrateSingletonsToV2() {
   }
 }
 
+// ===== 记账本 =====
+
+var DELETED_BOOKS_KEY = 'deletedBookIds'
+var DELETED_ENTRIES_KEY = 'deletedEntryIds'
+
+function getDeletedBookIds() {
+  return getDeletedIdsByKey(DELETED_BOOKS_KEY)
+}
+
+function addDeletedBookId(id) {
+  addDeletedIdByKey(DELETED_BOOKS_KEY, id)
+}
+
+function getDeletedEntryIds() {
+  return getDeletedIdsByKey(DELETED_ENTRIES_KEY)
+}
+
+function addDeletedEntryId(id) {
+  addDeletedIdByKey(DELETED_ENTRIES_KEY, id)
+}
+
+async function uploadAccountBook(book) {
+  if (!isCloudReady()) return
+  try {
+    await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'add', collection: 'accountBooks', data: { _id: book.id, ...book } }
+    })
+    var books = childStorage.get('accountBooks') || []
+    for (var i = 0; i < books.length; i++) {
+      if (books[i].id === book.id) {
+        books[i].synced = true
+        break
+      }
+    }
+    childStorage.set('accountBooks', books)
+  } catch (err) {
+    console.warn('账本同步失败，入队重试:', err)
+    syncQueue.enqueue({ id: book.id, action: 'add', collection: 'accountBooks', data: { _id: book.id, ...book } })
+  }
+}
+
+async function fetchAccountBooks() {
+  var localBooks = childStorage.get('accountBooks') || []
+  if (!isCloudReady()) return localBooks
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'list', collection: 'accountBooks', childId: '', page: 1, pageSize: 100 }
+    })
+    if (res.result.code === 0) {
+      var cloudList = res.result.data.list || []
+      var deletedIds = getDeletedBookIds()
+      var deletedSet = {}
+      deletedIds.forEach(function(id) { deletedSet[id] = true })
+      var merged = mergeAndHeal('accountBooks', 'accountBooks', localBooks, cloudList, deletedSet)
+      return merged
+    }
+  } catch (err) {
+    console.warn('账本云端读取失败:', err)
+  }
+  return localBooks
+}
+
+async function removeAccountBook(id) {
+  addDeletedBookId(id)
+  childStorage.set('accountBooks', (childStorage.get('accountBooks') || []).filter(function(b) { return b.id !== id }))
+  if (!isCloudReady()) return
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'remove', collection: 'accountBooks', id: id }
+    })
+    if (res.result && res.result.code === 0) {
+      removeTombstone(DELETED_BOOKS_KEY, id)
+    }
+  } catch (err) {
+    console.warn('云端删除账本失败:', err)
+  }
+}
+
+async function uploadBookEntry(entry) {
+  if (!isCloudReady()) return
+  try {
+    await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'add', collection: 'bookEntries', data: { _id: entry.id, ...entry } }
+    })
+    var entries = childStorage.get('accountEntries') || []
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].id === entry.id) {
+        entries[i].synced = true
+        break
+      }
+    }
+    childStorage.set('accountEntries', entries)
+  } catch (err) {
+    console.warn('记账条目同步失败，入队重试:', err)
+    syncQueue.enqueue({ id: entry.id, action: 'add', collection: 'bookEntries', data: { _id: entry.id, ...entry } })
+  }
+}
+
+async function fetchBookEntries() {
+  var localEntries = childStorage.get('accountEntries') || []
+  if (!isCloudReady()) return localEntries
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'list', collection: 'bookEntries', childId: '', page: 1, pageSize: 100 }
+    })
+    if (res.result.code === 0) {
+      var cloudList = res.result.data.list || []
+      var deletedIds = getDeletedEntryIds()
+      var deletedSet = {}
+      deletedIds.forEach(function(id) { deletedSet[id] = true })
+      var merged = mergeAndHeal('bookEntries', 'accountEntries', localEntries, cloudList, deletedSet)
+      return merged
+    }
+  } catch (err) {
+    console.warn('记账条目云端读取失败:', err)
+  }
+  return localEntries
+}
+
+async function removeBookEntry(id) {
+  addDeletedEntryId(id)
+  childStorage.set('accountEntries', (childStorage.get('accountEntries') || []).filter(function(e) { return e.id !== id }))
+  if (!isCloudReady()) return
+  try {
+    var res = await wx.cloud.callFunction({
+      name: 'record',
+      data: { action: 'remove', collection: 'bookEntries', id: id }
+    })
+    if (res.result && res.result.code === 0) {
+      removeTombstone(DELETED_ENTRIES_KEY, id)
+    }
+  } catch (err) {
+    console.warn('云端删除记账条目失败:', err)
+  }
+}
+
+async function uploadAccountSettings(settings) {
+  if (!isCloudReady()) return
+  try {
+    var now = new Date().toISOString()
+    await callUpsertSingleton('accountSettings', 'account_settings', { ...settings, updatedAt: now })
+  } catch (err) {
+    console.warn('记账设置同步失败:', err)
+  }
+}
+
+async function fetchAccountSettings() {
+  if (!isCloudReady()) return childStorage.get('accountSettings') || {}
+  try {
+    var res = await callGetSingleton('accountSettings', 'account_settings')
+    if (res.result.code === 0 && res.result.data) {
+      return res.result.data
+    }
+  } catch (err) {
+    console.warn('记账设置云端读取失败:', err)
+  }
+  return childStorage.get('accountSettings') || {}
+}
+
 module.exports = {
   isCloudReady: isCloudReady,
   // 通用墓碑操作（供 game-cloud 等模块复用）
@@ -2201,5 +2286,13 @@ module.exports = {
   fetchStallChallenges: fetchStallChallenges,
   uploadStallBusinessHours: uploadStallBusinessHours,
   fetchStallBusinessHours: fetchStallBusinessHours,
-  migrateSingletonsToV2: migrateSingletonsToV2
+  migrateSingletonsToV2: migrateSingletonsToV2,
+  uploadAccountBook: uploadAccountBook,
+  fetchAccountBooks: fetchAccountBooks,
+  removeAccountBook: removeAccountBook,
+  uploadBookEntry: uploadBookEntry,
+  fetchBookEntries: fetchBookEntries,
+  removeBookEntry: removeBookEntry,
+  uploadAccountSettings: uploadAccountSettings,
+  fetchAccountSettings: fetchAccountSettings
 }

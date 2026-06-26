@@ -1,0 +1,82 @@
+<view class="container" wx:if="{{book}}">
+  <!-- 基本信息 -->
+  <view class="section">
+    <view class="section-title">基本信息</view>
+    <view class="form-group">
+      <view class="form-label">账本图标</view>
+      <view class="icon-display" bindtap="showIconPicker">
+        <view class="icon-value">{{book.icon}}</view>
+        <view class="icon-arrow">></view>
+      </view>
+    </view>
+    <view class="form-group">
+      <view class="form-label">账本名称</view>
+      <input class="form-input" value="{{book.name}}" bindblur="onNameInput" />
+    </view>
+    <view class="form-group">
+      <view class="form-label">账本描述</view>
+      <input class="form-input" placeholder="添加描述..." value="{{book.description}}" bindblur="onDescriptionInput" />
+    </view>
+  </view>
+
+  <!-- 预算设置 -->
+  <view class="section">
+    <view class="section-title">预算设置</view>
+    <view class="form-group" bindtap="showBudgetDialog">
+      <view class="form-label">月度预算</view>
+      <view class="form-value">{{book.monthlyBudget ? book.monthlyBudget + ' 元' : '未设置'}}</view>
+    </view>
+  </view>
+
+  <!-- 操作 -->
+  <view class="section">
+    <view class="section-title">操作</view>
+    <view class="action-item" bindtap="setDefault">
+      <view class="action-text">设为默认账本</view>
+      <view class="action-badge" wx:if="{{book.isDefault}}">当前默认</view>
+    </view>
+    <view class="action-item" bindtap="goCategories">
+      <view class="action-text">分类管理</view>
+      <view class="action-arrow">></view>
+    </view>
+    <view class="action-item" bindtap="goExport">
+      <view class="action-text">导出数据</view>
+      <view class="action-arrow">></view>
+    </view>
+  </view>
+
+  <!-- 危险操作 -->
+  <view class="section danger">
+    <view class="section-title">危险操作</view>
+    <view class="action-item" bindtap="archiveBook">
+      <view class="action-text">归档账本</view>
+      <view class="action-arrow">></view>
+    </view>
+    <view class="action-item" bindtap="deleteBook">
+      <view class="action-text danger-text">删除账本</view>
+      <view class="action-arrow">></view>
+    </view>
+  </view>
+
+  <!-- 图标选择弹窗 -->
+  <view class="modal-mask" wx:if="{{showIconPicker}}" bindtap="hideIconPicker">
+    <view class="modal-content" catchtap="preventBubble">
+      <view class="modal-title">选择图标</view>
+      <view class="icon-grid">
+        <view class="icon-item {{book.icon === item ? 'active' : ''}}" wx:for="{{iconOptions}}" wx:key="*this" bindtap="selectIcon" data-icon="{{item}}">{{item}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 预算输入弹窗 -->
+  <view class="modal-mask" wx:if="{{showBudgetInput}}" bindtap="hideBudgetDialog">
+    <view class="modal-content" catchtap="preventBubble">
+      <view class="modal-title">设置月度预算</view>
+      <input class="budget-input" type="digit" placeholder="输入预算金额" value="{{budgetInput}}" bindinput="onBudgetInput" />
+      <view class="modal-footer">
+        <view class="modal-btn cancel" bindtap="hideBudgetDialog">取消</view>
+        <view class="modal-btn confirm" bindtap="confirmBudget">确定</view>
+      </view>
+    </view>
+  </view>
+</view>

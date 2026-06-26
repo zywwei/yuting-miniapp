@@ -50,7 +50,15 @@
         "pages/create/tetris/index",
         "pages/create/tetris/classic/index",
         "pages/create/tetris/adventure/index",
-        "pages/create/tetris/puzzle/index"
+        "pages/create/tetris/puzzle/index",
+        "pages/create/book/index",
+        "pages/create/book/detail/detail",
+        "pages/create/book/add-entry/add-entry",
+        "pages/create/book/stats/stats",
+        "pages/create/book/categories/categories",
+        "pages/create/book/share/share",
+        "pages/create/book/export/export",
+        "pages/create/book/settings/settings"
       ]
     },
     {

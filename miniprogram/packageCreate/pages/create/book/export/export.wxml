@@ -1,0 +1,53 @@
+<view class="container">
+  <!-- 选择账本 -->
+  <view class="section">
+    <view class="section-title">选择账本</view>
+    <view class="book-list">
+      <view class="book-item {{selectedBookId === '' ? 'active' : ''}}" bindtap="selectBook" data-id="">
+        <view class="book-name">全部账本</view>
+      </view>
+      <view class="book-item {{selectedBookId === item.id ? 'active' : ''}}" wx:for="{{books}}" wx:key="id" bindtap="selectBook" data-id="{{item.id}}">
+        <view class="book-icon">{{item.icon}}</view>
+        <view class="book-name">{{item.name}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 选择时间范围 -->
+  <view class="section">
+    <view class="section-title">时间范围</view>
+    <view class="date-options">
+      <view class="date-option {{dateRange === item.value ? 'active' : ''}}" wx:for="{{dateRangeOptions}}" wx:key="value" bindtap="selectDateRange" data-value="{{item.value}}">{{item.label}}</view>
+    </view>
+    <view class="custom-date" wx:if="{{dateRange === 'custom'}}">
+      <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+        <view class="date-value">{{startDate}}</view>
+      </picker>
+      <view class="date-separator">至</view>
+      <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+        <view class="date-value">{{endDate}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 导出预览 -->
+  <view class="section">
+    <view class="section-title">导出预览</view>
+    <view class="preview-info">
+      <view class="preview-item">
+        <view class="preview-label">账本</view>
+        <view class="preview-value">{{getBookName(selectedBookId)}}</view>
+      </view>
+      <view class="preview-item">
+        <view class="preview-label">记录数</view>
+        <view class="preview-value">{{getEntryCount()}} 条</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 导出按钮 -->
+  <view class="export-btn" bindtap="exportCSV">
+    <text wx:if="{{!exporting}}">导出 CSV 文件</text>
+    <text wx:if="{{exporting}}">导出中...</text>
+  </view>
+</view>
