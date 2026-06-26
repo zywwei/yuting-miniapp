@@ -8,6 +8,16 @@ var auth = getApp().globalData.auth
 var childStorage = getApp().globalData.childStorage
 var syncQueue = getApp().globalData.syncQueue
 
+function getStorageKey(gameType) {
+  var map = { rps: 'rpsRecords', dice: 'diceRecords', tetris: 'tetrisRecords' }
+  return map[gameType] || 'rpsRecords'
+}
+
+function getStatsKey(gameType) {
+  var map = { rps: 'rpsStats', dice: 'diceStats', tetris: 'tetrisStats' }
+  return map[gameType] || 'rpsStats'
+}
+
 var isCloudReady = function() {
   try {
     return typeof wx.cloud !== 'undefined' && wx.cloud
@@ -52,7 +62,7 @@ function uploadGameRecord(record) {
   }
 
   // 写本地（完整记录，保留客户端完整字段）
-  var storageKey = record.gameType === 'rps' ? 'rpsRecords' : 'diceRecords'
+  var storageKey = getStorageKey(record.gameType)
   var localRecords = childStorage.get(storageKey) || []
   localRecords.unshift(record)
   childStorage.set(storageKey, localRecords)
@@ -89,7 +99,7 @@ function uploadGameRecord(record) {
 
 // 获取游戏记录
 function fetchGameRecords(gameType) {
-  var storageKey = gameType === 'rps' ? 'rpsRecords' : 'diceRecords'
+  var storageKey = getStorageKey(gameType)
   var localRecords = childStorage.get(storageKey) || []
 
   if (!isCloudReady()) return Promise.resolve(localRecords)
@@ -187,7 +197,7 @@ function addDeletedGameRecordId(id) {
 
 // 删除游戏记录（本地 + 云端 + 墓碑）
 function removeGameRecord(gameType, id) {
-  var storageKey = gameType === 'rps' ? 'rpsRecords' : 'diceRecords'
+  var storageKey = getStorageKey(gameType)
 
   // 记录墓碑，防止 fetch 时把已删除记录拉回来
   addDeletedGameRecordId(id)
@@ -214,7 +224,7 @@ function removeGameRecord(gameType, id) {
 
 // 更新本地统计
 function updateLocalStats(gameType, record) {
-  var statsKey = gameType === 'rps' ? 'rpsStats' : 'diceStats'
+  var statsKey = getStatsKey(gameType)
   var stats = childStorage.get(statsKey) || {
     totalGames: 0,
     wins: 0,
@@ -232,6 +242,27 @@ function updateLocalStats(gameType, record) {
   stats.totalGames++
   stats.totalDuration += record.duration || 0
   stats.lastPlayed = record.createTime
+
+  // 俄罗斯方块使用独立的统计逻辑
+  if (gameType === 'tetris') {
+    stats.totalScore = (stats.totalScore || 0) + (record.score || 0)
+    stats.totalLines = (stats.totalLines || 0) + (record.lines || 0)
+    if ((record.score || 0) > (stats.bestScore || 0)) stats.bestScore = record.score
+    if ((record.level || 0) > (stats.bestLevel || 0)) stats.bestLevel = record.level
+    stats.tetrisCount = (stats.tetrisCount || 0) + (record.tetrisCount || 0)
+    if (!stats.modeStats[record.mode]) {
+      stats.modeStats[record.mode] = { games: 0, bestScore: 0, bestLines: 0 }
+    }
+    stats.modeStats[record.mode].games++
+    if ((record.score || 0) > (stats.modeStats[record.mode].bestScore || 0)) {
+      stats.modeStats[record.mode].bestScore = record.score
+    }
+    if ((record.lines || 0) > (stats.modeStats[record.mode].bestLines || 0)) {
+      stats.modeStats[record.mode].bestLines = record.lines
+    }
+    childStorage.set(statsKey, stats)
+    return stats
+  }
 
   if (record.result === 'win') {
     stats.wins++

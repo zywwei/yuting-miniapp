@@ -1,0 +1,63 @@
+<view class="container">
+  <view class="header">
+    <view class="header-bg"></view>
+    <view class="header-content">
+      <view class="header-icon">🧱</view>
+      <view class="header-title">俄罗斯方块</view>
+      <view class="header-desc">经典方块、冒险闯关、趣味拼图</view>
+    </view>
+  </view>
+
+  <view class="stats-bar">
+    <view class="stat-item">
+      <text class="stat-value">{{totalGames}}</text>
+      <text class="stat-label">总游戏</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{bestScore}}</text>
+      <text class="stat-label">最高分</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-value">{{bestLines}}</text>
+      <text class="stat-label">最多消行</text>
+    </view>
+  </view>
+
+  <view class="section-title">选择模式</view>
+  <view class="mode-grid">
+    <view class="mode-card" bindtap="goClassic">
+      <view class="mode-icon">🧱</view>
+      <view class="mode-info">
+        <view class="mode-name">经典模式</view>
+        <view class="mode-desc">经典俄罗斯方块，挑战最高分</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+    <view class="mode-card" bindtap="goAdventure">
+      <view class="mode-icon">⚔️</view>
+      <view class="mode-info">
+        <view class="mode-name">冒险模式</view>
+        <view class="mode-desc">消行攻击怪物，拯救牙齿王国</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+    <view class="mode-card" bindtap="goPuzzle">
+      <view class="mode-icon">🧩</view>
+      <view class="mode-info">
+        <view class="mode-name">拼图模式</view>
+        <view class="mode-desc">有限方块拼出目标图案</view>
+      </view>
+      <view class="mode-arrow">›</view>
+    </view>
+  </view>
+
+  <view class="section-title" wx:if="{{recentRecords.length > 0}}">最近战绩</view>
+  <view class="record-list" wx:if="{{recentRecords.length > 0}}">
+    <view class="record-item" wx:for="{{recentRecords}}" wx:key="id">
+      <view class="record-mode">{{item.mode === 'classic' ? '经典' : item.mode === 'adventure' ? '冒险' : '拼图'}}</view>
+      <view class="record-score">{{item.score}}分</view>
+      <view class="record-lines">{{item.lines}}行</view>
+      <view class="record-time">{{item.createTime}}</view>
+    </view>
+  </view>
+</view>

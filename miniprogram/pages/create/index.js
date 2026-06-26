@@ -8,7 +8,8 @@ Page({
     aiModelIcon: '🤖',
     aiModelName: '未配置',
     rpsGames: 0,
-    diceGames: 0
+    diceGames: 0,
+    tetrisGames: 0
   },
 
   onLoad: function() {
@@ -54,6 +55,7 @@ Page({
     // 获取游戏统计
     var rpsRecords = childStorage.get('rpsRecords') || []
     var diceRecords = childStorage.get('diceRecords') || []
+    var tetrisRecords = childStorage.get('tetrisRecords') || []
 
     this.setData({
       drawingCount: drawings.length,
@@ -61,7 +63,8 @@ Page({
       aiModelIcon: aiModelIcon,
       aiModelName: aiModelName,
       rpsGames: rpsRecords.length,
-      diceGames: diceRecords.length
+      diceGames: diceRecords.length,
+      tetrisGames: tetrisRecords.length
     })
   },
 
@@ -88,5 +91,9 @@ Page({
 
   goDice: function() {
     wx.navigateTo({ url: '/packageCreate/pages/create/dice/index' })
+  },
+
+  goTetris: function() {
+    wx.navigateTo({ url: '/packageCreate/pages/create/tetris/index' })
   }
 })

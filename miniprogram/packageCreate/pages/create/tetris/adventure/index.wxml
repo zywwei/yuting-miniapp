@@ -1,0 +1,65 @@
+<view class="game-container" bindtouchstart="onTouchStart" bindtouchend="onTouchEnd">
+  <!-- 关卡选择 -->
+  <view wx:if="{{phase==='select'}}" class="sel-screen">
+    <view class="sel-hd"><text class="sel-ico">⚔️</text><text class="sel-t">冒险模式</text><text class="sel-d">消行攻击怪物！</text><text class="sel-c">🪙 {{coins}}</text></view>
+    <view class="shop-btn" bindtap="openShop">🛒 道具商店</view>
+    <view class="ch-list">
+      <view class="ch-item {{defeatedMonsters.indexOf(item.chapter)>=0?'done':''}} {{item.chapter>currentChapter?'locked':''}}"
+            wx:for="{{chapters}}" wx:key="chapter" bindtap="selectChapter" data-chapter="{{item.chapter}}">
+        <text class="ch-n">{{item.chapter}}</text><text class="ch-e">{{item.emoji}}</text><text class="ch-na">{{item.name}}</text><text class="ch-h">HP:{{item.hp}}</text>
+        <text wx:if="{{defeatedMonsters.indexOf(item.chapter)>=0}}">✅</text><text wx:elif="{{item.chapter>currentChapter}}">🔒</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 游戏中 -->
+  <view wx:if="{{phase==='playing'}}" class="play-screen">
+    <view class="mon-bar">
+      <text class="mon-e">{{monster.emoji}}</text>
+      <view class="mon-r"><text class="mon-n">{{monster.name}}</text><view class="hp-bar"><view class="hp-fill" style="width:{{(monsterDamage/monsterMaxHP)*100}}%"></view></view></view>
+      <text class="mon-hp">{{monsterDamage}}/{{monsterMaxHP}}</text>
+    </view>
+
+    <view class="info-bar">
+      <view class="info-left"><text class="info-lbl">暂存</text>
+        <view class="hold-grid"><block wx:if="{{holdGrid}}"><view wx:for="{{holdGrid}}" wx:for-item="row" class="g-row"><view wx:for="{{row}}" wx:for-item="c" class="g-cell" style="background:{{c}}"></view></view></block><text wx:else class="empty-m">-</text></view>
+      </view>
+      <view class="info-center">
+        <view class="sb"><text class="sv">{{score}}</text><text class="sl">分数</text></view>
+        <view class="sb"><text class="sv">Lv.{{level}}</text><text class="sl">等级</text></view>
+      </view>
+      <view class="info-right"><text class="info-lbl">下一个</text>
+        <view class="next-grid"><view wx:for="{{nextGrids}}" wx:key="*this" class="ni"><view wx:for="{{item}}" wx:for-item="row" class="g-row"><view wx:for="{{row}}" wx:for-item="c" class="g-cell" style="background:{{c}}"></view></view></view></view>
+      </view>
+    </view>
+
+    <view class="board-wrap"><canvas type="2d" id="adventureCanvas" class="board-canvas" style="width:{{boardWidth}}px;height:{{boardHeight}}px"></canvas></view>
+
+    <view class="items-bar">
+      <view class="itb {{items.bomb>0?'':'off'}}" bindtap="useBomb"><text>💣</text><text class="it-c">{{items.bomb}}</text></view>
+      <view class="itb {{items.freeze>0?'':'off'}}" bindtap="useFreeze"><text>🧊</text><text class="it-c">{{items.freeze}}</text></view>
+      <view class="itb {{items.rainbow>0?'':'off'}}" bindtap="useRainbow"><text>🌈</text><text class="it-c">{{items.rainbow}}</text></view>
+    </view>
+
+    <view class="btn-bar">
+      <view class="btn-row">
+        <view class="btn" bindtap="holdCurrentPiece"><text class="btn-t">暂存</text></view>
+        <view class="btn" bindtap="moveLeft"><text class="btn-a">◀</text></view>
+        <view class="btn btn-big" bindtap="rotatePiece"><text class="btn-a">↻</text></view>
+        <view class="btn" bindtap="moveDown"><text class="btn-a">▼</text></view>
+        <view class="btn" bindtap="moveRight"><text class="btn-a">▶</text></view>
+        <view class="btn btn-gold" bindtap="hardDrop"><text class="btn-t">下落</text></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 弹窗 -->
+  <view class="overlay" wx:if="{{paused}}"><view class="dialog"><text class="dt">⏸ 暂停</text><view class="db" bindtap="resumeGame">继续游戏</view><view class="db gray" bindtap="goBack">返回</view></view></view>
+  <view class="overlay" wx:if="{{phase==='victory'}}"><view class="dialog"><text class="dt">🎉 胜利！</text><text class="dd">{{monster.emoji}} {{monster.name}} 被击败！</text><text class="dr">🪙 +{{monster.reward}} 金币</text><view class="db" bindtap="nextChapter" wx:if="{{chapter<7}}">下一章</view><view class="db gray" bindtap="goBack">返回</view></view></view>
+  <view class="overlay" wx:if="{{phase==='gameOver'}}"><view class="dialog"><text class="dt">游戏结束</text><text class="ds">{{score}}</text><text class="dd">消除了 {{lines}} 行</text><view class="db" bindtap="restartChapter">再试一次</view><view class="db gray" bindtap="goBack">返回</view></view></view>
+  <view class="overlay" wx:if="{{showShop}}"><view class="dialog shop-d">
+    <text class="dt">🛒 道具商店</text><text class="dc">🪙 {{coins}}</text>
+    <view class="sl"><view class="si" wx:for="{{shopItems}}" wx:key="id" bindtap="buyItem" data-id="{{item.id}}"><text class="si-e">{{item.emoji}}</text><view class="si-r"><text class="si-n">{{item.name}}</text><text class="si-d">{{item.desc}}</text></view><text class="si-p">🪙 {{item.price}}</text></view></view>
+    <view class="db gray" bindtap="closeShop">关闭</view>
+  </view></view>
+</view>

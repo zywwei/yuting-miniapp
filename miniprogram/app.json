@@ -46,7 +46,11 @@
         "pages/create/dice/slots/index",
         "pages/create/dice/flight/index",
         "pages/create/ai-chat/index",
-        "pages/create/ai-settings/index"
+        "pages/create/ai-settings/index",
+        "pages/create/tetris/index",
+        "pages/create/tetris/classic/index",
+        "pages/create/tetris/adventure/index",
+        "pages/create/tetris/puzzle/index"
       ]
     },
     {

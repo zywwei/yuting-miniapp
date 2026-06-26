@@ -39,6 +39,12 @@ var CHILD_KEYS = [
   'gameCoins',
   'coinLogs',
   'gameSettings',
+  'tetrisRecords',
+  'tetrisStats',
+  'tetrisAdventure',
+  'tetrisPuzzle',
+  'tetrisSave',
+  'tetrisSettings',
   // 单例数据的乐观锁时间戳（按孩子隔离）
   'habitsUpdatedAt',
   'learnProgressUpdatedAt',

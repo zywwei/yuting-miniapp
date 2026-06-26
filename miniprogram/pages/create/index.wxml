@@ -74,5 +74,20 @@
         </view>
       </view>
     </view>
+
+    <view class="category-card" bindtap="goTetris">
+      <view class="card-bg" style="background: linear-gradient(135deg, #7C4DFF 0%, #536DFE 100%);"></view>
+      <view class="card-content">
+        <view class="card-icon">🧱</view>
+        <view class="card-info">
+          <view class="card-title">俄罗斯方块</view>
+          <view class="card-desc">经典方块、冒险闯关、趣味拼图</view>
+        </view>
+        <view class="card-stat">
+          <text class="stat-num">{{tetrisGames}}</text>
+          <text class="stat-label">局游戏</text>
+        </view>
+      </view>
+    </view>
   </view>
 </view>
