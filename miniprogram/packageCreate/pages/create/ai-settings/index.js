@@ -52,6 +52,7 @@ Page({
 
   // 初始化模型列表
   initModels: function() {
+    var that = this
     var modelsObj = aiManager.getModels()
     var domesticModels = []
     var platformModels = []
@@ -59,7 +60,8 @@ Page({
     for (var key in modelsObj) {
       var model = {
         key: key,
-        info: modelsObj[key]
+        info: modelsObj[key],
+        configured: false
       }
       
       if (modelsObj[key].callType === 'direct') {
@@ -69,9 +71,45 @@ Page({
       }
     }
     
-    this.setData({ 
-      domesticModels: domesticModels,
-      platformModels: platformModels
+    // 获取配置并更新状态
+    aiManager.getConfig().then(function(config) {
+      var configuredModels = config.models || {}
+      var currentModel = config.currentModel || 'minimax'
+      
+      // 更新配置状态
+      domesticModels = domesticModels.map(function(m) {
+        return Object.assign({}, m, {
+          configured: !!(configuredModels[m.key] && configuredModels[m.key].apiKey)
+        })
+      })
+      
+      platformModels = platformModels.map(function(m) {
+        return Object.assign({}, m, {
+          configured: !!(configuredModels[m.key] && configuredModels[m.key].apiKey)
+        })
+      })
+      
+      // 排序：已配置的排前面，当前选中的排第一
+      var sortFn = function(a, b) {
+        if (a.key === currentModel) return -1
+        if (b.key === currentModel) return 1
+        if (a.configured && !b.configured) return -1
+        if (!a.configured && b.configured) return 1
+        return 0
+      }
+      
+      domesticModels.sort(sortFn)
+      platformModels.sort(sortFn)
+      
+      that.setData({ 
+        domesticModels: domesticModels,
+        platformModels: platformModels
+      })
+    }).catch(function() {
+      that.setData({ 
+        domesticModels: domesticModels,
+        platformModels: platformModels
+      })
     })
   },
 
@@ -131,9 +169,35 @@ Page({
         }
       }
       
+      // 更新模型列表的配置状态并排序
+      var domesticModels = that.data.domesticModels.map(function(m) {
+        return Object.assign({}, m, {
+          configured: !!configuredModels[m.key]
+        })
+      })
+      
+      var platformModels = that.data.platformModels.map(function(m) {
+        return Object.assign({}, m, {
+          configured: !!configuredModels[m.key]
+        })
+      })
+      
+      // 排序：已配置的排前面，当前选中的排第一
+      var currentModel = config.currentModel || 'minimax'
+      var sortFn = function(a, b) {
+        if (a.key === currentModel) return -1
+        if (b.key === currentModel) return 1
+        if (a.configured && !b.configured) return -1
+        if (!a.configured && b.configured) return 1
+        return 0
+      }
+      
+      domesticModels.sort(sortFn)
+      platformModels.sort(sortFn)
+      
       that.setData({
         callType: callType,
-        currentModel: config.currentModel || 'minimax',
+        currentModel: currentModel,
         currentTemplate: currentTemplate,
         currentTemplateContent: templateContent,
         customPrompt: config.systemPrompt || '',
@@ -143,6 +207,8 @@ Page({
         currentSubModel: currentSubModel,
         currentSubModelName: currentSubModelName,
         configuredModels: configuredModels,
+        domesticModels: domesticModels,
+        platformModels: platformModels,
         expandModel: false
       })
     })
