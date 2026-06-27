@@ -15,17 +15,14 @@ Page({
       endDate: '',
       keyword: ''
     },
-    typeOptions: [
-      { value: '', label: '全部' },
-      { value: 'expense', label: '支出' },
-      { value: 'income', label: '收入' },
-      { value: 'transfer', label: '不计入' }
-    ]
+    filterCategories: [],
+    filterCategoryName: ''
   },
 
   onLoad: function(options) {
     this.setData({ bookId: options.bookId })
     this.loadData()
+    this.loadFilterCategories()
   },
 
   onShow: function() {
@@ -54,6 +51,15 @@ Page({
     this.setData({ book: book, entries: entries, groupedEntries: groupedEntries, budgetProgress: budgetProgress })
   },
 
+  loadFilterCategories: function() {
+    var categories = [{ id: '', name: '全部分类' }]
+    var expense = bookManager.getCategories('expense')
+    var income = bookManager.getCategories('income')
+    var transfer = bookManager.getCategories('transfer')
+    categories = categories.concat(expense, income, transfer)
+    this.setData({ filterCategories: categories })
+  },
+
   groupByDate: function(entries) {
     var groups = {}
     for (var i = 0; i < entries.length; i++) {
@@ -76,6 +82,28 @@ Page({
   goEditEntry: function(e) {
     var entryId = e.currentTarget.dataset.id
     wx.navigateTo({ url: '/packageCreate/pages/create/book/add-entry/add-entry?bookId=' + this.data.bookId + '&entryId=' + entryId })
+  },
+
+  copyEntry: function(e) {
+    var entryId = e.currentTarget.dataset.id
+    wx.navigateTo({ url: '/packageCreate/pages/create/book/add-entry/add-entry?bookId=' + this.data.bookId + '&copyId=' + entryId })
+  },
+
+  onEntryLongPress: function(e) {
+    var entryId = e.currentTarget.dataset.id
+    var self = this
+    wx.showActionSheet({
+      itemList: ['编辑', '复制', '删除'],
+      success: function(res) {
+        if (res.tapIndex === 0) {
+          self.goEditEntry(e)
+        } else if (res.tapIndex === 1) {
+          self.copyEntry(e)
+        } else if (res.tapIndex === 2) {
+          self.deleteEntry(e)
+        }
+      }
+    })
   },
 
   deleteEntry: function(e) {
@@ -111,17 +139,44 @@ Page({
   },
 
   onFilterType: function(e) {
-    this.setData({ 'filters.type': e.detail.value })
+    this.setData({ 'filters.type': e.currentTarget.dataset.type })
+    this.loadData()
+  },
+
+  onFilterCategory: function(e) {
+    var index = e.detail.value
+    var category = this.data.filterCategories[index]
+    this.setData({
+      'filters.category': category.id,
+      filterCategoryName: category.name
+    })
+    this.loadData()
+  },
+
+  onFilterStartDate: function(e) {
+    this.setData({ 'filters.startDate': e.detail.value })
+    this.loadData()
+  },
+
+  onFilterEndDate: function(e) {
+    this.setData({ 'filters.endDate': e.detail.value })
     this.loadData()
   },
 
   onFilterKeyword: function(e) {
     this.setData({ 'filters.keyword': e.detail.value })
-    this.loadData()
+    if (this._keywordTimer) clearTimeout(this._keywordTimer)
+    var self = this
+    this._keywordTimer = setTimeout(function() {
+      self.loadData()
+    }, 300)
   },
 
   clearFilters: function() {
-    this.setData({ filters: { type: '', category: '', startDate: '', endDate: '', keyword: '' } })
+    this.setData({
+      filters: { type: '', category: '', startDate: '', endDate: '', keyword: '' },
+      filterCategoryName: ''
+    })
     this.loadData()
   },
 

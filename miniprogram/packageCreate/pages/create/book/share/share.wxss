@@ -117,6 +117,12 @@
   display: inline-block;
 }
 
+.member-transfer {
+  font-size: 24rpx;
+  color: #1890ff;
+  margin-right: 16rpx;
+}
+
 .member-remove {
   font-size: 24rpx;
   color: #ff4d4f;

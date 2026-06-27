@@ -12,6 +12,8 @@ Page({
     date: '',
     time: '',
     tags: [],
+    images: [],
+    repeatRule: '',
     tagInput: '',
     typeOptions: [
       { value: 'expense', label: '支出' },
@@ -37,6 +39,43 @@ Page({
     this.loadCategories()
     if (options.entryId) {
       this.loadEntry(options.entryId)
+    } else if (options.templateId) {
+      this.loadTemplate(options.templateId)
+    } else if (options.copyId) {
+      this.loadCopyEntry(options.copyId)
+    }
+  },
+
+  loadCopyEntry: function(entryId) {
+    var entries = bookManager.getEntries()
+    for (var i = 0; i < entries.length; i++) {
+      if (entries[i].id === entryId) {
+        this.setData({
+          type: entries[i].type,
+          category: entries[i].category,
+          amount: String(entries[i].amount),
+          note: entries[i].note || '',
+          tags: entries[i].tags || [],
+          repeatRule: entries[i].repeatRule || ''
+        })
+        break
+      }
+    }
+  },
+
+  loadTemplate: function(templateId) {
+    var templates = bookManager.getTemplates()
+    for (var i = 0; i < templates.length; i++) {
+      if (templates[i].id === templateId) {
+        this.setData({
+          type: templates[i].type,
+          category: templates[i].category,
+          amount: String(templates[i].amount || ''),
+          note: templates[i].note || '',
+          tags: templates[i].tags || []
+        })
+        break
+      }
     }
   },
 
@@ -51,7 +90,10 @@ Page({
           note: entries[i].note || '',
           date: entries[i].date,
           time: entries[i].time,
-          tags: entries[i].tags || []
+          tags: entries[i].tags || [],
+          images: entries[i].images || [],
+          repeatRule: entries[i].repeatRule || '',
+          nextRepeatDate: entries[i].nextRepeatDate || ''
         })
         break
       }
@@ -81,6 +123,27 @@ Page({
     this.setData({ note: e.detail.value })
   },
 
+  showQuickPhrases: function() {
+    var phrases = this.getQuickPhrases()
+    var self = this
+    phrases.push('取消')
+    wx.showActionSheet({
+      itemList: phrases,
+      success: function(res) {
+        if (res.tapIndex < phrases.length - 1) {
+          self.setData({ note: phrases[res.tapIndex] })
+        }
+      }
+    })
+  },
+
+  getQuickPhrases: function() {
+    var type = this.data.type
+    if (type === 'expense') return ['早餐', '午餐', '晚餐', '零食', '交通', '购物', '娱乐', '医疗']
+    if (type === 'income') return ['工资', '奖金', '红包', '退款', '兼职', '理财收益']
+    return ['存款', '取款', '借出', '借入', '还款', '理财买入', '理财赎回']
+  },
+
   onDateChange: function(e) {
     this.setData({ date: e.detail.value })
   },
@@ -107,6 +170,44 @@ Page({
     this.setData({ tags: tags })
   },
 
+  chooseImage: function() {
+    var self = this
+    wx.chooseImage({
+      count: 3 - self.data.images.length,
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: function(res) {
+        var images = self.data.images.concat(res.tempFilePaths)
+        self.setData({ images: images })
+      }
+    })
+  },
+
+  removeImage: function(e) {
+    var index = e.currentTarget.dataset.index
+    var images = this.data.images.filter(function(img, i) { return i !== index })
+    this.setData({ images: images })
+  },
+
+  previewImage: function(e) {
+    var url = e.currentTarget.dataset.url
+    wx.previewImage({ urls: this.data.images, current: url })
+  },
+
+  selectRepeatRule: function(e) {
+    var rule = e.currentTarget.dataset.rule
+    var nextDate = ''
+    if (rule) {
+      var d = new Date()
+      if (rule === 'daily') d.setDate(d.getDate() + 1)
+      else if (rule === 'weekly') d.setDate(d.getDate() + 7)
+      else if (rule === 'monthly') d.setMonth(d.getMonth() + 1)
+      else if (rule === 'yearly') d.setFullYear(d.getFullYear() + 1)
+      nextDate = d.toISOString().substring(0, 10)
+    }
+    this.setData({ repeatRule: rule, nextRepeatDate: nextDate })
+  },
+
   save: function() {
     if (!this.data.category) {
       wx.showToast({ title: '请选择分类', icon: 'none' })
@@ -125,7 +226,10 @@ Page({
       note: this.data.note,
       date: this.data.date,
       time: this.data.time,
-      tags: this.data.tags
+      tags: this.data.tags,
+      images: this.data.images,
+      repeatRule: this.data.repeatRule,
+      nextRepeatDate: this.data.nextRepeatDate || ''
     }
     if (this.data.isEdit) {
       bookManager.updateEntry(this.data.entryId, entry)

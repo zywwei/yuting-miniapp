@@ -32,6 +32,7 @@ Page({
 
   onShow: function() {
     this.setThemeColor()
+    this.loadConfig()
   },
 
   setThemeColor: function() {
@@ -178,14 +179,52 @@ Page({
     var key = e.currentTarget.dataset.key
     var modelInfo = aiManager.getModelInfo(key)
     
-    // 如果点击的是当前选中的模型，切换展开/折叠
+    // 如果点击的是当前选中的模型，切换展开/折叠并加载配置
     if (key === this.data.currentModel) {
       this.setData({
         expandModel: !this.data.expandModel
       })
+      // 即使是当前模型，也要加载配置以确保显示正确的API Key
+      if (this.data.expandModel) {
+        this.loadModelConfig(key, modelInfo)
+      }
       return
     }
     
+    // 加载配置并更新UI
+    var that = this
+    this.loadModelConfigData(key, modelInfo, function(apiKey, secretKey, subModel, subModelName) {
+      that.setData({ 
+        currentModel: key,
+        currentModelInfo: modelInfo || {},
+        currentSubModel: subModel,
+        currentSubModelName: subModelName,
+        expandModel: true,
+        apiKey: apiKey,
+        secretKey: secretKey,
+        showApiKey: false,
+        showSecretKey: false
+      })
+    })
+  },
+
+  // 加载模型配置
+  loadModelConfig: function(key, modelInfo) {
+    var that = this
+    this.loadModelConfigData(key, modelInfo, function(apiKey, secretKey, subModel, subModelName) {
+      that.setData({ 
+        currentSubModel: subModel,
+        currentSubModelName: subModelName,
+        apiKey: apiKey,
+        secretKey: secretKey,
+        showApiKey: false,
+        showSecretKey: false
+      })
+    })
+  },
+
+  // 加载模型配置数据（公共函数）
+  loadModelConfigData: function(key, modelInfo, callback) {
     // 设置默认子模型
     var defaultSubModel = ''
     var defaultSubModelName = ''
@@ -202,20 +241,24 @@ Page({
       if (config.models && config.models[key]) {
         apiKey = config.models[key].apiKey || ''
         secretKey = config.models[key].secretKey || ''
+        
+        // 如果该厂商已保存了子模型，使用保存的子模型
+        if (config.models[key].model) {
+          defaultSubModel = config.models[key].model
+          // 查找子模型名称
+          if (modelInfo && modelInfo.subModels) {
+            for (var i = 0; i < modelInfo.subModels.length; i++) {
+              if (modelInfo.subModels[i].key === defaultSubModel) {
+                defaultSubModelName = modelInfo.subModels[i].name
+                break
+              }
+            }
+          }
+        }
       }
       
-      this.setData({ 
-        currentModel: key,
-        currentModelInfo: modelInfo || {},
-        currentSubModel: defaultSubModel,
-        currentSubModelName: defaultSubModelName,
-        expandModel: true, // 切换厂商时自动展开
-        apiKey: apiKey,
-        secretKey: secretKey,
-        showApiKey: false,
-        showSecretKey: false
-      })
-    }.bind(this))
+      callback(apiKey, secretKey, defaultSubModel, defaultSubModelName)
+    })
   },
 
   // 选择子模型

@@ -1,5 +1,4 @@
 var bookManager = require('../../../../utils/book-manager.js')
-var auth = require('../../../../utils/auth.js')
 
 Page({
   data: {
@@ -112,6 +111,27 @@ Page({
     if (role === 'writer') return '记账员'
     if (role === 'viewer') return '查看者'
     return role
+  },
+
+  transferOwnership: function(e) {
+    var memberId = e.currentTarget.dataset.id
+    var memberName = e.currentTarget.dataset.name
+    var self = this
+    wx.showModal({
+      title: '转让所有权',
+      content: '确定要将账本所有权转让给' + (memberName || '该成员') + '吗？',
+      success: function(res) {
+        if (res.confirm) {
+          var app = getApp()
+          var currentMemberId = app.globalData.member ? app.globalData.member._id : ''
+          bookManager.updateMemberRole(self.data.bookId, currentMemberId, 'writer')
+          bookManager.updateBook(self.data.bookId, { ownerMemberId: memberId })
+          bookManager.updateMemberRole(self.data.bookId, memberId, 'admin')
+          self.loadData()
+          wx.showToast({ title: '已转让', icon: 'success' })
+        }
+      }
+    })
   },
 
   preventBubble: function() {

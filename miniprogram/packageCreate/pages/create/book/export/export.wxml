@@ -30,17 +30,32 @@
     </view>
   </view>
 
+  <!-- 选择导出字段 -->
+  <view class="section">
+    <view class="section-title">导出字段</view>
+    <view class="field-list">
+      <view class="field-item" wx:for="{{fields}}" wx:key="key" bindtap="toggleField" data-index="{{index}}">
+        <view class="field-check {{item.checked ? 'checked' : ''}}">{{item.checked ? '✓' : ''}}</view>
+        <view class="field-label">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
   <!-- 导出预览 -->
   <view class="section">
     <view class="section-title">导出预览</view>
     <view class="preview-info">
       <view class="preview-item">
         <view class="preview-label">账本</view>
-        <view class="preview-value">{{getBookName(selectedBookId)}}</view>
+        <view class="preview-value">{{previewBookName}}</view>
       </view>
       <view class="preview-item">
         <view class="preview-label">记录数</view>
-        <view class="preview-value">{{getEntryCount()}} 条</view>
+        <view class="preview-value">{{previewEntryCount}} 条</view>
+      </view>
+      <view class="preview-item">
+        <view class="preview-label">导出字段</view>
+        <view class="preview-value">{{previewFieldCount}} 项</view>
       </view>
     </view>
   </view>

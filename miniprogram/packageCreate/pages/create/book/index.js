@@ -40,7 +40,9 @@ Page({
   },
 
   loadData: function() {
-    var books = bookManager.getBooks().filter(function(b) { return !b.isArchived })
+    var allBooks = bookManager.getBooks()
+    var books = allBooks.filter(function(b) { return !b.isArchived })
+    var archivedBooks = allBooks.filter(function(b) { return b.isArchived })
     var overview = bookManager.getOverviewStats()
     var allEntries = bookManager.getEntries()
     var recentEntries = allEntries.slice(0, 5).map(function(e) {
@@ -48,7 +50,18 @@ Page({
       e.categoryName = bookManager.getCategoryName(e.type, e.category)
       return e
     })
-    this.setData({ books: books, overview: overview, recentEntries: recentEntries })
+    this.setData({ books: books, archivedBooks: archivedBooks, overview: overview, recentEntries: recentEntries })
+  },
+
+  showArchivedBooks: function() {
+    this.setData({ showArchived: !this.data.showArchived })
+  },
+
+  restoreBook: function(e) {
+    var bookId = e.currentTarget.dataset.id
+    bookManager.updateBook(bookId, { isArchived: false })
+    this.loadData()
+    wx.showToast({ title: '已恢复', icon: 'success' })
   },
 
   goDetail: function(e) {
@@ -98,6 +111,33 @@ Page({
       return
     }
     wx.navigateTo({ url: '/packageCreate/pages/create/book/add-entry/add-entry?bookId=' + bookId })
+  },
+
+  longPressAddEntry: function() {
+    var templates = bookManager.getTemplates()
+    if (templates.length === 0) {
+      this.goAddEntry()
+      return
+    }
+    var self = this
+    var items = templates.map(function(t) { return t.name })
+    items.push('取消')
+    wx.showActionSheet({
+      itemList: items,
+      success: function(res) {
+        if (res.tapIndex < templates.length) {
+          var template = templates[res.tapIndex]
+          var bookId = self.data.books.length > 0 ? self.data.books[0].id : ''
+          if (!bookId) {
+            wx.showToast({ title: '请先创建账本', icon: 'none' })
+            return
+          }
+          wx.navigateTo({
+            url: '/packageCreate/pages/create/book/add-entry/add-entry?bookId=' + bookId + '&templateId=' + template.id
+          })
+        }
+      }
+    })
   },
 
   goExport: function() {

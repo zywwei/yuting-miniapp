@@ -129,12 +129,14 @@ function updateBook(id, updates) {
 function removeBook(id) {
   var books = getBooks()
   var entries = getEntries(id)
-  for (var i = 0; i < entries.length; i++) {
-    cloud.removeBookEntry(entries[i].id)
-  }
+  var entryIds = entries.map(function(e) { return e.id })
+  childStorage.set(ENTRIES_KEY, childStorage.get(ENTRIES_KEY).filter(function(e) { return e.bookId !== id }))
   var filtered = books.filter(function(b) { return b.id !== id })
   childStorage.set(BOOKS_KEY, filtered)
   cloud.removeAccountBook(id)
+  for (var i = 0; i < entryIds.length; i++) {
+    cloud.removeBookEntry(entryIds[i])
+  }
   return filtered
 }
 
@@ -146,6 +148,10 @@ function setDefaultBook(id) {
   var books = getBooks()
   for (var i = 0; i < books.length; i++) {
     books[i].isDefault = books[i].id === id
+    if (books[i].id === id) {
+      books[i].synced = false
+      cloud.uploadAccountBook(books[i])
+    }
   }
   childStorage.set(BOOKS_KEY, books)
   return books
@@ -219,7 +225,42 @@ function addEntry(entry) {
   entries.push(entry)
   childStorage.set(ENTRIES_KEY, entries)
   updateBookEntryCount(entry.bookId)
-  cloud.uploadBookEntry(entry)
+  if (entry.images && entry.images.length > 0) {
+    uploadEntryImages(entry).then(function(uploadedEntry) {
+      cloud.uploadBookEntry(uploadedEntry)
+    })
+  } else {
+    cloud.uploadBookEntry(entry)
+  }
+  return entry
+}
+
+async function uploadEntryImages(entry) {
+  var images = []
+  for (var i = 0; i < entry.images.length; i++) {
+    var img = entry.images[i]
+    if (img && img.startsWith('cloud://')) {
+      images.push(img)
+    } else if (img) {
+      try {
+        var cloudPath = 'account/' + entry.id + '_' + i + '.jpg'
+        var res = await wx.cloud.uploadFile({ cloudPath: cloudPath, filePath: img })
+        images.push(res.fileID)
+      } catch (e) {
+        console.warn('图片上传失败:', e)
+        images.push(img)
+      }
+    }
+  }
+  entry.images = images
+  var entries = childStorage.get(ENTRIES_KEY) || []
+  for (var j = 0; j < entries.length; j++) {
+    if (entries[j].id === entry.id) {
+      entries[j].images = images
+      break
+    }
+  }
+  childStorage.set(ENTRIES_KEY, entries)
   return entry
 }
 
@@ -373,6 +414,86 @@ function removeTemplate(id) {
   }
 }
 
+// ===== 重复记账 =====
+
+function generateRepeatEntries() {
+  var entries = childStorage.get(ENTRIES_KEY) || []
+  var today = getTodayStr()
+  var newEntries = []
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i]
+    if (!e.repeatRule || !e.nextRepeatDate) continue
+    if (e.nextRepeatDate > today) continue
+    var nextDate = getNextRepeatDate(e.nextRepeatDate, e.repeatRule)
+    var newEntry = {
+      bookId: e.bookId,
+      type: e.type,
+      category: e.category,
+      amount: e.amount,
+      direction: e.direction,
+      note: e.note,
+      date: e.nextRepeatDate,
+      time: e.time,
+      tags: e.tags,
+      images: [],
+      repeatRule: e.repeatRule,
+      repeatGroupId: e.repeatGroupId || e.id,
+      nextRepeatDate: nextDate
+    }
+    newEntries.push(newEntry)
+    updateEntry(e.id, { nextRepeatDate: nextDate })
+  }
+  for (var j = 0; j < newEntries.length; j++) {
+    addEntry(newEntries[j])
+  }
+  return newEntries
+}
+
+function getNextRepeatDate(currentDate, rule) {
+  var d = new Date(currentDate)
+  if (rule === 'daily') d.setDate(d.getDate() + 1)
+  else if (rule === 'weekly') d.setDate(d.getDate() + 7)
+  else if (rule === 'monthly') d.setMonth(d.getMonth() + 1)
+  else if (rule === 'yearly') d.setFullYear(d.getFullYear() + 1)
+  return d.toISOString().substring(0, 10)
+}
+
+// ===== 记账提醒 =====
+
+function checkReminders() {
+  var books = getBooks()
+  var reminders = []
+  var today = getTodayStr()
+  var dayOfWeek = new Date().getDay()
+  for (var i = 0; i < books.length; i++) {
+    var book = books[i]
+    if (!book.reminderEnabled) continue
+    if (book.reminderDays && book.reminderDays.indexOf(dayOfWeek) < 0) continue
+    var entries = getEntries(book.id)
+    var hasEntryToday = false
+    for (var j = 0; j < entries.length; j++) {
+      if (entries[j].date === today) {
+        hasEntryToday = true
+        break
+      }
+    }
+    if (!hasEntryToday) {
+      reminders.push({ bookId: book.id, bookName: book.name, reminderTime: book.reminderTime })
+    }
+  }
+  return reminders
+}
+
+function requestReminderPermission() {
+  return new Promise(function(resolve) {
+    wx.requestSubscribeMessage({
+      tmplIds: [],
+      success: function(res) { resolve(res) },
+      fail: function() { resolve(null) }
+    })
+  })
+}
+
 // ===== 统计计算 =====
 
 function getOverviewStats() {
@@ -516,6 +637,11 @@ function getComparisonStats(bookId, period) {
     var prevWeekEnd = new Date(currentStart)
     prevWeekEnd.setDate(prevWeekEnd.getDate() - 1)
     prevEnd = prevWeekEnd.toISOString().substring(0, 10)
+  } else if (period === 'year') {
+    currentStart = today.getFullYear() + '-01-01'
+    currentEnd = getTodayStr()
+    prevStart = (today.getFullYear() - 1) + '-01-01'
+    prevEnd = (today.getFullYear() - 1) + '-12-31'
   }
   var current = { income: 0, expense: 0 }
   var prev = { income: 0, expense: 0 }
@@ -553,6 +679,33 @@ function getBudgetProgress(bookId) {
     alertThreshold: book.budgetAlert || 0.8,
     isAlert: monthExpense / book.monthlyBudget >= (book.budgetAlert || 0.8)
   }
+}
+
+// ===== 统计缓存 =====
+
+function refreshStatsCache(bookId) {
+  var settings = getSettings()
+  if (!settings.statsCache) settings.statsCache = {}
+  var cache = {
+    overview: getOverviewStats(),
+    bookStats: bookId ? getBookStats(bookId) : null,
+    categoryStats: bookId ? getCategoryStats(bookId) : null,
+    lastUpdated: new Date().toISOString()
+  }
+  settings.statsCache[bookId || 'all'] = cache
+  saveSettings(settings)
+  return cache
+}
+
+function getCachedStats(bookId) {
+  var settings = getSettings()
+  if (!settings.statsCache) return null
+  var cache = settings.statsCache[bookId || 'all']
+  if (!cache) return null
+  var lastUpdated = new Date(cache.lastUpdated)
+  var now = new Date()
+  if (now - lastUpdated > 5 * 60 * 1000) return null
+  return cache
 }
 
 // ===== 权限检查 =====
@@ -650,21 +803,34 @@ function escapeCSVField(field) {
 
 function generateCSV(entries, options, viewerRole) {
   var bom = '\uFEFF'
-  var headers = ['日期', '时间', '类型', '分类', '金额', '备注', '标签']
-  if (viewerRole !== 'viewer') headers.push('记账人')
+  var fieldMap = {
+    date: { header: '日期', getter: function(e) { return e.date } },
+    time: { header: '时间', getter: function(e) { return e.time } },
+    type: { header: '类型', getter: function(e) { return getTypeName(e.type) } },
+    category: { header: '分类', getter: function(e) { return getCategoryName(e.type, e.category) } },
+    amount: { header: '金额', getter: function(e) { return e.amount } },
+    note: { header: '备注', getter: function(e) { return e.note || '' } },
+    tags: { header: '标签', getter: function(e) { return (e.tags || []).join(';') } },
+    createdByName: { header: '记账人', getter: function(e) { return e.createdByName || '' } }
+  }
+  var fields = options && options.fields ? options.fields : Object.keys(fieldMap).map(function(key) { return { key: key, checked: true } })
+  var headers = []
+  var fieldKeys = []
+  for (var i = 0; i < fields.length; i++) {
+    var f = fields[i]
+    if (f.key === 'createdByName' && viewerRole === 'viewer') continue
+    if (f.checked !== false) {
+      headers.push(fieldMap[f.key].header)
+      fieldKeys.push(f.key)
+    }
+  }
   var rows = []
-  for (var i = 0; i < entries.length; i++) {
-    var e = entries[i]
-    var row = [
-      escapeCSVField(e.date),
-      escapeCSVField(e.time),
-      escapeCSVField(getTypeName(e.type)),
-      escapeCSVField(getCategoryName(e.type, e.category)),
-      escapeCSVField(e.amount),
-      escapeCSVField(e.note || ''),
-      escapeCSVField((e.tags || []).join(';'))
-    ]
-    if (viewerRole !== 'viewer') row.push(escapeCSVField(e.createdByName || ''))
+  for (var j = 0; j < entries.length; j++) {
+    var e = entries[j]
+    var row = []
+    for (var k = 0; k < fieldKeys.length; k++) {
+      row.push(escapeCSVField(fieldMap[fieldKeys[k]].getter(e)))
+    }
     rows.push(row.join(','))
   }
   return bom + headers.join(',') + '\n' + rows.join('\n')
@@ -687,7 +853,7 @@ function getTypeName(type) {
 // ===== 数据备份/恢复 =====
 
 function exportBackup(bookId) {
-  var books = bookId ? [getBook(bookId)] : getBooks()
+  var books = bookId ? [getBook(bookId)].filter(function(b) { return b != null }) : getBooks()
   var entries = bookId ? getEntries(bookId) : childStorage.get(ENTRIES_KEY) || []
   var settings = getSettings()
   return {
@@ -701,23 +867,35 @@ function exportBackup(bookId) {
 
 function importBackup(data, mode) {
   if (mode === 'overwrite') {
-    childStorage.set(BOOKS_KEY, data.books || [])
-    childStorage.set(ENTRIES_KEY, data.entries || [])
+    var books = data.books || []
+    var entries = data.entries || []
+    for (var i = 0; i < books.length; i++) books[i].synced = false
+    for (var j = 0; j < entries.length; j++) entries[j].synced = false
+    childStorage.set(BOOKS_KEY, books)
+    childStorage.set(ENTRIES_KEY, entries)
     if (data.settings) saveSettings(data.settings)
   } else {
     var existingBooks = getBooks()
     var existingEntries = childStorage.get(ENTRIES_KEY) || []
-    var bookIds = {}
-    var entryIds = {}
-    for (var i = 0; i < existingBooks.length; i++) bookIds[existingBooks[i].id] = true
-    for (var j = 0; j < existingEntries.length; j++) entryIds[existingEntries[j].id] = true
+    var bookMap = {}
+    var entryMap = {}
+    for (var k = 0; k < existingBooks.length; k++) bookMap[existingBooks[k].id] = existingBooks[k]
+    for (var l = 0; l < existingEntries.length; l++) entryMap[existingEntries[l].id] = existingEntries[l]
     var newBooks = data.books || []
-    for (var k = 0; k < newBooks.length; k++) {
-      if (!bookIds[newBooks[k].id]) existingBooks.push(newBooks[k])
+    for (var m = 0; m < newBooks.length; m++) {
+      var b = newBooks[m]
+      if (!bookMap[b.id]) {
+        b.synced = false
+        existingBooks.push(b)
+      }
     }
     var newEntries = data.entries || []
-    for (var l = 0; l < newEntries.length; l++) {
-      if (!entryIds[newEntries[l].id]) existingEntries.push(newEntries[l])
+    for (var n = 0; n < newEntries.length; n++) {
+      var e = newEntries[n]
+      if (!entryMap[e.id]) {
+        e.synced = false
+        existingEntries.push(e)
+      }
     }
     childStorage.set(BOOKS_KEY, existingBooks)
     childStorage.set(ENTRIES_KEY, existingEntries)
@@ -807,5 +985,10 @@ module.exports = {
   getSettings: getSettings,
   saveSettings: saveSettings,
   getTypeName: getTypeName,
-  getTodayStr: getTodayStr
+  getTodayStr: getTodayStr,
+  generateRepeatEntries: generateRepeatEntries,
+  checkReminders: checkReminders,
+  requestReminderPermission: requestReminderPermission,
+  refreshStatsCache: refreshStatsCache,
+  getCachedStats: getCachedStats
 }

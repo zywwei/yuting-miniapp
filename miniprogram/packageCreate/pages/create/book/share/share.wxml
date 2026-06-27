@@ -31,6 +31,7 @@
             {{item.role === 'admin' ? '管理员' : item.role === 'writer' ? '记账员' : '查看者'}} ▼
           </view>
         </view>
+        <view class="member-transfer" bindtap="transferOwnership" data-id="{{item.memberId}}" data-name="{{item.name}}" wx:if="{{item.role !== 'admin'}}">转让</view>
         <view class="member-remove" bindtap="removeMember" data-id="{{item.memberId}}">移除</view>
       </view>
       <view class="empty-tip" wx:if="{{book.members.length === 0}}">暂无成员</view>
