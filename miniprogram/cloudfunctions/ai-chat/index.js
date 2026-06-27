@@ -11,6 +11,63 @@ const zhipu = require('./models/zhipu')
 const kimi = require('./models/kimi')
 const siliconflow = require('./models/siliconflow')
 const mimo = require('./models/xiaomi') // MiMo模型使用小米的调用模块
+const openaiCompatible = require('./models/openai-compatible') // OpenRouter、Kilo、OpenCode等通用模块
+
+// 模型默认配置
+const MODEL_DEFAULTS = {
+  'minimax': { module: minimax, defaultModel: 'MiniMax-M3' },
+  'minimax-plan': { module: minimax, defaultModel: 'MiniMax-M3' },
+  'zhipu': { module: zhipu, defaultModel: 'glm-5.2' },
+  'zhipu-plan': { module: zhipu, defaultModel: 'glm-5.2' },
+  'kimi': { module: kimi, defaultModel: 'kimi-k2.6' },
+  'kimi-plan': { module: kimi, defaultModel: 'kimi-k2.7-code' },
+  'wenxin': { module: wenxin, defaultModel: 'ernie-4.0-turbo-8k', needSecretKey: true },
+  'wenxin-plan': { module: wenxin, defaultModel: 'ernie-4.0-turbo-8k', needSecretKey: true },
+  'qwen': { module: qwen, defaultModel: 'qwen3.7-max' },
+  'deepseek': { module: deepseek, defaultModel: 'deepseek-v4-flash' },
+  'siliconflow': { module: siliconflow, defaultModel: 'deepseek-ai/DeepSeek-V4' },
+  'mimo': { module: mimo, defaultModel: 'mimo-v2.5-pro', baseUrl: 'https://api.xiaomimimo.com/v1' },
+  'mimo-plan': { module: mimo, defaultModel: 'mimo-v2.5-pro', baseUrl: 'https://token-plan-cn.xiaomimimo.com/v1' },
+  'openrouter': { module: openaiCompatible, callFn: 'callOpenRouter', defaultModel: 'openrouter/free' },
+  'kilo': { module: openaiCompatible, callFn: 'callKilo', defaultModel: 'kilo-auto/free' },
+  'opencode': { module: openaiCompatible, callFn: 'callOpenCode', defaultModel: 'mimo-v2.5-free' }
+}
+
+/**
+ * 统一调用AI模型
+ * @param {string} modelName - 模型名称
+ * @param {string} apiKey - API密钥
+ * @param {Array} messages - 消息列表
+ * @param {string} model - 具体模型版本
+ * @param {string} secretKey - 密钥（文心一言需要）
+ * @returns {Promise<Object>} 响应结果
+ */
+async function callAIModel(modelName, apiKey, messages, model, secretKey) {
+  const config = MODEL_DEFAULTS[modelName]
+  if (!config) {
+    return { code: -4, msg: '不支持的模型: ' + modelName }
+  }
+
+  const actualModel = model || config.defaultModel
+  
+  // 特殊处理需要自定义调用函数的模型
+  if (config.callFn) {
+    return await config.module[config.callFn](apiKey, messages, actualModel)
+  }
+  
+  // 特殊处理需要baseUrl的模型
+  if (config.baseUrl) {
+    return await config.module.callAPI(apiKey, messages, actualModel, config.baseUrl)
+  }
+  
+  // 特殊处理需要secretKey的模型
+  if (config.needSecretKey) {
+    return await config.module.callAPI(apiKey, secretKey || '', messages, actualModel)
+  }
+  
+  // 默认调用
+  return await config.module.callAPI(apiKey, messages, actualModel)
+}
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()
@@ -47,6 +104,8 @@ exports.main = async (event, context) => {
       return await getSessions(member, event.childId)
     case 'deleteSession':
       return await deleteSession(member, event.childId, event.sessionId)
+    case 'getModelPrices':
+      return getModelPrices()
     default:
       return { code: -1, msg: '未知操作' }
   }
@@ -153,45 +212,7 @@ async function testConfig(member, childId, model, apiKey, secretKey) {
     const messages = [{ role: 'user', content: '你好' }]
     
     // 调用AI模型测试
-    let result
-    switch (model) {
-      case 'minimax':
-      case 'minimax-plan':
-        result = await minimax.callAPI(apiKey, messages, 'MiniMax-M3')
-        break
-      case 'zhipu':
-      case 'zhipu-plan':
-        result = await zhipu.callAPI(apiKey, messages, 'glm-5.2')
-        break
-      case 'kimi':
-      case 'kimi-plan':
-        result = await kimi.callAPI(apiKey, messages, 'kimi-k2.6')
-        break
-      case 'wenxin':
-      case 'wenxin-plan':
-        result = await wenxin.callAPI(apiKey, secretKey || '', messages, 'ernie-4.0-turbo-8k')
-        break
-      case 'qwen':
-        result = await qwen.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'qwen3.7-max')
-        break
-      case 'deepseek':
-        result = await deepseek.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-v4-flash')
-        break
-      case 'deepseek-plan':
-        result = await deepseek.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-v4-flash')
-        break
-      case 'siliconflow':
-        result = await siliconflow.callAPI(apiKey, messages, 'deepseek-ai/DeepSeek-V4')
-        break
-      case 'mimo':
-        result = await mimo.callAPI(apiKey, messages, 'mimo-v2.5-pro', 'https://api.xiaomimimo.com/v1')
-        break
-      case 'mimo-plan':
-        result = await mimo.callAPI(apiKey, messages, 'mimo-v2.5-pro', 'https://token-plan-cn.xiaomimimo.com/v1')
-        break
-      default:
-        return { code: -4, msg: '不支持的模型: ' + model }
-    }
+    const result = await callAIModel(model, apiKey, messages, null, secretKey)
 
     if (result.code === 0) {
       return { code: 0, msg: '测试成功！' }
@@ -218,7 +239,8 @@ async function chat(member, childId, sessionId, message, model, imageFileID) {
     
     // 模型白名单验证
     const allowedModels = ['minimax', 'minimax-plan', 'zhipu', 'zhipu-plan', 'kimi', 'kimi-plan', 
-                          'wenxin', 'wenxin-plan', 'qwen', 'deepseek', 'siliconflow', 'mimo', 'mimo-plan']
+                          'wenxin', 'wenxin-plan', 'qwen', 'deepseek', 'siliconflow', 'mimo', 'mimo-plan',
+                          'openrouter', 'kilo', 'opencode']
     const targetModel = model || 'default'
     if (model && !allowedModels.includes(model)) {
       return { code: -5, msg: '不支持的模型类型' }
@@ -244,58 +266,15 @@ async function chat(member, childId, sessionId, message, model, imageFileID) {
     // 5. 构建消息列表（支持图片）
     const messages = await buildMessages(config, history, message, imageFileID)
 
-    // 6. 调用AI模型 - 国内模型（2026年6月最新版本）
+    // 6. 调用AI模型
     const aiModel = model || config.currentModel
-    let result
-    switch (aiModel) {
-      case 'minimax':
-        result = await minimax.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'MiniMax-M3')
-        break
-      case 'minimax-plan':
-        result = await minimax.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'MiniMax-M3')
-        break
-      case 'zhipu':
-        result = await zhipu.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'glm-5.2')
-        break
-      case 'zhipu-plan':
-        result = await zhipu.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'glm-5.2')
-        break
-      case 'kimi':
-        result = await kimi.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'kimi-k2.6')
-        break
-      case 'kimi-plan':
-        result = await kimi.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'kimi-k2.7-code')
-        break
-      case 'wenxin':
-        result = await wenxin.callAPI(modelConfig.apiKey, modelConfig.secretKey, messages, modelConfig.model || 'ernie-4.0-turbo-8k')
-        break
-      case 'wenxin-plan':
-        result = await wenxin.callAPI(modelConfig.apiKey, modelConfig.secretKey, messages, modelConfig.model || 'ernie-4.0-turbo-8k')
-        break
-      case 'qwen':
-        result = await qwen.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'qwen3.7-max')
-        break
-      case 'deepseek':
-        result = await deepseek.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-v4-flash')
-        break
-      case 'siliconflow':
-        result = await siliconflow.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-ai/DeepSeek-V4')
-        break
-      case 'mimo':
-        result = await mimo.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'mimo-v2.5-pro', 'https://api.xiaomimimo.com/v1')
-        break
-      case 'mimo-plan':
-        result = await mimo.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'mimo-v2.5-pro', 'https://token-plan-cn.xiaomimimo.com/v1')
-        break
-      default:
-        return { code: -4, msg: '不支持的模型: ' + aiModel }
-    }
+    const result = await callAIModel(aiModel, modelConfig.apiKey, messages, modelConfig.model, modelConfig.secretKey)
 
     if (result.code !== 0) {
       return result
     }
 
-    // 6. 保存用户消息和AI回复（并行执行）
+    // 7. 保存用户消息和AI回复（并行执行）
     await Promise.all([
       saveMessage(member, childId, sessionId, 'user', message, aiModel),
       saveMessage(member, childId, sessionId, 'assistant', result.data.content, aiModel, result.data.usage, result.data.thinking)
@@ -424,7 +403,8 @@ async function chatStream(member, childId, sessionId, message, model, imageFileI
     
     // 模型白名单验证
     const allowedModels = ['minimax', 'minimax-plan', 'zhipu', 'zhipu-plan', 'kimi', 'kimi-plan', 
-                          'wenxin', 'wenxin-plan', 'qwen', 'deepseek', 'siliconflow', 'mimo', 'mimo-plan']
+                          'wenxin', 'wenxin-plan', 'qwen', 'deepseek', 'siliconflow', 'mimo', 'mimo-plan',
+                          'openrouter', 'kilo', 'opencode']
     if (model && !allowedModels.includes(model)) {
       return { code: -5, msg: '不支持的模型类型' }
     }
@@ -509,50 +489,8 @@ async function callAIWithProgress(aiModel, modelConfig, messages, taskId, member
     // 更新状态为思考中
     await updateThinkingProgress(taskId, 'thinking', '正在思考中...')
     
-    let result
-    switch (aiModel) {
-      case 'minimax':
-        result = await minimax.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'MiniMax-M3')
-        break
-      case 'minimax-plan':
-        result = await minimax.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'MiniMax-M3')
-        break
-      case 'zhipu':
-        result = await zhipu.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'glm-5.2')
-        break
-      case 'zhipu-plan':
-        result = await zhipu.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'glm-5.2')
-        break
-      case 'kimi':
-        result = await kimi.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'kimi-k2.6')
-        break
-      case 'kimi-plan':
-        result = await kimi.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'kimi-k2.7-code')
-        break
-      case 'wenxin':
-        result = await wenxin.callAPI(modelConfig.apiKey, modelConfig.secretKey, messages, modelConfig.model || 'ernie-4.0-turbo-8k')
-        break
-      case 'wenxin-plan':
-        result = await wenxin.callAPI(modelConfig.apiKey, modelConfig.secretKey, messages, modelConfig.model || 'ernie-4.0-turbo-8k')
-        break
-      case 'qwen':
-        result = await qwen.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'qwen3.7-max')
-        break
-      case 'deepseek':
-        result = await deepseek.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-v4-flash')
-        break
-      case 'siliconflow':
-        result = await siliconflow.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'deepseek-ai/DeepSeek-V4')
-        break
-      case 'mimo':
-        result = await mimo.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'mimo-v2.5-pro', 'https://api.xiaomimimo.com/v1')
-        break
-      case 'mimo-plan':
-        result = await mimo.callAPI(modelConfig.apiKey, messages, modelConfig.model || 'mimo-v2.5-pro', 'https://token-plan-cn.xiaomimimo.com/v1')
-        break
-      default:
-        throw new Error('不支持的模型: ' + aiModel)
-    }
+    // 调用AI模型
+    const result = await callAIModel(aiModel, modelConfig.apiKey, messages, modelConfig.model, modelConfig.secretKey)
 
     if (result.code !== 0) {
       await updateThinkingProgress(taskId, 'error', result.msg)
@@ -832,4 +770,29 @@ async function saveUserPreference(member, key, value) {
   } catch (err) {
     return { code: -2, msg: '保存偏好设置失败: ' + err.message }
   }
+}
+
+// 获取模型价格配置
+function getModelPrices() {
+  // 每百万token价格（元）- 2026年6月官网最新价格
+  const prices = {
+    'minimax': { input: 2.1, output: 8.4, name: 'MiniMax-M3' },
+    'minimax-plan': { input: 2.1, output: 8.4, name: 'MiniMax-M3' },
+    'deepseek': { input: 1, output: 2, name: 'DeepSeek-V4-Flash' },
+    'qwen': { input: 12, output: 36, name: 'Qwen3.7-Max' },
+    'zhipu': { input: 5, output: 5, name: 'GLM-5.2' },
+    'zhipu-plan': { input: 5, output: 5, name: 'GLM-5.2' },
+    'kimi': { input: 4, output: 12, name: 'Kimi-K2.6' },
+    'kimi-plan': { input: 4, output: 12, name: 'Kimi-K2.6' },
+    'wenxin': { input: 8, output: 8, name: 'ERNIE-4.0-Turbo' },
+    'wenxin-plan': { input: 8, output: 8, name: 'ERNIE-4.0-Turbo' },
+    'siliconflow': { input: 1, output: 2, name: 'DeepSeek-V4' },
+    'mimo': { input: 3, output: 6, name: 'MiMo-V2.5-Pro' },
+    'mimo-plan': { input: 3, output: 6, name: 'MiMo-V2.5-Pro' },
+    'openrouter': { input: 0, output: 0, name: 'OpenRouter Free' },
+    'kilo': { input: 0, output: 0, name: 'Kilo Free' },
+    'opencode': { input: 0, output: 0, name: 'OpenCode Free' }
+  }
+  
+  return { code: 0, data: prices }
 }

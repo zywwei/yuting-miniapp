@@ -41,11 +41,28 @@
         <view class="empty-text">还没有账本，点击"新建"开始记账吧</view>
       </view>
     </view>
+    <!-- 归档账本 -->
+    <view class="archived-section" wx:if="{{archivedBooks.length > 0}}">
+      <view class="archived-header" bindtap="showArchivedBooks">
+        <text class="archived-title">归档账本 ({{archivedBooks.length}})</text>
+        <text class="archived-arrow">{{showArchived ? '▼' : '▶'}}</text>
+      </view>
+      <view class="archived-list" wx:if="{{showArchived}}">
+        <view class="book-card archived" wx:for="{{archivedBooks}}" wx:key="id">
+          <view class="book-icon">{{item.icon}}</view>
+          <view class="book-info">
+            <view class="book-name">{{item.name}}</view>
+            <view class="book-meta">{{item.entryCount || 0}} 笔记录</view>
+          </view>
+          <view class="book-restore" bindtap="restoreBook" data-id="{{item.id}}">恢复</view>
+        </view>
+      </view>
+    </view>
   </view>
 
   <!-- 快捷操作 -->
   <view class="quick-actions">
-    <view class="quick-btn" bindtap="goAddEntry">
+    <view class="quick-btn" bindtap="goAddEntry" bindlongpress="longPressAddEntry">
       <view class="quick-icon">✏️</view>
       <view class="quick-text">记一笔</view>
     </view>

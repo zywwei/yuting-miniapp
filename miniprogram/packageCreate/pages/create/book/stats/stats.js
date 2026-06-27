@@ -1,4 +1,5 @@
 var bookManager = require('../../../../utils/book-manager.js')
+var wxCharts = require('../../../../utils/wx-charts.js')
 
 Page({
   data: {
@@ -31,6 +32,11 @@ Page({
     this.loadData()
   },
 
+  onUnload: function() {
+    if (this.trendChart) this.trendChart = null
+    if (this.pieChart) this.pieChart = null
+  },
+
   loadData: function() {
     var book = this.data.bookId ? bookManager.getBook(this.data.bookId) : null
     var stats = this.data.bookId ? bookManager.getBookStats(this.data.bookId, this.getTimeRange()) : bookManager.getOverviewStats()
@@ -38,14 +44,115 @@ Page({
     var trendData = this.data.bookId ? bookManager.getTrendStats(this.data.bookId, this.data.timeRange) : null
     var comparison = this.data.bookId ? bookManager.getComparisonStats(this.data.bookId, this.data.timeRange) : null
     var calendarData = this.data.bookId ? bookManager.getCalendarData(this.data.bookId, this.data.currentMonth) : null
+    var topCategories = this.getTopCategories()
+    var comparisonText = this.getComparisonText(comparison)
     this.setData({
       book: book,
       stats: stats,
       categoryStats: categoryStats,
       trendData: trendData,
       comparison: comparison,
-      calendarData: calendarData
+      calendarData: calendarData,
+      memberStats: this.getMemberStats(),
+      topCategories: topCategories,
+      comparisonText: comparisonText
     })
+    var self = this
+    setTimeout(function() {
+      self.drawCharts()
+    }, 300)
+  },
+
+  getMemberStats: function() {
+    if (!this.data.bookId) return null
+    var entries = bookManager.getEntries(this.data.bookId, this.getTimeRange())
+    var stats = {}
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i]
+      var memberId = e.createdByMemberId || 'unknown'
+      var memberName = e.createdByName || '未知'
+      if (!stats[memberId]) {
+        stats[memberId] = { name: memberName, income: 0, expense: 0, count: 0 }
+      }
+      if (e.type === 'income') stats[memberId].income += e.amount
+      else if (e.type === 'expense') stats[memberId].expense += e.amount
+      stats[memberId].count++
+    }
+    var list = []
+    for (var key in stats) {
+      list.push(stats[key])
+    }
+    list.sort(function(a, b) { return b.expense - a.expense })
+    return list
+  },
+
+  drawCharts: function() {
+    var res = wx.getSystemInfoSync()
+    this.chartWidth = res.windowWidth - 48
+    this.drawTrendChart()
+    this.drawPieChart()
+  },
+
+  drawTrendChart: function() {
+    if (!this.data.trendData) return
+    var trendData = this.data.trendData
+    var categories = []
+    var incomeData = []
+    var expenseData = []
+    for (var key in trendData) {
+      categories.push(key.substring(5))
+      incomeData.push(trendData[key].income || 0)
+      expenseData.push(trendData[key].expense || 0)
+    }
+    if (categories.length === 0) return
+    try {
+      this.trendChart = new wxCharts({
+        canvasId: 'trendChart',
+        type: 'line',
+        categories: categories,
+        series: [{
+          name: '收入',
+          data: incomeData,
+          color: '#52c41a'
+        }, {
+          name: '支出',
+          data: expenseData,
+          color: '#ff4d4f'
+        }],
+        yAxis: {
+          title: '金额',
+          format: function(val) { return val.toFixed(0) }
+        },
+        width: this.chartWidth || 320,
+        height: 200
+      })
+    } catch (e) {
+      console.warn('绘制趋势图失败:', e)
+    }
+  },
+
+  drawPieChart: function() {
+    var topCategories = this.getTopCategories()
+    if (topCategories.length === 0) return
+    var series = topCategories.map(function(item) {
+      return {
+        name: item.name,
+        data: item.amount,
+        color: null
+      }
+    })
+    try {
+      this.pieChart = new wxCharts({
+        canvasId: 'pieChart',
+        type: 'ring',
+        series: series,
+        width: this.chartWidth || 320,
+        height: 200,
+        dataLabel: true
+      })
+    } catch (e) {
+      console.warn('绘制饼图失败:', e)
+    }
   },
 
   getTimeRange: function() {
@@ -94,15 +201,25 @@ Page({
     return list.slice(0, 5)
   },
 
-  getComparisonText: function() {
-    if (!this.data.comparison) return ''
-    var current = this.data.comparison.current
-    var prev = this.data.comparison.prev
+  getComparisonText: function(comparison) {
+    if (!comparison) comparison = this.data.comparison
+    if (!comparison) return ''
+    var current = comparison.current
+    var prev = comparison.prev
     if (prev.expense === 0) return '无上期数据'
     var diff = current.expense - prev.expense
     var percent = Math.abs(diff / prev.expense * 100).toFixed(1)
     if (diff > 0) return '比上期增加 ' + percent + '%'
     if (diff < 0) return '比上期减少 ' + percent + '%'
     return '与上期持平'
+  },
+
+  onDayTap: function(e) {
+    var day = e.detail.day
+    if (day && this.data.bookId) {
+      wx.navigateTo({
+        url: '/packageCreate/pages/create/book/detail/detail?bookId=' + this.data.bookId + '&date=' + this.data.currentMonth + '-' + String(day).padStart(2, '0')
+      })
+    }
   }
 })

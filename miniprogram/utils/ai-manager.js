@@ -207,12 +207,77 @@ var MODELS = {
     color: '#0EA5E9',
     callType: 'plan',
     category: 'platform',
+    baseUrl: 'https://api.siliconflow.cn/v1',
     subModels: [
       { key: 'deepseek-ai/DeepSeek-V4', name: 'DeepSeek-V4', desc: '推理能力强' },
       { key: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen2.5-72B', desc: '中文优秀' },
       { key: 'THUDM/glm-4-9b-chat', name: 'GLM-4-9B', desc: '智谱轻量' },
       { key: 'meta-llama/Meta-Llama-3.1-70B-Instruct', name: 'Llama-3.1-70B', desc: '开源强大' },
       { key: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen2.5-7B', desc: '免费使用' }
+    ]
+  },
+  'openrouter': {
+    name: 'OpenRouter',
+    provider: 'OpenRouter',
+    icon: '🔀',
+    description: '500+模型聚合平台',
+    color: '#7C3AED',
+    callType: 'plan',
+    category: 'platform',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    defaultModel: 'openrouter/free',
+    subModels: [
+      { key: 'openrouter/free', name: '免费模型', desc: '自动选择最佳免费模型' },
+      { key: 'google/gemma-3-27b-it:free', name: 'Gemma 3 27B', desc: 'Google免费模型' },
+      { key: 'meta-llama/llama-3.1-8b-instruct:free', name: 'Llama 3.1 8B', desc: 'Meta免费模型' },
+      { key: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1', desc: '推理免费模型' },
+      { key: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', desc: 'Anthropic旗舰' },
+      { key: 'openai/gpt-5.2', name: 'GPT-5.2', desc: 'OpenAI最新' },
+      { key: 'google/gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Google旗舰' },
+      { key: 'deepseek/deepseek-v4', name: 'DeepSeek-V4', desc: '推理能力强' }
+    ]
+  },
+  'kilo': {
+    name: 'Kilo Gateway',
+    provider: 'Kilo',
+    icon: '🚀',
+    description: '500+模型，零加价',
+    color: '#059669',
+    callType: 'plan',
+    category: 'platform',
+    baseUrl: 'https://api.kilo.ai/api/gateway',
+    defaultModel: 'kilo-auto/free',
+    subModels: [
+      { key: 'kilo-auto/free', name: 'Auto Free', desc: '自动选择免费模型' },
+      { key: 'stepfun/step-3.7-flash:free', name: 'StepFun 3.7', desc: '免费模型' },
+      { key: 'poolside/laguna-m.1:free', name: 'Poolside Laguna', desc: '免费模型' },
+      { key: 'nvidia/nemotron-3-ultra-550b-a55b:free', name: 'Nemotron 3 Ultra', desc: 'NVIDIA免费' },
+      { key: 'kilo-auto/balanced', name: 'Auto Balanced', desc: '性价比均衡' },
+      { key: 'anthropic/claude-sonnet-4.6', name: 'Claude Sonnet 4.6', desc: 'Anthropic最新' },
+      { key: 'openai/gpt-5.4', name: 'GPT-5.4', desc: 'OpenAI最新' },
+      { key: 'google/gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro', desc: 'Google最新' }
+    ]
+  },
+  'opencode': {
+    name: 'OpenCode Zen',
+    provider: 'OpenCode',
+    icon: '🔮',
+    description: '精选免费编程模型',
+    color: '#6366F1',
+    callType: 'plan',
+    category: 'platform',
+    baseUrl: 'https://opencode.ai/zen/v1',
+    defaultModel: 'mimo-v2.5-free',
+    subModels: [
+      { key: 'mimo-v2.5-free', name: 'MiMo V2.5 Free', desc: '小米免费模型' },
+      { key: 'deepseek-v4-flash-free', name: 'DeepSeek V4 Free', desc: '免费编程模型' },
+      { key: 'north-mini-code-free', name: 'North Mini Code', desc: '免费编程模型' },
+      { key: 'nemotron-3-ultra-free', name: 'Nemotron 3 Ultra', desc: 'NVIDIA免费' },
+      { key: 'big-pickle', name: 'Big Pickle', desc: '免费神秘模型' },
+      { key: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', desc: '编程首选' },
+      { key: 'gpt-5.4', name: 'GPT-5.4', desc: 'OpenAI最新' },
+      { key: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro', desc: '推理最强' },
+      { key: 'glm-5.2', name: 'GLM 5.2', desc: '智谱最新' }
     ]
   }
 }

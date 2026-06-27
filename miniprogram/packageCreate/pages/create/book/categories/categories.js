@@ -11,6 +11,7 @@ Page({
     categories: [],
     customCategories: [],
     showAddCategory: false,
+    editingCategoryId: '',
     newCategoryName: '',
     newCategoryIcon: '',
     iconOptions: ['🍜', '🛒', '🚌', '🎮', '💊', '📚', '🏠', '💡', '👔', '📱', '🎁', '🍪', '🧸', '🐱', '📦', '💼', '🎉', '📈', '💪', '↩️', '🧧', '💵', '🏆', '💰', '🏦', '🏧', '🤝', '📝', '📊', '💳', '📥', '📤']
@@ -40,7 +41,7 @@ Page({
   },
 
   hideAddCategoryDialog: function() {
-    this.setData({ showAddCategory: false })
+    this.setData({ showAddCategory: false, editingCategoryId: '' })
   },
 
   onCategoryNameInput: function(e) {
@@ -80,6 +81,61 @@ Page({
         }
       }
     })
+  },
+
+  editCategory: function(e) {
+    var id = e.currentTarget.dataset.id
+    var name = e.currentTarget.dataset.name
+    var icon = e.currentTarget.dataset.icon
+    this.setData({
+      showAddCategory: true,
+      editingCategoryId: id,
+      newCategoryName: name,
+      newCategoryIcon: icon
+    })
+  },
+
+  confirmEditCategory: function() {
+    var name = this.data.newCategoryName.trim()
+    if (!name) {
+      wx.showToast({ title: '请输入分类名称', icon: 'none' })
+      return
+    }
+    bookManager.updateCustomCategory(this.data.currentType, this.data.editingCategoryId, {
+      name: name,
+      icon: this.data.newCategoryIcon
+    })
+    this.setData({ showAddCategory: false, editingCategoryId: '' })
+    this.loadData()
+    wx.showToast({ title: '修改成功', icon: 'success' })
+  },
+
+  moveCategoryUp: function(e) {
+    var index = e.currentTarget.dataset.index
+    if (index <= 0) return
+    var categories = this.data.customCategories.slice()
+    var temp = categories[index]
+    categories[index] = categories[index - 1]
+    categories[index - 1] = temp
+    this.saveCustomCategories(categories)
+  },
+
+  moveCategoryDown: function(e) {
+    var index = e.currentTarget.dataset.index
+    var categories = this.data.customCategories.slice()
+    if (index >= categories.length - 1) return
+    var temp = categories[index]
+    categories[index] = categories[index + 1]
+    categories[index + 1] = temp
+    this.saveCustomCategories(categories)
+  },
+
+  saveCustomCategories: function(categories) {
+    var settings = bookManager.getSettings()
+    if (!settings.customCategories) settings.customCategories = {}
+    settings.customCategories[this.data.currentType] = categories
+    bookManager.saveSettings(settings)
+    this.setData({ customCategories: categories })
   },
 
   preventBubble: function() {

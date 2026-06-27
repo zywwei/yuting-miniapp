@@ -1,0 +1,99 @@
+.heatmap {
+  padding: 16rpx;
+}
+
+.heatmap-header {
+  display: flex;
+  margin-bottom: 8rpx;
+}
+
+.weekday {
+  flex: 1;
+  text-align: center;
+  font-size: 20rpx;
+  color: #999;
+}
+
+.heatmap-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.heatmap-day {
+  width: calc(14.28% - 4rpx);
+  height: 60rpx;
+  margin: 2rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8rpx;
+  background: #f0f0f0;
+}
+
+.day-text {
+  font-size: 20rpx;
+  color: #666;
+}
+
+.heatmap-day.level-1 {
+  background: #FFD6E0;
+}
+
+.heatmap-day.level-2 {
+  background: #FF9AAB;
+}
+
+.heatmap-day.level-3 {
+  background: #FF6B8A;
+}
+
+.heatmap-day.level-4 {
+  background: #FF3D6B;
+}
+
+.heatmap-day.level-1 .day-text,
+.heatmap-day.level-2 .day-text,
+.heatmap-day.level-3 .day-text,
+.heatmap-day.level-4 .day-text {
+  color: #fff;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 16rpx;
+  gap: 4rpx;
+}
+
+.legend-label {
+  font-size: 18rpx;
+  color: #999;
+  margin: 0 8rpx;
+}
+
+.legend-block {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 4rpx;
+}
+
+.legend-block.level-0 {
+  background: #f0f0f0;
+}
+
+.legend-block.level-1 {
+  background: #FFD6E0;
+}
+
+.legend-block.level-2 {
+  background: #FF9AAB;
+}
+
+.legend-block.level-3 {
+  background: #FF6B8A;
+}
+
+.legend-block.level-4 {
+  background: #FF3D6B;
+}

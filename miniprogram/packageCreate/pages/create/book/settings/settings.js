@@ -21,7 +21,14 @@ Page({
 
   loadData: function() {
     var book = bookManager.getBook(this.data.bookId)
-    this.setData({ book: book })
+    if (book) {
+      var days = book.reminderDays || [1, 2, 3, 4, 5, 6, 0]
+      var reminderDaysMap = {}
+      for (var i = 0; i < days.length; i++) reminderDaysMap[days[i]] = true
+      this.setData({ book: book, reminderDaysMap: reminderDaysMap })
+    } else {
+      this.setData({ book: book })
+    }
   },
 
   onNameInput: function(e) {
@@ -93,6 +100,32 @@ Page({
     wx.showToast({ title: '已设置预算', icon: 'success' })
   },
 
+  toggleReminder: function() {
+    var enabled = !this.data.book.reminderEnabled
+    bookManager.updateBook(this.data.bookId, { reminderEnabled: enabled })
+    if (enabled) {
+      bookManager.requestReminderPermission()
+    }
+    this.loadData()
+    wx.showToast({ title: enabled ? '已开启提醒' : '已关闭提醒', icon: 'success' })
+  },
+
+  onReminderTimeChange: function(e) {
+    bookManager.updateBook(this.data.bookId, { reminderTime: e.detail.value })
+    this.loadData()
+  },
+
+  toggleReminderDay: function(e) {
+    var day = parseInt(e.currentTarget.dataset.day)
+    var days = (this.data.book.reminderDays || [1, 2, 3, 4, 5, 6, 0]).slice()
+    var index = days.indexOf(day)
+    if (index >= 0) days.splice(index, 1)
+    else days.push(day)
+    days.sort()
+    bookManager.updateBook(this.data.bookId, { reminderDays: days })
+    this.loadData()
+  },
+
   deleteBook: function() {
     var self = this
     wx.showModal({
@@ -117,6 +150,81 @@ Page({
 
   goExport: function() {
     wx.navigateTo({ url: '/packageCreate/pages/create/book/export/export?bookId=' + this.data.bookId })
+  },
+
+  exportBackup: function() {
+    try {
+      var backup = bookManager.exportBackup(this.data.bookId)
+      var json = JSON.stringify(backup)
+      var fs = wx.getFileSystemManager()
+      var filePath = wx.env.USER_DATA_PATH + '/记账备份_' + bookManager.getTodayStr() + '.json'
+      fs.writeFileSync(filePath, json, 'utf-8')
+      wx.shareFileMessage({
+        filePath: filePath,
+        fileName: '记账备份_' + bookManager.getTodayStr() + '.json'
+      })
+    } catch (e) {
+      wx.showToast({ title: '备份失败', icon: 'none' })
+    }
+  },
+
+  importBackup: function() {
+    var self = this
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['json'],
+      success: function(res) {
+        var filePath = res.tempFiles[0].path
+        var fs = wx.getFileSystemManager()
+        try {
+          var content = fs.readFileSync(filePath, 'utf-8')
+          var data = JSON.parse(content)
+          if (!data.books || !data.entries) {
+            wx.showToast({ title: '无效的备份文件', icon: 'none' })
+            return
+          }
+          wx.showActionSheet({
+            itemList: ['合并（保留本地数据）', '覆盖（清空本地数据）'],
+            success: function(action) {
+              var mode = action.tapIndex === 0 ? 'merge' : 'overwrite'
+              bookManager.importBackup(data, mode)
+              wx.showToast({ title: '恢复成功', icon: 'success' })
+              self.loadData()
+            }
+          })
+        } catch (e) {
+          wx.showToast({ title: '恢复失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  clearData: function() {
+    var self = this
+    wx.showModal({
+      title: '确认清空',
+      content: '清空后将删除该账本下的所有记录，确定要清空吗？',
+      confirmColor: '#ff4d4f',
+      success: function(res) {
+        if (res.confirm) {
+          var entries = bookManager.getEntries(self.data.bookId)
+          for (var i = 0; i < entries.length; i++) {
+            bookManager.removeEntry(entries[i].id)
+          }
+          bookManager.updateBook(self.data.bookId, { entryCount: 0 })
+          self.loadData()
+          wx.showToast({ title: '已清空', icon: 'success' })
+        }
+      }
+    })
+  },
+
+  restoreArchive: function() {
+    var self = this
+    bookManager.updateBook(this.data.bookId, { isArchived: false })
+    wx.showToast({ title: '已恢复', icon: 'success' })
+    self.loadData()
   },
 
   preventBubble: function() {

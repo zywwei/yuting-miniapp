@@ -1,0 +1,25 @@
+<view class="heatmap">
+  <view class="heatmap-header">
+    <text class="weekday">日</text>
+    <text class="weekday">一</text>
+    <text class="weekday">二</text>
+    <text class="weekday">三</text>
+    <text class="weekday">四</text>
+    <text class="weekday">五</text>
+    <text class="weekday">六</text>
+  </view>
+  <view class="heatmap-grid">
+    <view class="heatmap-day {{item.level ? 'level-' + item.level : ''}}" wx:for="{{days}}" wx:key="index" bindtap="onDayTap" data-day="{{item.day}}">
+      <text class="day-text">{{item.day}}</text>
+    </view>
+  </view>
+  <view class="heatmap-legend">
+    <text class="legend-label">少</text>
+    <view class="legend-block level-0"></view>
+    <view class="legend-block level-1"></view>
+    <view class="legend-block level-2"></view>
+    <view class="legend-block level-3"></view>
+    <view class="legend-block level-4"></view>
+    <text class="legend-label">多</text>
+  </view>
+</view>

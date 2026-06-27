@@ -2124,6 +2124,7 @@ async function fetchAccountBooks() {
     })
     if (res.result.code === 0) {
       var cloudList = res.result.data.list || []
+      if (cloudList.length === 0 && localBooks.length > 0) return localBooks
       var deletedIds = getDeletedBookIds()
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
@@ -2184,6 +2185,7 @@ async function fetchBookEntries() {
     })
     if (res.result.code === 0) {
       var cloudList = res.result.data.list || []
+      if (cloudList.length === 0 && localEntries.length > 0) return localEntries
       var deletedIds = getDeletedEntryIds()
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
@@ -2228,7 +2230,18 @@ async function fetchAccountSettings() {
   try {
     var res = await callGetSingleton('accountSettings', 'account_settings')
     if (res.result.code === 0 && res.result.data) {
-      return res.result.data
+      var data = res.result.data
+      delete data._id
+      delete data.familyId
+      delete data.childId
+      delete data.skey
+      delete data.createdBy
+      delete data.createdByName
+      delete data.updatedBy
+      delete data.likes
+      delete data.createTime
+      delete data.updateTime
+      return data
     }
   } catch (err) {
     console.warn('记账设置云端读取失败:', err)

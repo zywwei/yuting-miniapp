@@ -67,7 +67,8 @@ Page({
     totalTokensUsed: 0,
     estimatedCost: '0.0000',
     costModelName: '',
-    showContextStats: false
+    showContextStats: false,
+    modelPrices: null
   },
 
   onLoad: function() {
@@ -605,11 +606,30 @@ Page({
     } else {
       aiManager.sendMessage(message, model, imageFileID).then(function(result) {
         messageIdCounter++
+        // 检查AI回复是否包含图片URL
+        var aiImage = null
+        var aiContent = result.content
+        if (result.content) {
+          // 1. 先匹配markdown图片语法 ![alt](url)
+          var mdImageMatch = result.content.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/)
+          if (mdImageMatch) {
+            aiImage = mdImageMatch[1]
+            aiContent = result.content.replace(mdImageMatch[0], '').trim()
+          } else {
+            // 2. 匹配图片URL模式（http/https开头，以图片扩展名结尾或云文件ID）
+            var imageUrlMatch = result.content.match(/(https?:\/\/[^\s]*\.(jpg|jpeg|png|gif|webp|bmp)(\?[^\s]*)?|cloud:\/\/[^\s]+)/i)
+            if (imageUrlMatch) {
+              aiImage = imageUrlMatch[0]
+              aiContent = result.content.replace(imageUrlMatch[0], '').trim()
+            }
+          }
+        }
+        
         var aiMsg = {
           id: 'msg_' + messageIdCounter,
           role: 'assistant',
-          content: result.content,
-          image: null,
+          content: aiContent || result.content,
+          image: aiImage,
           thinking: result.thinking || null,
           showThinking: false,
           timeStr: that.formatTime(new Date())
@@ -707,15 +727,41 @@ Page({
 
   // 预估费用（根据模型价格计算）
   estimateCost: function() {
+    var that = this
     var modelInfo = aiManager.getCurrentModelInfo()
     var key = modelInfo ? modelInfo.key : 'minimax'
     
-    // 每百万token价格（元）- 2026年6月官网最新价格
-    var priceMap = {
+    // 如果已缓存价格，直接使用
+    if (this.data.modelPrices) {
+      this.calculateCost(key, this.data.modelPrices)
+      return
+    }
+    
+    // 从云端获取价格配置
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: { action: 'getModelPrices' }
+    }).then(function(res) {
+      if (res.result.code === 0) {
+        var prices = res.result.data
+        that.setData({ modelPrices: prices })
+        that.calculateCost(key, prices)
+      } else {
+        // 使用默认价格
+        that.calculateCost(key, that.getDefaultPrices())
+      }
+    }).catch(function() {
+      // 使用默认价格
+      that.calculateCost(key, that.getDefaultPrices())
+    })
+  },
+
+  // 获取默认价格
+  getDefaultPrices: function() {
+    return {
       'minimax': { input: 2.1, output: 8.4, name: 'MiniMax-M3' },
       'minimax-plan': { input: 2.1, output: 8.4, name: 'MiniMax-M3' },
       'deepseek': { input: 1, output: 2, name: 'DeepSeek-V4-Flash' },
-      'deepseek-plan': { input: 1, output: 2, name: 'DeepSeek-V4-Flash' },
       'qwen': { input: 12, output: 36, name: 'Qwen3.7-Max' },
       'zhipu': { input: 5, output: 5, name: 'GLM-5.2' },
       'zhipu-plan': { input: 5, output: 5, name: 'GLM-5.2' },
@@ -725,10 +771,16 @@ Page({
       'wenxin-plan': { input: 8, output: 8, name: 'ERNIE-4.0-Turbo' },
       'siliconflow': { input: 1, output: 2, name: 'DeepSeek-V4' },
       'mimo': { input: 3, output: 6, name: 'MiMo-V2.5-Pro' },
-      'mimo-plan': { input: 3, output: 6, name: 'MiMo-V2.5-Pro' }
+      'mimo-plan': { input: 3, output: 6, name: 'MiMo-V2.5-Pro' },
+      'openrouter': { input: 0, output: 0, name: 'OpenRouter Free' },
+      'kilo': { input: 0, output: 0, name: 'Kilo Free' },
+      'opencode': { input: 0, output: 0, name: 'OpenCode Free' }
     }
-    
-    var price = priceMap[key] || priceMap['minimax']
+  },
+
+  // 计算费用
+  calculateCost: function(key, prices) {
+    var price = prices[key] || prices['minimax']
     var inputCost = (this.data.contextTokens / 1000000) * price.input
     var outputCost = (this.data.outputTokens / 1000000) * price.output
     var totalCost = inputCost + outputCost
@@ -791,11 +843,30 @@ Page({
           
           // 添加AI回复消息
           messageIdCounter++
+          // 检查AI回复是否包含图片URL
+          var aiImage = null
+          var aiContent = progress.finalContent
+          if (progress.finalContent) {
+            // 1. 先匹配markdown图片语法 ![alt](url)
+            var mdImageMatch = progress.finalContent.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/)
+            if (mdImageMatch) {
+              aiImage = mdImageMatch[1]
+              aiContent = progress.finalContent.replace(mdImageMatch[0], '').trim()
+            } else {
+              // 2. 匹配图片URL模式（http/https开头，以图片扩展名结尾或云文件ID）
+              var imageUrlMatch = progress.finalContent.match(/(https?:\/\/[^\s]*\.(jpg|jpeg|png|gif|webp|bmp)(\?[^\s]*)?|cloud:\/\/[^\s]+)/i)
+              if (imageUrlMatch) {
+                aiImage = imageUrlMatch[0]
+                aiContent = progress.finalContent.replace(imageUrlMatch[0], '').trim()
+              }
+            }
+          }
+          
           var aiMsg = {
             id: 'msg_' + messageIdCounter,
             role: 'assistant',
-            content: progress.finalContent,
-            image: null,
+            content: aiContent || progress.finalContent,
+            image: aiImage,
             thinking: progress.thinkingContent || null,
             showThinking: !!progress.thinkingContent,
             timeStr: that.formatTime(new Date())

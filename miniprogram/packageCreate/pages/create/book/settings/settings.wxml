@@ -28,6 +28,33 @@
     </view>
   </view>
 
+  <!-- 记账提醒 -->
+  <view class="section">
+    <view class="section-title">记账提醒</view>
+    <view class="form-group">
+      <view class="form-label">开启提醒</view>
+      <switch checked="{{book.reminderEnabled}}" bindchange="toggleReminder" color="#FF6B8A" />
+    </view>
+    <view class="form-group" wx:if="{{book.reminderEnabled}}">
+      <view class="form-label">提醒时间</view>
+      <picker mode="time" value="{{book.reminderTime}}" bindchange="onReminderTimeChange">
+        <view class="form-value">{{book.reminderTime}}</view>
+      </picker>
+    </view>
+    <view class="reminder-days" wx:if="{{book.reminderEnabled}}">
+      <view class="form-label">提醒日期</view>
+      <view class="days-row">
+        <view class="day-item {{reminderDaysMap[1] ? 'active' : ''}}" bindtap="toggleReminderDay" data-day="1">一</view>
+        <view class="day-item {{reminderDaysMap[2] ? 'active' : ''}}" bindtap="toggleReminderDay" data-day="2">二</view>
+        <view class="day-item {{reminderDaysMap[3] ? 'active' : ''}}" bindtap="toggleReminderDay" data-day="3">三</view>
+        <view class="day-item {{reminderDaysMap[4] ? 'active' : ''}}" bindtap="toggleReminderDay" data-day="4">四</view>
+        <view class="day-item {{reminderDaysMap[5] ? 'active' : ''}}" bindtap="toggleReminderDay" data-day="5">五</view>
+        <view class="day-item {{reminderDaysMap[6] ? 'active' : ''}}" bindtap="toggleReminderDay" data-day="6">六</view>
+        <view class="day-item {{reminderDaysMap[0] ? 'active' : ''}}" bindtap="toggleReminderDay" data-day="0">日</view>
+      </view>
+    </view>
+  </view>
+
   <!-- 操作 -->
   <view class="section">
     <view class="section-title">操作</view>
@@ -45,11 +72,32 @@
     </view>
   </view>
 
+  <!-- 数据管理 -->
+  <view class="section">
+    <view class="section-title">数据管理</view>
+    <view class="action-item" bindtap="exportBackup">
+      <view class="action-text">备份数据</view>
+      <view class="action-arrow">></view>
+    </view>
+    <view class="action-item" bindtap="importBackup">
+      <view class="action-text">恢复数据</view>
+      <view class="action-arrow">></view>
+    </view>
+    <view class="action-item" bindtap="clearData">
+      <view class="action-text">清空数据</view>
+      <view class="action-arrow">></view>
+    </view>
+  </view>
+
   <!-- 危险操作 -->
   <view class="section danger">
     <view class="section-title">危险操作</view>
-    <view class="action-item" bindtap="archiveBook">
+    <view class="action-item" bindtap="archiveBook" wx:if="{{!book.isArchived}}">
       <view class="action-text">归档账本</view>
+      <view class="action-arrow">></view>
+    </view>
+    <view class="action-item" bindtap="restoreArchive" wx:if="{{book.isArchived}}">
+      <view class="action-text">恢复账本</view>
       <view class="action-arrow">></view>
     </view>
     <view class="action-item" bindtap="deleteBook">

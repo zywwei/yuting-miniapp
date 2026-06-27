@@ -37,9 +37,30 @@
   <view class="filter-panel" wx:if="{{showFilter}}">
     <view class="filter-row">
       <view class="filter-label">类型</view>
-      <picker bindchange="onFilterType" value="{{filters.type}}" range="{{typeOptions}}" range-key="label">
-        <view class="filter-value">{{typeOptions[0].label}}</view>
+      <view class="filter-options">
+        <view class="filter-option {{filters.type === '' ? 'active' : ''}}" bindtap="onFilterType" data-type="">全部</view>
+        <view class="filter-option {{filters.type === 'expense' ? 'active' : ''}}" bindtap="onFilterType" data-type="expense">支出</view>
+        <view class="filter-option {{filters.type === 'income' ? 'active' : ''}}" bindtap="onFilterType" data-type="income">收入</view>
+        <view class="filter-option {{filters.type === 'transfer' ? 'active' : ''}}" bindtap="onFilterType" data-type="transfer">不计入</view>
+      </view>
+    </view>
+    <view class="filter-row">
+      <view class="filter-label">分类</view>
+      <picker bindchange="onFilterCategory" value="{{filters.category}}" range="{{filterCategories}}" range-key="name">
+        <view class="filter-picker">{{filterCategoryName || '全部分类'}}</view>
       </picker>
+    </view>
+    <view class="filter-row">
+      <view class="filter-label">日期</view>
+      <view class="filter-date-row">
+        <picker mode="date" value="{{filters.startDate}}" bindchange="onFilterStartDate">
+          <view class="filter-date">{{filters.startDate || '开始日期'}}</view>
+        </picker>
+        <text class="filter-date-sep">至</text>
+        <picker mode="date" value="{{filters.endDate}}" bindchange="onFilterEndDate">
+          <view class="filter-date">{{filters.endDate || '结束日期'}}</view>
+        </picker>
+      </view>
     </view>
     <view class="filter-row">
       <view class="filter-label">搜索</view>
@@ -59,7 +80,7 @@
         </view>
       </view>
       <view class="group-entries">
-        <view class="entry-item" wx:for="{{item.entries}}" wx:for-item="entry" wx:key="id" bindtap="goEditEntry" data-id="{{entry.id}}" bindlongpress="deleteEntry">
+        <view class="entry-item" wx:for="{{item.entries}}" wx:for-item="entry" wx:key="id" bindtap="goEditEntry" bindlongpress="onEntryLongPress" data-id="{{entry.id}}">
           <view class="entry-category">{{entry.categoryIcon}}</view>
           <view class="entry-info">
             <view class="entry-note">{{entry.categoryName}}</view>

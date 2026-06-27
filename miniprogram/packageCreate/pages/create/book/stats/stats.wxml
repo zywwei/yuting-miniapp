@@ -22,15 +22,22 @@
     </view>
     <view class="overview-footer">
       <text>共 {{stats.entryCount || 0}} 笔记录</text>
-      <text wx:if="{{comparison}}">{{getComparisonText()}}</text>
+      <text wx:if="{{comparison}}">{{comparisonText}}</text>
     </view>
   </view>
 
-  <!-- 分类排行 -->
+  <!-- 趋势图 -->
+  <view class="section" wx:if="{{trendData}}">
+    <view class="section-title">收支趋势</view>
+    <canvas canvas-id="trendChart" class="chart-canvas"></canvas>
+  </view>
+
+  <!-- 分类占比 -->
   <view class="section" wx:if="{{categoryStats}}">
-    <view class="section-title">支出分类排行</view>
+    <view class="section-title">支出分类占比</view>
+    <canvas canvas-id="pieChart" class="chart-canvas"></canvas>
     <view class="category-list">
-      <view class="category-item" wx:for="{{getTopCategories()}}" wx:key="id">
+      <view class="category-item" wx:for="{{topCategories}}" wx:key="id">
         <view class="category-icon">{{item.icon}}</view>
         <view class="category-info">
           <view class="category-name">{{item.name}}</view>
@@ -38,17 +45,27 @@
         </view>
         <view class="category-amount">{{item.amount}}</view>
       </view>
-      <view class="empty-tip" wx:if="{{getTopCategories().length === 0}}">暂无数据</view>
+      <view class="empty-tip" wx:if="{{topCategories.length === 0}}">暂无数据</view>
     </view>
   </view>
 
   <!-- 日历热力图 -->
   <view class="section" wx:if="{{calendarData}}">
     <view class="section-title">本月记账日历</view>
-    <view class="calendar-grid">
-      <view class="calendar-day {{calendarData[item] ? 'has-data' : ''}}" wx:for="{{31}}" wx:key="*this">
-        <view class="day-number">{{item + 1}}</view>
-        <view class="day-dot" wx:if="{{calendarData[item]}}"></view>
+    <heatmap data="{{calendarData}}" month="{{currentMonth}}" bind:daytap="onDayTap" />
+  </view>
+
+  <!-- 记账人统计 -->
+  <view class="section" wx:if="{{memberStats && memberStats.length > 1}}">
+    <view class="section-title">记账人统计</view>
+    <view class="member-stats">
+      <view class="member-stat-item" wx:for="{{memberStats}}" wx:key="name">
+        <view class="member-stat-name">{{item.name}}</view>
+        <view class="member-stat-detail">
+          <text class="income">收入 {{item.income}}</text>
+          <text class="expense">支出 {{item.expense}}</text>
+          <text class="count">{{item.count}} 笔</text>
+        </view>
       </view>
     </view>
   </view>
