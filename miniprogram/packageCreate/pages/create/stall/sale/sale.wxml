@@ -42,7 +42,7 @@
     <view class="product-item {{item.selected ? 'selected' : ''}} {{item.quantity <= 0 ? 'sold-out' : ''}}" 
           wx:for="{{products}}" wx:key="id" bindtap="selectProduct" data-id="{{item.id}}">
       <view class="product-image">
-        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" />
+        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" lazy-load />
         <text wx:else class="product-emoji">📦</text>
       </view>
       <view class="product-name">{{item.name}}</view>

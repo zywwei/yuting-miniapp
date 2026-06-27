@@ -568,35 +568,19 @@ Page({
 
         tempFiles.forEach(function(f, index) {
           var tempPath = f.tempFilePath
-          if (wx.cloud) {
-            var cloudPath = 'habits/' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.jpg'
-            wx.cloud.uploadFile({
-              cloudPath: cloudPath,
-              filePath: tempPath,
-              success: function(res) {
-                newImages[index] = res.fileID
-              },
-              fail: function() {
-                newImages[index] = tempPath
-              },
-              complete: function() {
-                uploadCount++
-                if (uploadCount === tempFiles.length) {
-                  var images = that.data.images.concat(newImages)
-                  that.setData({ images: images })
-                  wx.hideLoading()
-                }
-              }
-            })
-          } else {
+          // 使用压缩上传
+          cloud.uploadImageCompressed(tempPath, 'habits').then(function(fileID) {
+            newImages[index] = fileID
+          }).catch(function() {
             newImages[index] = tempPath
+          }).finally(function() {
             uploadCount++
             if (uploadCount === tempFiles.length) {
               var images = that.data.images.concat(newImages)
               that.setData({ images: images })
               wx.hideLoading()
             }
-          }
+          })
         })
       }
     })

@@ -77,7 +77,7 @@ Page({
         that.loadAchievements()
         that.loadRecommendations()
       }
-    }, 100)
+    }, 300)
   },
 
   updateFromApp: function() {

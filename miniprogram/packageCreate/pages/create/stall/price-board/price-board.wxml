@@ -37,7 +37,7 @@
   <view wx:if="{{viewMode === 'list'}}" class="product-list">
     <view class="product-item" wx:for="{{products}}" wx:key="id" bindtap="editProduct" data-id="{{item.id}}" longpress="onProductLongPress" data-name="{{item.name}}">
       <view class="product-image">
-        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" />
+        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" lazy-load />
         <text wx:else class="product-emoji">📦</text>
       </view>
       <view class="product-info">
@@ -62,7 +62,7 @@
   <view wx:if="{{viewMode === 'grid'}}" class="product-grid">
     <view class="product-card" wx:for="{{products}}" wx:key="id" bindtap="editProduct" data-id="{{item.id}}" longpress="onProductLongPress" data-name="{{item.name}}">
       <view class="card-image">
-        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="card-img" />
+        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="card-img" lazy-load />
         <text wx:else class="card-emoji">📦</text>
         <view wx:if="{{item.quantity <= 3}}" class="low-stock-badge">库存紧张</view>
       </view>

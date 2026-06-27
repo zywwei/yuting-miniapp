@@ -448,7 +448,7 @@ function selfHealDrawings(cloudList, localDrawings, deletedSet) {
         wx.cloud.callFunction({
           name: 'record',
           data: { action: 'add', collection: 'drawings', data: d }
-        }).catch(function() {})
+        }).catch(function(err) { console.warn('画作补传失败:', d.id, err) })
       } else if (d.imagePath) {
         // 图片是本地路径，先上传图片再入库
         var cloudPath = 'drawings/' + d.id + '.png'
@@ -986,7 +986,7 @@ function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, 
       wx.cloud.callFunction({
         name: 'record',
         data: { action: 'remove', collection: collection, id: item.id }
-      }).catch(function() {})
+      }).catch(function(err) { console.warn('云端删除同步失败:', item.id, err) })
     }
   })
 
@@ -1484,7 +1484,7 @@ async function fetchBrushingStory() {
       }
       return childStorage.get('brushingStory') || null
     }
-  } catch (err) {}
+  } catch (err) { console.warn('刷牙故事云端读取失败:', err) }
 
   return childStorage.get('brushingStory') || null
 }
@@ -1530,7 +1530,7 @@ async function fetchBrushingAvatar() {
       childStorage.set('brushingAvatar', avatar)
       return avatar
     }
-  } catch (err) {}
+  } catch (err) { console.warn('刷牙头像云端读取失败:', err) }
 
   return childStorage.get('brushingAvatar') || null
 }
@@ -1574,7 +1574,7 @@ async function fetchBrushPoints() {
       }
       return childStorage.get('totalBrushPoints') || 0
     }
-  } catch (err) {}
+  } catch (err) { console.warn('刷牙积分云端读取失败:', err) }
 
   return childStorage.get('totalBrushPoints') || 0
 }
@@ -1619,7 +1619,7 @@ async function fetchToothDecorations() {
       }
       return childStorage.get('toothDecorations') || []
     }
-  } catch (err) {}
+  } catch (err) { console.warn('牙齿装饰云端读取失败:', err) }
 
   return childStorage.get('toothDecorations') || []
 }
@@ -1742,7 +1742,7 @@ async function fetchStallProducts() {
           wx.cloud.callFunction({
             name: 'record',
             data: { action: 'remove', collection: 'stallProducts', id: p._id || p.id }
-          }).catch(function() {})
+          }).catch(function(err) { console.warn('摆摊商品云端删除失败:', p.id, err) })
         }
       })
 
@@ -1862,7 +1862,7 @@ async function fetchStallSales() {
           wx.cloud.callFunction({
             name: 'record',
             data: { action: 'remove', collection: 'stallSales', id: s._id || s.id }
-          }).catch(function() {})
+          }).catch(function(err) { console.warn('销售记录云端删除失败:', s.id, err) })
         }
       })
 
@@ -2249,6 +2249,57 @@ async function fetchAccountSettings() {
   return childStorage.get('accountSettings') || {}
 }
 
+// ===== 图片压缩上传公共函数 =====
+/**
+ * 压缩图片后上传到云存储
+ * @param {string} filePath - 本地文件路径
+ * @param {string} cloudDir - 云存储目录
+ * @returns {Promise<string>} 云文件ID
+ */
+async function uploadImageCompressed(filePath, cloudDir) {
+  // 压缩图片
+  var compressedPath = filePath
+  try {
+    var compressRes = await new Promise(function(resolve, reject) {
+      wx.compressImage({
+        src: filePath,
+        quality: 80,
+        success: resolve,
+        fail: reject
+      })
+    })
+    compressedPath = compressRes.tempFilePath
+  } catch (e) {
+    // 压缩失败时使用原图
+    console.warn('图片压缩失败，使用原图:', e)
+  }
+  
+  // 上传到云存储
+  var cloudPath = (cloudDir || 'images') + '/' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '.jpg'
+  var uploadRes = await wx.cloud.uploadFile({
+    cloudPath: cloudPath,
+    filePath: compressedPath
+  })
+  
+  return uploadRes.fileID
+}
+
+/**
+ * 上传图片（不压缩）
+ * @param {string} filePath - 本地文件路径
+ * @param {string} cloudDir - 云存储目录
+ * @returns {Promise<string>} 云文件ID
+ */
+async function uploadImage(filePath, cloudDir) {
+  var cloudPath = (cloudDir || 'images') + '/' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '.jpg'
+  var uploadRes = await wx.cloud.uploadFile({
+    cloudPath: cloudPath,
+    filePath: filePath
+  })
+  
+  return uploadRes.fileID
+}
+
 module.exports = {
   isCloudReady: isCloudReady,
   // 通用墓碑操作（供 game-cloud 等模块复用）
@@ -2306,6 +2357,8 @@ module.exports = {
   uploadBookEntry: uploadBookEntry,
   fetchBookEntries: fetchBookEntries,
   removeBookEntry: removeBookEntry,
-  uploadAccountSettings: uploadAccountSettings,
-  fetchAccountSettings: fetchAccountSettings
+   uploadAccountSettings: uploadAccountSettings,
+  fetchAccountSettings: fetchAccountSettings,
+  uploadImageCompressed: uploadImageCompressed,
+  uploadImage: uploadImage
 }

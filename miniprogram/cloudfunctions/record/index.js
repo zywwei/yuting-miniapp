@@ -1,5 +1,5 @@
 const cloud = require('wx-server-sdk')
-cloud.init({ env: 'cloudbase-d8gyw6k3f5ac78f76' })
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
 // 允许客户端访问的集合白名单，防止恶意请求写入/删除敏感集合（如 familyMembers）

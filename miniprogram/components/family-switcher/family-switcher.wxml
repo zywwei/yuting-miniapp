@@ -16,7 +16,7 @@
             bindtap="switchFamily"
             data-id="{{item.familyId}}">
         <view class="family-avatar">
-          <image wx:if="{{item.familyAvatar}}" src="{{item.familyAvatar}}" mode="aspectFill" class="family-avatar-img" />
+          <image wx:if="{{item.familyAvatar}}" src="{{item.familyAvatar}}" mode="aspectFill" class="family-avatar-img" lazy-load />
           <text wx:else>👨‍👩‍👧</text>
         </view>
         <view class="family-info">

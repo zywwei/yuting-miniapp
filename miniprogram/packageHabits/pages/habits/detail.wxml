@@ -148,7 +148,7 @@
     <view class="section-title">📷 拍照记录（可选）</view>
     <view class="photo-list">
       <view wx:for="{{images}}" wx:key="*this" class="photo-item">
-        <image src="{{item}}" mode="aspectFill" class="photo-img" bindtap="previewImage" data-path="{{item}}" />
+        <image src="{{item}}" mode="aspectFill" class="photo-img" bindtap="previewImage" data-path="{{item}}" lazy-load />
         <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
         <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
       </view>
@@ -197,7 +197,7 @@
       <view wx:for="{{records}}" wx:key="id" class="record-item" bindtap="viewDetail" data-id="{{item.id}}">
         <!-- 照片缩略图 -->
         <view wx:if="{{item.images && item.images.length > 0}}" class="record-thumb">
-          <image src="{{item.images[0]}}" mode="aspectFill" class="thumb-img" />
+          <image src="{{item.images[0]}}" mode="aspectFill" class="thumb-img" lazy-load />
           <view wx:if="{{item.images.length > 1}}" class="thumb-count">+{{item.images.length - 1}}</view>
         </view>
         <view class="record-left">
@@ -260,7 +260,7 @@
             <view class="photo-list">
               <image wx:for="{{detailRecord.images}}" wx:key="*this"
                      src="{{item}}" mode="aspectFill" class="detail-photo"
-                     bindtap="previewDetailImage" data-index="{{index}}" />
+                     bindtap="previewDetailImage" data-index="{{index}}" lazy-load />
             </view>
           </scroll-view>
         </view>

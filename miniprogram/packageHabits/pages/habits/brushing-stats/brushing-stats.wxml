@@ -193,6 +193,7 @@
           mode="aspectFill"
           bindtap="previewImage"
           data-path="{{item.imagePath}}"
+          lazy-load
         />
         <view wx:else class="history-image history-image-placeholder">✅</view>
         <view class="history-info">

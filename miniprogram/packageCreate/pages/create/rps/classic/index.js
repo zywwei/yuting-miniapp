@@ -31,6 +31,15 @@ Page({
       this.setData({ playMode: options.mode })
     }
     this.gameStartTime = 0
+    this.animTimer = null
+  },
+
+  onUnload: function() {
+    // 清理定时器
+    if (this.animTimer) {
+      clearInterval(this.animTimer)
+      this.animTimer = null
+    }
   },
 
   selectMode: function(e) {
@@ -198,7 +207,7 @@ Page({
     var choices = rpsManager.CHOICES
     var choiceIcons = rpsManager.CHOICE_ICONS
     var animCount = 0
-    var animInterval = setInterval(function() {
+    this.animTimer = setInterval(function() {
       // 随机显示图标
       var randomChoice = choices[Math.floor(Math.random() * 3)]
       
@@ -210,7 +219,8 @@ Page({
       
       animCount++
       if (animCount >= 8) {
-        clearInterval(animInterval)
+        clearInterval(that.animTimer)
+        that.animTimer = null
         
         // 最终结果
         var choice = choices[Math.floor(Math.random() * 3)]

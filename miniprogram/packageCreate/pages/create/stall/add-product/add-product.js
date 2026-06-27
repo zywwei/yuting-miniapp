@@ -1,5 +1,6 @@
 var stallManager = require('../../../../utils/stall-manager.js')
 var stallUtils = require('../../../../utils/stall-utils.js')
+var cloud = getApp().globalData.cloud
 
 Page({
   data: {
@@ -71,30 +72,18 @@ Page({
     this.setData({ uploading: true })
     wx.showLoading({ title: '上传中...' })
 
-    if (wx.cloud) {
-      var cloudPath = 'stall/products/' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.png'
-      wx.cloud.uploadFile({
-        cloudPath: cloudPath,
-        filePath: tempPath,
-        success: function(res) {
-          this.setData({ imagePath: res.fileID })
-          wx.showToast({ title: '上传成功', icon: 'success' })
-        }.bind(this),
-        fail: function(err) {
-          console.warn('云存储上传失败:', err)
-          this.setData({ imagePath: '' })
-          wx.showToast({ title: '图片上传失败，请重试', icon: 'none' })
-        }.bind(this),
-        complete: function() {
-          this.setData({ uploading: false })
-          wx.hideLoading()
-        }.bind(this)
-      })
-    } else {
-      this.setData({ imagePath: tempPath, uploading: false })
+    // 使用压缩上传
+    cloud.uploadImageCompressed(tempPath, 'stall/products').then(function(fileID) {
+      this.setData({ imagePath: fileID })
+      wx.showToast({ title: '上传成功', icon: 'success' })
+    }.bind(this)).catch(function(err) {
+      console.warn('云存储上传失败:', err)
+      this.setData({ imagePath: '' })
+      wx.showToast({ title: '图片上传失败，请重试', icon: 'none' })
+    }.bind(this)).finally(function() {
+      this.setData({ uploading: false })
       wx.hideLoading()
-      wx.showToast({ title: '无云环境，图片仅本机可见', icon: 'none' })
-    }
+    }.bind(this))
   },
 
   calcProfitRate: function() {

@@ -83,7 +83,7 @@
     <view class="section-title">照片（可选）</view>
     <view class="photo-list">
       <view wx:for="{{images}}" wx:key="*this" class="photo-item">
-        <image src="{{item}}" mode="aspectFill" class="photo-img" bindtap="previewImage" data-path="{{item}}" />
+        <image src="{{item}}" mode="aspectFill" class="photo-img" bindtap="previewImage" data-path="{{item}}" lazy-load />
         <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
         <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
       </view>

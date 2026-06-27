@@ -46,6 +46,15 @@ Page({
   onLoad: function() {
     this.loadBalance()
     this.loadStats()
+    this.spinTimer = null
+  },
+
+  onUnload: function() {
+    // 清理定时器
+    if (this.spinTimer) {
+      clearInterval(this.spinTimer)
+      this.spinTimer = null
+    }
   },
 
   loadBalance: function() {
@@ -103,7 +112,7 @@ Page({
     var spinCount = 0
 
     // 转盘动画
-    var spinInterval = setInterval(function() {
+    this.spinTimer = setInterval(function() {
       var reels = []
       for (var i = 0; i < 3; i++) {
         reels.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)])
@@ -112,7 +121,8 @@ Page({
 
       spinCount++
       if (spinCount >= 15) {
-        clearInterval(spinInterval)
+        clearInterval(that.spinTimer)
+        that.spinTimer = null
 
         // 最终结果
         var finalReels = []

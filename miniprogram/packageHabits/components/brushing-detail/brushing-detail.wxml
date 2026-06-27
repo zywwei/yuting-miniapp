@@ -49,7 +49,7 @@
         <text class="detail-label">📷 照片</text>
         <view class="detail-images">
           <view wx:for="{{formattedRecord.images}}" wx:key="*this" class="detail-image-item">
-            <image src="{{item}}" mode="aspectFill" class="detail-image-thumb" bindtap="previewImage" data-index="{{index}}" />
+            <image src="{{item}}" mode="aspectFill" class="detail-image-thumb" bindtap="previewImage" data-index="{{index}}" lazy-load />
             <view class="detail-image-edit" catchtap="editImage" data-path="{{item}}">✏️</view>
             <view class="detail-image-delete" catchtap="deleteImage" data-index="{{index}}">✕</view>
           </view>

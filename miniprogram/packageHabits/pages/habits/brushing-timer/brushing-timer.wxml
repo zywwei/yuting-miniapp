@@ -268,7 +268,7 @@
           <view class="photo-section-title">📷 拍照记录（可选）</view>
           <view class="photo-list">
             <view wx:for="{{photos}}" wx:key="*this" class="photo-item">
-              <image src="{{item}}" mode="aspectFill" class="photo-thumb" bindtap="previewPhoto" data-index="{{index}}" />
+              <image src="{{item}}" mode="aspectFill" class="photo-thumb" bindtap="previewPhoto" data-index="{{index}}" lazy-load />
               <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
               <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
             </view>

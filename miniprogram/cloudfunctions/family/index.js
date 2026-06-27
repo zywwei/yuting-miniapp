@@ -1,5 +1,5 @@
 const cloud = require('wx-server-sdk')
-cloud.init({ env: 'cloudbase-d8gyw6k3f5ac78f76' })
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
@@ -74,489 +74,557 @@ async function isAdmin(member) {
 }
 
 async function createFamily(openid, { familyName, role, roleName, nickname, childName, childNickname, childGender, childBirthday, avatar, familyAvatar, childTheme }) {
-  const existing = await getMemberByOpenid(openid)
-  if (existing) {
-    // 已加入家庭，返回家庭信息而不是报错
-    const familyRes = await db.collection('families').doc(existing.familyId).get()
+  try {
+    const existing = await getMemberByOpenid(openid)
+    if (existing) {
+      // 已加入家庭，返回家庭信息而不是报错
+      const familyRes = await db.collection('families').doc(existing.familyId).get()
+      return {
+        code: 0,
+        data: {
+          familyId: existing.familyId,
+          inviteCode: familyRes.data.inviteCode,
+          childId: familyRes.data.children && familyRes.data.children[0] ? familyRes.data.children[0].childId : '',
+          existing: true
+        }
+      }
+    }
+
+    const inviteCode = generateInviteCode()
+    const childId = 'c_' + Date.now()
+    const now = new Date()
+
+    const familyRes = await db.collection('families').add({
+      data: {
+        name: familyName || (childName || '宝宝') + '的家',
+        creatorOpenid: openid,
+        inviteCode,
+        inviteCodeExpireAt: new Date(now.getTime() + INVITE_EXPIRE_DAYS * 24 * 3600 * 1000),
+        avatar: familyAvatar || '',
+        children: [{
+          childId,
+          name: childName || '宝宝',
+          nickname: childNickname || '',
+          gender: childGender || '',
+          birthday: childBirthday || '',
+          avatar: '',
+          theme: childTheme || (childGender === 'boy' ? 'blue' : 'pink')
+        }],
+        status: 'active',
+        createTime: now,
+        updateTime: now
+      }
+    })
+
+    const familyId = familyRes._id
+
+    const ROLE_NAMES = {
+      father: '爸爸', mother: '妈妈', child: '本人',
+      grandpa: '爷爷', grandma: '奶奶', uncle: '叔叔', aunt: '阿姨', other: '其他'
+    }
+    const memberRole = role || 'father'
+    const memberRoleName = roleName || ROLE_NAMES[memberRole] || '家人'
+
+    await db.collection('familyMembers').add({
+      data: {
+        familyId,
+        openid,
+        role: memberRole,
+        roleName: memberRoleName,
+        nickname: nickname || '',
+        avatar: avatar || '',
+        isChild: false,
+        childId: '',
+        permissions: ['admin'],
+        status: 'active',
+        joinTime: now,
+        lastActiveAt: now
+      }
+    })
+
     return {
       code: 0,
       data: {
-        familyId: existing.familyId,
-        inviteCode: familyRes.data.inviteCode,
-        childId: familyRes.data.children && familyRes.data.children[0] ? familyRes.data.children[0].childId : '',
-        existing: true
+        familyId,
+        inviteCode,
+        childId
       }
     }
-  }
-
-  const inviteCode = generateInviteCode()
-  const childId = 'c_' + Date.now()
-  const now = new Date()
-
-  const familyRes = await db.collection('families').add({
-    data: {
-      name: familyName || (childName || '宝宝') + '的家',
-      creatorOpenid: openid,
-      inviteCode,
-      inviteCodeExpireAt: new Date(now.getTime() + INVITE_EXPIRE_DAYS * 24 * 3600 * 1000),
-      avatar: familyAvatar || '',
-      children: [{
-        childId,
-        name: childName || '宝宝',
-        nickname: childNickname || '',
-        gender: childGender || '',
-        birthday: childBirthday || '',
-        avatar: '',
-        theme: childTheme || (childGender === 'boy' ? 'blue' : 'pink')
-      }],
-      status: 'active',
-      createTime: now,
-      updateTime: now
-    }
-  })
-
-  const familyId = familyRes._id
-
-  const ROLE_NAMES = {
-    father: '爸爸', mother: '妈妈', child: '本人',
-    grandpa: '爷爷', grandma: '奶奶', uncle: '叔叔', aunt: '阿姨', other: '其他'
-  }
-  const memberRole = role || 'father'
-  const memberRoleName = roleName || ROLE_NAMES[memberRole] || '家人'
-
-  await db.collection('familyMembers').add({
-    data: {
-      familyId,
-      openid,
-      role: memberRole,
-      roleName: memberRoleName,
-      nickname: nickname || '',
-      avatar: avatar || '',
-      isChild: false,
-      childId: '',
-      permissions: ['admin'],
-      status: 'active',
-      joinTime: now,
-      lastActiveAt: now
-    }
-  })
-
-  return {
-    code: 0,
-    data: {
-      familyId,
-      inviteCode,
-      childId
-    }
+  } catch (err) {
+    return { code: -2, msg: '创建家庭失败: ' + err.message }
   }
 }
 
 async function joinFamily(openid, { inviteCode, role, roleName, nickname, avatar }) {
-  const familyRes = await db.collection('families')
-    .where({ inviteCode, status: 'active' })
-    .get()
+  try {
+    const familyRes = await db.collection('families')
+      .where({ inviteCode, status: 'active' })
+      .get()
 
-  if (familyRes.data.length === 0) {
-    return { code: -1, msg: '邀请码无效' }
-  }
-
-  const family = familyRes.data[0]
-  if (new Date(family.inviteCodeExpireAt) < new Date()) {
-    return { code: -2, msg: '邀请码已过期' }
-  }
-
-  const existing = await db.collection('familyMembers')
-    .where({ familyId: family._id, openid, status: 'active' })
-    .get()
-  if (existing.data.length > 0) {
-    return { code: -3, msg: '您已是该家庭成员' }
-  }
-
-  const isChildRole = role === 'child'
-  const permissions = (role === 'father' || role === 'mother') ? ['admin'] : ['editor']
-
-  let childId = ''
-  if (isChildRole && family.children.length > 0) {
-    childId = family.children[0].childId
-  }
-
-  const now = new Date()
-  await db.collection('familyMembers').add({
-    data: {
-      familyId: family._id,
-      openid,
-      role: role || 'other',
-      roleName: roleName || '家人',
-      nickname: nickname || '',
-      avatar: avatar || '',
-      isChild: isChildRole,
-      childId,
-      permissions,
-      status: 'active',
-      joinTime: now,
-      lastActiveAt: now
+    if (familyRes.data.length === 0) {
+      return { code: -1, msg: '邀请码无效' }
     }
-  })
 
-  return { code: 0, data: { familyId: family._id } }
+    const family = familyRes.data[0]
+    if (new Date(family.inviteCodeExpireAt) < new Date()) {
+      return { code: -2, msg: '邀请码已过期' }
+    }
+
+    const existing = await db.collection('familyMembers')
+      .where({ familyId: family._id, openid, status: 'active' })
+      .get()
+    if (existing.data.length > 0) {
+      return { code: -3, msg: '您已是该家庭成员' }
+    }
+
+    const isChildRole = role === 'child'
+    const permissions = (role === 'father' || role === 'mother') ? ['admin'] : ['editor']
+
+    let childId = ''
+    if (isChildRole && family.children.length > 0) {
+      childId = family.children[0].childId
+    }
+
+    const now = new Date()
+    await db.collection('familyMembers').add({
+      data: {
+        familyId: family._id,
+        openid,
+        role: role || 'other',
+        roleName: roleName || '家人',
+        nickname: nickname || '',
+        avatar: avatar || '',
+        isChild: isChildRole,
+        childId,
+        permissions,
+        status: 'active',
+        joinTime: now,
+        lastActiveAt: now
+      }
+    })
+
+    return { code: 0, data: { familyId: family._id } }
+  } catch (err) {
+    return { code: -2, msg: '加入家庭失败: ' + err.message }
+  }
 }
 
 async function getFamilyInfo(openid) {
-  const member = await getMemberByOpenid(openid)
-  if (!member) {
-    return { code: -1, msg: '未加入家庭' }
-  }
-
-  if (member.status === 'disabled') {
-    return { code: -3, msg: '您的账号已被禁用，请联系管理员' }
-  }
-
-  const familyRes = await db.collection('families').doc(member.familyId).get()
-  const family = familyRes.data
-
-  if (!family || family.status === 'archived') {
-    return { code: -2, msg: '家庭已解散' }
-  }
-
-  await db.collection('familyMembers').doc(member._id).update({
-    data: { lastActiveAt: new Date() }
-  })
-
-  // 获取所有家庭成员（活跃和禁用，不含已移除）
-  const membersRes = await db.collection('familyMembers')
-    .where({
-      familyId: member.familyId,
-      status: db.command.in(['active', 'disabled'])
-    })
-    .get()
-
-  return {
-    code: 0,
-    data: {
-      family,
-      member,
-      children: family.children || [],
-      members: membersRes.data || []
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member) {
+      return { code: -1, msg: '未加入家庭' }
     }
+
+    if (member.status === 'disabled') {
+      return { code: -3, msg: '您的账号已被禁用，请联系管理员' }
+    }
+
+    const familyRes = await db.collection('families').doc(member.familyId).get()
+    const family = familyRes.data
+
+    if (!family || family.status === 'archived') {
+      return { code: -2, msg: '家庭已解散' }
+    }
+
+    await db.collection('familyMembers').doc(member._id).update({
+      data: { lastActiveAt: new Date() }
+    })
+
+    // 获取所有家庭成员（活跃和禁用，不含已移除）
+    const membersRes = await db.collection('familyMembers')
+      .where({
+        familyId: member.familyId,
+        status: db.command.in(['active', 'disabled'])
+      })
+      .get()
+
+    return {
+      code: 0,
+      data: {
+        family,
+        member,
+        children: family.children || [],
+        members: membersRes.data || []
+      }
+    }
+  } catch (err) {
+    return { code: -2, msg: '获取家庭信息失败: ' + err.message }
   }
 }
 
 async function getMyFamilies(openid) {
-  // 获取用户所有家庭成员记录
-  const membersRes = await db.collection('familyMembers')
-    .where({
-      openid,
-      status: db.command.in(['active', 'disabled'])
-    })
-    .get()
+  try {
+    // 获取用户所有家庭成员记录
+    const membersRes = await db.collection('familyMembers')
+      .where({
+        openid,
+        status: db.command.in(['active', 'disabled'])
+      })
+      .get()
 
-  const memberRecords = membersRes.data || []
-  if (memberRecords.length === 0) {
-    return { code: 0, data: { families: [] } }
+    const memberRecords = membersRes.data || []
+    if (memberRecords.length === 0) {
+      return { code: 0, data: { families: [] } }
+    }
+
+    // 获取所有家庭信息
+    const familyIds = [...new Set(memberRecords.map(m => m.familyId))]
+    const familiesRes = await db.collection('families')
+      .where({
+        _id: db.command.in(familyIds),
+        status: 'active'
+      })
+      .get()
+
+    const familiesMap = {}
+    familiesRes.data.forEach(f => { familiesMap[f._id] = f })
+
+    // 组装数据
+    const families = []
+    for (const memberRecord of memberRecords) {
+      const family = familiesMap[memberRecord.familyId]
+      if (!family) continue
+
+      families.push({
+        familyId: family._id,
+        familyName: family.name,
+        familyAvatar: family.avatar,
+        family: family,
+        member: memberRecord,
+        children: family.children || [],
+        status: memberRecord.status,
+        role: memberRecord.role,
+        roleName: memberRecord.roleName
+      })
+    }
+
+    return { code: 0, data: { families } }
+  } catch (err) {
+    return { code: -2, msg: '获取家庭列表失败: ' + err.message }
   }
-
-  // 获取所有家庭信息
-  const familyIds = [...new Set(memberRecords.map(m => m.familyId))]
-  const familiesRes = await db.collection('families')
-    .where({
-      _id: db.command.in(familyIds),
-      status: 'active'
-    })
-    .get()
-
-  const familiesMap = {}
-  familiesRes.data.forEach(f => { familiesMap[f._id] = f })
-
-  // 组装数据
-  const families = []
-  for (const memberRecord of memberRecords) {
-    const family = familiesMap[memberRecord.familyId]
-    if (!family) continue
-
-    families.push({
-      familyId: family._id,
-      familyName: family.name,
-      familyAvatar: family.avatar,
-      family: family,
-      member: memberRecord,
-      children: family.children || [],
-      status: memberRecord.status,
-      role: memberRecord.role,
-      roleName: memberRecord.roleName
-    })
-  }
-
-  return { code: 0, data: { families } }
 }
 
 async function getFamilyDetail(openid, { familyId }) {
-  // 获取用户在该家庭的成员记录
-  const memberRes = await db.collection('familyMembers')
-    .where({
-      openid,
-      familyId,
-      status: db.command.in(['active', 'disabled'])
-    })
-    .get()
+  try {
+    // 获取用户在该家庭的成员记录
+    const memberRes = await db.collection('familyMembers')
+      .where({
+        openid,
+        familyId,
+        status: db.command.in(['active', 'disabled'])
+      })
+      .get()
 
-  const member = memberRes.data[0]
-  if (!member) {
-    return { code: -1, msg: '您不是该家庭成员' }
-  }
-
-  if (member.status === 'disabled') {
-    return { code: -3, msg: '您的账号在该家庭已被禁用' }
-  }
-
-  // 获取家庭信息
-  const familyRes = await db.collection('families').doc(familyId).get()
-  const family = familyRes.data
-
-  if (!family || family.status === 'archived') {
-    return { code: -2, msg: '家庭已解散' }
-  }
-
-  // 获取所有家庭成员
-  const membersRes = await db.collection('familyMembers')
-    .where({
-      familyId,
-      status: db.command.in(['active', 'disabled'])
-    })
-    .get()
-
-  return {
-    code: 0,
-    data: {
-      family,
-      member,
-      children: family.children || [],
-      members: membersRes.data || []
+    const member = memberRes.data[0]
+    if (!member) {
+      return { code: -1, msg: '您不是该家庭成员' }
     }
+
+    if (member.status === 'disabled') {
+      return { code: -3, msg: '您的账号在该家庭已被禁用' }
+    }
+
+    // 获取家庭信息
+    const familyRes = await db.collection('families').doc(familyId).get()
+    const family = familyRes.data
+
+    if (!family || family.status === 'archived') {
+      return { code: -2, msg: '家庭已解散' }
+    }
+
+    // 获取所有家庭成员
+    const membersRes = await db.collection('familyMembers')
+      .where({
+        familyId,
+        status: db.command.in(['active', 'disabled'])
+      })
+      .get()
+
+    return {
+      code: 0,
+      data: {
+        family,
+        member,
+        children: family.children || [],
+        members: membersRes.data || []
+      }
+    }
+  } catch (err) {
+    return { code: -2, msg: '获取家庭详情失败: ' + err.message }
   }
 }
 
 async function refreshInviteCode(openid) {
-  const member = await getMemberByOpenid(openid)
-  if (!member || !await isAdmin(member)) {
-    return { code: -1, msg: '无权限' }
-  }
-
-  const inviteCode = generateInviteCode()
-  const now = new Date()
-
-  await db.collection('families').doc(member.familyId).update({
-    data: {
-      inviteCode,
-      inviteCodeExpireAt: new Date(now.getTime() + INVITE_EXPIRE_DAYS * 24 * 3600 * 1000),
-      updateTime: now
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member || !await isAdmin(member)) {
+      return { code: -1, msg: '无权限' }
     }
-  })
 
-  return { code: 0, data: { inviteCode } }
+    const inviteCode = generateInviteCode()
+    const now = new Date()
+
+    await db.collection('families').doc(member.familyId).update({
+      data: {
+        inviteCode,
+        inviteCodeExpireAt: new Date(now.getTime() + INVITE_EXPIRE_DAYS * 24 * 3600 * 1000),
+        updateTime: now
+      }
+    })
+
+    return { code: 0, data: { inviteCode } }
+  } catch (err) {
+    return { code: -2, msg: '刷新邀请码失败: ' + err.message }
+  }
 }
 
 async function addChild(openid, { name, nickname, gender, birthday, avatar, theme }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member || !await isAdmin(member)) {
-    return { code: -1, msg: '无权限' }
-  }
-
-  const childId = 'c_' + Date.now()
-  const now = new Date()
-
-  await db.collection('families').doc(member.familyId).update({
-    data: {
-      children: _.push({
-        childId,
-        name: name || '宝宝',
-        nickname: nickname || '',
-        gender: gender || '',
-        birthday: birthday || '',
-        avatar: avatar || '',
-        theme: theme || (gender === 'boy' ? 'blue' : 'pink')
-      }),
-      updateTime: now
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member || !await isAdmin(member)) {
+      return { code: -1, msg: '无权限' }
     }
-  })
 
-  return { code: 0, data: { childId } }
+    const childId = 'c_' + Date.now()
+    const now = new Date()
+
+    await db.collection('families').doc(member.familyId).update({
+      data: {
+        children: _.push({
+          childId,
+          name: name || '宝宝',
+          nickname: nickname || '',
+          gender: gender || '',
+          birthday: birthday || '',
+          avatar: avatar || '',
+          theme: theme || (gender === 'boy' ? 'blue' : 'pink')
+        }),
+        updateTime: now
+      }
+    })
+
+    return { code: 0, data: { childId } }
+  } catch (err) {
+    return { code: -2, msg: '添加孩子失败: ' + err.message }
+  }
 }
 
 async function updateChild(openid, { childId, name, nickname, gender, birthday, avatar, theme }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member || !await isAdmin(member)) {
-    return { code: -1, msg: '无权限' }
-  }
-
-  const familyRes = await db.collection('families').doc(member.familyId).get()
-  const children = familyRes.data.children || []
-
-  const updated = children.map(c => {
-    if (c.childId === childId) {
-      return {
-        ...c,
-        name: name !== undefined ? name : c.name,
-        nickname: nickname !== undefined ? nickname : c.nickname,
-        gender: gender !== undefined ? gender : c.gender,
-        birthday: birthday !== undefined ? birthday : c.birthday,
-        avatar: avatar !== undefined ? avatar : c.avatar,
-        theme: theme !== undefined ? theme : c.theme
-      }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member || !await isAdmin(member)) {
+      return { code: -1, msg: '无权限' }
     }
-    return c
-  })
 
-  await db.collection('families').doc(member.familyId).update({
-    data: { children: updated, updateTime: new Date() }
-  })
+    const familyRes = await db.collection('families').doc(member.familyId).get()
+    const children = familyRes.data.children || []
 
-  return { code: 0 }
+    const updated = children.map(c => {
+      if (c.childId === childId) {
+        return {
+          ...c,
+          name: name !== undefined ? name : c.name,
+          nickname: nickname !== undefined ? nickname : c.nickname,
+          gender: gender !== undefined ? gender : c.gender,
+          birthday: birthday !== undefined ? birthday : c.birthday,
+          avatar: avatar !== undefined ? avatar : c.avatar,
+          theme: theme !== undefined ? theme : c.theme
+        }
+      }
+      return c
+    })
+
+    await db.collection('families').doc(member.familyId).update({
+      data: { children: updated, updateTime: new Date() }
+    })
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '更新孩子信息失败: ' + err.message }
+  }
 }
 
 async function removeChild(openid, { childId }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member || !await isAdmin(member)) {
-    return { code: -1, msg: '无权限' }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member || !await isAdmin(member)) {
+      return { code: -1, msg: '无权限' }
+    }
+
+    const familyRes = await db.collection('families').doc(member.familyId).get()
+    const children = (familyRes.data.children || []).filter(c => c.childId !== childId)
+
+    await db.collection('families').doc(member.familyId).update({
+      data: { children, updateTime: new Date() }
+    })
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '删除孩子失败: ' + err.message }
   }
-
-  const familyRes = await db.collection('families').doc(member.familyId).get()
-  const children = (familyRes.data.children || []).filter(c => c.childId !== childId)
-
-  await db.collection('families').doc(member.familyId).update({
-    data: { children, updateTime: new Date() }
-  })
-
-  return { code: 0 }
 }
 
 async function removeMember(openid, { memberId }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member || !await isAdmin(member)) {
-    return { code: -1, msg: '无权限' }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member || !await isAdmin(member)) {
+      return { code: -1, msg: '无权限' }
+    }
+
+    if (member._id === memberId) {
+      return { code: -2, msg: '不能移除自己' }
+    }
+
+    await db.collection('familyMembers').doc(memberId).update({
+      data: { status: 'removed' }
+    })
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '移除成员失败: ' + err.message }
   }
-
-  if (member._id === memberId) {
-    return { code: -2, msg: '不能移除自己' }
-  }
-
-  await db.collection('familyMembers').doc(memberId).update({
-    data: { status: 'removed' }
-  })
-
-  return { code: 0 }
 }
 
 async function disableMember(openid, { memberId }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member || !await isAdmin(member)) {
-    return { code: -1, msg: '无权限' }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member || !await isAdmin(member)) {
+      return { code: -1, msg: '无权限' }
+    }
+
+    if (member._id === memberId) {
+      return { code: -2, msg: '不能禁用自己' }
+    }
+
+    await db.collection('familyMembers').doc(memberId).update({
+      data: { status: 'disabled' }
+    })
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '禁用成员失败: ' + err.message }
   }
-
-  if (member._id === memberId) {
-    return { code: -2, msg: '不能禁用自己' }
-  }
-
-  await db.collection('familyMembers').doc(memberId).update({
-    data: { status: 'disabled' }
-  })
-
-  return { code: 0 }
 }
 
 async function enableMember(openid, { memberId }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member || !await isAdmin(member)) {
-    return { code: -1, msg: '无权限' }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member || !await isAdmin(member)) {
+      return { code: -1, msg: '无权限' }
+    }
+
+    await db.collection('familyMembers').doc(memberId).update({
+      data: { status: 'active' }
+    })
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '启用成员失败: ' + err.message }
   }
-
-  await db.collection('familyMembers').doc(memberId).update({
-    data: { status: 'active' }
-  })
-
-  return { code: 0 }
 }
 
 async function updateProfile(openid, { nickname, avatar }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member) {
-    return { code: -1, msg: '未加入家庭' }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member) {
+      return { code: -1, msg: '未加入家庭' }
+    }
+
+    const updates = {}
+    if (nickname !== undefined) updates.nickname = nickname
+    if (avatar !== undefined) updates.avatar = avatar
+
+    if (Object.keys(updates).length > 0) {
+      await db.collection('familyMembers').doc(member._id).update({
+        data: updates
+      })
+    }
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '更新个人资料失败: ' + err.message }
   }
-
-  const updates = {}
-  if (nickname !== undefined) updates.nickname = nickname
-  if (avatar !== undefined) updates.avatar = avatar
-
-  if (Object.keys(updates).length > 0) {
-    await db.collection('familyMembers').doc(member._id).update({
-      data: updates
-    })
-  }
-
-  return { code: 0 }
 }
 
 async function updateAvatar(openid, { avatar }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member) {
-    return { code: -1, msg: '未加入家庭' }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member) {
+      return { code: -1, msg: '未加入家庭' }
+    }
+
+    await db.collection('familyMembers').doc(member._id).update({
+      data: { avatar }
+    })
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '更新头像失败: ' + err.message }
   }
-
-  await db.collection('familyMembers').doc(member._id).update({
-    data: { avatar }
-  })
-
-  return { code: 0 }
 }
 
 async function updateChildAvatar(openid, { childId, avatar }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member) {
-    return { code: -1, msg: '未加入家庭' }
-  }
-
-  const familyRes = await db.collection('families').doc(member.familyId).get()
-  const children = familyRes.data.children || []
-
-  const updated = children.map(c => {
-    if (c.childId === childId) {
-      return { ...c, avatar }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member) {
+      return { code: -1, msg: '未加入家庭' }
     }
-    return c
-  })
 
-  await db.collection('families').doc(member.familyId).update({
-    data: { children: updated, updateTime: new Date() }
-  })
+    const familyRes = await db.collection('families').doc(member.familyId).get()
+    const children = familyRes.data.children || []
 
-  return { code: 0 }
+    const updated = children.map(c => {
+      if (c.childId === childId) {
+        return { ...c, avatar }
+      }
+      return c
+    })
+
+    await db.collection('families').doc(member.familyId).update({
+      data: { children: updated, updateTime: new Date() }
+    })
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '更新孩子头像失败: ' + err.message }
+  }
 }
 
 async function saveCurrentChild(openid, { childId }) {
-  const member = await getMemberByOpenid(openid)
-  if (!member) {
-    return { code: -1, msg: '未加入家庭' }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member) {
+      return { code: -1, msg: '未加入家庭' }
+    }
+
+    await db.collection('familyMembers').doc(member._id).update({
+      data: { currentChildId: childId }
+    })
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '保存当前孩子失败: ' + err.message }
   }
-
-  await db.collection('familyMembers').doc(member._id).update({
-    data: { currentChildId: childId }
-  })
-
-  return { code: 0 }
 }
 
 async function leaveFamily(openid) {
-  const member = await getMemberByOpenid(openid)
-  if (!member) {
-    return { code: -1, msg: '未加入家庭' }
+  try {
+    const member = await getMemberByOpenid(openid)
+    if (!member) {
+      return { code: -1, msg: '未加入家庭' }
+    }
+
+    if (await isAdmin(member)) {
+      return { code: -2, msg: '管理员不能退出家庭，请先转让管理员权限或解散家庭' }
+    }
+
+    await db.collection('familyMembers').doc(member._id).update({
+      data: { status: 'removed' }
+    })
+
+    return { code: 0 }
+  } catch (err) {
+    return { code: -2, msg: '退出家庭失败: ' + err.message }
   }
-
-  if (await isAdmin(member)) {
-    return { code: -2, msg: '管理员不能退出家庭，请先转让管理员权限或解散家庭' }
-  }
-
-  await db.collection('familyMembers').doc(member._id).update({
-    data: { status: 'removed' }
-  })
-
-  return { code: 0 }
 }

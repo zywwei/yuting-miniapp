@@ -1,5 +1,6 @@
 var auth = require('../../utils/auth.js')
 var syncQueue = require('../../utils/sync-queue.js')
+var cloud = require('../../utils/cloud.js')
 
 var EMOJI_LIST = ['😊', '😂', '🥰', '😍', '🤩', '😘', '😋', '🤗', '👏', '👍', '❤️', '🎉', '✨', '🌟', '💪', '🥳']
 
@@ -146,12 +147,9 @@ Component({
         })
 
         var tempPath = chooseRes.tempFiles[0].tempFilePath
-        var cloudPath = 'comments/' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.jpg'
 
-        var uploadRes = await wx.cloud.uploadFile({
-          cloudPath: cloudPath,
-          filePath: tempPath
-        })
+        // 压缩并上传图片
+        var fileID = await cloud.uploadImageCompressed(tempPath, 'comments')
 
         var res = await wx.cloud.callFunction({
           name: 'interaction',
@@ -162,7 +160,7 @@ Component({
             childId: this.data.childId,
             content: '',
             type: 'image',
-            imageFileId: uploadRes.fileID
+            imageFileId: fileID
           }
         })
 

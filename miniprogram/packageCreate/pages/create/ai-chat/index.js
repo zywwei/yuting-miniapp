@@ -612,20 +612,15 @@ Page({
   // 上传图片并发送
   uploadAndSend: function(message, imagePath) {
     var that = this
+    var cloud = getApp().globalData.cloud
     
-    // 上传图片到云存储
-    wx.cloud.uploadFile({
-      cloudPath: 'ai-chat-images/' + Date.now() + '.jpg',
-      filePath: imagePath,
-      success: function(res) {
-        var fileID = res.fileID
-        // 发送包含图片的消息
-        that.sendToAI(message, fileID)
-      },
-      fail: function(err) {
-        console.error('上传图片失败:', err)
-        that.showError('图片上传失败，请重试')
-      }
+    // 压缩并上传图片到云存储
+    cloud.uploadImageCompressed(imagePath, 'ai-chat-images').then(function(fileID) {
+      // 发送包含图片的消息
+      that.sendToAI(message, fileID)
+    }).catch(function(err) {
+      console.error('上传图片失败:', err)
+      that.showError('图片上传失败，请重试')
     })
   },
 
@@ -854,13 +849,11 @@ Page({
       aiManager.getThinkingProgress(taskId).then(function(progress) {
         // 更新思考内容
         if (progress.thinkingContent && progress.thinkingContent !== that.data.currentThinkingContent) {
+          var shortContent = progress.thinkingContent.length > 50 ? progress.thinkingContent.substring(0, 50) + '...' : progress.thinkingContent
           that.setData({
             currentThinkingContent: progress.thinkingContent,
-            loadingText: '思考中...'
+            loadingText: '思考中: ' + shortContent
           })
-          
-          // 更新加载中的消息显示思考内容
-          that.updateLoadingMessage(progress.thinkingContent)
         }
         
         // 检查是否完成
@@ -950,7 +943,7 @@ Page({
           that.showError('网络异常，请重试')
         }
       })
-    }, 500) // 每500ms轮询一次
+    }, 1000) // 每1000ms轮询一次
     
     this.setData({ thinkingPollTimer: timer })
   },
@@ -1272,11 +1265,10 @@ Page({
     // 开始录音
     this.recorderManager = wx.getRecorderManager()
     this.recorderManager.onStart(function() {
-      console.log('录音开始')
+      // 录音开始
     })
     
     this.recorderManager.onStop(function(res) {
-      console.log('录音结束', res)
       that.setData({ isRecording: false })
       
       // 语音转文字（这里需要接入语音识别API）
