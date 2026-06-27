@@ -168,6 +168,17 @@ Page({
         }
       })
       
+      // 排序：已配置的供应商放在前面，当前选中的排第一
+      updatedProviders.sort(function(a, b) {
+        // 当前选中的排第一
+        if (a.key === currentProvider) return -1
+        if (b.key === currentProvider) return 1
+        // 已配置的排在未配置之前
+        if (a.configured && !b.configured) return -1
+        if (!a.configured && b.configured) return 1
+        return 0
+      })
+      
       // 获取当前供应商的子模型
       var currentProviderModels = []
       var currentSubModelName = ''
@@ -361,7 +372,31 @@ Page({
       }
     }
     
-    that.setData({ allProviders: allProviders })
+    // 获取配置并排序
+    aiManager.getConfig().then(function(config) {
+      var configuredModels = config.models || {}
+      var currentProvider = config.currentModel || 'minimax'
+      
+      // 更新配置状态
+      allProviders = allProviders.map(function(provider) {
+        return Object.assign({}, provider, {
+          configured: !!(configuredModels[provider.key] && configuredModels[provider.key].apiKey)
+        })
+      })
+      
+      // 排序：已配置的供应商放在前面，当前选中的排第一
+      allProviders.sort(function(a, b) {
+        if (a.key === currentProvider) return -1
+        if (b.key === currentProvider) return 1
+        if (a.configured && !b.configured) return -1
+        if (!a.configured && b.configured) return 1
+        return 0
+      })
+      
+      that.setData({ allProviders: allProviders })
+    }).catch(function() {
+      that.setData({ allProviders: allProviders })
+    })
   },
 
   // 隐藏快速切换弹窗
