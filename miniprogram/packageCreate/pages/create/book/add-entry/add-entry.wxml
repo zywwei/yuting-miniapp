@@ -38,7 +38,7 @@
     <view class="section-title">图片附件</view>
     <view class="image-list">
       <view class="image-item" wx:for="{{images}}" wx:key="*this">
-        <image class="image-preview" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}"></image>
+        <image class="image-preview" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-url="{{item}}" lazy-load></image>
         <view class="image-remove" bindtap="removeImage" data-index="{{index}}">×</view>
       </view>
       <view class="image-add" bindtap="chooseImage" wx:if="{{images.length < 3}}">

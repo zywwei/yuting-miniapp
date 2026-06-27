@@ -1,5 +1,5 @@
 const cloud = require('wx-server-sdk')
-cloud.init({ env: 'cloudbase-d8gyw6k3f5ac78f76' })
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
 // 导入AI模型调用模块 - 国内模型
@@ -224,57 +224,72 @@ async function testConfig(member, childId, model, apiKey, secretKey) {
   }
 }
 
+// 验证并准备聊天参数（chat和chatStream共用）
+async function validateAndPrepare(member, childId, sessionId, message, model, imageFileID) {
+  // 1. 输入验证
+  if (!message && !imageFileID) {
+    return { code: -5, msg: '消息内容不能为空' }
+  }
+  
+  // 消息长度限制（4000字符）
+  if (message && message.length > 4000) {
+    return { code: -5, msg: '消息内容过长，请限制在4000字符以内' }
+  }
+  
+  // 模型白名单验证
+  const allowedModels = ['minimax', 'minimax-plan', 'zhipu', 'zhipu-plan', 'kimi', 'kimi-plan', 
+                        'wenxin', 'wenxin-plan', 'qwen', 'deepseek', 'siliconflow', 'mimo', 'mimo-plan',
+                        'openrouter', 'kilo', 'opencode']
+  if (model && !allowedModels.includes(model)) {
+    return { code: -5, msg: '不支持的模型类型' }
+  }
+
+  // 2. 获取配置
+  const configResult = await getConfig(member, childId)
+  if (configResult.code !== 0) {
+    return configResult
+  }
+  const config = configResult.data
+
+  // 3. 检查API Key
+  const modelConfig = config.models[model || config.currentModel]
+  if (!modelConfig || !modelConfig.apiKey) {
+    return { code: -3, msg: '请先配置API Key' }
+  }
+
+  // 4. 获取对话历史
+  const historyResult = await getHistory(member, childId, sessionId, 1, 20)
+  const history = historyResult.code === 0 ? historyResult.data.list : []
+
+  // 5. 构建消息列表（支持图片）
+  const messages = await buildMessages(config, history, message, imageFileID)
+
+  // 6. 确定使用的模型
+  const aiModel = model || config.currentModel
+
+  return {
+    code: 0,
+    data: { config, modelConfig, messages, aiModel }
+  }
+}
+
 // 发送消息并获取AI回复
 async function chat(member, childId, sessionId, message, model, imageFileID) {
   try {
-    // 1. 输入验证
-    if (!message && !imageFileID) {
-      return { code: -5, msg: '消息内容不能为空' }
-    }
-    
-    // 消息长度限制（4000字符）
-    if (message && message.length > 4000) {
-      return { code: -5, msg: '消息内容过长，请限制在4000字符以内' }
-    }
-    
-    // 模型白名单验证
-    const allowedModels = ['minimax', 'minimax-plan', 'zhipu', 'zhipu-plan', 'kimi', 'kimi-plan', 
-                          'wenxin', 'wenxin-plan', 'qwen', 'deepseek', 'siliconflow', 'mimo', 'mimo-plan',
-                          'openrouter', 'kilo', 'opencode']
-    const targetModel = model || 'default'
-    if (model && !allowedModels.includes(model)) {
-      return { code: -5, msg: '不支持的模型类型' }
-    }
+    // 1. 验证并准备参数
+    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID)
+    if (prepared.code !== 0) return prepared
 
-    // 2. 获取配置
-    const configResult = await getConfig(member, childId)
-    if (configResult.code !== 0) {
-      return configResult
-    }
-    const config = configResult.data
+    const { config, modelConfig, messages, aiModel } = prepared.data
 
-    // 3. 检查API Key
-    const modelConfig = config.models[model || config.currentModel]
-    if (!modelConfig || !modelConfig.apiKey) {
-      return { code: -3, msg: '请先配置API Key' }
-    }
-
-    // 4. 获取对话历史
-    const historyResult = await getHistory(member, childId, sessionId, 1, 20)
-    const history = historyResult.code === 0 ? historyResult.data.list : []
-
-    // 5. 构建消息列表（支持图片）
-    const messages = await buildMessages(config, history, message, imageFileID)
-
-    // 6. 调用AI模型
-    const aiModel = model || config.currentModel
+    // 2. 调用AI模型
     const result = await callAIModel(aiModel, modelConfig.apiKey, messages, modelConfig.model, modelConfig.secretKey)
 
     if (result.code !== 0) {
       return result
     }
 
-    // 7. 保存用户消息和AI回复（并行执行）
+    // 3. 保存用户消息和AI回复（并行执行）
     await Promise.all([
       saveMessage(member, childId, sessionId, 'user', message, aiModel),
       saveMessage(member, childId, sessionId, 'assistant', result.data.content, aiModel, result.data.usage, result.data.thinking)
@@ -391,45 +406,13 @@ async function saveMessage(member, childId, sessionId, role, content, model, usa
 // 流式聊天 - 支持思考过程实时展示
 async function chatStream(member, childId, sessionId, message, model, imageFileID) {
   try {
-    // 1. 输入验证
-    if (!message && !imageFileID) {
-      return { code: -5, msg: '消息内容不能为空' }
-    }
-    
-    // 消息长度限制（4000字符）
-    if (message && message.length > 4000) {
-      return { code: -5, msg: '消息内容过长，请限制在4000字符以内' }
-    }
-    
-    // 模型白名单验证
-    const allowedModels = ['minimax', 'minimax-plan', 'zhipu', 'zhipu-plan', 'kimi', 'kimi-plan', 
-                          'wenxin', 'wenxin-plan', 'qwen', 'deepseek', 'siliconflow', 'mimo', 'mimo-plan',
-                          'openrouter', 'kilo', 'opencode']
-    if (model && !allowedModels.includes(model)) {
-      return { code: -5, msg: '不支持的模型类型' }
-    }
+    // 1. 验证并准备参数
+    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID)
+    if (prepared.code !== 0) return prepared
 
-    // 2. 获取配置
-    const configResult = await getConfig(member, childId)
-    if (configResult.code !== 0) {
-      return configResult
-    }
-    const config = configResult.data
+    const { config, modelConfig, messages, aiModel } = prepared.data
 
-    // 3. 检查API Key
-    const modelConfig = config.models[model || config.currentModel]
-    if (!modelConfig || !modelConfig.apiKey) {
-      return { code: -3, msg: '请先配置API Key' }
-    }
-
-    // 4. 获取对话历史
-    const historyResult = await getHistory(member, childId, sessionId, 1, 20)
-    const history = historyResult.code === 0 ? historyResult.data.list : []
-
-    // 5. 构建消息列表（支持图片）
-    const messages = await buildMessages(config, history, message, imageFileID)
-
-    // 6. 创建任务记录
+    // 2. 创建任务记录
     const taskId = 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
     await db.collection('aiThinkingProgress').add({
       data: {
@@ -464,7 +447,6 @@ async function chatStream(member, childId, sessionId, message, model, imageFileI
       .catch(function() {})
 
     // 7. 异步调用AI模型
-    const aiModel = model || config.currentModel
     callAIWithProgress(aiModel, modelConfig, messages, taskId, member, childId, sessionId, message).catch(function(err) {
       console.error('流式AI调用异常:', err)
       updateThinkingProgress(taskId, 'error', err.message || '未知错误')
@@ -737,6 +719,34 @@ async function getUserPreference(member, key) {
 // 保存用户偏好设置
 async function saveUserPreference(member, key, value) {
   try {
+    // 输入验证
+    if (!key || typeof key !== 'string' || key.length > 100) {
+      return { code: -1, msg: '无效的设置key' }
+    }
+    
+    // value类型和长度检查
+    if (value !== null && value !== undefined) {
+      const valueType = typeof value
+      if (valueType !== 'string' && valueType !== 'number' && valueType !== 'boolean' && valueType !== 'object') {
+        return { code: -1, msg: '无效的设置值类型' }
+      }
+      // 字符串长度限制
+      if (valueType === 'string' && value.length > 1000) {
+        return { code: -1, msg: '设置值过长' }
+      }
+      // 对象序列化后长度限制
+      if (valueType === 'object') {
+        try {
+          const jsonStr = JSON.stringify(value)
+          if (jsonStr.length > 10000) {
+            return { code: -1, msg: '设置值过大' }
+          }
+        } catch (e) {
+          return { code: -1, msg: '无效的设置值' }
+        }
+      }
+    }
+
     const existing = await db.collection('userPreferences')
       .where({
         openid: member.openid,

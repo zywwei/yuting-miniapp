@@ -23,7 +23,7 @@
       <view class="records-list">
         <view wx:for="{{todayRecords}}" wx:key="id" class="record-item">
           <view wx:if="{{item.images.length > 0}}" class="record-images">
-            <image src="{{item.images[0]}}" mode="aspectFill" class="record-thumb" />
+            <image src="{{item.images[0]}}" mode="aspectFill" class="record-thumb" lazy-load />
             <view wx:if="{{item.images.length > 1}}" class="image-count">
               <text>+{{item.images.length - 1}}</text>
             </view>
@@ -117,7 +117,7 @@
     <view class="photo-section">
       <view class="photo-list">
         <view wx:for="{{images}}" wx:key="*this" class="photo-item">
-          <image src="{{item}}" mode="aspectFill" class="photo-img" bindtap="previewImage" data-path="{{item}}" />
+          <image src="{{item}}" mode="aspectFill" class="photo-img" bindtap="previewImage" data-path="{{item}}" lazy-load />
           <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
           <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
         </view>

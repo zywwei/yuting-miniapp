@@ -1,4 +1,5 @@
 var auth = getApp().globalData.auth
+var cloud = getApp().globalData.cloud
 
 var THEMES = [
   { id: 'pink', name: '粉色', color: '#FF9AAB', bg: '#FFF5F7', gradient: 'linear-gradient(135deg, #FF9AAB 0%, #FFB6C1 100%)' },
@@ -289,9 +290,7 @@ Page({
     try {
       let avatar = this.data.newChildAvatar
       if (avatar && !avatar.startsWith('cloud://')) {
-        const cloudPath = `avatars/${Date.now()}_${Math.random().toString(36).substr(2, 6)}.jpg`
-        const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: avatar })
-        avatar = uploadRes.fileID
+        avatar = await cloud.uploadImageCompressed(avatar, 'avatars')
       }
 
       var res = await wx.cloud.callFunction({
@@ -407,9 +406,7 @@ Page({
     try {
       let avatar = this.data.editChildAvatar
       if (avatar && !avatar.startsWith('cloud://')) {
-        const cloudPath = `avatars/${Date.now()}_${Math.random().toString(36).substr(2, 6)}.jpg`
-        const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: avatar })
-        avatar = uploadRes.fileID
+        avatar = await cloud.uploadImageCompressed(avatar, 'avatars')
       }
 
       var res = await wx.cloud.callFunction({

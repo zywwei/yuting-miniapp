@@ -140,7 +140,7 @@
             <view class="photo-list">
               <image wx:for="{{detailRecord.images}}" wx:key="*this"
                      src="{{item}}" mode="aspectFill" class="detail-photo"
-                     bindtap="previewImage" data-path="{{item}}" />
+                     bindtap="previewImage" data-path="{{item}}" lazy-load />
             </view>
           </scroll-view>
         </view>

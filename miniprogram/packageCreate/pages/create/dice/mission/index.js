@@ -15,6 +15,15 @@ Page({
 
   onLoad: function() {
     this.loadMissions()
+    this.rollTimer = null
+  },
+
+  onUnload: function() {
+    // 清理定时器
+    if (this.rollTimer) {
+      clearInterval(this.rollTimer)
+      this.rollTimer = null
+    }
   },
 
   onShow: function() {
@@ -42,13 +51,14 @@ Page({
 
     // 摇骰子动画
     var rollCount = 0
-    var rollInterval = setInterval(function() {
+    this.rollTimer = setInterval(function() {
       var tempDice = Math.floor(Math.random() * 6) + 1
       that.setData({ currentDice: tempDice })
 
       rollCount++
       if (rollCount >= 10) {
-        clearInterval(rollInterval)
+        clearInterval(that.rollTimer)
+        that.rollTimer = null
         beep.playBeep('diceSettle')
 
         // 最终结果

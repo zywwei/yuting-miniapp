@@ -21,6 +21,7 @@
           mode="widthFix"
           data-url="{{item.imageFileId}}"
           bindtap="previewImage"
+          lazy-load
         />
       </view>
     </view>

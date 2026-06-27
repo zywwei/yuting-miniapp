@@ -60,7 +60,7 @@
     <view class="card" wx:for="{{children}}" wx:key="childId">
       <view class="card-left" bindtap="showEditChildPanel" data-id="{{item.childId}}">
         <view class="child-avatar-small">
-          <image wx:if="{{item.avatar}}" src="{{item.avatar}}" mode="aspectFill" class="child-avatar-img" />
+          <image wx:if="{{item.avatar}}" src="{{item.avatar}}" mode="aspectFill" class="child-avatar-img" lazy-load />
           <text wx:else>{{item.gender === 'boy' ? '👦' : item.gender === 'girl' ? '👧' : '👶'}}</text>
         </view>
         <view class="card-info">
@@ -228,7 +228,7 @@
       <view class="members-list">
         <view class="member-item {{item.status === 'disabled' ? 'disabled' : ''}}" wx:for="{{family.members}}" wx:key="_id">
           <view class="member-avatar">
-            <image wx:if="{{item.avatar}}" src="{{item.avatar}}" mode="aspectFill" class="member-avatar-img" />
+            <image wx:if="{{item.avatar}}" src="{{item.avatar}}" mode="aspectFill" class="member-avatar-img" lazy-load />
             <text wx:else>{{item.role === 'father' ? '👨' : item.role === 'mother' ? '👩' : item.role === 'child' ? '🧒' : '👤'}}</text>
           </view>
           <view class="member-info">

@@ -12,7 +12,7 @@
   <view class="product-list">
     <view class="product-item" wx:for="{{filteredProducts}}" wx:key="id">
       <view class="product-image">
-        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" />
+        <image wx:if="{{item.imagePath}}" src="{{item.imagePath}}" mode="aspectFill" class="product-img" lazy-load />
         <text wx:else class="product-emoji">📦</text>
       </view>
       <view class="product-info">

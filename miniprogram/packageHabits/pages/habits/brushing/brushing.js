@@ -442,7 +442,7 @@ Page({
       sourceType: ['album', 'camera'],
       sizeType: ['compressed'],
       fail: (err) => {
-        console.log('用户取消选择或选择失败:', err)
+        // 用户取消选择或选择失败
       },
       success: async (res) => {
         const newImages = res.tempFiles.map(f => f.tempFilePath)

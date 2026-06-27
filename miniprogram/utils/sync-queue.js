@@ -9,6 +9,7 @@ var FAILED_KEY = 'syncFailed'
 var SEQ_KEY = 'syncQueueSeq'
 
 var MAX_RETRIES = 5
+var MAX_QUEUE_SIZE = 1000 // 队列最大长度
 
 // 自增序号，作为队列项的内部主键，避免同 id 操作互相覆盖
 function nextSeq() {
@@ -36,6 +37,25 @@ function saveFailed(failed) {
 
 function enqueue(operation) {
   var queue = getQueue()
+  
+  // 队列长度检查
+  if (queue.length >= MAX_QUEUE_SIZE) {
+    // 丢弃最旧的低优先级操作（保留删除操作，丢弃更新操作）
+    var removeIndex = -1
+    for (var i = 0; i < queue.length; i++) {
+      if (queue[i].action !== 'remove') {
+        removeIndex = i
+        break
+      }
+    }
+    if (removeIndex >= 0) {
+      var removed = queue.splice(removeIndex, 1)[0]
+      console.warn('同步队列已满，丢弃旧操作:', removed.id, removed.action)
+    } else {
+      console.warn('同步队列已满，所有操作都是删除操作，无法丢弃')
+    }
+  }
+  
   queue.push({
     seq: nextSeq(),  // 内部主键，唯一标识一条队列项
     id: operation.id,

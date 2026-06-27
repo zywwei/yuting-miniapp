@@ -8,6 +8,7 @@ var achievements = require('./utils/achievements.js')
 var beep = require('./utils/beep.js')
 var audio = require('./utils/audio.js')
 var pageHelpers = require('./utils/page-helpers.js')
+var habitManager = require('./utils/habit-manager.js')
 
 App({
   onLaunch() {
@@ -315,23 +316,9 @@ App({
     ],
     brushSizes: [3, 6, 10, 16, 24],
 
-    habitTypes: [
-      { type: 'early_up', name: '早起', icon: '🌅', color: '#FF9800', group: 'sleep' },
-      { type: 'early_sleep', name: '早睡', icon: '🌙', color: '#7C4DFF', group: 'sleep' },
-      { type: 'nap', name: '午睡', icon: '😴', color: '#00BCD4', group: 'sleep' },
-      { type: 'brushing', name: '刷牙', icon: '🦷', color: '#4CAF50', group: 'health' },
-      { type: 'wash_hands', name: '洗手', icon: '🧼', color: '#03A9F4', group: 'health' },
-      { type: 'drink', name: '喝水', icon: '💧', color: '#00BCD4', group: 'health' },
-      { type: 'eat_breakfast', name: '吃早餐', icon: '🥣', color: '#FF9800', group: 'life' },
-      { type: 'eat_lunch', name: '吃午餐', icon: '🍱', color: '#4CAF50', group: 'life' },
-      { type: 'eat_dinner', name: '吃晚餐', icon: '🍛', color: '#FF5722', group: 'life' },
-      { type: 'tidy', name: '整理玩具', icon: '🧸', color: '#9C27B0', group: 'life' },
-      { type: 'housework', name: '做家务', icon: '🧹', color: '#795548', group: 'life' },
-      { type: 'reading', name: '阅读', icon: '📖', color: '#2196F3', group: 'learn' },
-      { type: 'exercise', name: '运动', icon: '🏃', color: '#FF5722', group: 'learn' },
-      { type: 'polite', name: '礼貌用语', icon: '🙏', color: '#4CAF50', group: 'learn' },
-      { type: 'custom', name: '自定义', icon: '⭐', color: '#FF6B8A', group: 'other' }
-    ],
+    habitTypes: habitManager.DEFAULT_HABIT_TYPES.map(function(h) {
+      return { type: h.type, name: h.name, icon: h.icon, color: h.color, group: h.group }
+    }),
 
     moods: [
       { value: 'happy', label: '开心', icon: '😊' },

@@ -130,7 +130,7 @@
           <view wx:if="{{morningRecord.images.length > 0}}" class="photo-area">
             <swiper class="photo-swiper" indicator-dots="{{morningRecord.images.length > 1}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#FF6B8A" autoplay="false" circular="false" bindchange="onMorningSwiperChange">
               <swiper-item wx:for="{{morningRecord.images}}" wx:key="*this">
-                <image class="photo-thumb" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" data-images="{{morningRecord.images}}" />
+                <image class="photo-thumb" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" data-images="{{morningRecord.images}}" lazy-load />
               </swiper-item>
             </swiper>
             <view wx:if="{{morningRecord.images.length > 1}}" class="photo-count">
@@ -204,7 +204,7 @@
           <view wx:if="{{eveningRecord.images.length > 0}}" class="photo-area">
             <swiper class="photo-swiper" indicator-dots="{{eveningRecord.images.length > 1}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#FF6B8A" autoplay="false" circular="false" bindchange="onEveningSwiperChange">
               <swiper-item wx:for="{{eveningRecord.images}}" wx:key="*this">
-                <image class="photo-thumb" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" data-images="{{eveningRecord.images}}" />
+                <image class="photo-thumb" src="{{item}}" mode="aspectFill" bindtap="previewImage" data-path="{{item}}" data-images="{{eveningRecord.images}}" lazy-load />
               </swiper-item>
             </swiper>
             <view wx:if="{{eveningRecord.images.length > 1}}" class="photo-count">

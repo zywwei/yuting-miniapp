@@ -7,27 +7,29 @@ var util = require('./util.js')
 var childStorage = require('./child-storage.js')
 var cloud = require('./cloud.js')
 
+// 默认习惯类型定义（统一维护，避免重复）
+var DEFAULT_HABIT_TYPES = [
+  { type: 'early_up', name: '早起', icon: '🌅', color: '#FF9800', target: 1, group: 'sleep' },
+  { type: 'early_sleep', name: '早睡', icon: '🌙', color: '#7C4DFF', target: 1, group: 'sleep' },
+  { type: 'nap', name: '午睡', icon: '😴', color: '#00BCD4', target: 1, group: 'sleep' },
+  { type: 'brushing', name: '刷牙', icon: '🦷', color: '#4CAF50', target: 2, group: 'health' },
+  { type: 'wash_hands', name: '洗手', icon: '🧼', color: '#03A9F4', target: 3, group: 'health' },
+  { type: 'drink', name: '喝水', icon: '💧', color: '#00BCD4', target: 8, group: 'health' },
+  { type: 'eat_breakfast', name: '吃早餐', icon: '🥣', color: '#FF9800', target: 1, group: 'life' },
+  { type: 'eat_lunch', name: '吃午餐', icon: '🍱', color: '#4CAF50', target: 1, group: 'life' },
+  { type: 'eat_dinner', name: '吃晚餐', icon: '🍛', color: '#FF5722', target: 1, group: 'life' },
+  { type: 'tidy', name: '整理玩具', icon: '🧸', color: '#9C27B0', target: 1, group: 'life' },
+  { type: 'housework', name: '做家务', icon: '🧹', color: '#795548', target: 1, group: 'life' },
+  { type: 'reading', name: '阅读', icon: '📖', color: '#2196F3', target: 1, group: 'learn' },
+  { type: 'exercise', name: '运动', icon: '🏃', color: '#FF5722', target: 1, group: 'learn' },
+  { type: 'polite', name: '礼貌用语', icon: '🙏', color: '#4CAF50', target: 3, group: 'learn' }
+]
+
 // 获取所有习惯（默认 + 自定义）
 var getAllHabits = function() {
   var customHabits = childStorage.get('habits') || []
-  var defaultHabits = [
-    { type: 'early_up', name: '早起', icon: '🌅', color: '#FF9800', target: 1, group: 'sleep' },
-    { type: 'early_sleep', name: '早睡', icon: '🌙', color: '#7C4DFF', target: 1, group: 'sleep' },
-    { type: 'nap', name: '午睡', icon: '😴', color: '#00BCD4', target: 1, group: 'sleep' },
-    { type: 'brushing', name: '刷牙', icon: '🦷', color: '#4CAF50', target: 2, group: 'health' },
-    { type: 'wash_hands', name: '洗手', icon: '🧼', color: '#03A9F4', target: 3, group: 'health' },
-    { type: 'drink', name: '喝水', icon: '💧', color: '#00BCD4', target: 8, group: 'health' },
-    { type: 'eat_breakfast', name: '吃早餐', icon: '🥣', color: '#FF9800', target: 1, group: 'life' },
-    { type: 'eat_lunch', name: '吃午餐', icon: '🍱', color: '#4CAF50', target: 1, group: 'life' },
-    { type: 'eat_dinner', name: '吃晚餐', icon: '🍛', color: '#FF5722', target: 1, group: 'life' },
-    { type: 'tidy', name: '整理玩具', icon: '🧸', color: '#9C27B0', target: 1, group: 'life' },
-    { type: 'housework', name: '做家务', icon: '🧹', color: '#795548', target: 1, group: 'life' },
-    { type: 'reading', name: '阅读', icon: '📖', color: '#2196F3', target: 1, group: 'learn' },
-    { type: 'exercise', name: '运动', icon: '🏃', color: '#FF5722', target: 1, group: 'learn' },
-    { type: 'polite', name: '礼貌用语', icon: '🙏', color: '#4CAF50', target: 3, group: 'learn' }
-  ]
   var customOnly = customHabits.filter(function(h) { return h.type === 'custom' })
-  return defaultHabits.concat(customOnly)
+  return DEFAULT_HABIT_TYPES.concat(customOnly)
 }
 
 // 获取今日习惯完成情况
@@ -161,6 +163,7 @@ var deleteCustomHabit = function(id) {
 }
 
 module.exports = {
+  DEFAULT_HABIT_TYPES: DEFAULT_HABIT_TYPES,
   getAllHabits: getAllHabits,
   getTodayHabits: getTodayHabits,
   addRecord: addRecord,

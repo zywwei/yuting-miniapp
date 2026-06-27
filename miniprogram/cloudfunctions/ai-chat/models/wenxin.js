@@ -94,10 +94,11 @@ async function callWenxinAPI(accessToken, messages, model = 'ernie-4.0-turbo-8k'
     const options = {
       hostname: 'aip.baidubce.com',
       port: 443,
-      path: `${apiPath}?access_token=${accessToken}`,
+      path: apiPath,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
         'Content-Length': Buffer.byteLength(data)
       }
     }

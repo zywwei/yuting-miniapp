@@ -3,7 +3,7 @@
   <view wx:if="{{title}}" class="photo-section-title">{{title}}</view>
   <view class="photo-list">
     <view wx:for="{{photos}}" wx:key="*this" class="photo-item">
-      <image src="{{item}}" mode="aspectFill" class="photo-thumb" bindtap="previewPhoto" data-index="{{index}}" />
+      <image src="{{item}}" mode="aspectFill" class="photo-thumb" bindtap="previewPhoto" data-index="{{index}}" lazy-load />
       <view wx:if="{{editable}}" class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
       <view wx:if="{{deletable}}" class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
     </view>

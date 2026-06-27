@@ -131,7 +131,7 @@ function removeProduct(id) {
   // 删除云端记录（异步，失败会入队列重试）
   cloud.removeStallProduct(id).then(function(success) {
     if (success) {
-      console.log('云端删除成功:', id)
+      // 云端删除成功
     } else {
       console.warn('云端删除失败，已入队列重试:', id)
     }

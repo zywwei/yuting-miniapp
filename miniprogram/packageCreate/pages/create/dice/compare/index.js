@@ -35,6 +35,15 @@ Page({
 
   onLoad: function() {
     this.gameStartTime = 0
+    this.rollTimer = null
+  },
+
+  onUnload: function() {
+    // 清理定时器
+    if (this.rollTimer) {
+      clearInterval(this.rollTimer)
+      this.rollTimer = null
+    }
   },
 
   selectMode: function(e) {
@@ -113,7 +122,7 @@ Page({
     beep.playBeep('diceRoll')
     
     var rollCount = 0
-    var rollInterval = setInterval(function() {
+    this.rollTimer = setInterval(function() {
       // 生成临时随机值
       var tempValues = []
       for (var i = 0; i < diceCount; i++) {
@@ -123,7 +132,8 @@ Page({
       
       rollCount++
       if (rollCount >= 10) {
-        clearInterval(rollInterval)
+        clearInterval(that.rollTimer)
+        that.rollTimer = null
         
         // 生成最终结果
         var finalDice = diceManager.rollDice(diceCount)
