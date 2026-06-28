@@ -1,5 +1,5 @@
 var bookManager = require('../../../../utils/book-manager.js')
-var wxCharts = require('../../../../../utils/wx-charts.js')
+var wxCharts = require('../../../../utils/wx-charts.js')
 
 Page({
   data: {
