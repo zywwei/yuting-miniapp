@@ -18,12 +18,6 @@
   margin-bottom: 20rpx;
 }
 
-.overview-divider {
-  height: 1rpx;
-  background: rgba(255, 255, 255, 0.3);
-  margin: 20rpx 0;
-}
-
 .overview-row {
   display: flex;
   justify-content: space-between;

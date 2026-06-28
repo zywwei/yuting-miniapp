@@ -5,11 +5,18 @@ Page({
   data: {
     bookId: '',
     book: null,
+    books: [],
     timeRange: 'month',
     timeRangeOptions: [
       { value: 'week', label: '本周' },
       { value: 'month', label: '本月' },
       { value: 'year', label: '本年' }
+    ],
+    typeFilter: 'expense',
+    typeOptions: [
+      { value: 'expense', label: '支出' },
+      { value: 'income', label: '收入' },
+      { value: 'all', label: '全部' }
     ],
     stats: null,
     categoryStats: null,
@@ -21,8 +28,10 @@ Page({
 
   onLoad: function(options) {
     var today = bookManager.getTodayStr()
+    var books = bookManager.getBooks().filter(function(b) { return !b.isArchived })
     this.setData({
       bookId: options.bookId || '',
+      books: books,
       currentMonth: today.substring(0, 7)
     })
     this.loadData()
@@ -194,15 +203,62 @@ Page({
     this.loadData()
   },
 
+  switchTypeFilter: function(e) {
+    this.setData({ typeFilter: e.currentTarget.dataset.value })
+    this.loadData()
+  },
+
+  showBookPicker: function() {
+    var books = this.data.books
+    var names = ['全部账本']
+    books.forEach(function(b) { names.push(b.icon + ' ' + b.name) })
+    names.push('取消')
+    var self = this
+    wx.showActionSheet({
+      itemList: names,
+      success: function(res) {
+        if (res.tapIndex === 0) {
+          self.setData({ bookId: '', book: null })
+        } else if (res.tapIndex <= books.length) {
+          var book = books[res.tapIndex - 1]
+          self.setData({ bookId: book.id, book: book })
+        }
+        self.loadData()
+      }
+    })
+  },
+
   getTopCategories: function() {
-    if (!this.data.categoryStats || !this.data.categoryStats.expense) return []
-    var stats = this.data.categoryStats.expense
+    var typeFilter = this.data.typeFilter
+    if (!this.data.categoryStats) return []
+    if (typeFilter === 'all') {
+      var allList = []
+      var types = ['expense', 'income', 'transfer']
+      for (var t = 0; t < types.length; t++) {
+        var stats = this.data.categoryStats[types[t]]
+        if (!stats) continue
+        for (var key in stats) {
+          allList.push({
+            id: key,
+            type: types[t],
+            name: bookManager.getCategoryName(types[t], key),
+            icon: bookManager.getCategoryIcon(types[t], key),
+            amount: stats[key].amount,
+            count: stats[key].count
+          })
+        }
+      }
+      allList.sort(function(a, b) { return b.amount - a.amount })
+      return allList.slice(0, 5)
+    }
+    var stats = this.data.categoryStats[typeFilter]
+    if (!stats) return []
     var list = []
     for (var key in stats) {
       list.push({
         id: key,
-        name: bookManager.getCategoryName('expense', key),
-        icon: bookManager.getCategoryIcon('expense', key),
+        name: bookManager.getCategoryName(typeFilter, key),
+        icon: bookManager.getCategoryIcon(typeFilter, key),
         amount: stats[key].amount,
         count: stats[key].count
       })

@@ -1,7 +1,19 @@
 <view class="container">
-  <!-- 时间范围选择 -->
-  <view class="time-tabs">
-    <view class="time-tab {{timeRange === item.value ? 'active' : ''}}" wx:for="{{timeRangeOptions}}" wx:key="value" bindtap="switchTimeRange" data-value="{{item.value}}">{{item.label}}</view>
+  <!-- 账本切换 -->
+  <view class="book-selector" bindtap="showBookPicker">
+    <text class="book-icon">{{book ? book.icon : '📊'}}</text>
+    <text class="book-name">{{book ? book.name : '全部账本'}}</text>
+    <text class="book-arrow">▼</text>
+  </view>
+
+  <!-- 筛选条件 -->
+  <view class="filter-bar">
+    <view class="filter-tabs">
+      <view class="filter-tab {{timeRange === item.value ? 'active' : ''}}" wx:for="{{timeRangeOptions}}" wx:key="value" bindtap="switchTimeRange" data-value="{{item.value}}">{{item.label}}</view>
+    </view>
+    <view class="filter-tabs">
+      <view class="filter-tab {{typeFilter === item.value ? 'active' : ''}}" wx:for="{{typeOptions}}" wx:key="value" bindtap="switchTypeFilter" data-value="{{item.value}}">{{item.label}}</view>
+    </view>
   </view>
 
   <!-- 收支概览 -->
@@ -34,7 +46,7 @@
 
   <!-- 分类占比 -->
   <view class="section" wx:if="{{categoryStats}}">
-    <view class="section-title">支出分类占比</view>
+    <view class="section-title">{{typeFilter === 'income' ? '收入' : (typeFilter === 'expense' ? '支出' : '收支')}}分类占比</view>
     <canvas canvas-id="pieChart" class="chart-canvas"></canvas>
     <view class="category-list">
       <view class="category-item" wx:for="{{topCategories}}" wx:key="id">

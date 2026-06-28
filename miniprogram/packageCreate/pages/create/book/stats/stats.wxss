@@ -4,24 +4,56 @@
   min-height: 100vh;
 }
 
-.time-tabs {
+.book-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: linear-gradient(135deg, #FF9AAB, #FF6B8A);
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  color: #fff;
+}
+
+.book-icon {
+  font-size: 32rpx;
+}
+
+.book-name {
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.book-arrow {
+  font-size: 20rpx;
+  opacity: 0.8;
+}
+
+.filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.filter-tabs {
   display: flex;
   background: #fff;
-  border-radius: 16rpx;
-  padding: 8rpx;
-  margin-bottom: 20rpx;
+  border-radius: 12rpx;
+  padding: 6rpx;
 }
 
-.time-tab {
+.filter-tab {
   flex: 1;
   text-align: center;
-  padding: 16rpx;
-  font-size: 26rpx;
+  padding: 14rpx;
+  font-size: 24rpx;
   color: #666;
-  border-radius: 12rpx;
+  border-radius: 10rpx;
 }
 
-.time-tab.active {
+.filter-tab.active {
   background: #FF6B8A;
   color: #fff;
 }
