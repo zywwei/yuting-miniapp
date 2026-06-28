@@ -1,3 +1,4 @@
+<wxs src="../../../utils/format.wxs" module="fmt" />
 <view class="container">
   <!-- 今日概览 -->
   <view class="overview-card">
@@ -5,15 +6,15 @@
     <view class="overview-row">
       <view class="overview-item">
         <view class="overview-label">收入</view>
-        <view class="overview-value income">+{{overview.todayIncome || 0}}</view>
+        <view class="overview-value income">+{{fmt.formatAmount(overview.todayIncome)}}</view>
       </view>
       <view class="overview-item">
         <view class="overview-label">支出</view>
-        <view class="overview-value expense">-{{overview.todayExpense || 0}}</view>
+        <view class="overview-value expense">-{{fmt.formatAmount(overview.todayExpense)}}</view>
       </view>
       <view class="overview-item">
         <view class="overview-label">结余</view>
-        <view class="overview-value {{overview.todayBalance >= 0 ? 'income' : 'expense'}}">{{overview.todayBalance >= 0 ? '+' : ''}}{{overview.todayBalance || 0}}</view>
+        <view class="overview-value {{overview.todayBalance > 0 ? 'income' : overview.todayBalance < 0 ? 'expense' : 'neutral'}}">{{overview.todayBalance > 0 ? '+' : ''}}{{fmt.formatAmount(overview.todayBalance)}}</view>
       </view>
     </view>
   </view>
@@ -89,7 +90,7 @@
           <view class="entry-date">{{item.date}} {{item.time}}</view>
         </view>
         <view class="entry-amount {{item.type}}">
-          {{item.type === 'income' ? '+' : '-'}}{{item.amount}}
+          {{item.type === 'income' ? '+' : '-'}}{{fmt.formatAmount(item.amount)}}
         </view>
       </view>
     </view>

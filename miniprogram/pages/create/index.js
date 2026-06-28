@@ -57,7 +57,10 @@ Page({
     var rpsRecords = childStorage.get('rpsRecords') || []
     var diceRecords = childStorage.get('diceRecords') || []
     var tetrisRecords = childStorage.get('tetrisRecords') || []
-    var bookEntries = childStorage.get('accountEntries') || []
+    var allBooks = childStorage.get('accountBooks') || []
+    var bookIds = {}
+    allBooks.forEach(function(b) { bookIds[b.id] = true })
+    var bookEntries = (childStorage.get('accountEntries') || []).filter(function(e) { return bookIds[e.bookId] })
 
     this.setData({
       drawingCount: drawings.length,

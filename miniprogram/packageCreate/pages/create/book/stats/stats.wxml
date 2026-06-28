@@ -14,6 +14,27 @@
     <view class="filter-tabs">
       <view class="filter-tab {{typeFilter === item.value ? 'active' : ''}}" wx:for="{{typeOptions}}" wx:key="value" bindtap="switchTypeFilter" data-value="{{item.value}}">{{item.label}}</view>
     </view>
+    <view class="filter-tabs" wx:if="{{memberList.length > 1}}">
+      <view class="filter-tab member-filter {{selectedMembers.length > 0 ? 'active' : ''}}" bindtap="toggleMemberPicker">
+        <text>记账人{{selectedMembers.length > 0 ? '(' + selectedMembers.length + ')' : ''}}</text>
+        <text class="filter-arrow">{{showMemberPicker ? '▲' : '▼'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 记账人选择器 -->
+  <view class="member-picker" wx:if="{{showMemberPicker}}">
+    <view class="member-picker-header">
+      <view class="member-picker-action" bindtap="selectAllMembers">全选</view>
+      <view class="member-picker-action" bindtap="clearMemberSelection">清除</view>
+      <view class="member-picker-confirm" bindtap="confirmMemberSelection">确定</view>
+    </view>
+    <view class="member-picker-list">
+      <view class="member-picker-item {{selectedMembers.indexOf(item.id) >= 0 ? 'selected' : ''}}" wx:for="{{memberList}}" wx:key="id" bindtap="toggleMember" data-id="{{item.id}}">
+        <view class="member-checkbox">{{selectedMembers.indexOf(item.id) >= 0 ? '✓' : ''}}</view>
+        <text class="member-name">{{item.name}}</text>
+      </view>
+    </view>
   </view>
 
   <!-- 收支概览 -->
@@ -64,7 +85,7 @@
   <!-- 日历热力图 -->
   <view class="section" wx:if="{{calendarData}}">
     <view class="section-title">本月记账日历</view>
-    <heatmap data="{{calendarData}}" month="{{currentMonth}}" bind:daytap="onDayTap" />
+    <heatmap data="{{calendarData}}" month="{{currentMonth}}" typeFilter="{{typeFilter}}" bind:daytap="onDayTap" />
   </view>
 
   <!-- 记账人统计 -->

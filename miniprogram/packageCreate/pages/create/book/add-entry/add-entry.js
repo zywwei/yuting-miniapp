@@ -67,7 +67,7 @@ Page({
   },
 
   loadCopyEntry: function(entryId) {
-    var entries = bookManager.getEntries()
+    var entries = bookManager.getEntries(this.data.bookId)
     for (var i = 0; i < entries.length; i++) {
       if (entries[i].id === entryId) {
         this.setData({
@@ -100,7 +100,7 @@ Page({
   },
 
   loadEntry: function(entryId) {
-    var entries = bookManager.getEntries()
+    var entries = bookManager.getEntries(this.data.bookId)
     for (var i = 0; i < entries.length; i++) {
       if (entries[i].id === entryId) {
         this.setData({
@@ -219,7 +219,7 @@ Page({
   chooseImage: function() {
     var self = this
     wx.chooseImage({
-      count: 3 - self.data.images.length,
+      count: Math.max(0, 3 - self.data.images.length),
       sizeType: ['compressed'],
       sourceType: ['album', 'camera'],
       success: function(res) {
@@ -277,16 +277,21 @@ Page({
       repeatRule: this.data.repeatRule,
       nextRepeatDate: this.data.nextRepeatDate || ''
     }
-    if (this.data.isEdit) {
-      bookManager.updateEntry(this.data.entryId, entry)
-      wx.showToast({ title: '更新成功', icon: 'success' })
-    } else {
-      bookManager.addEntry(entry)
-      wx.showToast({ title: '保存成功', icon: 'success' })
+    try {
+      if (this.data.isEdit) {
+        bookManager.updateEntry(this.data.entryId, entry)
+        wx.showToast({ title: '更新成功', icon: 'success' })
+      } else {
+        bookManager.addEntry(entry)
+        wx.showToast({ title: '保存成功', icon: 'success' })
+      }
+      setTimeout(function() {
+        wx.navigateBack()
+      }, 800)
+    } catch (err) {
+      wx.showToast({ title: '保存失败', icon: 'none' })
+      console.error('保存记录失败:', err)
     }
-    setTimeout(function() {
-      wx.navigateBack()
-    }, 1500)
   },
 
   deleteEntry: function() {
@@ -296,11 +301,18 @@ Page({
       content: '确定要删除这条记录吗？',
       success: function(res) {
         if (res.confirm) {
-          bookManager.removeEntry(self.data.entryId)
-          wx.showToast({ title: '删除成功', icon: 'success' })
-          setTimeout(function() {
-            wx.navigateBack()
-          }, 1500)
+          wx.showLoading({ title: '删除中...' })
+          bookManager.removeEntry(self.data.entryId).then(function() {
+            wx.hideLoading()
+            wx.showToast({ title: '删除成功', icon: 'success' })
+            setTimeout(function() {
+              wx.navigateBack()
+            }, 1500)
+          }).catch(function(err) {
+            wx.hideLoading()
+            wx.showToast({ title: '删除失败', icon: 'none' })
+            console.error('删除记录失败:', err)
+          })
         }
       }
     })

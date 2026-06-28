@@ -18,6 +18,9 @@ Page({
       { value: 'income', label: '收入' },
       { value: 'all', label: '全部' }
     ],
+    memberList: [],
+    selectedMembers: [],
+    showMemberPicker: false,
     stats: null,
     categoryStats: null,
     trendData: null,
@@ -34,6 +37,7 @@ Page({
       books: books,
       currentMonth: today.substring(0, 7)
     })
+    this.loadMemberList()
     this.loadData()
   },
 
@@ -47,8 +51,9 @@ Page({
   },
 
   loadData: function() {
+    var book = null
     if (this.data.bookId) {
-      var book = bookManager.getBook(this.data.bookId)
+      book = bookManager.getBook(this.data.bookId)
       if (!book) {
         wx.showToast({ title: '账本不存在', icon: 'none' })
         setTimeout(function() {
@@ -57,13 +62,14 @@ Page({
         return
       }
     }
-    var book = this.data.bookId ? bookManager.getBook(this.data.bookId) : null
-    var stats = this.data.bookId ? bookManager.getBookStats(this.data.bookId, this.getTimeRange()) : bookManager.getOverviewStats()
-    var categoryStats = this.data.bookId ? bookManager.getCategoryStats(this.data.bookId, this.getTimeRange()) : null
-    var trendData = this.data.bookId ? bookManager.getTrendStats(this.data.bookId, this.data.timeRange) : null
-    var comparison = this.data.bookId ? bookManager.getComparisonStats(this.data.bookId, this.data.timeRange) : null
-    var calendarData = this.data.bookId ? bookManager.getCalendarData(this.data.bookId, this.data.currentMonth) : null
-    var topCategories = this.getTopCategories()
+    var entries = this.getFilteredEntries()
+    var allEntries = this.getFilteredEntries(true)
+    var stats = this.calcStats(entries)
+    var categoryStats = this.calcCategoryStats(entries)
+    var trendData = this.data.bookId ? this.calcTrendStats(entries) : null
+    var comparison = this.data.bookId ? this.calcComparisonStats(allEntries) : null
+    var calendarData = this.data.bookId ? this.calcCalendarData(allEntries) : null
+    var topCategories = this.getTopCategories(categoryStats)
     var comparisonText = this.getComparisonText(comparison)
     this.setData({
       book: book,
@@ -77,21 +83,146 @@ Page({
       comparisonText: comparisonText
     })
     var self = this
-    setTimeout(function() {
+    wx.nextTick(function() {
       self.drawCharts()
-    }, 300)
+    })
+  },
+
+  calcStats: function(entries) {
+    var today = bookManager.getTodayStr()
+    var thisMonth = today.substring(0, 7)
+    var totalIncome = 0, totalExpense = 0
+    var todayIncome = 0, todayExpense = 0
+    var monthIncome = 0, monthExpense = 0
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i]
+      if (e.type === 'income') {
+        totalIncome += e.amount
+        if (e.date === today) todayIncome += e.amount
+        if (e.date.indexOf(thisMonth) === 0) monthIncome += e.amount
+      } else if (e.type === 'expense') {
+        totalExpense += e.amount
+        if (e.date === today) todayExpense += e.amount
+        if (e.date.indexOf(thisMonth) === 0) monthExpense += e.amount
+      }
+    }
+    return {
+      income: totalIncome,
+      expense: totalExpense,
+      balance: totalIncome - totalExpense,
+      entryCount: entries.length,
+      todayIncome: todayIncome,
+      todayExpense: todayExpense,
+      todayBalance: todayIncome - todayExpense,
+      monthIncome: monthIncome,
+      monthExpense: monthExpense,
+      monthBalance: monthIncome - monthExpense
+    }
+  },
+
+  calcCategoryStats: function(entries) {
+    var stats = {}
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i]
+      if (!stats[e.type]) stats[e.type] = {}
+      if (!stats[e.type][e.category]) {
+        stats[e.type][e.category] = { amount: 0, count: 0 }
+      }
+      stats[e.type][e.category].amount += e.amount
+      stats[e.type][e.category].count++
+    }
+    return stats
+  },
+
+  calcTrendStats: function(entries) {
+    var trend = {}
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i]
+      var key = ''
+      if (this.data.timeRange === 'day') key = e.date
+      else if (this.data.timeRange === 'week') key = this.getWeekStart(e.date)
+      else if (this.data.timeRange === 'month') key = e.date.substring(0, 7)
+      else if (this.data.timeRange === 'year') key = e.date.substring(0, 4)
+      if (!trend[key]) trend[key] = { income: 0, expense: 0 }
+      if (e.type === 'income') trend[key].income += e.amount
+      else if (e.type === 'expense') trend[key].expense += e.amount
+    }
+    return trend
+  },
+
+  calcComparisonStats: function(entries) {
+    var today = new Date()
+    var currentStart, currentEnd, prevStart, prevEnd
+    if (this.data.timeRange === 'month') {
+      currentStart = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-01'
+      currentEnd = bookManager.getTodayStr()
+      var prevMonth = today.getMonth() === 0 ? 12 : today.getMonth()
+      var prevYear = today.getMonth() === 0 ? today.getFullYear() - 1 : today.getFullYear()
+      prevStart = prevYear + '-' + String(prevMonth).padStart(2, '0') + '-01'
+      var lastDay = new Date(prevYear, prevMonth, 0).getDate()
+      prevEnd = prevYear + '-' + String(prevMonth).padStart(2, '0') + '-' + String(lastDay).padStart(2, '0')
+    } else if (this.data.timeRange === 'week') {
+      currentStart = this.getWeekStart(bookManager.getTodayStr())
+      currentEnd = bookManager.getTodayStr()
+      var prevWeekStart = new Date(currentStart)
+      prevWeekStart.setDate(prevWeekStart.getDate() - 7)
+      prevStart = prevWeekStart.toISOString().substring(0, 10)
+      var prevWeekEnd = new Date(currentStart)
+      prevWeekEnd.setDate(prevWeekEnd.getDate() - 1)
+      prevEnd = prevWeekEnd.toISOString().substring(0, 10)
+    } else if (this.data.timeRange === 'year') {
+      currentStart = today.getFullYear() + '-01-01'
+      currentEnd = bookManager.getTodayStr()
+      prevStart = (today.getFullYear() - 1) + '-01-01'
+      prevEnd = (today.getFullYear() - 1) + '-12-31'
+    }
+    var current = { income: 0, expense: 0 }
+    var prev = { income: 0, expense: 0 }
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i]
+      if (e.date >= currentStart && e.date <= currentEnd) {
+        if (e.type === 'income') current.income += e.amount
+        else if (e.type === 'expense') current.expense += e.amount
+      } else if (e.date >= prevStart && e.date <= prevEnd) {
+        if (e.type === 'income') prev.income += e.amount
+        else if (e.type === 'expense') prev.expense += e.amount
+      }
+    }
+    return { current: current, prev: prev }
+  },
+
+  calcCalendarData: function(entries) {
+    var calendar = {}
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i]
+      if (e.date.indexOf(this.data.currentMonth) === 0) {
+        if (!calendar[e.date]) calendar[e.date] = { income: 0, expense: 0, count: 0 }
+        if (e.type === 'income') calendar[e.date].income += e.amount
+        else if (e.type === 'expense') calendar[e.date].expense += e.amount
+        calendar[e.date].count++
+      }
+    }
+    return calendar
+  },
+
+  getWeekStart: function(dateStr) {
+    var d = new Date(dateStr)
+    var day = d.getDay()
+    var diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    var start = new Date(d.setDate(diff))
+    return start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0')
   },
 
   getMemberStats: function() {
     if (!this.data.bookId) return null
-    var entries = bookManager.getEntries(this.data.bookId, this.getTimeRange())
+    var entries = this.getFilteredEntries()
     var stats = {}
     for (var i = 0; i < entries.length; i++) {
       var e = entries[i]
       var memberId = e.createdByMemberId || 'unknown'
       var memberName = e.createdByName || '未知'
       if (!stats[memberId]) {
-        stats[memberId] = { name: memberName, income: 0, expense: 0, count: 0 }
+        stats[memberId] = { id: memberId, name: memberName, income: 0, expense: 0, count: 0 }
       }
       if (e.type === 'income') stats[memberId].income += e.amount
       else if (e.type === 'expense') stats[memberId].expense += e.amount
@@ -103,6 +234,70 @@ Page({
     }
     list.sort(function(a, b) { return b.expense - a.expense })
     return list
+  },
+
+  loadMemberList: function() {
+    if (!this.data.bookId) return
+    var entries = bookManager.getEntries(this.data.bookId)
+    var memberMap = {}
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i]
+      var memberId = e.createdByMemberId || 'unknown'
+      var memberName = e.createdByName || '未知'
+      if (!memberMap[memberId]) {
+        memberMap[memberId] = { id: memberId, name: memberName }
+      }
+    }
+    var memberList = []
+    for (var key in memberMap) {
+      memberList.push(memberMap[key])
+    }
+    memberList.sort(function(a, b) { return a.name.localeCompare(b.name) })
+    this.setData({ memberList: memberList })
+  },
+
+  getFilteredEntries: function(ignoreTimeRange) {
+    var timeRange = ignoreTimeRange ? null : this.getTimeRange()
+    var entries = bookManager.getEntries(this.data.bookId, timeRange)
+    if (this.data.selectedMembers.length > 0) {
+      var selectedSet = {}
+      this.data.selectedMembers.forEach(function(id) { selectedSet[id] = true })
+      entries = entries.filter(function(e) {
+        var memberId = e.createdByMemberId || 'unknown'
+        return selectedSet[memberId]
+      })
+    }
+    return entries
+  },
+
+  toggleMemberPicker: function() {
+    this.setData({ showMemberPicker: !this.data.showMemberPicker })
+  },
+
+  toggleMember: function(e) {
+    var memberId = e.currentTarget.dataset.id
+    var selectedMembers = this.data.selectedMembers.slice()
+    var index = selectedMembers.indexOf(memberId)
+    if (index >= 0) {
+      selectedMembers.splice(index, 1)
+    } else {
+      selectedMembers.push(memberId)
+    }
+    this.setData({ selectedMembers: selectedMembers })
+  },
+
+  selectAllMembers: function() {
+    var allIds = this.data.memberList.map(function(m) { return m.id })
+    this.setData({ selectedMembers: allIds })
+  },
+
+  clearMemberSelection: function() {
+    this.setData({ selectedMembers: [] })
+  },
+
+  confirmMemberSelection: function() {
+    this.setData({ showMemberPicker: false })
+    this.loadData()
   },
 
   drawCharts: function() {
@@ -180,7 +375,7 @@ Page({
       var d = new Date()
       var day = d.getDay()
       var diff = d.getDate() - day + (day === 0 ? -6 : 1)
-      var start = new Date(d.setDate(diff))
+      var start = new Date(d.getFullYear(), d.getMonth(), diff)
       return {
         startDate: start.toISOString().substring(0, 10),
         endDate: today
@@ -218,49 +413,51 @@ Page({
       itemList: names,
       success: function(res) {
         if (res.tapIndex === 0) {
-          self.setData({ bookId: '', book: null })
+          self.setData({ bookId: '', book: null, selectedMembers: [], showMemberPicker: false })
         } else if (res.tapIndex <= books.length) {
           var book = books[res.tapIndex - 1]
-          self.setData({ bookId: book.id, book: book })
+          self.setData({ bookId: book.id, book: book, selectedMembers: [], showMemberPicker: false })
         }
+        self.loadMemberList()
         self.loadData()
       }
     })
   },
 
-  getTopCategories: function() {
+  getTopCategories: function(categoryStats) {
     var typeFilter = this.data.typeFilter
-    if (!this.data.categoryStats) return []
+    var statsData = categoryStats || this.data.categoryStats
+    if (!statsData) return []
     if (typeFilter === 'all') {
       var allList = []
       var types = ['expense', 'income', 'transfer']
       for (var t = 0; t < types.length; t++) {
-        var stats = this.data.categoryStats[types[t]]
-        if (!stats) continue
-        for (var key in stats) {
+        var typeStats = statsData[types[t]]
+        if (!typeStats) continue
+        for (var key in typeStats) {
           allList.push({
             id: key,
             type: types[t],
             name: bookManager.getCategoryName(types[t], key),
             icon: bookManager.getCategoryIcon(types[t], key),
-            amount: stats[key].amount,
-            count: stats[key].count
+            amount: typeStats[key].amount,
+            count: typeStats[key].count
           })
         }
       }
       allList.sort(function(a, b) { return b.amount - a.amount })
       return allList.slice(0, 5)
     }
-    var stats = this.data.categoryStats[typeFilter]
-    if (!stats) return []
+    var filteredStats = statsData[typeFilter]
+    if (!filteredStats) return []
     var list = []
-    for (var key in stats) {
+    for (var key in filteredStats) {
       list.push({
         id: key,
         name: bookManager.getCategoryName(typeFilter, key),
         icon: bookManager.getCategoryIcon(typeFilter, key),
-        amount: stats[key].amount,
-        count: stats[key].count
+        amount: filteredStats[key].amount,
+        count: filteredStats[key].count
       })
     }
     list.sort(function(a, b) { return b.amount - a.amount })

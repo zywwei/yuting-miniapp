@@ -9,6 +9,11 @@ Component({
       type: String,
       value: '',
       observer: 'drawHeatmap'
+    },
+    typeFilter: {
+      type: String,
+      value: 'expense',
+      observer: 'drawHeatmap'
     }
   },
 
@@ -27,6 +32,7 @@ Component({
     drawHeatmap: function() {
       if (!this.data.month) return
       var data = this.data.data || {}
+      var typeFilter = this.data.typeFilter || 'expense'
       var year = parseInt(this.data.month.substring(0, 4))
       var month = parseInt(this.data.month.substring(5, 7))
       var daysInMonth = new Date(year, month, 0).getDate()
@@ -38,7 +44,16 @@ Component({
       }
       for (var d = 1; d <= daysInMonth; d++) {
         var dateStr = this.data.month + '-' + String(d).padStart(2, '0')
-        var amount = data[dateStr] ? data[dateStr].expense : 0
+        var amount = 0
+        if (data[dateStr]) {
+          if (typeFilter === 'all') {
+            amount = (data[dateStr].expense || 0) + (data[dateStr].income || 0)
+          } else if (typeFilter === 'income') {
+            amount = data[dateStr].income || 0
+          } else {
+            amount = data[dateStr].expense || 0
+          }
+        }
         if (amount > maxAmount) maxAmount = amount
         days.push({ day: d, amount: amount, level: 0 })
       }
