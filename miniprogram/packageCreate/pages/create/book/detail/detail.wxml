@@ -84,7 +84,10 @@
           <view class="entry-category">{{entry.categoryIcon}}</view>
           <view class="entry-info">
             <view class="entry-note">{{entry.categoryName}}</view>
-            <view class="entry-time">{{entry.time}}</view>
+            <view class="entry-meta">
+              <text class="entry-time">{{entry.time}}</text>
+              <text class="entry-creator" wx:if="{{entry.createdByName}}">· {{entry.createdByName}}</text>
+            </view>
           </view>
           <view class="entry-amount {{entry.type}}">
             {{entry.type === 'income' ? '+' : '-'}}{{entry.amount}}

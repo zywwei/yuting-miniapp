@@ -16,6 +16,22 @@
         <view class="overview-value {{overview.todayBalance >= 0 ? 'income' : 'expense'}}">{{overview.todayBalance >= 0 ? '+' : ''}}{{overview.todayBalance || 0}}</view>
       </view>
     </view>
+    <view class="overview-divider"></view>
+    <view class="overview-title">本月收支</view>
+    <view class="overview-row">
+      <view class="overview-item">
+        <view class="overview-label">收入</view>
+        <view class="overview-value income">+{{overview.monthIncome || 0}}</view>
+      </view>
+      <view class="overview-item">
+        <view class="overview-label">支出</view>
+        <view class="overview-value expense">-{{overview.monthExpense || 0}}</view>
+      </view>
+      <view class="overview-item">
+        <view class="overview-label">结余</view>
+        <view class="overview-value {{overview.monthBalance >= 0 ? 'income' : 'expense'}}">{{overview.monthBalance >= 0 ? '+' : ''}}{{overview.monthBalance || 0}}</view>
+      </view>
+    </view>
   </view>
 
   <!-- 账本列表 -->

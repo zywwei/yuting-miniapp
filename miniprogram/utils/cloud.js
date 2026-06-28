@@ -938,7 +938,9 @@ function selfHealRecords(collection, localList, cloudIdSet, deletedSet) {
   var count = 0
   localList.forEach(function(r) {
     if (count >= SELF_HEAL_MAX) return
-    if (r && r.id && !r.synced && !cloudIdSet[r.id] && !deletedSet[r.id]) {
+    // 只补传从未成功同步过的记录（lastSyncAt 为空）
+    // 如果 lastSyncAt 有值，说明曾经同步成功，后来被其他设备删除，不应补传
+    if (r && r.id && !r.synced && !cloudIdSet[r.id] && !deletedSet[r.id] && !r.lastSyncAt) {
       wx.cloud.callFunction({
         name: 'record',
         data: { action: 'add', collection: collection, data: r }
@@ -953,10 +955,13 @@ function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, 
   var merged = []
   var mergedIds = {}
 
-  // 先添加云端数据
+  // 先添加云端数据（标记为已同步，防止自愈误判）
   cloudList.forEach(function(item) {
-    if (item && item.id && !deletedSet[item.id]) {
-      merged.push(transformCloudItem ? transformCloudItem(item) : item)
+    if (item && item.id && !deletedSet[item.id] && !deletedSet[item._id]) {
+      var transformed = transformCloudItem ? transformCloudItem(item) : item
+      transformed.synced = true
+      transformed.lastSyncAt = transformed.lastSyncAt || new Date().toISOString()
+      merged.push(transformed)
       mergedIds[item.id] = true
     }
   })
@@ -2104,6 +2109,7 @@ async function uploadAccountBook(book) {
     for (var i = 0; i < books.length; i++) {
       if (books[i].id === book.id) {
         books[i].synced = true
+        books[i].lastSyncAt = new Date().toISOString()
         break
       }
     }
@@ -2164,6 +2170,7 @@ async function uploadBookEntry(entry) {
     for (var i = 0; i < entries.length; i++) {
       if (entries[i].id === entry.id) {
         entries[i].synced = true
+        entries[i].lastSyncAt = new Date().toISOString()
         break
       }
     }
