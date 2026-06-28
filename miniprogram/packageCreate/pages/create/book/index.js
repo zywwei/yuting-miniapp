@@ -3,6 +3,7 @@ var bookManager = require('../../../utils/book-manager.js')
 Page({
   data: {
     books: [],
+    defaultBook: null,
     overview: {},
     recentEntries: [],
     showAddBook: false,
@@ -43,6 +44,7 @@ Page({
     var allBooks = bookManager.getBooks()
     var books = allBooks.filter(function(b) { return !b.isArchived })
     var archivedBooks = allBooks.filter(function(b) { return b.isArchived })
+    var defaultBook = bookManager.getDefaultBook()
     var overview = bookManager.getOverviewStats()
     var allEntries = bookManager.getEntries()
     var recentEntries = allEntries.slice(0, 5).map(function(e) {
@@ -50,7 +52,19 @@ Page({
       e.categoryName = bookManager.getCategoryName(e.type, e.category)
       return e
     })
-    this.setData({ books: books, archivedBooks: archivedBooks, overview: overview, recentEntries: recentEntries })
+    var today = bookManager.getTodayStr()
+    var thisMonth = today.substring(0, 7)
+    for (var i = 0; i < books.length; i++) {
+      var bookEntries = bookManager.getEntries(books[i].id)
+      var monthExpense = 0
+      for (var j = 0; j < bookEntries.length; j++) {
+        if (bookEntries[j].type === 'expense' && bookEntries[j].date.indexOf(thisMonth) === 0) {
+          monthExpense += bookEntries[j].amount
+        }
+      }
+      books[i].monthExpense = monthExpense
+    }
+    this.setData({ books: books, archivedBooks: archivedBooks, defaultBook: defaultBook, overview: overview, recentEntries: recentEntries })
   },
 
   showArchivedBooks: function() {
@@ -67,6 +81,24 @@ Page({
   goDetail: function(e) {
     var bookId = e.currentTarget.dataset.id
     wx.navigateTo({ url: '/packageCreate/pages/create/book/detail/detail?bookId=' + bookId })
+  },
+
+  setDefaultBook: function(e) {
+    var bookId = e.currentTarget.dataset.id
+    var book = bookManager.getBook(bookId)
+    if (!book) return
+    var self = this
+    wx.showModal({
+      title: '设置默认账本',
+      content: '将 "' + book.name + '" 设为默认账本？',
+      success: function(res) {
+        if (res.confirm) {
+          bookManager.setDefaultBook(bookId)
+          self.loadData()
+          wx.showToast({ title: '已设为默认', icon: 'success' })
+        }
+      }
+    })
   },
 
   goStats: function() {
@@ -103,6 +135,9 @@ Page({
 
   goAddEntry: function(e) {
     var bookId = e ? e.currentTarget.dataset.bookid : ''
+    if (!bookId && this.data.defaultBook) {
+      bookId = this.data.defaultBook.id
+    }
     if (!bookId && this.data.books.length > 0) {
       bookId = this.data.books[0].id
     }

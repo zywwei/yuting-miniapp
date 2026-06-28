@@ -1,8 +1,13 @@
 var bookManager = require('../../../../utils/book-manager.js')
+var pageHelpers = require('../../../../../utils/page-helpers.js')
 
 Page({
   data: {
+    statusBarHeight: 20,
+    capsuleRight: 80,
     bookId: '',
+    book: null,
+    books: [],
     entryId: '',
     isEdit: false,
     type: 'expense',
@@ -26,11 +31,26 @@ Page({
   },
 
   onLoad: function(options) {
+    var navInfo = pageHelpers.getNavBarInfo()
     var today = bookManager.getTodayStr()
     var now = new Date()
     var time = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0')
+    var books = bookManager.getBooks().filter(function(b) { return !b.isArchived })
+    var bookId = options.bookId
+    var book = bookManager.getBook(bookId)
+    if (!book) {
+      wx.showToast({ title: '账本不存在', icon: 'none' })
+      setTimeout(function() {
+        wx.navigateBack()
+      }, 1500)
+      return
+    }
     this.setData({
-      bookId: options.bookId,
+      statusBarHeight: navInfo.statusBarHeight,
+      capsuleRight: navInfo.capsuleRight,
+      bookId: bookId,
+      book: book,
+      books: books,
       entryId: options.entryId || '',
       isEdit: !!options.entryId,
       date: today,
@@ -113,6 +133,32 @@ Page({
 
   selectCategory: function(e) {
     this.setData({ category: e.currentTarget.dataset.id })
+  },
+
+  switchBook: function(e) {
+    var bookId = e.currentTarget.dataset.id
+    var book = bookManager.getBook(bookId)
+    this.setData({ bookId: bookId, book: book })
+  },
+
+  goBack: function() {
+    wx.navigateBack()
+  },
+
+  showBookPicker: function() {
+    var books = this.data.books
+    var names = books.map(function(b) { return b.icon + ' ' + b.name })
+    names.push('取消')
+    var self = this
+    wx.showActionSheet({
+      itemList: names,
+      success: function(res) {
+        if (res.tapIndex < books.length) {
+          var book = books[res.tapIndex]
+          self.setData({ bookId: book.id, book: book })
+        }
+      }
+    })
   },
 
   onAmountInput: function(e) {

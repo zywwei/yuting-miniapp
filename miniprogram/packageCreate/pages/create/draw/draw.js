@@ -121,13 +121,13 @@ Page({
     const templateName = options.name || ''
     const photoPath = options.photo ? decodeURIComponent(options.photo) : ''
     const timeOfDay = options.timeOfDay || 'morning'
-    const sysInfo = wx.getSystemInfoSync()
+    const windowInfo = wx.getWindowInfo()
 
     // 获取右上角胶囊按钮位置，计算右侧安全距离
     let capsuleRight = 0
     try {
       const capsule = wx.getMenuButtonBoundingClientRect()
-      capsuleRight = sysInfo.windowWidth - capsule.left + 8
+      capsuleRight = windowInfo.windowWidth - capsule.left + 8
     } catch (e) {
       capsuleRight = 80
     }
@@ -166,9 +166,9 @@ Page({
 
         const canvas = res[0].node
         const ctx = canvas.getContext('2d')
-        const sysInfo = wx.getSystemInfoSync()
+        const deviceInfo = wx.getDeviceInfo()
 
-        this.pixelRatio = sysInfo.pixelRatio
+        this.pixelRatio = deviceInfo.pixelRatio
         this.canvasWidth = res[0].width
         this.canvasHeight = res[0].height
 

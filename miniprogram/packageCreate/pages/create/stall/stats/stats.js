@@ -524,7 +524,8 @@ Page({
 
       var canvas = res[0].node
       var ctx = canvas.getContext('2d')
-      var dpr = wx.getSystemInfoSync().pixelRatio
+      var deviceInfo = wx.getDeviceInfo()
+      var dpr = deviceInfo.pixelRatio
       var width = res[0].width || 300
       var height = res[0].height || 150
 
@@ -642,7 +643,8 @@ Page({
 
       var canvas = res[0].node
       var ctx = canvas.getContext('2d')
-      var dpr = wx.getSystemInfoSync().pixelRatio
+      var deviceInfo = wx.getDeviceInfo()
+      var dpr = deviceInfo.pixelRatio
       var width = 375
       var height = 667
 

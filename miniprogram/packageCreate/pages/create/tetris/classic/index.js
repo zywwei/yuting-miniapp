@@ -89,7 +89,8 @@ Page({
   },
 
   onLoad: function () {
-    this._sysInfo = wx.getSystemInfoSync()
+    this._windowInfo = wx.getWindowInfo()
+    this._deviceInfo = wx.getDeviceInfo()
     var coins = childStorage.get('gameCoins') || 0
     this.setData({ coins: coins })
     this.initCanvas()
@@ -123,9 +124,9 @@ Page({
 
   initCanvas: function (callback) {
     var that = this
-    var sysInfo = wx.getSystemInfoSync()
-    var screenWidth = sysInfo.windowWidth
-    var screenHeight = sysInfo.windowHeight
+    var windowInfo = this._windowInfo || wx.getWindowInfo()
+    var screenWidth = windowInfo.windowWidth
+    var screenHeight = windowInfo.windowHeight
 
     // 三段式布局：顶部信息栏 + 棋盘撑满 + 底部按钮栏
     // 顶部约13%，底部约20%，留1%安全边距，让棋盘尽量大且不溢出

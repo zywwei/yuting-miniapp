@@ -29,9 +29,9 @@ Page({
   },
 
   onLoad: function() {
-    var sysInfo = wx.getSystemInfoSync()
+    var windowInfo = wx.getWindowInfo()
     this.setData({
-      statusBarHeight: sysInfo.statusBarHeight || 20
+      statusBarHeight: windowInfo.statusBarHeight || 20
     })
 
     // 等待 app 数据加载完成
