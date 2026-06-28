@@ -1,4 +1,5 @@
 var bookManager = require('../../../../utils/book-manager.js')
+var auth = getApp().globalData.auth
 
 Page({
   data: {
@@ -35,9 +36,9 @@ Page({
   getFamilyMembers: function() {
     var app = getApp()
     var families = app.globalData.myFamilies || []
-    var currentFamilyId = app.globalData.currentFamilyId
+    var currentFamilyId = auth.getCurrentFamilyId()
     for (var i = 0; i < families.length; i++) {
-      if (families[i]._id === currentFamilyId) {
+      if (families[i].familyId === currentFamilyId) {
         return families[i].members || []
       }
     }

@@ -279,7 +279,17 @@
   margin-bottom: 6rpx;
 }
 
+.entry-meta {
+  display: flex;
+  align-items: center;
+}
+
 .entry-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.entry-creator {
   font-size: 22rpx;
   color: #999;
 }
