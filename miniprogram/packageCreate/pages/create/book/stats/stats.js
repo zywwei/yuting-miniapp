@@ -1,5 +1,5 @@
 var bookManager = require('../../../../utils/book-manager.js')
-var wxCharts = require('../../../../utils/wx-charts.js')
+var wxCharts = require('../../../../../utils/wx-charts.js')
 
 Page({
   data: {
@@ -38,6 +38,16 @@ Page({
   },
 
   loadData: function() {
+    if (this.data.bookId) {
+      var book = bookManager.getBook(this.data.bookId)
+      if (!book) {
+        wx.showToast({ title: '账本不存在', icon: 'none' })
+        setTimeout(function() {
+          wx.navigateBack()
+        }, 1500)
+        return
+      }
+    }
     var book = this.data.bookId ? bookManager.getBook(this.data.bookId) : null
     var stats = this.data.bookId ? bookManager.getBookStats(this.data.bookId, this.getTimeRange()) : bookManager.getOverviewStats()
     var categoryStats = this.data.bookId ? bookManager.getCategoryStats(this.data.bookId, this.getTimeRange()) : null
@@ -87,8 +97,8 @@ Page({
   },
 
   drawCharts: function() {
-    var res = wx.getSystemInfoSync()
-    this.chartWidth = res.windowWidth - 48
+    var windowInfo = wx.getWindowInfo()
+    this.chartWidth = windowInfo.windowWidth - 48
     this.drawTrendChart()
     this.drawPieChart()
   },

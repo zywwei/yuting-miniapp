@@ -16,12 +16,13 @@ function exportAllData() {
       var family = auth.getFamily()
       var children = auth.getChildren()
 
+      var deviceInfo = wx.getDeviceInfo()
       var backupData = {
         version: 3,
         exportTime: new Date().toISOString(),
         deviceInfo: {
-          platform: wx.getSystemInfoSync().platform,
-          model: wx.getSystemInfoSync().model
+          platform: deviceInfo.platform,
+          model: deviceInfo.model
         },
         family: family || null,
         member: member || null,

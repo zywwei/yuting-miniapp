@@ -84,6 +84,14 @@ function getBook(id) {
   return null
 }
 
+function getDefaultBook() {
+  var books = getBooks()
+  for (var i = 0; i < books.length; i++) {
+    if (books[i].isDefault) return books[i]
+  }
+  return books[0] || null
+}
+
 function addBook(book) {
   var books = getBooks()
   var member = getMember()
@@ -130,7 +138,7 @@ function removeBook(id) {
   var books = getBooks()
   var entries = getEntries(id)
   var entryIds = entries.map(function(e) { return e.id })
-  childStorage.set(ENTRIES_KEY, childStorage.get(ENTRIES_KEY).filter(function(e) { return e.bookId !== id }))
+  childStorage.set(ENTRIES_KEY, (childStorage.get(ENTRIES_KEY) || []).filter(function(e) { return e.bookId !== id }))
   var filtered = books.filter(function(b) { return b.id !== id })
   childStorage.set(BOOKS_KEY, filtered)
   cloud.removeAccountBook(id)
@@ -522,6 +530,9 @@ function getOverviewStats() {
   return {
     bookCount: books.length,
     entryCount: entries.length,
+    income: totalIncome,
+    expense: totalExpense,
+    balance: totalIncome - totalExpense,
     totalIncome: totalIncome,
     totalExpense: totalExpense,
     totalBalance: totalIncome - totalExpense,
@@ -907,16 +918,12 @@ function importBackup(data, mode) {
 async function syncFromCloud() {
   try {
     var books = await cloud.fetchAccountBooks()
-    if (books && books.length > 0) {
+    if (books) {
       childStorage.set(BOOKS_KEY, books)
-    } else if (books && books.length === 0 && childStorage.get(BOOKS_KEY) && childStorage.get(BOOKS_KEY).length > 0) {
-      // 云端为空但本地有数据，不覆盖（可能是云端数据丢失）
     }
     var entries = await cloud.fetchBookEntries()
-    if (entries && entries.length > 0) {
+    if (entries) {
       childStorage.set(ENTRIES_KEY, entries)
-    } else if (entries && entries.length === 0 && childStorage.get(ENTRIES_KEY) && childStorage.get(ENTRIES_KEY).length > 0) {
-      // 云端为空但本地有数据，不覆盖
     }
     var settings = await cloud.fetchAccountSettings()
     if (settings && Object.keys(settings).length > 0) {
@@ -944,6 +951,7 @@ module.exports = {
   TRANSFER_CATEGORIES: TRANSFER_CATEGORIES,
   getBooks: getBooks,
   getBook: getBook,
+  getDefaultBook: getDefaultBook,
   addBook: addBook,
   updateBook: updateBook,
   removeBook: removeBook,

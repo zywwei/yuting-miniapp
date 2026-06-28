@@ -4,14 +4,14 @@
  * 获取导航栏信息（状态栏高度 + 胶囊按钮右边距）
  */
 function getNavBarInfo() {
-  const sysInfo = wx.getSystemInfoSync()
+  const windowInfo = wx.getWindowInfo()
   let capsuleRight = 80
   try {
     const capsule = wx.getMenuButtonBoundingClientRect()
-    capsuleRight = sysInfo.windowWidth - capsule.left + 8
+    capsuleRight = windowInfo.windowWidth - capsule.left + 8
   } catch (e) {}
   return {
-    statusBarHeight: sysInfo.statusBarHeight || 20,
+    statusBarHeight: windowInfo.statusBarHeight || 20,
     capsuleRight: capsuleRight
   }
 }

@@ -37,9 +37,9 @@ Page({
   },
 
   onLoad: function () {
-    var sysInfo = wx.getSystemInfoSync()
-    var screenWidth = sysInfo.windowWidth
-    var screenHeight = sysInfo.windowHeight
+    var windowInfo = wx.getWindowInfo()
+    var screenWidth = windowInfo.windowWidth
+    var screenHeight = windowInfo.windowHeight
     
     // 优化尺寸计算，动态适配不同屏幕
     var horizontalPadding = Math.max(16, Math.floor(screenWidth * 0.06))
@@ -164,7 +164,8 @@ Page({
         if (!res[0]) return
         var canvas = res[0].node
         var ctx = canvas.getContext('2d')
-        var dpr = wx.getSystemInfoSync().pixelRatio
+        var deviceInfo = wx.getDeviceInfo()
+        var dpr = deviceInfo.pixelRatio
         canvas.width = BOARD_WIDTH * dpr
         canvas.height = BOARD_HEIGHT * dpr
         ctx.scale(dpr, dpr)
@@ -588,7 +589,8 @@ Page({
     var absDx = Math.abs(dx), absDy = Math.abs(dy)
 
     if (absDx < 10 && absDy < 10) {
-      var midX = wx.getSystemInfoSync().windowWidth / 2
+      var windowInfo = wx.getWindowInfo()
+      var midX = windowInfo.windowWidth / 2
       if (e.changedTouches[0].clientX < midX) this.moveLeft()
       else this.moveRight()
       return

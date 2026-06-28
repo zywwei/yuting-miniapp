@@ -25,10 +25,10 @@
       <view class="section-action" bindtap="showAddBookDialog">+ 新建</view>
     </view>
     <view class="book-list">
-      <view class="book-card" wx:for="{{books}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="book-card {{item.isDefault ? 'default' : ''}}" wx:for="{{books}}" wx:key="id" bindtap="goDetail" bindlongpress="setDefaultBook" data-id="{{item.id}}">
         <view class="book-icon">{{item.icon}}</view>
         <view class="book-info">
-          <view class="book-name">{{item.name}}</view>
+          <view class="book-name">{{item.name}} <text wx:if="{{item.isDefault}}" class="default-tag">默认</text></view>
           <view class="book-meta">{{item.entryCount || 0}} 笔记录</view>
         </view>
         <view class="book-balance">

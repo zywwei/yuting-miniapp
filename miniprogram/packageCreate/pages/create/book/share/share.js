@@ -21,6 +21,13 @@ Page({
 
   loadData: function() {
     var book = bookManager.getBook(this.data.bookId)
+    if (!book) {
+      wx.showToast({ title: '账本不存在', icon: 'none' })
+      setTimeout(function() {
+        wx.navigateBack()
+      }, 1500)
+      return
+    }
     var familyMembers = this.getFamilyMembers()
     this.setData({ book: book, familyMembers: familyMembers })
   },

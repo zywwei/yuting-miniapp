@@ -41,6 +41,13 @@ Page({
 
   loadData: function() {
     var book = bookManager.getBook(this.data.bookId)
+    if (!book) {
+      wx.showToast({ title: '账本不存在', icon: 'none' })
+      setTimeout(function() {
+        wx.navigateBack()
+      }, 1500)
+      return
+    }
     var entries = bookManager.getEntries(this.data.bookId, this.data.filters).map(function(e) {
       e.categoryIcon = bookManager.getCategoryIcon(e.type, e.category)
       e.categoryName = bookManager.getCategoryName(e.type, e.category)

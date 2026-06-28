@@ -21,14 +21,17 @@ Page({
 
   loadData: function() {
     var book = bookManager.getBook(this.data.bookId)
-    if (book) {
-      var days = book.reminderDays || [1, 2, 3, 4, 5, 6, 0]
-      var reminderDaysMap = {}
-      for (var i = 0; i < days.length; i++) reminderDaysMap[days[i]] = true
-      this.setData({ book: book, reminderDaysMap: reminderDaysMap })
-    } else {
-      this.setData({ book: book })
+    if (!book) {
+      wx.showToast({ title: '账本不存在', icon: 'none' })
+      setTimeout(function() {
+        wx.navigateBack()
+      }, 1500)
+      return
     }
+    var days = book.reminderDays || [1, 2, 3, 4, 5, 6, 0]
+    var reminderDaysMap = {}
+    for (var i = 0; i < days.length; i++) reminderDaysMap[days[i]] = true
+    this.setData({ book: book, reminderDaysMap: reminderDaysMap })
   },
 
   onNameInput: function(e) {
@@ -137,7 +140,13 @@ Page({
           bookManager.removeBook(self.data.bookId)
           wx.showToast({ title: '已删除', icon: 'success' })
           setTimeout(function() {
-            wx.navigateBack()
+            // 返回到账本列表页面（跳过详情页面）
+            var pages = getCurrentPages()
+            if (pages.length >= 3) {
+              wx.navigateBack({ delta: 2 })
+            } else {
+              wx.navigateBack()
+            }
           }, 1500)
         }
       }

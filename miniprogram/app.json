@@ -130,17 +130,6 @@
       }
     ]
   },
-  "permission": {
-    "scope.writePhotosAlbum": {
-      "desc": "用于保存画作到相册"
-    },
-    "scope.camera": {
-      "desc": "用于拍照作为画画背景"
-    },
-    "scope.record": {
-      "desc": "用于录制语音日记"
-    }
-  },
   "sitemapLocation": "sitemap.json",
   "style": "v2",
   "lazyCodeLoading": "requiredComponents"

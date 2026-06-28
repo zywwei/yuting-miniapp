@@ -2124,7 +2124,6 @@ async function fetchAccountBooks() {
     })
     if (res.result.code === 0) {
       var cloudList = res.result.data.list || []
-      if (cloudList.length === 0 && localBooks.length > 0) return localBooks
       var deletedIds = getDeletedBookIds()
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
@@ -2185,7 +2184,6 @@ async function fetchBookEntries() {
     })
     if (res.result.code === 0) {
       var cloudList = res.result.data.list || []
-      if (cloudList.length === 0 && localEntries.length > 0) return localEntries
       var deletedIds = getDeletedEntryIds()
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
