@@ -38,8 +38,12 @@ Page({
     this.loadData()
   },
 
+  onShow: function() {
+    this.updatePreview()
+  },
+
   loadData: function() {
-    var books = bookManager.getBooks()
+    var books = bookManager.getBooks().filter(function(b) { return !b.isArchived })
     this.setData({ books: books })
     this.updatePreview()
   },
@@ -112,9 +116,10 @@ Page({
     if (book.sharedMode === 'private') return 'admin'
     var app = getApp()
     var memberId = app.globalData.member ? app.globalData.member._id : ''
-    for (var i = 0; i < book.members.length; i++) {
-      if (book.members[i].memberId === memberId) {
-        return book.members[i].role
+    var members = book.members || []
+    for (var i = 0; i < members.length; i++) {
+      if (members[i].memberId === memberId) {
+        return members[i].role
       }
     }
     return 'viewer'

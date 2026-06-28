@@ -6,6 +6,7 @@ Page({
     book: null,
     entries: [],
     groupedEntries: [],
+    totalEntryCount: 0,
     budgetProgress: null,
     showFilter: false,
     filters: {
@@ -16,6 +17,7 @@ Page({
       keyword: ''
     },
     filterCategories: [],
+    filterCategoryIndex: 0,
     filterCategoryName: ''
   },
 
@@ -23,9 +25,14 @@ Page({
     this.setData({ bookId: options.bookId })
     this.loadData()
     this.loadFilterCategories()
+    this._skipNextShow = true
   },
 
   onShow: function() {
+    if (this._skipNextShow) {
+      this._skipNextShow = false
+      return
+    }
     this.loadData()
   },
 
@@ -49,13 +56,26 @@ Page({
       return
     }
     var entries = bookManager.getEntries(this.data.bookId, this.data.filters).map(function(e) {
-      e.categoryIcon = bookManager.getCategoryIcon(e.type, e.category)
-      e.categoryName = bookManager.getCategoryName(e.type, e.category)
-      return e
+      return {
+        id: e.id,
+        bookId: e.bookId,
+        type: e.type,
+        category: e.category,
+        amount: e.amount,
+        note: e.note,
+        date: e.date,
+        time: e.time,
+        tags: e.tags,
+        images: e.images,
+        createdByName: e.createdByName,
+        categoryIcon: bookManager.getCategoryIcon(e.type, e.category),
+        categoryName: bookManager.getCategoryName(e.type, e.category)
+      }
     })
     var groupedEntries = this.groupByDate(entries)
     var budgetProgress = bookManager.getBudgetProgress(this.data.bookId)
-    this.setData({ book: book, entries: entries, groupedEntries: groupedEntries, budgetProgress: budgetProgress })
+    var totalEntries = bookManager.getEntries(this.data.bookId)
+    this.setData({ book: book, entries: entries, groupedEntries: groupedEntries, budgetProgress: budgetProgress, totalEntryCount: totalEntries.length })
   },
 
   loadFilterCategories: function() {
@@ -121,9 +141,16 @@ Page({
       content: '确定要删除这条记录吗？',
       success: function(res) {
         if (res.confirm) {
-          bookManager.removeEntry(entryId)
-          self.loadData()
-          wx.showToast({ title: '删除成功', icon: 'success' })
+          wx.showLoading({ title: '删除中...' })
+          bookManager.removeEntry(entryId).then(function() {
+            wx.hideLoading()
+            self.loadData()
+            wx.showToast({ title: '删除成功', icon: 'success' })
+          }).catch(function(err) {
+            wx.hideLoading()
+            wx.showToast({ title: '删除失败', icon: 'none' })
+            console.error('删除记录失败:', err)
+          })
         }
       }
     })
@@ -151,10 +178,11 @@ Page({
   },
 
   onFilterCategory: function(e) {
-    var index = e.detail.value
+    var index = parseInt(e.detail.value)
     var category = this.data.filterCategories[index]
     this.setData({
       'filters.category': category.id,
+      filterCategoryIndex: index,
       filterCategoryName: category.name
     })
     this.loadData()

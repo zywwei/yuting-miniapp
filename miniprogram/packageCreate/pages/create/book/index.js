@@ -14,10 +14,14 @@ Page({
 
   onLoad: function() {
     this.loadData()
+    this._loaded = true
   },
 
   onShow: function() {
-    this.loadData()
+    if (!this._loaded) {
+      this.loadData()
+    }
+    this._loaded = false
     this.setThemeColor()
   },
 
@@ -48,9 +52,16 @@ Page({
     var overview = bookManager.getOverviewStats()
     var allEntries = bookManager.getEntries()
     var recentEntries = allEntries.slice(0, 5).map(function(e) {
-      e.categoryIcon = bookManager.getCategoryIcon(e.type, e.category)
-      e.categoryName = bookManager.getCategoryName(e.type, e.category)
-      return e
+      return {
+        id: e.id,
+        type: e.type,
+        category: e.category,
+        amount: e.amount,
+        date: e.date,
+        time: e.time,
+        categoryIcon: bookManager.getCategoryIcon(e.type, e.category),
+        categoryName: bookManager.getCategoryName(e.type, e.category)
+      }
     })
     var today = bookManager.getTodayStr()
     var thisMonth = today.substring(0, 7)

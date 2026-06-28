@@ -255,3 +255,88 @@
   font-size: 28rpx;
   color: #999;
 }
+
+.member-filter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+}
+
+.filter-arrow {
+  font-size: 18rpx;
+  opacity: 0.7;
+}
+
+.member-picker {
+  background: #fff;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.member-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.member-picker-action {
+  font-size: 26rpx;
+  color: #666;
+  padding: 8rpx 16rpx;
+}
+
+.member-picker-confirm {
+  font-size: 26rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+  padding: 8rpx 16rpx;
+}
+
+.member-picker-list {
+  max-height: 400rpx;
+  overflow-y: auto;
+}
+
+.member-picker-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.member-picker-item:last-child {
+  border-bottom: none;
+}
+
+.member-picker-item.selected {
+  background: #fff5f7;
+}
+
+.member-checkbox {
+  width: 40rpx;
+  height: 40rpx;
+  border: 2rpx solid #ddd;
+  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  font-size: 24rpx;
+  color: #FF6B8A;
+}
+
+.member-picker-item.selected .member-checkbox {
+  background: #FF6B8A;
+  border-color: #FF6B8A;
+  color: #fff;
+}
+
+.member-name {
+  font-size: 28rpx;
+  color: #333;
+}

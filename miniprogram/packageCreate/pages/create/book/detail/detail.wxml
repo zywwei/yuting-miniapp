@@ -1,10 +1,11 @@
+<wxs src="../../../../utils/format.wxs" module="fmt" />
 <view class="container">
   <!-- 账本信息 -->
   <view class="book-header" wx:if="{{book}}">
     <view class="book-icon">{{book.icon}}</view>
     <view class="book-info">
       <view class="book-name">{{book.name}}</view>
-      <view class="book-meta">{{entries.length}} 笔记录</view>
+      <view class="book-meta">{{totalEntryCount}} 笔记录</view>
     </view>
     <view class="book-actions">
       <view class="action-btn" bindtap="goStats">📊</view>
@@ -46,7 +47,7 @@
     </view>
     <view class="filter-row">
       <view class="filter-label">分类</view>
-      <picker bindchange="onFilterCategory" value="{{filters.category}}" range="{{filterCategories}}" range-key="name">
+      <picker bindchange="onFilterCategory" value="{{filterCategoryIndex}}" range="{{filterCategories}}" range-key="name">
         <view class="filter-picker">{{filterCategoryName || '全部分类'}}</view>
       </picker>
     </view>
@@ -75,8 +76,8 @@
       <view class="group-header">
         <view class="group-date">{{item.date}}</view>
         <view class="group-summary">
-          <text wx:if="{{item.totalIncome > 0}}" class="income">+{{item.totalIncome}}</text>
-          <text wx:if="{{item.totalExpense > 0}}" class="expense"> -{{item.totalExpense}}</text>
+          <text wx:if="{{item.totalIncome > 0}}" class="income">+{{fmt.formatAmount(item.totalIncome)}}</text>
+          <text wx:if="{{item.totalExpense > 0}}" class="expense"> -{{fmt.formatAmount(item.totalExpense)}}</text>
         </view>
       </view>
       <view class="group-entries">
@@ -90,7 +91,7 @@
             </view>
           </view>
           <view class="entry-amount {{entry.type}}">
-            {{entry.type === 'income' ? '+' : '-'}}{{entry.amount}}
+            {{entry.type === 'income' ? '+' : '-'}}{{fmt.formatAmount(entry.amount)}}
           </view>
         </view>
       </view>

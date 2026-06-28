@@ -66,6 +66,10 @@ function getNowTime() {
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')
 }
 
+function formatAmount(amount) {
+  return Number(amount || 0).toFixed(2)
+}
+
 function getMember() {
   return auth.getMember() || {}
 }
@@ -134,17 +138,15 @@ function updateBook(id, updates) {
   return null
 }
 
-function removeBook(id) {
-  var books = getBooks()
+async function removeBook(id) {
   var entries = getEntries(id)
   var entryIds = entries.map(function(e) { return e.id })
-  childStorage.set(ENTRIES_KEY, (childStorage.get(ENTRIES_KEY) || []).filter(function(e) { return e.bookId !== id }))
-  var filtered = books.filter(function(b) { return b.id !== id })
-  childStorage.set(BOOKS_KEY, filtered)
-  cloud.removeAccountBook(id)
   for (var i = 0; i < entryIds.length; i++) {
-    cloud.removeBookEntry(entryIds[i])
+    await removeEntry(entryIds[i])
   }
+  var filtered = getBooks().filter(function(b) { return b.id !== id })
+  childStorage.set(BOOKS_KEY, filtered)
+  await cloud.removeAccountBook(id)
   return filtered
 }
 
@@ -171,6 +173,11 @@ function getEntries(bookId, filters) {
   var entries = childStorage.get(ENTRIES_KEY) || []
   if (bookId) {
     entries = entries.filter(function(e) { return e.bookId === bookId })
+  } else {
+    var books = getBooks()
+    var bookIds = {}
+    books.forEach(function(b) { bookIds[b.id] = true })
+    entries = entries.filter(function(e) { return bookIds[e.bookId] })
   }
   if (filters) {
     if (filters.type) {
@@ -194,8 +201,7 @@ function getEntries(bookId, filters) {
     }
   }
   entries.sort(function(a, b) {
-    if (a.date !== b.date) return b.date.localeCompare(a.date)
-    return b.time.localeCompare(a.time)
+    return (b.date + b.time).localeCompare(a.date + a.time)
   })
   return entries
 }
@@ -290,7 +296,7 @@ function updateEntry(id, updates) {
   return null
 }
 
-function removeEntry(id, skipCascade) {
+async function removeEntry(id, skipCascade) {
   var entries = childStorage.get(ENTRIES_KEY) || []
   var entry = null
   for (var i = 0; i < entries.length; i++) {
@@ -300,20 +306,31 @@ function removeEntry(id, skipCascade) {
     }
   }
   if (!skipCascade && entry && entry.relatedEntryId) {
-    removeEntry(entry.relatedEntryId, true)
+    await removeEntry(entry.relatedEntryId, true)
   }
   var filtered = entries.filter(function(e) { return e.id !== id })
   childStorage.set(ENTRIES_KEY, filtered)
   if (entry) {
     updateBookEntryCount(entry.bookId)
   }
-  cloud.removeBookEntry(id)
+  await cloud.removeBookEntry(id)
   return filtered
 }
 
 function updateBookEntryCount(bookId) {
   var entries = getEntries(bookId)
   updateBook(bookId, { entryCount: entries.length })
+}
+
+async function clearBookEntries(bookId) {
+  var entries = childStorage.get(ENTRIES_KEY) || []
+  var toDelete = entries.filter(function(e) { return e.bookId === bookId })
+  var remaining = entries.filter(function(e) { return e.bookId !== bookId })
+  childStorage.set(ENTRIES_KEY, remaining)
+  updateBook(bookId, { entryCount: 0 })
+  for (var i = 0; i < toDelete.length; i++) {
+    await cloud.removeBookEntry(toDelete[i].id)
+  }
 }
 
 // ===== 分类管理 =====
@@ -506,7 +523,9 @@ function requestReminderPermission() {
 
 function getOverviewStats() {
   var books = getBooks()
-  var entries = childStorage.get(ENTRIES_KEY) || []
+  var bookIds = {}
+  books.forEach(function(b) { bookIds[b.id] = true })
+  var entries = (childStorage.get(ENTRIES_KEY) || []).filter(function(e) { return bookIds[e.bookId] })
   var today = getTodayStr()
   var thisMonth = today.substring(0, 7)
   var totalIncome = 0
@@ -865,7 +884,7 @@ function getTypeName(type) {
 
 function exportBackup(bookId) {
   var books = bookId ? [getBook(bookId)].filter(function(b) { return b != null }) : getBooks()
-  var entries = bookId ? getEntries(bookId) : childStorage.get(ENTRIES_KEY) || []
+  var entries = bookId ? getEntries(bookId) : getEntries()
   var settings = getSettings()
   return {
     version: '1.0',
@@ -961,6 +980,7 @@ module.exports = {
   addEntry: addEntry,
   updateEntry: updateEntry,
   removeEntry: removeEntry,
+  clearBookEntries: clearBookEntries,
   getCategories: getCategories,
   getCategoryName: getCategoryName,
   getCategoryIcon: getCategoryIcon,
@@ -994,6 +1014,7 @@ module.exports = {
   saveSettings: saveSettings,
   getTypeName: getTypeName,
   getTodayStr: getTodayStr,
+  formatAmount: formatAmount,
   generateRepeatEntries: generateRepeatEntries,
   checkReminders: checkReminders,
   requestReminderPermission: requestReminderPermission,

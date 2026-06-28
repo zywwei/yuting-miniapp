@@ -137,17 +137,18 @@ Page({
       confirmColor: '#ff4d4f',
       success: function(res) {
         if (res.confirm) {
-          bookManager.removeBook(self.data.bookId)
-          wx.showToast({ title: '已删除', icon: 'success' })
-          setTimeout(function() {
-            // 返回到账本列表页面（跳过详情页面）
-            var pages = getCurrentPages()
-            if (pages.length >= 3) {
-              wx.navigateBack({ delta: 2 })
-            } else {
-              wx.navigateBack()
-            }
-          }, 1500)
+          wx.showLoading({ title: '删除中...' })
+          bookManager.removeBook(self.data.bookId).then(function() {
+            wx.hideLoading()
+            wx.showToast({ title: '已删除', icon: 'success' })
+            setTimeout(function() {
+              wx.reLaunch({ url: '/packageCreate/pages/create/book/index' })
+            }, 800)
+          }).catch(function(err) {
+            wx.hideLoading()
+            wx.showToast({ title: '删除失败', icon: 'none' })
+            console.error('删除账本失败:', err)
+          })
         }
       }
     })
@@ -217,13 +218,16 @@ Page({
       confirmColor: '#ff4d4f',
       success: function(res) {
         if (res.confirm) {
-          var entries = bookManager.getEntries(self.data.bookId)
-          for (var i = 0; i < entries.length; i++) {
-            bookManager.removeEntry(entries[i].id)
-          }
-          bookManager.updateBook(self.data.bookId, { entryCount: 0 })
-          self.loadData()
-          wx.showToast({ title: '已清空', icon: 'success' })
+          wx.showLoading({ title: '清空中...' })
+          bookManager.clearBookEntries(self.data.bookId).then(function() {
+            wx.hideLoading()
+            self.loadData()
+            wx.showToast({ title: '已清空', icon: 'success' })
+          }).catch(function(err) {
+            wx.hideLoading()
+            wx.showToast({ title: '清空失败', icon: 'none' })
+            console.error('清空账本数据失败:', err)
+          })
         }
       }
     })
