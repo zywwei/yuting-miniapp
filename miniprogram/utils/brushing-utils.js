@@ -13,7 +13,7 @@ var getBrushingRecords = function() {
 // 保存刷牙记录
 var saveBrushingRecord = function(record) {
   var records = getBrushingRecords()
-  records.push(record)
+  records.unshift(record)
   childStorage.set('brushingRecords', records)
 }
 
@@ -84,15 +84,17 @@ var calcWeekRate = function(records) {
   })
 
   var completedDays = 0
-  for (var i = 0; i <= now.getDay(); i++) {
+  var weekDates = []
+  for (var i = 0; i < 7; i++) {
     var d = new Date(startOfWeek)
-    d.setDate(d.getDate() + i)
+    d.setDate(startOfWeek.getDate() + i)
     var dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+    weekDates.push(dateStr)
     var dayRecords = weekRecords.filter(function(r) { return r.date === dateStr })
     if (dayRecords.length >= 2) completedDays++
   }
 
-  return now.getDay() > 0 ? Math.round(completedDays / (now.getDay() + 1) * 100) : 0
+  return Math.round((completedDays / 7) * 100)
 }
 
 // 获取刷牙统计
@@ -110,11 +112,11 @@ var getBrushingStats = function(records) {
   var weekRate = calcWeekRate(records)
 
   return {
+    total: records.length,
     todayCount: todayCount,
     avgScore: avgScore,
     streak: streak,
-    weekRate: weekRate,
-    totalRecords: records.length
+    weekRate: weekRate
   }
 }
 

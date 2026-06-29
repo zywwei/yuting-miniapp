@@ -286,8 +286,11 @@ var ACHIEVEMENTS = [
     progress: function(data) { return Math.min(data.unlockedCount, 15) }, maxProgress: 15 },
   { id: 'legend', icon: '👑', title: '传说之子', desc: '解锁全部成就', category: 'special', rarity: 'legendary',
     condition: function(data) { return data.unlockedCount >= ACHIEVEMENTS.length },
-    progress: function(data) { return Math.min(data.unlockedCount, ACHIEVEMENTS.length) }, maxProgress: 80 }
+    progress: function(data) { return Math.min(data.unlockedCount, ACHIEVEMENTS.length) }, maxProgress: 0 }
 ]
+
+// legend 成就的 maxProgress 动态设置（避免前向引用）
+ACHIEVEMENTS[ACHIEVEMENTS.length - 1].maxProgress = ACHIEVEMENTS.length
 
 module.exports = {
   RARITY: RARITY,
