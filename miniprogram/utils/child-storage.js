@@ -74,9 +74,13 @@ var CHILD_KEYS = [
   'singletonMigratedV2'
 ]
 
+// O(1) 查找表
+var CHILD_KEY_MAP = {}
+CHILD_KEYS.forEach(function(k) { CHILD_KEY_MAP[k] = true })
+
 function getKey(key) {
   var childId = auth.getCurrentChildId()
-  if (CHILD_KEYS.indexOf(key) < 0) return key
+  if (!CHILD_KEY_MAP[key]) return key
   if (!childId) return key
   return key + '_' + childId
 }
