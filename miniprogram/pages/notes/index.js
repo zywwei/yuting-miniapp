@@ -1,20 +1,40 @@
 var util = require('../../utils/util.js')
 var childStorage = require('../../utils/child-storage.js')
 var cloud = require('../../utils/cloud.js')
+var auth = require('../../utils/auth.js')
+
+var app = getApp()
+var PAGE_SIZE = 20
 
 Page({
   data: {
     notes: [],
-    noteCount: 0
+    noteCount: 0,
+    children: [],
+    currentChildId: '',
+    searchKeyword: '',
+    currentPage: 1,
+    hasMore: true,
+    showSearch: false
   },
 
+  _allNotes: [],
+
   onLoad: function() {
+    this.setData({
+      children: app.globalData.children || [],
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+    })
     this.loadNotes()
   },
 
   onShow: function() {
+    this.setData({
+      children: app.globalData.children || [],
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+    })
+
     var that = this
-    // 节流：30秒内不重复请求云端数据
     var now = Date.now()
     if (!this._lastCloudFetch || now - this._lastCloudFetch > 30000) {
       this._lastCloudFetch = now
@@ -25,10 +45,17 @@ Page({
       })
     }
 
-    // 更新 tabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 3 })
     }
+  },
+
+  onChildChanged: function(e) {
+    var childId = e.detail.childId
+    auth.switchChild(childId)
+    app.globalData.currentChildId = childId
+    this.setData({ currentChildId: childId, currentPage: 1, searchKeyword: '' })
+    this.loadNotes()
   },
 
   onPullDownRefresh: async function() {
@@ -45,17 +72,95 @@ Page({
     }
   },
 
+  onReachBottom: function() {
+    if (this.data.hasMore) {
+      this.loadMore()
+    }
+  },
+
   // 加载笔记列表
   loadNotes: function() {
     var notes = childStorage.get('notes') || []
-    // 按创建时间倒序
-    var sortedNotes = notes.slice().sort(function(a, b) {
+    this._allNotes = notes.slice().sort(function(a, b) {
       return new Date(b.createTime) - new Date(a.createTime)
     })
+
+    this.setData({ currentPage: 1 })
+    this.applyFilter()
+  },
+
+  // 应用搜索过滤并分页
+  applyFilter: function() {
+    var keyword = this.data.searchKeyword.toLowerCase()
+    var filtered = this._allNotes
+
+    if (keyword) {
+      filtered = filtered.filter(function(n) {
+        return (n.title && n.title.toLowerCase().indexOf(keyword) >= 0) ||
+               (n.content && n.content.toLowerCase().indexOf(keyword) >= 0)
+      })
+    }
+
+    var page = this.data.currentPage
+    var displayed = filtered.slice(0, page * PAGE_SIZE)
+
     this.setData({
-      notes: sortedNotes.slice(0, 20),
-      noteCount: notes.length
+      notes: displayed,
+      noteCount: filtered.length,
+      hasMore: displayed.length < filtered.length
     })
+  },
+
+  // 加载更多
+  loadMore: function() {
+    this.setData({ currentPage: this.data.currentPage + 1 })
+    this.applyFilter()
+  },
+
+  // 搜索相关
+  toggleSearch: function() {
+    this.setData({ showSearch: !this.data.showSearch })
+    if (!this.data.showSearch) {
+      this.setData({ searchKeyword: '' })
+      this.applyFilter()
+    }
+  },
+
+  onSearchInput: function(e) {
+    this.setData({ searchKeyword: e.detail.value, currentPage: 1 })
+    this.applyFilter()
+  },
+
+  clearSearch: function() {
+    this.setData({ searchKeyword: '', currentPage: 1 })
+    this.applyFilter()
+  },
+
+  // 删除笔记
+  deleteNote: function(e) {
+    var that = this
+    var id = e.currentTarget.dataset.id
+    var title = e.currentTarget.dataset.title || '这篇笔记'
+
+    wx.showModal({
+      title: '确认删除',
+      content: '确定要删除"' + title + '"吗？',
+      confirmColor: '#FF4444',
+      success: function(res) {
+        if (res.confirm) {
+          that.doDeleteNote(id)
+        }
+      }
+    })
+  },
+
+  doDeleteNote: function(id) {
+    var notes = childStorage.get('notes') || []
+    notes = notes.filter(function(n) { return n.id !== id })
+    childStorage.set('notes', notes)
+
+    this.loadNotes()
+    wx.showToast({ title: '已删除', icon: 'success' })
   },
 
   // 跳转到添加笔记

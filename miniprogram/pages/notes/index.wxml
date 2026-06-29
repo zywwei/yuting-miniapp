@@ -1,12 +1,32 @@
 <!-- 成长笔记首页 -->
 <view class="container">
+  <!-- 孩子切换器 -->
+  <view class="switcher-wrapper" wx:if="{{children.length > 1}}">
+    <child-switcher children="{{children}}" currentChildId="{{currentChildId}}" bind:childChanged="onChildChanged" />
+  </view>
+
   <!-- 头部 -->
   <view class="header">
     <view class="header-left">
       <view class="header-title">📝 成长笔记</view>
       <view class="header-desc">记录成长的每一个瞬间</view>
     </view>
-    <view class="add-btn" bindtap="addNote">+ 写笔记</view>
+    <view class="header-actions">
+      <view class="action-btn" bindtap="toggleSearch">
+        <text>{{showSearch ? '✕' : '🔍'}}</text>
+      </view>
+      <view class="add-btn" bindtap="addNote">+ 写笔记</view>
+    </view>
+  </view>
+
+  <!-- 搜索栏 -->
+  <view class="search-bar" wx:if="{{showSearch}}">
+    <view class="search-input-wrap">
+      <text class="search-icon">🔍</text>
+      <input class="search-input" placeholder="搜索笔记标题或内容" value="{{searchKeyword}}" bindinput="onSearchInput" focus="{{showSearch}}" />
+      <text class="search-clear" wx:if="{{searchKeyword}}" bindtap="clearSearch">✕</text>
+    </view>
+    <view class="search-result" wx:if="{{searchKeyword}}">找到 {{noteCount}} 篇笔记</view>
   </view>
 
   <!-- 笔记列表 -->
@@ -15,30 +35,48 @@
       wx:for="{{notes}}"
       wx:key="id"
       class="note-card"
-      bindtap="goDetail"
-      data-id="{{item.id}}"
     >
-      <view class="note-header">
-        <view class="note-type-tag {{item.type}}">
-          {{item.type === 'diary' ? '📖 日记' : item.type === 'funny' ? '😄 趣事' : '📚 学习'}}
+      <view class="note-content-wrap" bindtap="goDetail" data-id="{{item.id}}">
+        <view class="note-header">
+          <view class="note-type-tag {{item.type}}">
+            {{item.type === 'diary' ? '📖 日记' : item.type === 'funny' ? '😄 趣事' : '📚 学习'}}
+          </view>
+          <view class="note-mood">{{item.mood === 'happy' ? '😊' : item.mood === 'excited' ? '🤩' : item.mood === 'calm' ? '😌' : '😴'}}</view>
         </view>
-        <view class="note-mood">{{item.mood === 'happy' ? '😊' : item.mood === 'excited' ? '🤩' : item.mood === 'calm' ? '😌' : '😴'}}</view>
+        <view class="note-title">{{item.title}}</view>
+        <view class="note-content">{{item.content}}</view>
+        <view class="note-footer">
+          <view class="note-date">{{item.createTime}}</view>
+          <view class="note-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+            <view wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="tag">{{tag}}</view>
+          </view>
+        </view>
       </view>
-      <view class="note-title">{{item.title}}</view>
-      <view class="note-content">{{item.content}}</view>
-      <view class="note-footer">
-        <view class="note-date">{{item.createTime}}</view>
-        <view class="note-tags" wx:if="{{item.tags && item.tags.length > 0}}">
-          <view wx:for="{{item.tags}}" wx:key="*this" class="tag">{{item}}</view>
-        </view>
+      <view class="note-delete" bindtap="deleteNote" data-id="{{item.id}}" data-title="{{item.title}}">
+        <text class="delete-icon">🗑️</text>
       </view>
     </view>
   </view>
 
+  <!-- 加载更多提示 -->
+  <view class="load-more" wx:if="{{hasMore && notes.length > 0}}">
+    <text class="load-more-text">上拉加载更多</text>
+  </view>
+  <view class="load-more" wx:if="{{!hasMore && notes.length > 10}}">
+    <text class="load-more-text">已显示全部 {{noteCount}} 篇笔记</text>
+  </view>
+
   <!-- 空状态 -->
-  <view wx:if="{{notes.length === 0}}" class="empty">
+  <view wx:if="{{notes.length === 0 && !searchKeyword}}" class="empty">
     <view class="empty-icon">📝</view>
     <view class="empty-text">还没有笔记，快来记录成长的瞬间吧</view>
     <view class="empty-btn" bindtap="addNote">写笔记</view>
+  </view>
+
+  <!-- 搜索无结果 -->
+  <view wx:if="{{notes.length === 0 && searchKeyword}}" class="empty">
+    <view class="empty-icon">🔍</view>
+    <view class="empty-text">没有找到匹配的笔记</view>
+    <view class="empty-btn" bindtap="clearSearch">清除搜索</view>
   </view>
 </view>

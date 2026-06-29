@@ -3,6 +3,13 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* 孩子切换器 */
+.switcher-wrapper {
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
 .section {
   margin-bottom: 16rpx;
 }

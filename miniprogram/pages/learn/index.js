@@ -1,5 +1,8 @@
 var childStorage = require('../../utils/child-storage.js')
 var cloud = require('../../utils/cloud.js')
+var auth = require('../../utils/auth.js')
+
+var app = getApp()
 
 Page({
   data: {
@@ -9,25 +12,47 @@ Page({
       { type: 'numbers', name: '数字启蒙', icon: '🔢', desc: '1-100数字学习', count: 100 },
       { type: 'english', name: '英语学习', icon: '🔤', desc: '字母和基础单词', count: 56 }
     ],
-    progress: {}
+    progress: {},
+    children: [],
+    currentChildId: ''
   },
 
   onLoad: function() {
+    this.setData({
+      children: app.globalData.children || [],
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+    })
     this.loadProgress()
   },
 
   onShow: function() {
-    var that = this
-    cloud.fetchLearnProgress().then(function() {
-      that.loadProgress()
-    }).catch(function() {
-      that.loadProgress()
+    this.setData({
+      children: app.globalData.children || [],
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
     })
 
-    // 更新 tabBar 选中状态
+    var that = this
+    var now = Date.now()
+    if (!this._lastCloudFetch || now - this._lastCloudFetch > 30000) {
+      this._lastCloudFetch = now
+      cloud.fetchLearnProgress().then(function() {
+        that.loadProgress()
+      }).catch(function() {
+        that.loadProgress()
+      })
+    }
+
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 2 })
     }
+  },
+
+  onChildChanged: function(e) {
+    var childId = e.detail.childId
+    auth.switchChild(childId)
+    app.globalData.currentChildId = childId
+    this.setData({ currentChildId: childId })
+    this.loadProgress()
   },
 
   // 加载学习进度

@@ -1,4 +1,9 @@
 <view class="container">
+  <!-- 孩子切换器 -->
+  <view class="switcher-wrapper" wx:if="{{children.length > 1}}">
+    <child-switcher children="{{children}}" currentChildId="{{currentChildId}}" bind:childChanged="onChildChanged" />
+  </view>
+
   <!-- 创意创作 -->
   <view class="section">
     <view class="section-header">

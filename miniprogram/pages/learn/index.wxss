@@ -5,6 +5,13 @@
   padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
 }
 
+/* 孩子切换器 */
+.switcher-wrapper {
+  padding: 16rpx 24rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
 /* 头部 */
 .header {
   background: linear-gradient(135deg, #42A5F5, #2196F3);

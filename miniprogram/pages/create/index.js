@@ -1,5 +1,8 @@
 var childStorage = require('../../utils/child-storage.js')
 var aiManager = require('../../utils/ai-manager.js')
+var auth = require('../../utils/auth.js')
+
+var app = getApp()
 
 Page({
   data: {
@@ -10,22 +13,39 @@ Page({
     rpsGames: 0,
     diceGames: 0,
     tetrisGames: 0,
-    bookEntries: 0
+    bookEntries: 0,
+    children: [],
+    currentChildId: ''
   },
 
   onLoad: function() {
+    this.setData({
+      children: app.globalData.children || [],
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+    })
     this.loadStats()
     this.setThemeColor()
   },
 
   onShow: function() {
+    this.setData({
+      children: app.globalData.children || [],
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+    })
     this.loadStats()
     this.setThemeColor()
 
-    // 更新 tabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 4 })
     }
+  },
+
+  onChildChanged: function(e) {
+    var childId = e.detail.childId
+    auth.switchChild(childId)
+    app.globalData.currentChildId = childId
+    this.setData({ currentChildId: childId })
+    this.loadStats()
   },
 
   setThemeColor: function() {

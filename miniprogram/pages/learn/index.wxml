@@ -1,5 +1,10 @@
 <!-- 学习乐园首页 -->
 <view class="container">
+  <!-- 孩子切换器 -->
+  <view class="switcher-wrapper" wx:if="{{children.length > 1}}">
+    <child-switcher children="{{children}}" currentChildId="{{currentChildId}}" bind:childChanged="onChildChanged" />
+  </view>
+
   <!-- 头部 -->
   <view class="header">
     <view class="header-title">📚 学习乐园</view>
