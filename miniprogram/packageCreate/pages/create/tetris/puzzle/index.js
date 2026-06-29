@@ -169,8 +169,8 @@ Page({
         if (!res[0]) return
         var canvas = res[0].node
         var ctx = canvas.getContext('2d')
-        var deviceInfo = wx.getDeviceInfo()
-        var dpr = deviceInfo.pixelRatio
+        var windowInfo = wx.getWindowInfo()
+        var dpr = windowInfo.pixelRatio || 2
         canvas.width = BOARD_WIDTH * dpr
         canvas.height = BOARD_HEIGHT * dpr
         ctx.scale(dpr, dpr)

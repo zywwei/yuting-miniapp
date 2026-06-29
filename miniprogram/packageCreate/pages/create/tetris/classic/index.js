@@ -158,7 +158,7 @@ Page({
         if (!res || !res[0] || !res[0].node) return
         var canvas = res[0].node
         var ctx = canvas.getContext('2d')
-        var dpr = sysInfo.pixelRatio
+        var dpr = windowInfo.pixelRatio || 2
         canvas.width = boardWidth * dpr
         canvas.height = boardHeight * dpr
         ctx.scale(dpr, dpr)
