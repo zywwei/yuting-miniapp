@@ -41,7 +41,8 @@ Page({
     var drawings = childStorage.get('drawings') || []
     var sales = childStorage.get('stallSales') || []
     var today = this.getTodayStr()
-    var todaySales = sales.filter(function(s) { return s.date === today })
+    var todaySalesRecords = sales.filter(function(s) { return s.date === today })
+    var todaySalesAmount = todaySalesRecords.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
 
     // 获取AI模型信息
     var modelInfo = aiManager.getCurrentModelInfo()
@@ -64,7 +65,7 @@ Page({
 
     this.setData({
       drawingCount: drawings.length,
-      todaySales: todaySales.length,
+      todaySales: todaySalesAmount,
       aiModelIcon: aiModelIcon,
       aiModelName: aiModelName,
       rpsGames: rpsRecords.length,

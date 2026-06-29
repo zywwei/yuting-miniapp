@@ -2,6 +2,7 @@ var util = require('../../utils/util.js')
 var auth = require('../../utils/auth.js')
 var childStorage = require('../../utils/child-storage.js')
 var cloud = require('../../utils/cloud.js')
+var habitConfig = require('../../utils/habit-config.js')
 
 var app = getApp()
 
@@ -49,13 +50,18 @@ Page({
       })
     }).catch(function() {})
 
-    cloud.fetchHabitRecords().then(function() {
-      return cloud.fetchHabits()
-    }).then(function() {
-      that.loadHabits()
-    }).catch(function() {
-      that.loadHabits()
-    })
+    // 节流：30秒内不重复请求云端数据
+    var now = Date.now()
+    if (!this._lastCloudFetch || now - this._lastCloudFetch > 30000) {
+      this._lastCloudFetch = now
+      cloud.fetchHabitRecords().then(function() {
+        return cloud.fetchHabits()
+      }).then(function() {
+        that.loadHabits()
+      }).catch(function() {
+        that.loadHabits()
+      })
+    }
 
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
@@ -79,6 +85,7 @@ Page({
 
   onChildChanged: function(e) {
     var childId = e.detail.childId
+    auth.switchChild(childId)
     app.globalData.currentChildId = childId
     this.setData({ currentChildId: childId })
     this.loadHabits()
@@ -92,26 +99,7 @@ Page({
     var brushingRecords = childStorage.get('brushingRecords') || []
 
     // 默认习惯
-    var defaultHabits = [
-      // 睡眠作息
-      { type: 'early_up', name: '早起', icon: '🌅', color: '#FF9800', target: 1, group: 'sleep' },
-      { type: 'early_sleep', name: '早睡', icon: '🌙', color: '#7C4DFF', target: 1, group: 'sleep' },
-      { type: 'nap', name: '午睡', icon: '😴', color: '#00BCD4', target: 1, group: 'sleep' },
-      // 健康卫生
-      { type: 'brushing', name: '刷牙', icon: '🦷', color: '#4CAF50', target: 2, group: 'health' },
-      { type: 'wash_hands', name: '洗手', icon: '🧼', color: '#03A9F4', target: 3, group: 'health' },
-      { type: 'drink', name: '喝水', icon: '💧', color: '#00BCD4', target: 8, group: 'health' },
-      // 生活自理
-      { type: 'eat_breakfast', name: '吃早餐', icon: '🥣', color: '#FF9800', target: 1, group: 'life' },
-      { type: 'eat_lunch', name: '吃午餐', icon: '🍱', color: '#4CAF50', target: 1, group: 'life' },
-      { type: 'eat_dinner', name: '吃晚餐', icon: '🍛', color: '#FF5722', target: 1, group: 'life' },
-      { type: 'tidy', name: '整理玩具', icon: '🧸', color: '#9C27B0', target: 1, group: 'life' },
-      { type: 'housework', name: '做家务', icon: '🧹', color: '#795548', target: 1, group: 'life' },
-      // 学习成长
-      { type: 'reading', name: '阅读', icon: '📖', color: '#2196F3', target: 1, group: 'learn' },
-      { type: 'exercise', name: '运动', icon: '🏃', color: '#FF5722', target: 1, group: 'learn' },
-      { type: 'polite', name: '礼貌用语', icon: '🙏', color: '#4CAF50', target: 3, group: 'learn' }
-    ]
+    var defaultHabits = habitConfig.getDefaultHabits('all')
 
     // 合并自定义习惯
     var customHabits = habits.filter(function(h) { return h.type === 'custom' })
@@ -152,7 +140,7 @@ Page({
     var otherHabits = habitsWithStatus.filter(function(h) { return h.group === 'other' })
 
     // 计算连续打卡天数
-    var streak = this.calcStreak(records)
+    var streak = util.calcBrushingStreak(records)
 
     // 计算今日完成数
     var todayDone = habitsWithStatus.filter(function(h) { return h.completed }).length
@@ -168,33 +156,6 @@ Page({
       todayDone: todayDone,
       todayTotal: todayTotal
     })
-  },
-
-  // 计算连续打卡天数
-  calcStreak: function(records) {
-    if (records.length === 0) return 0
-
-    var dateSet = {}
-    records.forEach(function(r) { dateSet[r.date] = true })
-    var dates = Object.keys(dateSet).sort().reverse()
-    var streak = 0
-
-    for (var i = 0; i < dates.length; i++) {
-      var expectedDate = new Date()
-      expectedDate.setDate(expectedDate.getDate() - i)
-      var year = expectedDate.getFullYear()
-      var month = String(expectedDate.getMonth() + 1).padStart(2, '0')
-      var day = String(expectedDate.getDate()).padStart(2, '0')
-      var expectedStr = year + '-' + month + '-' + day
-
-      if (dates[i] === expectedStr) {
-        streak++
-      } else {
-        break
-      }
-    }
-
-    return streak
   },
 
   // 跳转到习惯详情

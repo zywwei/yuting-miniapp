@@ -77,7 +77,7 @@ var CHILD_KEYS = [
 function getKey(key) {
   var childId = auth.getCurrentChildId()
   if (CHILD_KEYS.indexOf(key) < 0) return key
-  if (!childId) return key + '_default'
+  if (!childId) return key
   return key + '_' + childId
 }
 

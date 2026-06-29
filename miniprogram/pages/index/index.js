@@ -3,6 +3,7 @@ var learnData = require('../../utils/learn-data.js')
 var achievements = require('../../utils/achievements.js')
 var auth = require('../../utils/auth.js')
 var childStorage = require('../../utils/child-storage.js')
+var habitConfig = require('../../utils/habit-config.js')
 
 var app = getApp()
 
@@ -48,11 +49,15 @@ Page({
     // 每次显示时刷新数据
     this.updateFromApp()
 
-    // 刷新家庭信息（包括小孩头像等），完成后更新UI
+    // 节流：30秒内不重复请求云端数据
     var that = this
-    app.refreshFamilyInfo().then(function() {
-      that.updateFromApp()
-    }).catch(function() {})
+    var now = Date.now()
+    if (!this._lastCloudFetch || now - this._lastCloudFetch > 30000) {
+      this._lastCloudFetch = now
+      app.refreshFamilyInfo().then(function() {
+        that.updateFromApp()
+      }).catch(function() {})
+    }
 
     this.setGreeting()
     this.loadTodayHabits()
@@ -212,16 +217,7 @@ Page({
     var brushingRecords = childStorage.get('brushingRecords') || []
 
     // 默认习惯（只显示常用的习惯在首页）
-    var defaultHabits = [
-      { type: 'brushing', name: '刷牙', icon: '🦷', target: 2 },
-      { type: 'early_up', name: '早起', icon: '🌅', target: 1 },
-      { type: 'early_sleep', name: '早睡', icon: '🌙', target: 1 },
-      { type: 'drink', name: '喝水', icon: '💧', target: 8 },
-      { type: 'wash_hands', name: '洗手', icon: '🧼', target: 3 },
-      { type: 'eat_breakfast', name: '吃早餐', icon: '🥣', target: 1 },
-      { type: 'eat_lunch', name: '吃午餐', icon: '🍱', target: 1 },
-      { type: 'eat_dinner', name: '吃晚餐', icon: '🍛', target: 1 }
-    ]
+    var defaultHabits = habitConfig.getDefaultHabits('home')
 
     // 合并自定义习惯
     var customHabits = habits.filter(function(h) { return h.type === 'custom' })
@@ -376,32 +372,5 @@ Page({
   // 跳转到家长中心
   goParent: function() {
     wx.navigateTo({ url: '/pages/parent/index' })
-  },
-
-  // 计算连续天数
-  calcStreak: function(records) {
-    if (records.length === 0) return 0
-
-    var dateSet = {}
-    records.forEach(function(r) { dateSet[r.date] = true })
-    var dates = Object.keys(dateSet).sort().reverse()
-    var streak = 0
-
-    for (var i = 0; i < dates.length; i++) {
-      var expectedDate = new Date()
-      expectedDate.setDate(expectedDate.getDate() - i)
-      var year = expectedDate.getFullYear()
-      var month = String(expectedDate.getMonth() + 1).padStart(2, '0')
-      var day = String(expectedDate.getDate()).padStart(2, '0')
-      var expectedStr = year + '-' + month + '-' + day
-
-      if (dates[i] === expectedStr) {
-        streak++
-      } else {
-        break
-      }
-    }
-
-    return streak
   }
 })

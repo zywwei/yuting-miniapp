@@ -14,11 +14,16 @@ Page({
 
   onShow: function() {
     var that = this
-    cloud.fetchNotes().then(function() {
-      that.loadNotes()
-    }).catch(function() {
-      that.loadNotes()
-    })
+    // 节流：30秒内不重复请求云端数据
+    var now = Date.now()
+    if (!this._lastCloudFetch || now - this._lastCloudFetch > 30000) {
+      this._lastCloudFetch = now
+      cloud.fetchNotes().then(function() {
+        that.loadNotes()
+      }).catch(function() {
+        that.loadNotes()
+      })
+    }
 
     // 更新 tabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {

@@ -438,6 +438,7 @@ module.exports = {
   getBrushingRecords,
   deleteBrushingRecord,
   getBrushingStats,
+  calcBrushingStreak,
   // 主线故事系统
   getStoryProgress,
   saveStoryProgress,

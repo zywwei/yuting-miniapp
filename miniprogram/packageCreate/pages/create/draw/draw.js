@@ -140,7 +140,7 @@ Page({
     }
 
     this.setData({
-      statusBarHeight: sysInfo.statusBarHeight || 20,
+      statusBarHeight: windowInfo.statusBarHeight || 20,
       capsuleRight: capsuleRight,
       colors: app.globalData.colors,
       brushSizes: app.globalData.brushSizes,

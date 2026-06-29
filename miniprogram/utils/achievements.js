@@ -10,7 +10,7 @@ var habitManager = require('./habit-manager.js')
 var childStorage = require('./child-storage.js')
 
 // 成就总数常量（用于 legend 成就的 maxProgress）
-var TOTAL_ACHIEVEMENTS = 80
+var TOTAL_ACHIEVEMENTS
 
 // 稀有度定义
 var RARITY = {
@@ -298,6 +298,8 @@ var ACHIEVEMENTS = [
     progress: function(data) { return Math.min(data.unlockedCount, TOTAL_ACHIEVEMENTS) }, maxProgress: TOTAL_ACHIEVEMENTS }
 ]
 
+TOTAL_ACHIEVEMENTS = ACHIEVEMENTS.length
+
 // ===== 数据采集 =====
 
 // 计算习惯打卡相关数据
@@ -316,7 +318,7 @@ var getHabitExtraData = function() {
     typeMap[r.type].push(r)
   })
   Object.keys(typeMap).forEach(function(type) {
-    var streak = calcStreakFromRecords(typeMap[type])
+    var streak = util.calcBrushingStreak(typeMap[type])
     if (streak > maxStreak) maxStreak = streak
   })
 
@@ -354,29 +356,6 @@ var getHabitExtraData = function() {
     hasNightOwl: hasNightOwl,
     weekendWarrior: weekendWarrior
   }
-}
-
-// 从记录计算连续天数
-var calcStreakFromRecords = function(records) {
-  if (records.length === 0) return 0
-  var dateSet = {}
-  records.forEach(function(r) { dateSet[r.date] = true })
-  var dates = Object.keys(dateSet).sort().reverse()
-  var streak = 0
-  for (var i = 0; i < dates.length; i++) {
-    var expectedDate = new Date()
-    expectedDate.setDate(expectedDate.getDate() - i)
-    var year = expectedDate.getFullYear()
-    var month = String(expectedDate.getMonth() + 1).padStart(2, '0')
-    var day = String(expectedDate.getDate()).padStart(2, '0')
-    var expectedStr = year + '-' + month + '-' + day
-    if (dates[i] === expectedStr) {
-      streak++
-    } else {
-      break
-    }
-  }
-  return streak
 }
 
 // 获取故事系统数据（累计击败敌人数跨轮次计算）

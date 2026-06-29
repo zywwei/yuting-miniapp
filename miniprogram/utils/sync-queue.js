@@ -40,17 +40,18 @@ function enqueue(operation) {
   
   // 队列长度检查
   if (queue.length >= MAX_QUEUE_SIZE) {
-    // 丢弃最旧的低优先级操作（保留删除操作，丢弃更新操作）
-    var removeIndex = -1
+    // 丢弃最旧的低优先级操作（保留删除操作，按时间戳找最旧的非删除操作）
+    var oldestIdx = -1
+    var oldestTs = Infinity
     for (var i = 0; i < queue.length; i++) {
-      if (queue[i].action !== 'remove') {
-        removeIndex = i
-        break
+      if (queue[i].action !== 'remove' && queue[i].timestamp < oldestTs) {
+        oldestTs = queue[i].timestamp
+        oldestIdx = i
       }
     }
-    if (removeIndex >= 0) {
-      var removed = queue.splice(removeIndex, 1)[0]
-      console.warn('同步队列已满，丢弃旧操作:', removed.id, removed.action)
+    if (oldestIdx >= 0) {
+      var removed = queue.splice(oldestIdx, 1)[0]
+      console.warn('同步队列已满，丢弃最旧操作:', removed.id, removed.action)
     } else {
       console.warn('同步队列已满，所有操作都是删除操作，无法丢弃')
     }
