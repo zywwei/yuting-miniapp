@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "学习乐园",
-  "navigationBarBackgroundColor": "#2196F3"
+  "navigationBarBackgroundColor": "#2196F3",
+  "usingComponents": {
+    "child-switcher": "/components/child-switcher/child-switcher"
+  }
 }

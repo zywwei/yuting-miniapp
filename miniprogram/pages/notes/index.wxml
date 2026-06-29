@@ -62,7 +62,7 @@
   <view class="load-more" wx:if="{{hasMore && notes.length > 0}}">
     <text class="load-more-text">上拉加载更多</text>
   </view>
-  <view class="load-more" wx:if="{{!hasMore && notes.length > 10}}">
+  <view class="load-more" wx:if="{{!hasMore && notes.length > 0}}">
     <text class="load-more-text">已显示全部 {{noteCount}} 篇笔记</text>
   </view>
 

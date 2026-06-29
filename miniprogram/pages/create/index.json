@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "奇趣屋",
-  "navigationBarBackgroundColor": "#FF9AAB"
+  "navigationBarBackgroundColor": "#FF9AAB",
+  "usingComponents": {
+    "child-switcher": "/components/child-switcher/child-switcher"
+  }
 }

@@ -54,7 +54,7 @@ Page({
     var childId = e.detail.childId
     auth.switchChild(childId)
     app.globalData.currentChildId = childId
-    this.setData({ currentChildId: childId, currentPage: 1, searchKeyword: '' })
+    this.setData({ currentChildId: childId, currentPage: 1, searchKeyword: '', showSearch: false })
     this.loadNotes()
   },
 

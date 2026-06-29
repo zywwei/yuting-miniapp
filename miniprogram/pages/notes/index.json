@@ -2,5 +2,8 @@
   "navigationBarTitleText": "成长笔记",
   "navigationBarBackgroundColor": "#43A047",
   "enablePullDownRefresh": true,
-  "backgroundTextStyle": "dark"
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "child-switcher": "/components/child-switcher/child-switcher"
+  }
 }
