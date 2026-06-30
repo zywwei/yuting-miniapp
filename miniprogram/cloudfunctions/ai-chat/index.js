@@ -85,9 +85,9 @@ exports.main = async (event, context) => {
     case 'saveConfig':
       return await saveConfig(member, event.childId, event.config)
     case 'chat':
-      return await chat(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID)
+      return await chat(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID, event.extraContext, event.skillPrompt)
     case 'chatStream':
-      return await chatStream(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID)
+      return await chatStream(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID, event.extraContext, event.skillPrompt)
     case 'getThinkingProgress':
       return await getThinkingProgress(event.taskId)
     case 'getUserPreference':
@@ -225,7 +225,7 @@ async function testConfig(member, childId, model, apiKey, secretKey) {
 }
 
 // 验证并准备聊天参数（chat和chatStream共用）
-async function validateAndPrepare(member, childId, sessionId, message, model, imageFileID) {
+async function validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt) {
   // 1. 输入验证
   if (!message && !imageFileID) {
     return { code: -5, msg: '消息内容不能为空' }
@@ -261,8 +261,8 @@ async function validateAndPrepare(member, childId, sessionId, message, model, im
   const historyResult = await getHistory(member, childId, sessionId, 1, 20)
   const history = historyResult.code === 0 ? historyResult.data.list : []
 
-  // 5. 构建消息列表（支持图片）
-  const messages = await buildMessages(config, history, message, imageFileID)
+  // 5. 构建消息列表（支持图片、额外上下文、技能提示词）
+  const messages = await buildMessages(config, history, message, imageFileID, extraContext, skillPrompt)
 
   // 6. 确定使用的模型
   const aiModel = model || config.currentModel
@@ -274,10 +274,10 @@ async function validateAndPrepare(member, childId, sessionId, message, model, im
 }
 
 // 发送消息并获取AI回复
-async function chat(member, childId, sessionId, message, model, imageFileID) {
+async function chat(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt) {
   try {
     // 1. 验证并准备参数
-    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID)
+    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt)
     if (prepared.code !== 0) return prepared
 
     const { config, modelConfig, messages, aiModel } = prepared.data
@@ -309,8 +309,16 @@ async function chat(member, childId, sessionId, message, model, imageFileID) {
 }
 
 // 构建消息列表
-async function buildMessages(config, history, newMessage, imageFileID) {
+async function buildMessages(config, history, newMessage, imageFileID, extraContext, skillPrompt) {
   const messages = []
+
+  // 调试日志
+  console.log('buildMessages params:', {
+    hasExtraContext: !!extraContext,
+    extraContextLength: extraContext ? extraContext.length : 0,
+    hasSkillPrompt: !!skillPrompt,
+    skillPromptLength: skillPrompt ? skillPrompt.length : 0
+  })
 
   // 系统提示词
   let systemPrompt = config.systemPrompt || ''
@@ -326,6 +334,16 @@ async function buildMessages(config, history, newMessage, imageFileID) {
       'math': '你是一位数学辅导老师，擅长用直观的方式解释数学概念。请根据孩子的学习进度，用生活中的例子来解释数学问题。解题过程要详细清晰，帮助孩子理解解题思路，培养数学思维。'
     }
     systemPrompt = templates[config.promptTemplate] || templates['default']
+  }
+  
+  // 如果有技能提示词，附加到系统提示词
+  if (skillPrompt) {
+    systemPrompt = systemPrompt + '\n\n【当前技能指令】\n' + skillPrompt
+  }
+  
+  // 如果有额外上下文（用户数据），附加到系统提示词
+  if (extraContext) {
+    systemPrompt = systemPrompt + '\n\n' + extraContext
   }
   
   if (systemPrompt) {
@@ -404,10 +422,10 @@ async function saveMessage(member, childId, sessionId, role, content, model, usa
 }
 
 // 流式聊天 - 支持思考过程实时展示
-async function chatStream(member, childId, sessionId, message, model, imageFileID) {
+async function chatStream(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt) {
   try {
     // 1. 验证并准备参数
-    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID)
+    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt)
     if (prepared.code !== 0) return prepared
 
     const { config, modelConfig, messages, aiModel } = prepared.data

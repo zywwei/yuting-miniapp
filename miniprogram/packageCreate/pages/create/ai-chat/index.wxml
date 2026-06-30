@@ -253,8 +253,67 @@
       </scroll-view>
     </view>
     
+    <!-- 技能激活状态栏 -->
+    <view class="skill-bar" wx:if="{{showSkillBar && activeSkill}}" bindtap="deactivateSkill">
+      <view class="skill-bar-content">
+        <text class="skill-bar-icon">{{activeSkill.icon}}</text>
+        <text class="skill-bar-name">{{activeSkill.name}}</text>
+        <text class="skill-bar-hint">点击取消</text>
+      </view>
+    </view>
+    
+    <!-- 数据上下文浮窗 -->
+    <view class="context-banner" wx:if="{{showContextBanner}}" catchtap="noop">
+      <view class="context-banner-header">
+        <text class="context-banner-icon">📊</text>
+        <text class="context-banner-title">检测到相关数据</text>
+        <view class="context-banner-close" bindtap="dismissBanner">✕</view>
+      </view>
+      <view class="context-banner-items">
+        <view wx:for="{{contextBannerItems}}" wx:key="type" class="context-banner-item">
+          <text class="context-item-label">{{item.label}}</text>
+          <text class="context-item-detail">{{item.detail}}</text>
+        </view>
+      </view>
+      <view class="context-banner-actions">
+        <view class="context-btn context-btn-skip" bindtap="skipContext">跳过</view>
+        <view class="context-btn context-btn-send" bindtap="confirmSendContext">发送数据</view>
+      </view>
+    </view>
+    
+    <!-- 技能搜索结果浮窗 -->
+    <view class="skill-search-panel" wx:if="{{showSkillSearch}}">
+      <view class="skill-search-header">
+        <text class="skill-search-title">搜索技能: {{skillSearchQuery}}</text>
+        <view class="skill-search-close" bindtap="closeSkillSearch">✕</view>
+      </view>
+      <scroll-view scroll-y class="skill-search-list">
+        <view wx:if="{{skillSearchResults.length === 0}}" class="skill-search-empty">
+          搜索中...
+        </view>
+        <view 
+          wx:for="{{skillSearchResults}}" 
+          wx:key="id" 
+          class="skill-search-item"
+          bindtap="installSkill"
+          data-skill="{{item}}"
+        >
+          <view class="skill-search-item-icon">{{item.icon}}</view>
+          <view class="skill-search-item-info">
+            <view class="skill-search-item-name">{{item.name}}</view>
+            <view class="skill-search-item-desc">{{item.description}}</view>
+          </view>
+          <view class="skill-search-item-install">安装</view>
+        </view>
+      </scroll-view>
+    </view>
+    
     <!-- 输入区域 -->
     <view class="input-area">
+      <!-- 技能按钮 -->
+      <view class="action-btn" bindtap="showSkillList">
+        <text>⚡</text>
+      </view>
       <!-- 流式思考开关 -->
       <view class="action-btn {{streamThinkingEnabled ? 'active' : ''}}" bindtap="toggleStreamThinking">
         <text>🧠</text>
@@ -406,6 +465,58 @@
         <view class="session-empty" wx:if="{{filteredSessions.length === 0}}">
           <text wx:if="{{searchKeyword}}">未找到匹配的会话</text>
           <text wx:else>暂无历史会话</text>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- 技能列表弹窗 -->
+  <view class="skill-modal" wx:if="{{showSkillModal}}" bindtap="hideSkillList">
+    <view class="skill-modal-content" catchtap="stopPropagation">
+      <view class="skill-modal-header">
+        <text class="skill-modal-title">技能管理</text>
+        <view class="skill-modal-close" bindtap="hideSkillList">✕</view>
+      </view>
+      
+      <!-- 操作按钮 -->
+      <view class="skill-modal-actions">
+        <view class="skill-action-btn" bindtap="importSkill">
+          <text>📁 导入技能</text>
+        </view>
+      </view>
+      
+      <!-- 技能列表 -->
+      <scroll-view scroll-y class="skill-list">
+        <view 
+          wx:for="{{skillList}}" 
+          wx:key="id"
+          class="skill-item {{activeSkill.id === item.id ? 'active' : ''}}"
+        >
+          <view class="skill-item-main" bindtap="selectSkill" data-id="{{item.id}}">
+            <view class="skill-item-icon">{{item.icon}}</view>
+            <view class="skill-item-info">
+              <view class="skill-item-name">
+                {{item.name}}
+                <text class="skill-source-tag" style="background: {{item.source === 'builtin' ? '#4CAF50' : item.source === 'custom' ? '#2196F3' : item.source === 'network' ? '#FF9800' : '#9C27B0'}}">
+                  {{item.source === 'builtin' ? '内置' : item.source === 'custom' ? '自定义' : item.source === 'network' ? '网络' : '导入'}}
+                </text>
+              </view>
+              <view class="skill-item-desc">{{item.description}}</view>
+            </view>
+          </view>
+          <view class="skill-item-actions">
+            <view 
+              wx:if="{{item.source !== 'builtin'}}"
+              class="skill-delete-btn" 
+              catchtap="deleteSkill" 
+              data-id="{{item.id}}"
+            >🗑️</view>
+          </view>
+        </view>
+        
+        <!-- 空状态 -->
+        <view class="skill-empty" wx:if="{{skillList.length === 0}}">
+          <text>暂无技能</text>
         </view>
       </scroll-view>
     </view>

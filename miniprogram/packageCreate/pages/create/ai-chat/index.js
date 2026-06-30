@@ -1,5 +1,7 @@
 var aiManager = getApp().globalData.aiManager
 var childStorage = getApp().globalData.childStorage
+var contextDetector = require('../../../../utils/ai-context-detector')
+var skillsManager = require('../../../../utils/ai-skills')
 
 // 常用表情列表
 var EMOJI_LIST = [
@@ -68,7 +70,22 @@ Page({
     estimatedCost: '0.0000',
     costModelName: '',
     showContextStats: false,
-    modelPrices: null
+    modelPrices: null,
+    // 数据上下文浮窗
+    showContextBanner: false,
+    contextBannerItems: [],
+    contextDataTypes: [],
+    contextBannerTimer: null,
+    pendingExtraContext: null,
+    // Skills相关
+    activeSkill: null,
+    showSkillBar: false,
+    showSkillSearch: false,
+    skillSearchResults: [],
+    skillSearchQuery: '',
+    // 技能列表
+    skillList: [],
+    showSkillModal: false
   },
 
   onLoad: function() {
@@ -77,6 +94,8 @@ Page({
     // 读取流式思考开关状态
     var streamEnabled = childStorage.get('streamThinkingEnabled') || false
     this.setData({ streamThinkingEnabled: streamEnabled })
+    // 恢复激活的技能状态
+    this.restoreActiveSkill()
   },
 
   onShow: function() {
@@ -565,15 +584,292 @@ Page({
     })
   },
 
-  // 发送消息
-  sendMessage: function(options) {
+  // ========== Skills相关方法 ==========
+
+  // 恢复激活的技能状态
+  restoreActiveSkill: function() {
+    var activeSkill = skillsManager.getActiveSkill()
+    if (activeSkill) {
+      this.setData({
+        activeSkill: activeSkill,
+        showSkillBar: true
+      })
+    }
+  },
+
+  // 检测技能触发
+  detectAndActivateSkill: function(message) {
+    var skill = skillsManager.detectSkill(message)
+    if (skill) {
+      this.activateSkill(skill)
+      return true
+    }
+    return false
+  },
+
+  // 激活技能
+  activateSkill: function(skill) {
+    skillsManager.activateSkill(skill.id)
+    this.setData({
+      activeSkill: skill,
+      showSkillBar: true
+    })
+    wx.showToast({ title: '已激活: ' + skill.name, icon: 'success' })
+  },
+
+  // 取消激活技能
+  deactivateSkill: function() {
+    skillsManager.deactivateSkill()
+    this.setData({
+      activeSkill: null,
+      showSkillBar: false
+    })
+    wx.showToast({ title: '已取消技能', icon: 'none' })
+  },
+
+  // 检测技能查找意图
+  detectSkillSearch: function(message) {
+    var query = skillsManager.detectSkillSearchIntent(message)
+    if (query) {
+      this.searchAndShowSkills(query)
+      return true
+    }
+    return false
+  },
+
+  // 搜索并显示技能
+  searchAndShowSkills: function(query) {
     var that = this
+    that.setData({ showSkillSearch: true, skillSearchQuery: query })
+    
+    skillsManager.searchSkillsFromNetwork(query).then(function(results) {
+      that.setData({ skillSearchResults: results })
+    }).catch(function(err) {
+      console.error('搜索技能失败:', err)
+      wx.showToast({ title: '搜索失败', icon: 'none' })
+      that.setData({ showSkillSearch: false })
+    })
+  },
+
+  // 安装技能
+  installSkill: function(e) {
+    var skill = e.currentTarget.dataset.skill
+    if (!skill) return
+    
+    skillsManager.saveSkill(skill)
+    this.setData({ showSkillSearch: false })
+    wx.showToast({ title: '已安装: ' + skill.name, icon: 'success' })
+  },
+
+  // 关闭技能搜索
+  closeSkillSearch: function() {
+    this.setData({ showSkillSearch: false, skillSearchResults: [] })
+  },
+
+  // 显示技能列表
+  showSkillList: function() {
+    var skillList = skillsManager.getAllSkills()
+    this.setData({ skillList: skillList, showSkillModal: true })
+  },
+
+  // 隐藏技能列表
+  hideSkillList: function() {
+    this.setData({ showSkillModal: false })
+  },
+
+  // 选择技能
+  selectSkill: function(e) {
+    var skillId = e.currentTarget.dataset.id
+    var skill = skillsManager.getSkillById(skillId)
+    if (skill) {
+      this.activateSkill(skill)
+      this.hideSkillList()
+    }
+  },
+
+  // 切换技能启用状态
+  toggleSkillEnabled: function(e) {
+    var skillId = e.currentTarget.dataset.id
+    var newState = skillsManager.toggleSkill(skillId)
+    var skillList = skillsManager.getAllSkills()
+    this.setData({ skillList: skillList })
+    wx.showToast({ title: newState ? '已启用' : '已禁用', icon: 'none' })
+  },
+
+  // 删除技能
+  deleteSkill: function(e) {
+    var skillId = e.currentTarget.dataset.id
+    var that = this
+    wx.showModal({
+      title: '确认删除',
+      content: '确定要删除这个技能吗？',
+      success: function(res) {
+        if (res.confirm) {
+          skillsManager.deleteSkill(skillId)
+          var skillList = skillsManager.getAllSkills()
+          that.setData({ skillList: skillList })
+          wx.showToast({ title: '已删除', icon: 'success' })
+        }
+      }
+    })
+  },
+
+  // 导入技能
+  importSkill: function() {
+    var that = this
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['.json'],
+      success: function(res) {
+        var filePath = res.tempFiles[0].path
+        var fs = wx.getFileSystemManager()
+        fs.readFile({
+          filePath: filePath,
+          encoding: 'utf8',
+          success: function(data) {
+            try {
+              var imported = skillsManager.importSkillsFromJson(data.data)
+              wx.showToast({ title: '已导入' + imported.length + '个技能', icon: 'success' })
+              var skillList = skillsManager.getAllSkills()
+              that.setData({ skillList: skillList })
+            } catch (err) {
+              wx.showToast({ title: '导入失败: ' + err.message, icon: 'none' })
+            }
+          }
+        })
+      }
+    })
+  },
+
+  // ========== 数据上下文浮窗方法 ==========
+
+  // 检测消息是否涉及用户数据
+  detectAndShowBanner: function(message) {
+    var that = this
+    var types = contextDetector.detectDataTypes(message, this.data.activeSkill)
+    if (types.length === 0) return
+
+    // 清除之前的定时器
+    if (this.data.contextBannerTimer) {
+      clearTimeout(this.data.contextBannerTimer)
+    }
+
+    contextDetector.getDataSummary(types).then(function(result) {
+      if (!result.hasData) return
+      that.setData({
+        showContextBanner: true,
+        contextBannerItems: result.items,
+        contextDataTypes: types
+      })
+      // 10秒后自动消失
+      var timer = setTimeout(function() {
+        that.dismissBanner()
+      }, 10000)
+      that.setData({ contextBannerTimer: timer })
+    })
+  },
+
+  // 用户点击"发送数据"
+  confirmSendContext: function() {
+    var that = this
+    var types = this.data.contextDataTypes
+    this.dismissBanner()
+    wx.showLoading({ title: '获取数据中...' })
+    contextDetector.buildContextText(types).then(function(text) {
+      wx.hideLoading()
+      that.setData({ pendingExtraContext: text })
+      wx.showToast({ title: '数据已附加', icon: 'success', duration: 1000 })
+      // 使用暂存的选项发送消息
+      setTimeout(function() {
+        that.doSendMessage()
+      }, 500)
+    }).catch(function(err) {
+      wx.hideLoading()
+      console.error('获取数据失败:', err)
+      wx.showToast({ title: '数据获取失败', icon: 'none' })
+      // 即使数据获取失败，也发送消息
+      that.doSendMessage()
+    })
+  },
+
+  // 用户点击"跳过"
+  skipContext: function() {
+    this.setData({ pendingExtraContext: null })
+    this.dismissBanner()
+    // 使用暂存的选项发送消息（不带数据）
+    this.doSendMessage()
+  },
+
+  // 关闭浮窗
+  dismissBanner: function() {
+    if (this.data.contextBannerTimer) {
+      clearTimeout(this.data.contextBannerTimer)
+    }
+    this.setData({
+      showContextBanner: false,
+      contextBannerItems: [],
+      contextDataTypes: [],
+      contextBannerTimer: null
+    })
+  },
+
+  // 发送消息（检测入口）
+  sendMessage: function(options) {
     var message = options && options.content ? options.content : this.data.inputValue.trim()
     var image = options && options.image ? options.image : this.data.selectedImage
-    var isRetry = options && options.isRetry
     
     if ((!message && !image) || this.data.loading) return
     
+    // 如果浮窗正在显示，先关闭
+    if (this.data.showContextBanner) {
+      this.dismissBanner()
+    }
+    
+    // 优先级1: 检测技能触发
+    if (message && this.detectAndActivateSkill(message)) {
+      // 技能激活后，提取消息中除技能名外的内容
+      var cleanMessage = message.replace(/^\/\S+\s*/, '').trim()
+      if (cleanMessage) {
+        this.setData({ inputValue: cleanMessage })
+        // 继续发送剩余内容
+      } else {
+        // 只是激活技能，不发送消息
+        return
+      }
+    }
+    
+    // 优先级2: 检测技能查找意图
+    if (message && this.detectSkillSearch(message)) {
+      return // 显示搜索结果，不发送消息
+    }
+    
+    // 优先级3: 检测数据关键词（仅在没有待处理的extraContext时）
+    if (message && !this.data.pendingExtraContext) {
+      var types = contextDetector.detectDataTypes(message, this.data.activeSkill)
+      if (types.length > 0) {
+        // 暂存消息内容和选项，显示浮窗
+        this._pendingOptions = options || { content: message, image: image }
+        this.detectAndShowBanner(message)
+        return
+      }
+    }
+    
+    // 正常发送
+    this.doSendMessage(options)
+  },
+
+  // 实际发送消息
+  doSendMessage: function(options) {
+    var that = this
+    var opts = options || this._pendingOptions || {}
+    var message = opts.content ? opts.content : this.data.inputValue.trim()
+    var image = opts.image ? opts.image : this.data.selectedImage
+    var isRetry = opts.isRetry
+    this._pendingOptions = null
+
+    if ((!message && !image) || this.data.loading) return
+
     // 添加用户消息到列表（重试时不重复添加）
     if (!isRetry) {
       messageIdCounter++
@@ -586,22 +882,17 @@ Page({
         showThinking: false,
         timeStr: this.formatTime(new Date())
       }
-      
+
       this.setData({
         messages: this.data.messages.concat(userMsg),
         inputValue: '',
         selectedImage: ''
       })
     }
-    
-    this.setData({
-      loading: true,
-      loadingText: '思考中...'
-    })
-    
+
+    this.setData({ loading: true, loadingText: '思考中...' })
     this.scrollToBottom()
-    
-    // 如果有图片，先上传再发送（本地路径需要上传，云文件ID直接发送）
+
     if (image && image.indexOf('cloud://') === -1) {
       this.uploadAndSend(message, image)
     } else {
@@ -629,12 +920,26 @@ Page({
     var that = this
     var modelInfo = aiManager.getCurrentModelInfo()
     var model = modelInfo ? modelInfo.key : null
+    var extraContext = this.data.pendingExtraContext
+    var skillPrompt = this.data.activeSkill ? this.data.activeSkill.prompt : null
+    
+    // 调试日志
+    console.log('sendToAI:', {
+      message: message ? message.substring(0, 50) : null,
+      hasExtraContext: !!extraContext,
+      extraContextLength: extraContext ? extraContext.length : 0,
+      hasSkillPrompt: !!skillPrompt,
+      activeSkill: this.data.activeSkill ? this.data.activeSkill.name : null
+    })
+    
+    // 用完即清
+    this.setData({ pendingExtraContext: null })
     
     // 根据开关选择流式或普通模式
     if (this.data.streamThinkingEnabled) {
-      this.sendToAIStream(message, model, imageFileID)
+      this.sendToAIStream(message, model, imageFileID, extraContext, skillPrompt)
     } else {
-      aiManager.sendMessage(message, model, imageFileID).then(function(result) {
+      aiManager.sendMessage(message, model, imageFileID, extraContext, skillPrompt).then(function(result) {
         messageIdCounter++
         // 检查AI回复是否包含图片URL
         var aiImage = null
@@ -681,10 +986,10 @@ Page({
   },
 
   // 流式发送到AI
-  sendToAIStream: function(message, model, imageFileID) {
+  sendToAIStream: function(message, model, imageFileID, extraContext, skillPrompt) {
     var that = this
     
-    aiManager.sendMessageStream(message, model, imageFileID).then(function(data) {
+    aiManager.sendMessageStream(message, model, imageFileID, extraContext, skillPrompt).then(function(data) {
       that.setData({
         currentTaskId: data.taskId,
         currentThinkingContent: ''
@@ -1187,6 +1492,11 @@ Page({
   // 阻止冒泡
   stopPropagation: function() {
     // 空函数，用于阻止事件冒泡
+  },
+
+  // 空操作（用于catchtap阻止冒泡）
+  noop: function() {
+    // 空函数
   },
 
   // 切换会话

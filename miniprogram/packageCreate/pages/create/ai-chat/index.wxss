@@ -1118,3 +1118,345 @@
   color: #999;
   font-size: 28rpx;
 }
+
+/* ========== 动画关键帧 ========== */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* ========== 技能激活状态栏 ========== */
+.skill-bar {
+  margin: 0 20rpx 12rpx;
+  background: linear-gradient(135deg, #FF9AAB 0%, #FF6B8A 100%);
+  border-radius: 16rpx;
+  padding: 16rpx 24rpx;
+  animation: slideIn 0.3s ease;
+}
+
+.skill-bar-content {
+  display: flex;
+  align-items: center;
+}
+
+.skill-bar-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.skill-bar-name {
+  flex: 1;
+  font-size: 28rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+.skill-bar-hint {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.8);
+}
+
+/* ========== 数据上下文浮窗 ========== */
+.context-banner {
+  margin: 0 20rpx 12rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20rpx;
+  padding: 24rpx;
+  color: #fff;
+  animation: bannerSlideIn 0.3s ease;
+}
+
+@keyframes bannerSlideIn {
+  from { opacity: 0; transform: translateY(20rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.context-banner-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.context-banner-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.context-banner-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  flex: 1;
+}
+
+.context-banner-close {
+  font-size: 28rpx;
+  padding: 8rpx;
+  opacity: 0.8;
+}
+
+.context-banner-items {
+  margin-bottom: 20rpx;
+}
+
+.context-banner-item {
+  display: flex;
+  align-items: center;
+  padding: 8rpx 0;
+  font-size: 24rpx;
+}
+
+.context-item-label {
+  background: rgba(255,255,255,0.2);
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  margin-right: 16rpx;
+  font-size: 22rpx;
+}
+
+.context-item-detail {
+  opacity: 0.9;
+  font-size: 22rpx;
+}
+
+.context-banner-actions {
+  display: flex;
+  gap: 16rpx;
+  justify-content: flex-end;
+}
+
+.context-btn {
+  padding: 12rpx 32rpx;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.context-btn-skip {
+  background: rgba(255,255,255,0.2);
+}
+
+.context-btn-send {
+  background: #fff;
+  color: #764ba2;
+}
+
+/* ========== 技能搜索结果浮窗 ========== */
+.skill-search-panel {
+  margin: 0 20rpx 12rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.1);
+  overflow: hidden;
+  animation: slideIn 0.3s ease;
+}
+
+.skill-search-header {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.skill-search-title {
+  flex: 1;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+}
+
+.skill-search-close {
+  font-size: 28rpx;
+  padding: 8rpx;
+  color: #999;
+}
+
+.skill-search-list {
+  max-height: 400rpx;
+}
+
+.skill-search-empty {
+  text-align: center;
+  padding: 40rpx;
+  color: #999;
+  font-size: 26rpx;
+}
+
+.skill-search-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.skill-search-item:active {
+  background: #f9f9f9;
+}
+
+.skill-search-item-icon {
+  font-size: 40rpx;
+  margin-right: 20rpx;
+}
+
+.skill-search-item-info {
+  flex: 1;
+}
+
+.skill-search-item-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.skill-search-item-desc {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.skill-search-item-install {
+  background: #FF6B8A;
+  color: #fff;
+  padding: 10rpx 24rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+
+/* ========== 技能列表弹窗 ========== */
+.skill-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.3s ease;
+}
+
+.skill-modal-content {
+  width: 100%;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+.skill-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.skill-modal-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.skill-modal-close {
+  font-size: 32rpx;
+  color: #999;
+  padding: 8rpx;
+}
+
+.skill-modal-actions {
+  padding: 16rpx 24rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.skill-action-btn {
+  display: inline-block;
+  background: #f5f5f5;
+  padding: 12rpx 24rpx;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  color: #333;
+}
+
+.skill-action-btn:active {
+  background: #e8e8e8;
+}
+
+.skill-list {
+  max-height: 60vh;
+}
+
+.skill-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.skill-item.active {
+  background: #FFF5F5;
+}
+
+.skill-item-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.skill-item-icon {
+  font-size: 40rpx;
+  margin-right: 20rpx;
+}
+
+.skill-item-info {
+  flex: 1;
+}
+
+.skill-item-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8rpx;
+  display: flex;
+  align-items: center;
+}
+
+.skill-source-tag {
+  font-size: 20rpx;
+  color: #fff;
+  padding: 2rpx 12rpx;
+  border-radius: 10rpx;
+  margin-left: 12rpx;
+  font-weight: normal;
+}
+
+.skill-item-desc {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.skill-item-actions {
+  margin-left: 16rpx;
+}
+
+.skill-delete-btn {
+  font-size: 28rpx;
+  padding: 10rpx;
+}
+
+.skill-empty {
+  text-align: center;
+  padding: 60rpx;
+  color: #999;
+  font-size: 28rpx;
+}

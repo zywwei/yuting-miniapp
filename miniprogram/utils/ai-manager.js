@@ -472,8 +472,10 @@ function saveConfig(config) {
  * @param {string} message - 文本消息
  * @param {string} model - 模型名称（可选）
  * @param {string} imageFileID - 图片文件ID（可选，支持多模态）
+ * @param {string} extraContext - 额外上下文（可选，数据注入）
+ * @param {string} skillPrompt - 技能提示词（可选，技能激活时使用）
  */
-function sendMessage(message, model, imageFileID) {
+function sendMessage(message, model, imageFileID, extraContext, skillPrompt) {
   return new Promise(function(resolve, reject) {
     var sessionId = getCurrentSessionId()
     
@@ -488,6 +490,16 @@ function sendMessage(message, model, imageFileID) {
     // 如果有图片，添加到请求数据
     if (imageFileID) {
       data.imageFileID = imageFileID
+    }
+    
+    // 如果有额外上下文，添加到请求数据（限制长度）
+    if (extraContext) {
+      data.extraContext = extraContext.substring(0, 2000)
+    }
+    
+    // 如果有技能提示词，添加到请求数据（限制长度）
+    if (skillPrompt) {
+      data.skillPrompt = skillPrompt.substring(0, 1000)
     }
     
     wx.cloud.callFunction({
@@ -515,9 +527,11 @@ function sendMessage(message, model, imageFileID) {
  * @param {string} message - 文本消息
  * @param {string} model - 模型名称（可选）
  * @param {string} imageFileID - 图片文件ID（可选）
+ * @param {string} extraContext - 额外上下文（可选，数据注入）
+ * @param {string} skillPrompt - 技能提示词（可选，技能激活时使用）
  * @returns {Promise} 返回taskId用于轮询
  */
-function sendMessageStream(message, model, imageFileID) {
+function sendMessageStream(message, model, imageFileID, extraContext, skillPrompt) {
   return new Promise(function(resolve, reject) {
     var sessionId = getCurrentSessionId()
     
@@ -531,6 +545,14 @@ function sendMessageStream(message, model, imageFileID) {
     
     if (imageFileID) {
       data.imageFileID = imageFileID
+    }
+    
+    if (extraContext) {
+      data.extraContext = extraContext.substring(0, 2000)
+    }
+    
+    if (skillPrompt) {
+      data.skillPrompt = skillPrompt.substring(0, 1000)
     }
     
     wx.cloud.callFunction({
