@@ -6,8 +6,8 @@
       <text class="top-label">暂存</text>
       <view class="preview-box">
         <block wx:if="{{holdGrid && holdGrid.length > 0}}">
-          <view wx:for="{{holdGrid}}" wx:for-item="row" wx:for-index="r" class="preview-row">
-            <view wx:for="{{row}}" wx:for-item="c" wx:for-index="ci" class="preview-cell" style="background:{{c}}"></view>
+          <view wx:for="{{holdGrid}}" wx:for-item="row" wx:for-index="r" wx:key="r" class="preview-row">
+            <view wx:for="{{row}}" wx:for-item="c" wx:for-index="ci" wx:key="ci" class="preview-cell" style="background:{{c}}"></view>
           </view>
         </block>
         <text wx:else class="preview-empty">-</text>
@@ -41,9 +41,9 @@
     <view class="top-next">
       <text class="top-label">下一个</text>
       <view class="next-row">
-        <view wx:for="{{nextGrids}}" wx:key="*this" class="preview-box mini-box">
-          <view wx:for="{{item}}" wx:for-item="row" wx:for-index="r" class="preview-row">
-            <view wx:for="{{row}}" wx:for-item="c" wx:for-index="ci" class="preview-cell" style="background:{{c}}"></view>
+        <view wx:for="{{nextGrids}}" wx:key="index" class="preview-box mini-box">
+          <view wx:for="{{item}}" wx:for-item="row" wx:for-index="r" wx:key="r" class="preview-row">
+            <view wx:for="{{row}}" wx:for-item="c" wx:for-index="ci" wx:key="ci" class="preview-cell" style="background:{{c}}"></view>
           </view>
         </view>
       </view>
@@ -76,13 +76,13 @@
       </view>
     </view>
     <view class="control-row-2">
-      <view class="ctrl-btn ctrl-dir" catchtouchstart="onMoveLeft">
+      <view class="ctrl-btn ctrl-dir" catchtouchstart="onTouchStartLeft" catchtouchend="onTouchEndDir" catchtouchcancel="onTouchEndDir">
         <text class="ctrl-arrow">◀</text>
       </view>
-      <view class="ctrl-btn ctrl-dir" catchtouchstart="onSoftDrop">
+      <view class="ctrl-btn ctrl-dir" catchtouchstart="onTouchStartDown" catchtouchend="onTouchEndDir" catchtouchcancel="onTouchEndDir">
         <text class="ctrl-arrow">▼</text>
       </view>
-      <view class="ctrl-btn ctrl-dir" catchtouchstart="onMoveRight">
+      <view class="ctrl-btn ctrl-dir" catchtouchstart="onTouchStartRight" catchtouchend="onTouchEndDir" catchtouchcancel="onTouchEndDir">
         <text class="ctrl-arrow">▶</text>
       </view>
     </view>

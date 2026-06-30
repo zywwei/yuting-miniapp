@@ -17,13 +17,13 @@ var SHAPES = {
 }
 
 var COLORS = {
-  I: '#00E5FF',
-  O: '#FFEB3B',
-  T: '#E040FB',
-  S: '#76FF03',
-  Z: '#FF5252',
-  J: '#448AFF',
-  L: '#FF9800'
+  I: '#5EC4E8',
+  O: '#F7DC6F',
+  T: '#BB8FCE',
+  S: '#58D68D',
+  Z: '#F1948A',
+  J: '#5DADE2',
+  L: '#F0B27A'
 }
 
 var LEVEL_SPEEDS = [800, 720, 630, 550, 470, 380, 300, 220, 140, 100]
@@ -113,6 +113,7 @@ Page({
   onUnload: function () {
     this._unloaded = true
     this.stopGameLoop()
+    this.onTouchEndDir()
     if (this._clearTimeoutId) {
       clearTimeout(this._clearTimeoutId)
       this._clearTimeoutId = null
@@ -281,6 +282,35 @@ Page({
       this.draw()
       audio.vibrate('light')
     }
+  },
+
+  onTouchStartLeft: function () {
+    var that = this
+    this.onMoveLeft()
+    this._dirRepeatDelay = setTimeout(function () {
+      that._dirRepeatTimer = setInterval(function () { that.onMoveLeft() }, 80)
+    }, 200)
+  },
+
+  onTouchStartRight: function () {
+    var that = this
+    this.onMoveRight()
+    this._dirRepeatDelay = setTimeout(function () {
+      that._dirRepeatTimer = setInterval(function () { that.onMoveRight() }, 80)
+    }, 200)
+  },
+
+  onTouchStartDown: function () {
+    var that = this
+    this.onSoftDrop()
+    this._dirRepeatDelay = setTimeout(function () {
+      that._dirRepeatTimer = setInterval(function () { that.onSoftDrop() }, 50)
+    }, 200)
+  },
+
+  onTouchEndDir: function () {
+    if (this._dirRepeatDelay) { clearTimeout(this._dirRepeatDelay); this._dirRepeatDelay = null }
+    if (this._dirRepeatTimer) { clearInterval(this._dirRepeatTimer); this._dirRepeatTimer = null }
   },
 
   onRotate: function () {
@@ -480,13 +510,13 @@ Page({
 
     // 绘制渐变背景
     var bgGradient = ctx.createLinearGradient(0, 0, 0, this._canvasHeight)
-    bgGradient.addColorStop(0, '#3A2580')
-    bgGradient.addColorStop(1, '#251555')
+    bgGradient.addColorStop(0, '#F0F9FF')
+    bgGradient.addColorStop(1, '#E8F6F3')
     ctx.fillStyle = bgGradient
     ctx.fillRect(0, 0, this._canvasWidth, this._canvasHeight)
 
-    // 绘制网格 - 更淡更精致
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'
+    // 绘制网格
+    ctx.strokeStyle = 'rgba(180,210,230,0.25)'
     ctx.lineWidth = 1
     for (var r = 0; r <= ROWS; r++) {
       ctx.beginPath()
@@ -653,6 +683,7 @@ Page({
 
   pauseGame: function () {
     this.stopGameLoop()
+    this.onTouchEndDir()
     this.setData({ isPaused: true })
     this.saveGame()
     audio.vibrate('light')
