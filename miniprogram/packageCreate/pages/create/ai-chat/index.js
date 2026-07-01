@@ -2,6 +2,7 @@ var aiManager = getApp().globalData.aiManager
 var childStorage = getApp().globalData.childStorage
 var contextDetector = require('../../../../utils/ai-context-detector')
 var skillsManager = require('../../../../utils/ai-skills')
+var markdown = require('../../../../utils/markdown')
 
 // 常用表情列表
 var EMOJI_LIST = [
@@ -85,6 +86,8 @@ Page({
     skillSearchQuery: '',
     // 技能列表
     skillList: [],
+    skillGrouped: [],
+    skillFilterKeyword: '',
     showSkillModal: false
   },
 
@@ -96,6 +99,8 @@ Page({
     this.setData({ streamThinkingEnabled: streamEnabled })
     // 恢复激活的技能状态
     this.restoreActiveSkill()
+    // 从云端同步技能数据
+    skillsManager.syncFromCloud()
   },
 
   onShow: function() {
@@ -293,6 +298,7 @@ Page({
           id: 'msg_' + messageIdCounter,
           role: item.role,
           content: item.content,
+          richText: item.role === 'assistant' ? markdown.parseMarkdown(item.content) : '',
           image: item.image || null,
           thinking: item.thinking || null,
           showThinking: false,
@@ -668,8 +674,40 @@ Page({
 
   // 显示技能列表
   showSkillList: function() {
-    var skillList = skillsManager.getAllSkills()
-    this.setData({ skillList: skillList, showSkillModal: true })
+    var grouped = skillsManager.getGroupedSkills()
+    this.setData({ skillGrouped: grouped, skillFilterKeyword: '', showSkillModal: true })
+  },
+
+  // 搜索技能
+  onSkillFilterInput: function(e) {
+    var keyword = e.detail.value.trim()
+    this.setData({ skillFilterKeyword: keyword })
+    this.filterSkillGrouped(keyword)
+  },
+
+  filterSkillGrouped: function(keyword) {
+    if (!keyword) {
+      this.setData({ skillGrouped: skillsManager.getGroupedSkills() })
+      return
+    }
+    var kw = keyword.toLowerCase()
+    var allGrouped = skillsManager.getGroupedSkills()
+    var filtered = []
+    allGrouped.forEach(function(group) {
+      var matched = group.skills.filter(function(s) {
+        return s.name.toLowerCase().indexOf(kw) >= 0 ||
+               (s.description && s.description.toLowerCase().indexOf(kw) >= 0)
+      })
+      if (matched.length > 0) {
+        filtered.push({ category: group.category, skills: matched })
+      }
+    })
+    this.setData({ skillGrouped: filtered })
+  },
+
+  clearSkillFilter: function() {
+    this.setData({ skillFilterKeyword: '' })
+    this.filterSkillGrouped('')
   },
 
   // 隐藏技能列表
@@ -691,8 +729,8 @@ Page({
   toggleSkillEnabled: function(e) {
     var skillId = e.currentTarget.dataset.id
     var newState = skillsManager.toggleSkill(skillId)
-    var skillList = skillsManager.getAllSkills()
-    this.setData({ skillList: skillList })
+    var grouped = skillsManager.getGroupedSkills()
+    this.setData({ skillGrouped: grouped })
     wx.showToast({ title: newState ? '已启用' : '已禁用', icon: 'none' })
   },
 
@@ -706,8 +744,8 @@ Page({
       success: function(res) {
         if (res.confirm) {
           skillsManager.deleteSkill(skillId)
-          var skillList = skillsManager.getAllSkills()
-          that.setData({ skillList: skillList })
+          var grouped = skillsManager.getGroupedSkills()
+          that.setData({ skillGrouped: grouped })
           wx.showToast({ title: '已删除', icon: 'success' })
         }
       }
@@ -731,8 +769,8 @@ Page({
             try {
               var imported = skillsManager.importSkillsFromJson(data.data)
               wx.showToast({ title: '已导入' + imported.length + '个技能', icon: 'success' })
-              var skillList = skillsManager.getAllSkills()
-              that.setData({ skillList: skillList })
+              var grouped = skillsManager.getGroupedSkills()
+              that.setData({ skillGrouped: grouped })
             } catch (err) {
               wx.showToast({ title: '导入失败: ' + err.message, icon: 'none' })
             }
@@ -964,6 +1002,7 @@ Page({
           id: 'msg_' + messageIdCounter,
           role: 'assistant',
           content: aiContent || result.content,
+          richText: markdown.parseMarkdown(aiContent || result.content),
           image: aiImage,
           thinking: result.thinking || null,
           showThinking: false,
@@ -1199,6 +1238,7 @@ Page({
             id: 'msg_' + messageIdCounter,
             role: 'assistant',
             content: aiContent || progress.finalContent,
+            richText: markdown.parseMarkdown(aiContent || progress.finalContent),
             image: aiImage,
             thinking: progress.thinkingContent || null,
             showThinking: !!progress.thinkingContent,

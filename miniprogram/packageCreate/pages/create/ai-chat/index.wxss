@@ -1396,6 +1396,66 @@
   max-height: 60vh;
 }
 
+/* 技能搜索栏 */
+.skill-search-bar {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  margin: 0 24rpx 12rpx;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+}
+
+.skill-search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+  color: #999;
+}
+
+.skill-search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.skill-search-clear {
+  font-size: 24rpx;
+  color: #999;
+  padding: 8rpx;
+}
+
+/* 技能分组 */
+.skill-group {
+  margin-bottom: 8rpx;
+}
+
+.skill-group-header {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 24rpx 12rpx;
+  background: #fafafa;
+}
+
+.skill-group-icon {
+  font-size: 28rpx;
+  margin-right: 10rpx;
+}
+
+.skill-group-name {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #666;
+}
+
+.skill-group-count {
+  font-size: 20rpx;
+  color: #999;
+  margin-left: 10rpx;
+  background: #eee;
+  padding: 2rpx 12rpx;
+  border-radius: 16rpx;
+}
+
 .skill-item {
   display: flex;
   align-items: center;
@@ -1429,15 +1489,19 @@
   margin-bottom: 8rpx;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .skill-source-tag {
+  display: inline-block;
   font-size: 20rpx;
   color: #fff;
-  padding: 2rpx 12rpx;
+  padding: 0 12rpx;
   border-radius: 10rpx;
   margin-left: 12rpx;
   font-weight: normal;
+  height: 32rpx;
+  line-height: 32rpx;
 }
 
 .skill-item-desc {
@@ -1459,4 +1523,109 @@
   padding: 60rpx;
   color: #999;
   font-size: 28rpx;
+}
+
+/* Markdown 富文本样式 */
+.msg-rich {
+  padding: 20rpx 24rpx;
+}
+
+.msg-rich .md-h1,
+.msg-rich .md-h2,
+.msg-rich .md-h3,
+.msg-rich .md-h4,
+.msg-rich .md-h5,
+.msg-rich .md-h6 {
+  font-weight: bold;
+  margin: 16rpx 0 8rpx;
+  line-height: 1.4;
+}
+
+.msg-rich .md-h1 { font-size: 36rpx; }
+.msg-rich .md-h2 { font-size: 34rpx; }
+.msg-rich .md-h3 { font-size: 32rpx; }
+.msg-rich .md-h4 { font-size: 30rpx; }
+.msg-rich .md-h5,
+.msg-rich .md-h6 { font-size: 28rpx; }
+
+.msg-rich .md-p {
+  margin: 8rpx 0;
+  line-height: 1.8;
+}
+
+.msg-rich .md-bold {
+  font-weight: bold;
+}
+
+.msg-rich .md-italic {
+  font-style: italic;
+}
+
+.msg-rich .md-del {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.msg-rich .md-inline-code {
+  background: #f5f5f5;
+  color: #e74c3c;
+  padding: 2rpx 8rpx;
+  border-radius: 6rpx;
+  font-size: 26rpx;
+  font-family: monospace;
+}
+
+.msg-rich .md-code-block {
+  background: #2d2d2d;
+  color: #f8f8f2;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin: 12rpx 0;
+  overflow-x: auto;
+  font-size: 24rpx;
+  font-family: monospace;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.msg-rich .md-ul,
+.msg-rich .md-ol {
+  margin: 8rpx 0;
+  padding-left: 32rpx;
+}
+
+.msg-rich .md-li {
+  margin: 4rpx 0;
+  line-height: 1.8;
+}
+
+.msg-rich .md-li::marker {
+  color: #FF6B8A;
+}
+
+.msg-rich .md-blockquote {
+  border-left: 6rpx solid #FF6B8A;
+  padding: 8rpx 16rpx;
+  margin: 12rpx 0;
+  background: #fff5f5;
+  color: #666;
+  border-radius: 0 8rpx 8rpx 0;
+}
+
+.msg-rich .md-hr {
+  border: none;
+  border-top: 1rpx solid #eee;
+  margin: 16rpx 0;
+}
+
+.msg-rich .md-link {
+  color: #FF6B8A;
+  text-decoration: underline;
+}
+
+.msg-rich .md-img {
+  max-width: 100%;
+  border-radius: 8rpx;
+  margin: 8rpx 0;
 }

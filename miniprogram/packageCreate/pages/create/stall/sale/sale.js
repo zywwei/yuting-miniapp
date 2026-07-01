@@ -68,7 +68,7 @@ Page({
   },
 
   loadProducts: function() {
-    var products = stallManager.getProducts().filter(function(p) { return p.quantity > 0 })
+    var products = stallManager.getProducts()
     
     // 标记热销商品（最近7天销量前3），使用缓存避免重复计算
     var sales = stallManager.getSales()

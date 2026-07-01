@@ -7,7 +7,7 @@ const ALLOWED_COLLECTIONS = [
   'drawings', 'notes', 'brushingRecords', 'habitRecords',
   'achievements', 'userSettings', 'stallProducts', 'stallSales',
   'stallSettings', 'stallChallenges', 'stallBusinessHours', 'gameRecords', 'comments', 'likes',
-  'accountBooks', 'bookEntries', 'accountSettings'
+  'accountBooks', 'bookEntries', 'accountSettings', 'aiSkills'
 ]
 
 exports.main = async (event, context) => {

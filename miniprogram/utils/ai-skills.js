@@ -3,6 +3,8 @@
  * 管理技能的增删改查、触发检测、网络搜索、本地导入
  */
 var childStorage = require('./child-storage.js')
+var cloud = null
+try { cloud = require('./cloud.js') } catch (e) { cloud = null }
 
 // 本地存储key
 var SKILLS_KEY = 'aiSkills'
@@ -24,6 +26,15 @@ var SOURCE_COLORS = {
   local: '#9C27B0'
 }
 
+// 技能分类
+var SKILL_CATEGORIES = [
+  { id: 'learning', name: '学习', icon: '📚' },
+  { id: 'creative', name: '创意', icon: '🎨' },
+  { id: 'growth', name: '成长', icon: '🌟' },
+  { id: 'tool', name: '工具', icon: '🔧' },
+  { id: 'other', name: '其他', icon: '📦' }
+]
+
 // 内置技能定义
 var BUILTIN_SKILLS = [
   {
@@ -33,6 +44,7 @@ var BUILTIN_SKILLS = [
     description: '帮助孩子画画，提供创意建议',
     prompt: '你是一位绘画老师，擅长用简单的方式教孩子画画。请根据孩子的描述，提供绘画建议和步骤指导。如果孩子分享了画作，请给予积极的评价和具体的改进建议。',
     source: 'builtin',
+    category: 'creative',
     enabled: true
   },
   {
@@ -42,6 +54,7 @@ var BUILTIN_SKILLS = [
     description: '帮助孩子写作文、日记',
     prompt: '你是一位写作辅导老师，擅长用引导的方式帮助孩子写作。请用提问的方式启发孩子思考，帮助他组织语言和结构。对孩子的作品要给予积极鼓励，同时提供具体的修改建议。',
     source: 'builtin',
+    category: 'learning',
     enabled: true
   },
   {
@@ -51,6 +64,7 @@ var BUILTIN_SKILLS = [
     description: '英语学习、对话练习',
     prompt: '你是一位英语老师，擅长用有趣的方式教孩子英语。请根据孩子的水平，用简单的英语和中文混合交流。当孩子犯错时，要温柔地纠正并解释原因。可以设计一些小游戏帮助孩子学习。',
     source: 'builtin',
+    category: 'learning',
     enabled: true
   },
   {
@@ -60,6 +74,7 @@ var BUILTIN_SKILLS = [
     description: '解答科学问题，做实验指导',
     prompt: '你是一位科学老师，擅长用生动的方式解释科学原理。请用孩子能理解的语言解释复杂的概念，多用生活中的例子。如果可能，推荐一些简单安全的家庭实验。',
     source: 'builtin',
+    category: 'learning',
     enabled: true
   },
   {
@@ -69,6 +84,7 @@ var BUILTIN_SKILLS = [
     description: '正面激励，培养良好习惯',
     prompt: '你是一位习惯养成专家，擅长用正面激励的方式帮助孩子养成好习惯。请根据孩子的打卡记录，给予鼓励和建议。当他完成目标时，要热情表扬；当他遇到困难时，要温柔鼓励，帮助他坚持下去。',
     source: 'builtin',
+    category: 'growth',
     enabled: true
   },
   {
@@ -78,6 +94,7 @@ var BUILTIN_SKILLS = [
     description: '专注学习，耐心解答知识问题',
     prompt: '你是一位耐心的学习辅导老师，擅长用简单易懂的方式解释知识。请根据孩子的学习进度，用生动有趣的方式帮助他学习新知识。遇到难题时，用比喻和例子来解释，让孩子更容易理解。',
     source: 'builtin',
+    category: 'learning',
     enabled: true
   },
   {
@@ -87,6 +104,7 @@ var BUILTIN_SKILLS = [
     description: '想象力丰富，创作有趣故事',
     prompt: '你是一位创意故事大王，擅长根据孩子的兴趣和经历创作有趣的故事。请根据孩子的成长数据，创作富有想象力的故事。故事要生动有趣，富有教育意义，可以融入孩子的生活经历，让他感到亲切和有趣。',
     source: 'builtin',
+    category: 'creative',
     enabled: true
   },
   {
@@ -96,6 +114,7 @@ var BUILTIN_SKILLS = [
     description: '从网络搜索并安装新技能',
     prompt: '你是一个技能搜索助手。当用户想要查找特定功能的技能时，帮助他们搜索合适的技能，并提供安装建议。请根据用户的需求，推荐最相关的技能。',
     source: 'builtin',
+    category: 'tool',
     enabled: true
   }
 ]
@@ -107,21 +126,25 @@ var BUILTIN_SKILLS = [
 function getAllSkills() {
   var customSkills = childStorage.get(SKILLS_KEY) || []
   var allSkills = []
-  
-  // 添加内置技能
+  var seenIds = {}
+
+  // 先添加内置技能
   BUILTIN_SKILLS.forEach(function(skill) {
     allSkills.push(Object.assign({}, skill))
+    seenIds[skill.id] = allSkills.length - 1
   })
-  
-  // 添加自定义、网络、本地导入的技能
+
+  // 再处理自定义、网络、本地导入的技能
+  // 如果与内置技能同ID，用自定义版本覆盖（保留启用/禁用状态）
   customSkills.forEach(function(skill) {
-    // 避免与内置技能重复
-    var exists = allSkills.some(function(s) { return s.id === skill.id })
-    if (!exists) {
+    if (seenIds[skill.id] !== undefined) {
+      allSkills[seenIds[skill.id]] = Object.assign({}, skill)
+    } else {
+      seenIds[skill.id] = allSkills.length
       allSkills.push(Object.assign({}, skill))
     }
   })
-  
+
   return allSkills
 }
 
@@ -227,6 +250,7 @@ function saveSkill(skill) {
   }
   
   childStorage.set(SKILLS_KEY, skills)
+  if (cloud && cloud.uploadAiSkills) cloud.uploadAiSkills(skills)
 }
 
 /**
@@ -243,6 +267,7 @@ function deleteSkill(skillId) {
   
   if (filtered.length < skills.length) {
     childStorage.set(SKILLS_KEY, filtered)
+    if (cloud && cloud.uploadAiSkills) cloud.uploadAiSkills(filtered)
     return true
   }
   
@@ -261,6 +286,7 @@ function toggleSkill(skillId) {
     if (skills[i].id === skillId) {
       skills[i].enabled = !skills[i].enabled
       childStorage.set(SKILLS_KEY, skills)
+      if (cloud && cloud.uploadAiSkills) cloud.uploadAiSkills(skills)
       return skills[i].enabled
     }
   }
@@ -272,6 +298,7 @@ function toggleSkill(skillId) {
       var newSkill = Object.assign({}, BUILTIN_SKILLS[j], { enabled: !BUILTIN_SKILLS[j].enabled })
       skills.push(newSkill)
       childStorage.set(SKILLS_KEY, skills)
+      if (cloud && cloud.uploadAiSkills) cloud.uploadAiSkills(skills)
       return newSkill.enabled
     }
   }
@@ -400,9 +427,64 @@ function exportSkillsToJson(skillIds) {
   return JSON.stringify(skills, null, 2)
 }
 
+/**
+ * 按分类获取分组技能
+ * @returns {Array<{category: Object, skills: Array}>}
+ */
+function getGroupedSkills() {
+  var allSkills = getAllSkills()
+  var categoryMap = {}
+
+  SKILL_CATEGORIES.forEach(function(cat) {
+    categoryMap[cat.id] = { category: cat, skills: [] }
+  })
+
+  allSkills.forEach(function(skill) {
+    var catId = skill.category || 'other'
+    if (!categoryMap[catId]) {
+      catId = 'other'
+    }
+    categoryMap[catId].skills.push(skill)
+  })
+
+  return SKILL_CATEGORIES
+    .map(function(cat) { return categoryMap[cat.id] })
+    .filter(function(group) { return group.skills.length > 0 })
+}
+
+/**
+ * 搜索技能（按名称和描述）
+ * @param {string} keyword - 搜索关键词
+ * @returns {Array} 匹配的技能列表
+ */
+function searchSkills(keyword) {
+  if (!keyword) return getAllSkills()
+  var kw = keyword.toLowerCase()
+  return getAllSkills().filter(function(skill) {
+    return skill.name.toLowerCase().indexOf(kw) >= 0 ||
+           (skill.description && skill.description.toLowerCase().indexOf(kw) >= 0)
+  })
+}
+
+/**
+ * 从云端同步技能数据到本地
+ */
+async function syncFromCloud() {
+  if (!cloud || !cloud.fetchAiSkills) return
+  try {
+    var cloudSkills = await cloud.fetchAiSkills()
+    if (cloudSkills && cloudSkills.length > 0) {
+      childStorage.set(SKILLS_KEY, cloudSkills)
+    }
+  } catch (err) {
+    console.warn('AI技能云端同步失败:', err)
+  }
+}
+
 module.exports = {
   SOURCE_LABELS: SOURCE_LABELS,
   SOURCE_COLORS: SOURCE_COLORS,
+  SKILL_CATEGORIES: SKILL_CATEGORIES,
   BUILTIN_SKILLS: BUILTIN_SKILLS,
   getAllSkills: getAllSkills,
   getEnabledSkills: getEnabledSkills,
@@ -419,5 +501,8 @@ module.exports = {
   searchSkillsFromNetwork: searchSkillsFromNetwork,
   validateSkillFormat: validateSkillFormat,
   importSkillsFromJson: importSkillsFromJson,
-  exportSkillsToJson: exportSkillsToJson
+  exportSkillsToJson: exportSkillsToJson,
+  getGroupedSkills: getGroupedSkills,
+  searchSkills: searchSkills,
+  syncFromCloud: syncFromCloud
 }

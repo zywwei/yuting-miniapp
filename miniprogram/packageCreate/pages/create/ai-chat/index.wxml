@@ -206,7 +206,10 @@
             <image src="{{item.image}}" mode="widthFix" class="image-preview" />
           </view>
           <!-- 文本消息 -->
-          <view class="msg-text" wx:if="{{item.content}}">{{item.content}}</view>
+          <view class="msg-text" wx:if="{{item.content && item.role === 'user'}}">{{item.content}}</view>
+          <view class="msg-text msg-rich" wx:if="{{item.content && item.role === 'assistant'}}">
+            <rich-text nodes="{{item.richText}}" />
+          </view>
           <!-- 错误消息重新发送按钮 -->
           <view class="msg-retry" wx:if="{{item.isError}}" bindtap="retryMessage" data-id="{{item.id}}">
             <text class="retry-icon">🔄</text>
@@ -477,6 +480,13 @@
         <text class="skill-modal-title">技能管理</text>
         <view class="skill-modal-close" bindtap="hideSkillList">✕</view>
       </view>
+
+      <!-- 搜索框 -->
+      <view class="skill-search-bar">
+        <text class="skill-search-icon">🔍</text>
+        <input class="skill-search-input" placeholder="搜索技能..." value="{{skillFilterKeyword}}" bindinput="onSkillFilterInput" />
+        <view class="skill-search-clear" wx:if="{{skillFilterKeyword}}" bindtap="clearSkillFilter">✕</view>
+      </view>
       
       <!-- 操作按钮 -->
       <view class="skill-modal-actions">
@@ -485,38 +495,47 @@
         </view>
       </view>
       
-      <!-- 技能列表 -->
+      <!-- 分组技能列表 -->
       <scroll-view scroll-y class="skill-list">
-        <view 
-          wx:for="{{skillList}}" 
-          wx:key="id"
-          class="skill-item {{activeSkill.id === item.id ? 'active' : ''}}"
-        >
-          <view class="skill-item-main" bindtap="selectSkill" data-id="{{item.id}}">
-            <view class="skill-item-icon">{{item.icon}}</view>
-            <view class="skill-item-info">
-              <view class="skill-item-name">
-                {{item.name}}
-                <text class="skill-source-tag" style="background: {{item.source === 'builtin' ? '#4CAF50' : item.source === 'custom' ? '#2196F3' : item.source === 'network' ? '#FF9800' : '#9C27B0'}}">
-                  {{item.source === 'builtin' ? '内置' : item.source === 'custom' ? '自定义' : item.source === 'network' ? '网络' : '导入'}}
-                </text>
-              </view>
-              <view class="skill-item-desc">{{item.description}}</view>
-            </view>
+        <view wx:for="{{skillGrouped}}" wx:key="category" wx:for-item="group" class="skill-group">
+          <view class="skill-group-header">
+            <text class="skill-group-icon">{{group.category.icon}}</text>
+            <text class="skill-group-name">{{group.category.name}}</text>
+            <text class="skill-group-count">{{group.skills.length}}</text>
           </view>
-          <view class="skill-item-actions">
-            <view 
-              wx:if="{{item.source !== 'builtin'}}"
-              class="skill-delete-btn" 
-              catchtap="deleteSkill" 
-              data-id="{{item.id}}"
-            >🗑️</view>
+          <view 
+            wx:for="{{group.skills}}" 
+            wx:for-item="item"
+            wx:key="id"
+            class="skill-item {{activeSkill.id === item.id ? 'active' : ''}}"
+          >
+            <view class="skill-item-main" bindtap="selectSkill" data-id="{{item.id}}">
+              <view class="skill-item-icon">{{item.icon}}</view>
+              <view class="skill-item-info">
+                <view class="skill-item-name">
+                  {{item.name}}
+                  <view class="skill-source-tag" style="background: {{item.source === 'builtin' ? '#4CAF50' : item.source === 'custom' ? '#2196F3' : item.source === 'network' ? '#FF9800' : '#9C27B0'}}">
+                    {{item.source === 'builtin' ? '内置' : item.source === 'custom' ? '自定义' : item.source === 'network' ? '网络' : '导入'}}
+                  </view>
+                </view>
+                <view class="skill-item-desc">{{item.description}}</view>
+              </view>
+            </view>
+            <view class="skill-item-actions">
+              <view 
+                wx:if="{{item.source !== 'builtin'}}"
+                class="skill-delete-btn" 
+                catchtap="deleteSkill" 
+                data-id="{{item.id}}"
+              >🗑️</view>
+            </view>
           </view>
         </view>
         
         <!-- 空状态 -->
-        <view class="skill-empty" wx:if="{{skillList.length === 0}}">
-          <text>暂无技能</text>
+        <view class="skill-empty" wx:if="{{skillGrouped.length === 0}}">
+          <text wx:if="{{skillFilterKeyword}}">未找到匹配的技能</text>
+          <text wx:else>暂无技能</text>
         </view>
       </scroll-view>
     </view>

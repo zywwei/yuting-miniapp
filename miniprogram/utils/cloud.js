@@ -1132,6 +1132,42 @@ async function fetchAchievements() {
   return childStorage.get('achievements') || []
 }
 
+// ===== AI技能 =====
+
+async function uploadAiSkills(skills) {
+  childStorage.set('aiSkills', skills)
+
+  if (isCloudReady()) {
+    try {
+      await callUpsertSingleton('aiSkills', 'user_aiSkills', { list: skills })
+    } catch (err) {
+      console.warn('AI技能云端保存失败:', err)
+    }
+  }
+}
+
+async function fetchAiSkills() {
+  var member = auth.getMember()
+  if (!member) return childStorage.get('aiSkills') || []
+
+  if (!isCloudReady()) {
+    return childStorage.get('aiSkills') || []
+  }
+
+  try {
+    var res = await callGetSingleton('aiSkills', 'user_aiSkills')
+    if (res.result.code === 0 && res.result.data) {
+      var list = res.result.data.list || []
+      childStorage.set('aiSkills', list)
+      return list
+    }
+  } catch (err) {
+    console.warn('AI技能云端读取失败:', err)
+  }
+
+  return childStorage.get('aiSkills') || []
+}
+
 // ===== 习惯打卡 =====
 
 async function uploadHabitRecord(record) {
@@ -2364,6 +2400,8 @@ module.exports = {
   removeBookEntry: removeBookEntry,
    uploadAccountSettings: uploadAccountSettings,
   fetchAccountSettings: fetchAccountSettings,
+  uploadAiSkills: uploadAiSkills,
+  fetchAiSkills: fetchAiSkills,
   uploadImageCompressed: uploadImageCompressed,
   uploadImage: uploadImage
 }
