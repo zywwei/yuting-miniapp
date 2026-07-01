@@ -1,8 +1,8 @@
 var aiManager = getApp().globalData.aiManager
 var childStorage = getApp().globalData.childStorage
-var contextDetector = require('../../../../utils/ai-context-detector')
-var skillsManager = require('../../../../utils/ai-skills')
-var markdown = require('../../../../utils/markdown')
+var contextDetector = require('../../../utils/ai-context-detector')
+var skillsManager = require('../../../utils/ai-skills')
+var markdown = require('../../../utils/markdown')
 
 // 常用表情列表
 var EMOJI_LIST = [
