@@ -495,17 +495,70 @@
         </view>
       </view>
       
-      <!-- 分组技能列表 -->
+      <!-- Tab切换 -->
+      <view class="skill-tabs">
+        <view 
+          class="skill-tab {{skillActiveTab === 'all' ? 'active' : ''}}" 
+          bindtap="switchSkillTab" 
+          data-tab="all"
+        >
+          全部
+        </view>
+        <view 
+          wx:for="{{skillCategories}}" 
+          wx:key="id"
+          class="skill-tab {{skillActiveTab === item.id ? 'active' : ''}}" 
+          bindtap="switchSkillTab" 
+          data-tab="{{item.id}}"
+        >
+          {{item.icon}} {{item.name}}
+        </view>
+      </view>
+      
+      <!-- 技能列表 -->
       <scroll-view scroll-y class="skill-list">
-        <view wx:for="{{skillGrouped}}" wx:key="category" wx:for-item="group" class="skill-group">
-          <view class="skill-group-header">
-            <text class="skill-group-icon">{{group.category.icon}}</text>
-            <text class="skill-group-name">{{group.category.name}}</text>
-            <text class="skill-group-count">{{group.skills.length}}</text>
+        <!-- 全部分类显示 -->
+        <block wx:if="{{skillActiveTab === 'all'}}">
+          <view wx:for="{{skillGrouped}}" wx:key="category" wx:for-item="group" class="skill-group">
+            <view class="skill-group-header">
+              <text class="skill-group-icon">{{group.category.icon}}</text>
+              <text class="skill-group-name">{{group.category.name}}</text>
+              <text class="skill-group-count">{{group.skills.length}}</text>
+            </view>
+            <view 
+              wx:for="{{group.skills}}" 
+              wx:for-item="item"
+              wx:key="id"
+              class="skill-item {{activeSkill.id === item.id ? 'active' : ''}}"
+            >
+              <view class="skill-item-main" bindtap="selectSkill" data-id="{{item.id}}">
+                <view class="skill-item-icon">{{item.icon}}</view>
+                <view class="skill-item-info">
+                  <view class="skill-item-name">
+                    {{item.name}}
+                    <view class="skill-source-tag" style="background: {{item.source === 'builtin' ? '#4CAF50' : item.source === 'custom' ? '#2196F3' : item.source === 'network' ? '#FF9800' : '#9C27B0'}}">
+                      {{item.source === 'builtin' ? '内置' : item.source === 'custom' ? '自定义' : item.source === 'network' ? '网络' : '导入'}}
+                    </view>
+                  </view>
+                  <view class="skill-item-desc">{{item.description}}</view>
+                </view>
+              </view>
+              <view class="skill-item-actions">
+                <view 
+                  wx:if="{{item.source !== 'builtin'}}"
+                  class="skill-delete-btn" 
+                  catchtap="deleteSkill" 
+                  data-id="{{item.id}}"
+                >🗑️</view>
+              </view>
+            </view>
           </view>
+        </block>
+        
+        <!-- 单个分类显示 -->
+        <block wx:else>
           <view 
-            wx:for="{{group.skills}}" 
-            wx:for-item="item"
+            wx:for="{{filteredSkillList}}" 
             wx:key="id"
             class="skill-item {{activeSkill.id === item.id ? 'active' : ''}}"
           >
@@ -530,10 +583,10 @@
               >🗑️</view>
             </view>
           </view>
-        </view>
+        </block>
         
         <!-- 空状态 -->
-        <view class="skill-empty" wx:if="{{skillGrouped.length === 0}}">
+        <view class="skill-empty" wx:if="{{skillActiveTab === 'all' ? skillGrouped.length === 0 : filteredSkillList.length === 0}}">
           <text wx:if="{{skillFilterKeyword}}">未找到匹配的技能</text>
           <text wx:else>暂无技能</text>
         </view>

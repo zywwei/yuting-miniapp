@@ -467,14 +467,36 @@ function searchSkills(keyword) {
 }
 
 /**
- * 从云端同步技能数据到本地
+ * 从云端同步技能数据到本地（合并策略：保留本地修改的技能，云端新增的技能合并进来）
  */
 async function syncFromCloud() {
   if (!cloud || !cloud.fetchAiSkills) return
   try {
     var cloudSkills = await cloud.fetchAiSkills()
-    if (cloudSkills && cloudSkills.length > 0) {
-      childStorage.set(SKILLS_KEY, cloudSkills)
+    if (!cloudSkills || cloudSkills.length === 0) return
+    
+    var localSkills = childStorage.get(SKILLS_KEY) || []
+    var localSkillMap = {}
+    
+    // 建立本地技能ID索引
+    localSkills.forEach(function(skill) {
+      localSkillMap[skill.id] = skill
+    })
+    
+    // 合并云端技能：本地已有的保留本地版本，本地没有的添加
+    var merged = localSkills.slice()
+    var hasNew = false
+    
+    cloudSkills.forEach(function(cloudSkill) {
+      if (!localSkillMap[cloudSkill.id]) {
+        merged.push(cloudSkill)
+        hasNew = true
+      }
+    })
+    
+    // 只有有新技能时才更新本地
+    if (hasNew) {
+      childStorage.set(SKILLS_KEY, merged)
     }
   } catch (err) {
     console.warn('AI技能云端同步失败:', err)

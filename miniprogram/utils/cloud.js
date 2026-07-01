@@ -1134,9 +1134,10 @@ async function fetchAchievements() {
 
 // ===== AI技能 =====
 
+/**
+ * 上传AI技能到云端（调用前需确保本地已保存）
+ */
 async function uploadAiSkills(skills) {
-  childStorage.set('aiSkills', skills)
-
   if (isCloudReady()) {
     try {
       await callUpsertSingleton('aiSkills', 'user_aiSkills', { list: skills })

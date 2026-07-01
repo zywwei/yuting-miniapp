@@ -88,7 +88,10 @@ Page({
     skillList: [],
     skillGrouped: [],
     skillFilterKeyword: '',
-    showSkillModal: false
+    showSkillModal: false,
+    skillActiveTab: 'all',
+    skillCategories: [],
+    filteredSkillList: []
   },
 
   onLoad: function() {
@@ -675,7 +678,15 @@ Page({
   // 显示技能列表
   showSkillList: function() {
     var grouped = skillsManager.getGroupedSkills()
-    this.setData({ skillGrouped: grouped, skillFilterKeyword: '', showSkillModal: true })
+    var categories = skillsManager.SKILL_CATEGORIES
+    this.setData({ 
+      skillGrouped: grouped, 
+      skillFilterKeyword: '', 
+      showSkillModal: true,
+      skillActiveTab: 'all',
+      skillCategories: categories,
+      filteredSkillList: []
+    })
   },
 
   // 搜索技能
@@ -688,6 +699,9 @@ Page({
   filterSkillGrouped: function(keyword) {
     if (!keyword) {
       this.setData({ skillGrouped: skillsManager.getGroupedSkills() })
+      if (this.data.skillActiveTab !== 'all') {
+        this.filterSkillsByCategory(this.data.skillActiveTab)
+      }
       return
     }
     var kw = keyword.toLowerCase()
@@ -703,11 +717,41 @@ Page({
       }
     })
     this.setData({ skillGrouped: filtered })
+    if (this.data.skillActiveTab !== 'all') {
+      this.filterSkillsByCategory(this.data.skillActiveTab)
+    }
   },
 
   clearSkillFilter: function() {
     this.setData({ skillFilterKeyword: '' })
     this.filterSkillGrouped('')
+  },
+
+  // 切换技能分类Tab
+  switchSkillTab: function(e) {
+    var tab = e.currentTarget.dataset.tab
+    this.setData({ skillActiveTab: tab })
+    if (tab !== 'all') {
+      this.filterSkillsByCategory(tab)
+    }
+  },
+
+  // 按分类筛选技能
+  filterSkillsByCategory: function(categoryId) {
+    var allSkills = skillsManager.getAllSkills()
+    var keyword = this.data.skillFilterKeyword
+    var filtered = allSkills.filter(function(skill) {
+      var category = skill.category || 'other'
+      return category === categoryId
+    })
+    if (keyword) {
+      var kw = keyword.toLowerCase()
+      filtered = filtered.filter(function(s) {
+        return s.name.toLowerCase().indexOf(kw) >= 0 ||
+               (s.description && s.description.toLowerCase().indexOf(kw) >= 0)
+      })
+    }
+    this.setData({ filteredSkillList: filtered })
   },
 
   // 隐藏技能列表
