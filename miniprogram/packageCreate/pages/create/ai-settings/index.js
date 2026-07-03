@@ -29,13 +29,22 @@ Page({
       { key: 'edge', name: 'Edge TTS' }
     ],
     currentTtsEngine: 'mimo',
-    ttsCallType: 'direct', // TTS调用方式：direct或plan
+    ttsCallType: 'direct',
+    // 小米TTS配置
     mimoTtsApiKey: '',
     mimoTtsPlanApiKey: '',
     showMimoTtsKey: false,
     showMimoTtsPlanKey: false,
     savingMimoTts: false,
-    testingMimoTts: false
+    testingMimoTts: false,
+    // 百度TTS配置
+    baiduAppId: '',
+    baiduApiKey: '',
+    baiduSecretKey: '',
+    showBaiduApiKey: false,
+    showBaiduSecretKey: false,
+    savingBaiduTts: false,
+    testingBaiduTts: false
   },
 
   onLoad: function() {
@@ -706,6 +715,115 @@ Page({
       },
       fail: function(err) {
         that.setData({ testingMimoTts: false })
+        wx.showToast({
+          title: '测试失败',
+          icon: 'none'
+        })
+      }
+    })
+  },
+
+  // ========== 百度TTS配置相关方法 ==========
+
+  // 输入百度App ID
+  onBaiduAppIdInput: function(e) {
+    this.setData({ baiduAppId: e.detail.value })
+  },
+
+  // 输入百度API Key
+  onBaiduApiKeyInput: function(e) {
+    this.setData({ baiduApiKey: e.detail.value })
+  },
+
+  // 输入百度Secret Key
+  onBaiduSecretKeyInput: function(e) {
+    this.setData({ baiduSecretKey: e.detail.value })
+  },
+
+  // 切换百度API Key可见性
+  toggleBaiduApiKeyVisibility: function() {
+    this.setData({ showBaiduApiKey: !this.data.showBaiduApiKey })
+  },
+
+  // 切换百度Secret Key可见性
+  toggleBaiduSecretKeyVisibility: function() {
+    this.setData({ showBaiduSecretKey: !this.data.showBaiduSecretKey })
+  },
+
+  // 保存百度TTS配置
+  saveBaiduTtsConfig: function() {
+    var that = this
+    
+    if (this.data.savingBaiduTts) return
+    
+    this.setData({ savingBaiduTts: true })
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'saveTtsConfig',
+        engine: 'baidu',
+        baiduAppId: this.data.baiduAppId,
+        baiduApiKey: this.data.baiduApiKey,
+        baiduSecretKey: this.data.baiduSecretKey
+      },
+      success: function(result) {
+        that.setData({ savingBaiduTts: false })
+        
+        if (result.result && result.result.code === 0) {
+          wx.showToast({
+            title: '保存成功',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: result.result?.msg || '保存失败',
+            icon: 'none'
+          })
+        }
+      },
+      fail: function(err) {
+        that.setData({ savingBaiduTts: false })
+        wx.showToast({
+          title: '保存失败',
+          icon: 'none'
+        })
+      }
+    })
+  },
+
+  // 测试百度TTS连接
+  testBaiduTts: function() {
+    var that = this
+    
+    if (this.data.testingBaiduTts) return
+    
+    this.setData({ testingBaiduTts: true })
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'testTts',
+        engine: 'baidu'
+      },
+      success: function(result) {
+        that.setData({ testingBaiduTts: false })
+        
+        if (result.result && result.result.code === 0) {
+          wx.showToast({
+            title: '测试成功！',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: result.result?.msg || '测试失败',
+            icon: 'none',
+            duration: 3000
+          })
+        }
+      },
+      fail: function(err) {
+        that.setData({ testingBaiduTts: false })
         wx.showToast({
           title: '测试失败',
           icon: 'none'
