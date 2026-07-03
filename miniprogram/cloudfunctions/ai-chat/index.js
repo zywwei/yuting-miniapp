@@ -1655,8 +1655,10 @@ async function getMimoTtsApiKey() {
 async function getTtsConfig(member) {
   try {
     // 从aiConfigs集合获取（与模型配置共用）
+    // 使用与getConfig相同的查询条件
     const result = await db.collection('aiConfigs').where({
-      familyId: member.familyId
+      familyId: member.familyId,
+      childId: member.childId || ''
     }).get()
     
     if (result.data && result.data.length > 0) {
@@ -1734,8 +1736,10 @@ async function saveTtsConfig(member, event) {
     console.log('saveTtsConfig准备保存的数据:', updateData)
     
     // 查询现有配置（使用aiConfigs集合，与模型配置共用）
+    // 使用与saveConfig相同的查询条件
     const result = await db.collection('aiConfigs').where({
-      familyId: member.familyId
+      familyId: member.familyId,
+      childId: member.childId || ''
     }).get()
     
     console.log('saveTtsConfig查询结果:', result.data.length, '条记录')
@@ -1752,6 +1756,7 @@ async function saveTtsConfig(member, event) {
       await db.collection('aiConfigs').add({
         data: {
           familyId: member.familyId,
+          childId: member.childId || '',
           ...updateData
         }
       })
