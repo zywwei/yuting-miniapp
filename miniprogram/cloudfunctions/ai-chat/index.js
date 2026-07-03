@@ -1523,9 +1523,9 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
   // 获取小米API密钥（复用mimo模型的配置）
   let apiKey = overrideApiKey
   if (!apiKey) {
-    // 从数据库获取TTS配置
+    // 从数据库获取TTS配置（使用默认familyId）
     const configResult = await db.collection('aiConfigs').where({
-      familyId: 'system'
+      familyId: 'default'
     }).get()
     
     if (configResult.data && configResult.data.length > 0) {
@@ -1757,13 +1757,17 @@ async function testTts(member, event) {
   try {
     if (engine === 'mimo') {
       // 获取TTS配置中的API密钥
+      console.log('testTts查询条件:', { familyId: member.familyId })
       const configResult = await db.collection('aiConfigs').where({
-        familyId: 'system'
+        familyId: member.familyId
       }).get()
+      
+      console.log('testTts查询结果:', configResult.data)
       
       let apiKey = ''
       if (configResult.data && configResult.data.length > 0) {
         const config = configResult.data[0]
+        console.log('TTS配置字段:', Object.keys(config))
         // 优先使用直接调用的密钥，如果没有则使用套餐密钥
         apiKey = config.mimoTtsApiKey || config.mimoTtsPlanApiKey || ''
       }
