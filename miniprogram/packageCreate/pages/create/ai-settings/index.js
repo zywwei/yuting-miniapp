@@ -287,6 +287,35 @@ Page({
       })
     })
     
+    // 加载TTS配置
+    that.loadTtsConfig()
+  },
+
+  // 加载TTS配置
+  loadTtsConfig: function() {
+    var that = this
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'getTtsConfig'
+      },
+      success: function(result) {
+        if (result.result && result.result.code === 0) {
+          var ttsConfig = result.result.data || {}
+          that.setData({
+            mimoTtsApiKey: ttsConfig.mimoTtsApiKey || '',
+            mimoTtsPlanApiKey: ttsConfig.mimoTtsPlanApiKey || '',
+            baiduAppId: ttsConfig.baiduTtsAppId || '',
+            baiduApiKey: ttsConfig.baiduTtsApiKey || '',
+            baiduSecretKey: ttsConfig.baiduTtsSecretKey || ''
+          })
+        }
+      },
+      fail: function(err) {
+        console.error('加载TTS配置失败:', err)
+      }
+    })
   },
 
   // 获取模板内容
