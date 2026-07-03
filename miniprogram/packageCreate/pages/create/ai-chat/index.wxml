@@ -432,31 +432,106 @@
         <view class="voice-modal-close" bindtap="hideVoiceModal">✕</view>
       </view>
       <scroll-view scroll-y class="voice-modal-body">
-        <!-- 音色选择 -->
+        <!-- 引擎选择Tab -->
         <view class="voice-section">
-          <view class="voice-section-title">音色选择</view>
-          <!-- 音色分组Tab -->
+          <view class="voice-section-title">语音引擎</view>
           <view class="voice-tabs">
             <view 
-              wx:for="{{voiceGroupTabs}}" 
+              wx:for="{{engineTabs}}" 
               wx:key="key"
-              class="voice-tab {{currentVoiceGroupTab === item.key ? 'active' : ''}}"
-              bindtap="switchVoiceGroupTab"
+              class="voice-tab {{currentEngineTab === item.key ? 'active' : ''}}"
+              bindtap="switchEngineTab"
               data-key="{{item.key}}"
             >
               {{item.name}}
             </view>
           </view>
+        </view>
+
+        <!-- Edge TTS音色 -->
+        <view class="voice-section" wx:if="{{currentEngineTab === 'edge'}}">
+          <view class="voice-section-title">选择音色</view>
           <view class="voice-list">
             <view 
-              wx:for="{{voiceVoiceList}}" 
+              wx:for="{{edgeVoiceList}}" 
               wx:key="id"
               class="voice-item {{item.id === currentVoiceId ? 'active' : ''}}"
               bindtap="selectVoice"
               data-id="{{item.id}}"
+              data-engine="edge"
             >
               <view class="voice-item-name">{{item.name}}</view>
               <view class="voice-item-desc">{{item.desc}}</view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 百度TTS音色 -->
+        <view wx:if="{{currentEngineTab === 'baidu'}}">
+          <!-- 二级Tab -->
+          <view class="voice-section">
+            <view class="voice-section-title">音色类型</view>
+            <view class="voice-tabs voice-tabs-small">
+              <view 
+                wx:for="{{baiduGroupTabs}}" 
+                wx:key="key"
+                class="voice-tab {{currentBaiduGroupTab === item.key ? 'active' : ''}}"
+                bindtap="switchBaiduGroupTab"
+                data-key="{{item.key}}"
+              >
+                {{item.name}}
+              </view>
+            </view>
+          </view>
+          <!-- 音色列表 -->
+          <view class="voice-section">
+            <view class="voice-list">
+              <view 
+                wx:for="{{baiduVoiceList}}" 
+                wx:key="id"
+                class="voice-item {{item.id === currentVoiceId ? 'active' : ''}}"
+                bindtap="selectVoice"
+                data-id="{{item.id}}"
+                data-engine="baidu"
+              >
+                <view class="voice-item-name">{{item.name}}</view>
+                <view class="voice-item-desc">{{item.desc}}</view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 大模型TTS音色 -->
+        <view wx:if="{{currentEngineTab === 'mimo'}}">
+          <!-- 二级Tab -->
+          <view class="voice-section">
+            <view class="voice-section-title">音色类型</view>
+            <view class="voice-tabs voice-tabs-small">
+              <view 
+                wx:for="{{mimoGroupTabs}}" 
+                wx:key="key"
+                class="voice-tab {{currentMimoGroupTab === item.key ? 'active' : ''}}"
+                bindtap="switchMimoGroupTab"
+                data-key="{{item.key}}"
+              >
+                {{item.name}}
+              </view>
+            </view>
+          </view>
+          <!-- 音色列表 -->
+          <view class="voice-section">
+            <view class="voice-list">
+              <view 
+                wx:for="{{mimoVoiceList}}" 
+                wx:key="id"
+                class="voice-item {{item.id === currentVoiceId ? 'active' : ''}}"
+                bindtap="selectVoice"
+                data-id="{{item.id}}"
+                data-engine="mimo"
+              >
+                <view class="voice-item-name">{{item.name}}</view>
+                <view class="voice-item-desc">{{item.desc}}</view>
+              </view>
             </view>
           </view>
         </view>

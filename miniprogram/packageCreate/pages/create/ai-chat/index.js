@@ -2333,76 +2333,85 @@ Page({
       return
     }
     
-    // 获取所有音色（合并所有引擎）
-    var allVoiceList = []
-    var voiceGroupTabs = [{ key: 'all', name: '全部' }]
+    // 引擎Tab
+    var engineTabs = [
+      { key: 'edge', name: 'Edge TTS' },
+      { key: 'baidu', name: '百度TTS' },
+      { key: 'mimo', name: '大模型TTS' }
+    ]
     
     // Edge TTS音色
     var edgeVoiceList = speakTool.getEdgeVoiceList()
-    edgeVoiceList.forEach(function(voice) {
-      allVoiceList.push({
-        id: voice.id,
-        name: voice.name,
-        desc: voice.desc,
-        engine: 'edge',
-        group: 'edge'
-      })
-    })
-    voiceGroupTabs.push({ key: 'edge', name: 'Edge TTS' })
     
-    // 百度TTS音色（按分组）
+    // 百度TTS音色分组
     var baiduVoiceGroups = speakTool.getBaiduVoiceGroups()
+    var baiduGroupTabs = [{ key: 'all', name: '全部' }]
+    Object.keys(baiduVoiceGroups).forEach(function(groupName) {
+      baiduGroupTabs.push({ key: groupName, name: groupName })
+    })
     var baiduVoiceList = speakTool.getBaiduVoiceList()
-    baiduVoiceList.forEach(function(voice) {
-      allVoiceList.push({
-        id: voice.id,
-        name: voice.name,
-        desc: voice.desc,
-        engine: 'baidu',
-        group: 'baidu',
-        subGroup: voice.group
-      })
-    })
-    voiceGroupTabs.push({ key: 'baidu', name: '百度TTS' })
-    
-    // 百度TTS子分组
-    var baiduSubGroups = Object.keys(baiduVoiceGroups)
-    baiduSubGroups.forEach(function(subGroup) {
-      voiceGroupTabs.push({ key: 'baidu_' + subGroup, name: subGroup })
-    })
     
     // 大模型TTS音色
     var mimoVoiceList = speakTool.getMimoVoiceList()
-    mimoVoiceList.forEach(function(voice) {
-      allVoiceList.push({
-        id: voice.id,
-        name: voice.name,
-        desc: voice.desc,
-        engine: 'mimo',
-        group: 'llm'
-      })
-    })
-    voiceGroupTabs.push({ key: 'llm', name: '大模型TTS' })
     
     // 获取当前音色名称
     var currentVoiceName = ''
-    for (var j = 0; j < allVoiceList.length; j++) {
-      if (allVoiceList[j].id === currentVoice) {
-        currentVoiceName = allVoiceList[j].name
-        break
+    var allLists = [edgeVoiceList, baiduVoiceList, mimoVoiceList]
+    for (var i = 0; i < allLists.length; i++) {
+      for (var j = 0; j < allLists[i].length; j++) {
+        if (allLists[i][j].id === currentVoice) {
+          currentVoiceName = allLists[i][j].name
+          break
+        }
       }
+      if (currentVoiceName) break
     }
 
     this.setData({
       showVoiceModal: true,
-      voiceGroupTabs: voiceGroupTabs,
-      currentVoiceGroupTab: 'all',
-      voiceVoiceList: allVoiceList,
-      allVoiceList: allVoiceList,
+      engineTabs: engineTabs,
+      currentEngineTab: currentEngine || 'edge',
+      edgeVoiceList: edgeVoiceList,
+      baiduGroupTabs: baiduGroupTabs,
+      currentBaiduGroupTab: 'all',
+      baiduVoiceList: baiduVoiceList,
+      mimoGroupTabs: [{ key: 'all', name: '全部' }],
+      currentMimoGroupTab: 'all',
+      mimoVoiceList: mimoVoiceList,
       currentVoiceName: currentVoiceName,
-      currentVoiceId: currentVoice,
-      currentVoiceEngine: currentEngine
+      currentVoiceId: currentVoice
     })
+  },
+
+  // 切换引擎Tab
+  switchEngineTab: function(e) {
+    var engineKey = e.currentTarget.dataset.key
+    this.setData({ currentEngineTab: engineKey })
+  },
+
+  // 切换百度分组Tab
+  switchBaiduGroupTab: function(e) {
+    var groupKey = e.currentTarget.dataset.key
+    var baiduVoiceGroups = speakTool.getBaiduVoiceGroups()
+    var allBaiduList = speakTool.getBaiduVoiceList()
+    
+    var filteredList = allBaiduList
+    if (groupKey !== 'all') {
+      filteredList = allBaiduList.filter(function(voice) {
+        return voice.group === groupKey
+      })
+    }
+    
+    this.setData({
+      currentBaiduGroupTab: groupKey,
+      baiduVoiceList: filteredList
+    })
+  },
+
+  // 切换大模型分组Tab
+  switchMimoGroupTab: function(e) {
+    // 目前大模型只有一个音色，不需要过滤
+    this.setData({ currentMimoGroupTab: 'all' })
   },
 
   // 切换TTS引擎
@@ -2442,56 +2451,40 @@ Page({
   // 切换音色
   selectVoice: function(e) {
     var voiceId = e.currentTarget.dataset.id
-    var voiceItem = this.data.voiceVoiceList.find(function(v) { return v.id === voiceId })
+    var engine = e.currentTarget.dataset.engine
     
-    if (voiceItem) {
-      // 根据音色所属引擎自动切换引擎
-      if (voiceItem.engine) {
-        speakTool.setEngine(voiceItem.engine)
+    // 根据引擎切换
+    if (engine) {
+      speakTool.setEngine(engine)
+    }
+    
+    // 设置音色
+    speakTool.setVoice(voiceId)
+    
+    // 获取音色名称
+    var voiceName = ''
+    var voiceList = []
+    if (engine === 'edge') {
+      voiceList = this.data.edgeVoiceList
+    } else if (engine === 'baidu') {
+      voiceList = this.data.baiduVoiceList
+    } else if (engine === 'mimo') {
+      voiceList = this.data.mimoVoiceList
+    }
+    
+    for (var i = 0; i < voiceList.length; i++) {
+      if (voiceList[i].id === voiceId) {
+        voiceName = voiceList[i].name
+        break
       }
-      speakTool.setVoice(voiceId)
-      this.setData({ 
-        currentVoiceId: voiceId, 
-        currentVoiceName: voiceItem.name,
-        currentVoiceEngine: voiceItem.engine
-      })
-      wx.showToast({ title: '已切换到 ' + voiceItem.name, icon: 'success' })
-    }
-  },
-
-  // 切换音色分组Tab
-  switchVoiceGroupTab: function(e) {
-    var tabKey = e.currentTarget.dataset.key
-    var allVoiceList = this.data.allVoiceList
-    
-    // 过滤音色列表
-    var filteredList = allVoiceList
-    
-    if (tabKey === 'all') {
-      // 显示全部
-      filteredList = allVoiceList
-    } else if (tabKey === 'baidu') {
-      // 显示所有百度TTS音色
-      filteredList = allVoiceList.filter(function(voice) {
-        return voice.group === 'baidu'
-      })
-    } else if (tabKey.startsWith('baidu_')) {
-      // 显示百度TTS子分组
-      var subGroup = tabKey.replace('baidu_', '')
-      filteredList = allVoiceList.filter(function(voice) {
-        return voice.group === 'baidu' && voice.subGroup === subGroup
-      })
-    } else {
-      // 显示其他分组（edge/llm）
-      filteredList = allVoiceList.filter(function(voice) {
-        return voice.group === tabKey
-      })
     }
     
-    this.setData({
-      currentVoiceGroupTab: tabKey,
-      voiceVoiceList: filteredList
+    this.setData({ 
+      currentVoiceId: voiceId, 
+      currentVoiceName: voiceName
     })
+    
+    wx.showToast({ title: '已切换到 ' + voiceName, icon: 'success' })
   },
 
   // 关闭语音设置弹窗

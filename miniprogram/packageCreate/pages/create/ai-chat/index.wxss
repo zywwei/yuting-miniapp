@@ -1137,6 +1137,16 @@ page.dark-mode {
   border-bottom: 1rpx solid var(--border-color, #f0f0f0);
 }
 
+.voice-tabs-small {
+  margin-bottom: 16rpx;
+  padding-bottom: 12rpx;
+}
+
+.voice-tabs-small .voice-tab {
+  padding: 8rpx 16rpx;
+  font-size: 22rpx;
+}
+
 .voice-tab {
   padding: 10rpx 20rpx;
   font-size: 22rpx;
