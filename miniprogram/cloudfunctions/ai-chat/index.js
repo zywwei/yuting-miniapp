@@ -1710,10 +1710,21 @@ async function testTts(member, event) {
         return { code: -1, msg: '请先输入小米TTS API密钥' }
       }
       
+      console.log('开始测试小米TTS，密钥长度:', apiKey.length)
+      
       // 直接调用测试，传入密钥
       const result = await mimoTTS('你好，这是测试', 'mimo-v2.5-tts', apiKey)
+      
+      console.log('小米TTS测试结果:', result)
+      
       if (result.code === 0) {
-        return { code: 0, msg: '测试成功' }
+        return { 
+          code: 0, 
+          msg: '测试成功',
+          data: {
+            audioLength: result.data?.audio?.length || 0
+          }
+        }
       } else {
         return { code: -1, msg: result.msg || '测试失败' }
       }
