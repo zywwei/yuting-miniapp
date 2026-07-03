@@ -178,7 +178,20 @@ function setVoice(voiceId) {
 
 // 获取当前引擎的语音列表
 function getVoiceList() {
-  return currentEngine === 'edge' ? EDGE_VOICE_LIST : BAIDU_VOICE_LIST
+  if (currentEngine === 'edge') {
+    return EDGE_VOICE_LIST
+  }
+  
+  // 按分组组织百度TTS音色
+  var grouped = {}
+  BAIDU_VOICE_LIST.forEach(function(voice) {
+    if (!grouped[voice.group]) {
+      grouped[voice.group] = []
+    }
+    grouped[voice.group].push(voice)
+  })
+  
+  return grouped
 }
 
 // 获取当前语音
