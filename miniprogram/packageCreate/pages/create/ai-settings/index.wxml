@@ -249,7 +249,6 @@
 
     <!-- 百度TTS -->
     <view wx:if="{{currentTtsEngine === 'baidu'}}">
-      <!-- 配置 -->
       <view class="section">
         <view class="config-card">
           <view class="config-header">
@@ -280,22 +279,6 @@
               <button class="test-btn" bindtap="testBaiduTts" disabled="{{testingBaiduTts}}">{{testingBaiduTts ? '测试中...' : '测试'}}</button>
               <button class="save-btn" bindtap="saveBaiduTtsConfig" disabled="{{savingBaiduTts}}">{{savingBaiduTts ? '保存中...' : '保存'}}</button>
             </view>
-          </view>
-        </view>
-      </view>
-
-      <!-- 音色分组 -->
-      <view class="section">
-        <view class="section-title">可用音色</view>
-        <view class="voice-group-tabs">
-          <view wx:for="{{baiduVoiceGroups}}" wx:key="key" class="voice-group-tab {{currentBaiduGroup === item.key ? 'active' : ''}}" bindtap="switchBaiduGroup" data-key="{{item.key}}">
-            {{item.name}}
-          </view>
-        </view>
-        <view class="voice-list">
-          <view wx:for="{{currentBaiduVoiceList}}" wx:key="id" class="voice-item">
-            <view class="voice-item-name">{{item.name}}</view>
-            <view class="voice-item-desc">{{item.desc}}</view>
           </view>
         </view>
       </view>
@@ -367,17 +350,6 @@
               <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">{{testingMimoTts ? '测试中...' : '测试'}}</button>
               <button class="save-btn" bindtap="saveMimoTtsPlanKey" disabled="{{savingMimoTts}}">{{savingMimoTts ? '保存中...' : '保存'}}</button>
             </view>
-          </view>
-        </view>
-      </view>
-
-      <!-- 可用音色 -->
-      <view class="section">
-        <view class="section-title">可用音色</view>
-        <view class="voice-list">
-          <view wx:for="{{mimoVoiceList}}" wx:key="id" class="voice-item">
-            <view class="voice-item-name">{{item.name}}</view>
-            <view class="voice-item-desc">{{item.desc}}</view>
           </view>
         </view>
       </view>
