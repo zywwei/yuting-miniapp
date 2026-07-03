@@ -1,6 +1,6 @@
 /**
  * 朗读工具 - 支持真正的TTS语音合成
- * 支持百度TTS和Edge TTS两种引擎
+ * 支持Edge TTS、百度TTS和大模型TTS三种引擎
  */
 
 var beep = require('./beep.js')
@@ -11,7 +11,8 @@ var currentAudioContext = null
 // TTS引擎配置
 var TTS_ENGINES = {
   'edge': { name: 'Edge TTS', voice: 'zh-CN-XiaoxiaoNeural', desc: '微软语音，自然流畅' },
-  'baidu': { name: '百度TTS', voice: '', desc: '百度语音，稳定可靠' }
+  'baidu': { name: '百度TTS', voice: '', desc: '百度语音，稳定可靠' },
+  'mimo': { name: '大模型TTS', voice: 'mimo-v2.5-tts', desc: '小米MiMo语音，AI生成' }
 }
 
 // 当前使用的TTS引擎
@@ -24,6 +25,11 @@ var EDGE_VOICE_LIST = [
   { id: 'zh-CN-YunyangNeural', name: '云扬', desc: '专业男声', gender: 'male' },
   { id: 'zh-CN-XiaoyiNeural', name: '晓艺', desc: '活泼女声', gender: 'female' },
   { id: 'zh-CN-YunjianNeural', name: '云健', desc: '沉稳男声', gender: 'male' }
+]
+
+// 小米TTS音色列表（大模型TTS）
+var MIMO_VOICE_LIST = [
+  { id: 'mimo-v2.5-tts', name: 'MiMo TTS', desc: '小米大模型语音' }
 ]
 
 // 百度TTS音色列表
@@ -180,6 +186,8 @@ function setVoice(voiceId) {
 function getVoiceList() {
   if (currentEngine === 'edge') {
     return EDGE_VOICE_LIST
+  } else if (currentEngine === 'mimo') {
+    return MIMO_VOICE_LIST
   }
   
   // 返回百度TTS音色列表（包含分组信息）
@@ -200,7 +208,12 @@ function getBaiduVoiceGroups() {
 
 // 获取当前语音
 function getCurrentVoice() {
-  return TTS_ENGINES[currentEngine].voice || (currentEngine === 'edge' ? EDGE_VOICE_LIST[0].id : BAIDU_VOICE_LIST[0].id)
+  if (currentEngine === 'edge') {
+    return TTS_ENGINES[currentEngine].voice || EDGE_VOICE_LIST[0].id
+  } else if (currentEngine === 'mimo') {
+    return TTS_ENGINES[currentEngine].voice || MIMO_VOICE_LIST[0].id
+  }
+  return TTS_ENGINES[currentEngine].voice || BAIDU_VOICE_LIST[0].id
 }
 
 // 朗读文字（使用TTS）
@@ -236,6 +249,8 @@ function speak(text, callback) {
     requestData.voice = voice
   } else if (currentEngine === 'baidu') {
     requestData.baiduPer = engine.voice || '0'
+  } else if (currentEngine === 'mimo') {
+    requestData.mimoVoice = engine.voice || 'mimo-v2.5-tts'
   }
   
   console.log('speak调用:', { 

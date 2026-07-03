@@ -140,7 +140,7 @@ exports.main = async (event, context) => {
     case 'speechToText':
       return await speechToText(event.audioData)
     case 'textToSpeech':
-      return await textToSpeech(event.text, event.voice, event.baiduPer)
+      return await textToSpeech(event.text, event.voice, event.baiduPer, event.mimoVoice)
     default:
       return { code: -1, msg: '未知操作' }
   }
@@ -1272,17 +1272,26 @@ async function speechToText(audioData) {
 }
 
 // 语音合成（优先使用Edge TTS，降级到百度TTS）
-async function textToSpeech(text, voice, baiduPer) {
+async function textToSpeech(text, voice, baiduPer, mimoVoice) {
   const maxLen = 1000
   const truncatedText = text.length > maxLen ? text.substring(0, maxLen) : text
   const ttsVoice = voice || 'zh-CN-XiaoxiaoNeural'
 
-  console.log('textToSpeech调用:', { voice, ttsVoice, baiduPer, baiduPerType: typeof baiduPer })
+  console.log('textToSpeech调用:', { voice, ttsVoice, baiduPer, mimoVoice })
 
   // 根据参数判断使用哪个引擎
+  // 如果有 mimoVoice 参数，使用小米TTS
   // 如果有 baiduPer 参数，使用百度TTS
   // 如果有 voice 参数，使用Edge TTS
-  if (baiduPer) {
+  if (mimoVoice) {
+    // 使用小米TTS
+    try {
+      return await mimoTTS(truncatedText, mimoVoice)
+    } catch (err) {
+      console.error('小米TTS异常:', err.message)
+      return { code: -1, msg: '小米TTS服务不可用: ' + err.message }
+    }
+  } else if (baiduPer) {
     // 使用百度TTS
     try {
       return await baiduTTS(truncatedText, ttsVoice, baiduPer)
@@ -1473,5 +1482,113 @@ async function baiduTTS(text, voice, baiduPer) {
       code: -1,
       msg: '获取百度token失败: ' + err.message
     }
+  }
+}
+
+// 小米TTS（大模型语音合成）
+async function mimoTTS(text, voice) {
+  const https = require('https')
+  
+  if (!text || text.trim() === '') {
+    return { code: -1, msg: '文本为空' }
+  }
+  
+  // 移除emoji和特殊字符
+  text = text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+    .replace(/[\u2600-\u27BF\uFE00-\uFE0F\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/\s+/g, ' ').trim()
+  
+  const voiceName = voice || 'mimo-v2.5-tts'
+  
+  console.log('mimoTTS调用:', { voice, voiceName })
+  
+  // 获取小米API密钥（复用MiMo模型的配置）
+  const apiKey = await getMimoApiKey()
+  if (!apiKey) {
+    return { code: -1, msg: '小米API密钥未配置' }
+  }
+  
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      model: voiceName,
+      input: text,
+      voice: 'alloy',
+      response_format: 'mp3'
+    })
+    
+    const options = {
+      hostname: 'api.xiaomimimo.com',
+      port: 443,
+      path: '/v1/audio/speech',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Length': Buffer.byteLength(data)
+      }
+    }
+    
+    const req = https.request(options, (res) => {
+      if (res.statusCode === 200) {
+        const chunks = []
+        res.on('data', (chunk) => chunks.push(chunk))
+        res.on('end', () => {
+          const audioBuffer = Buffer.concat(chunks)
+          resolve({
+            code: 0,
+            data: {
+              audio: audioBuffer.toString('base64')
+            }
+          })
+        })
+      } else {
+        let responseData = ''
+        res.on('data', (chunk) => responseData += chunk)
+        res.on('end', () => {
+          try {
+            const result = JSON.parse(responseData)
+            console.error('小米TTS错误响应:', result)
+            resolve({
+              code: -1,
+              msg: result.error?.message || '小米TTS失败'
+            })
+          } catch (err) {
+            console.error('小米TTS响应解析失败:', responseData)
+            resolve({
+              code: -1,
+              msg: '小米TTS失败'
+            })
+          }
+        })
+      }
+    })
+    
+    req.on('error', (err) => {
+      resolve({
+        code: -1,
+        msg: '小米TTS请求失败: ' + err.message
+      })
+    })
+    
+    req.write(data)
+    req.end()
+  })
+}
+
+// 获取小米API密钥
+async function getMimoApiKey() {
+  try {
+    const result = await db.collection('ai_config').where({
+      userId: 'system'
+    }).get()
+    
+    if (result.data && result.data.length > 0) {
+      const config = result.data[0]
+      return config.mimo?.apiKey || ''
+    }
+    return ''
+  } catch (err) {
+    console.error('获取小米API密钥失败:', err)
+    return ''
   }
 }
