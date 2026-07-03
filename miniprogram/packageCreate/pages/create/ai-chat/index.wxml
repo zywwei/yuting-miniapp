@@ -435,16 +435,21 @@
         <!-- 引擎选择 -->
         <view class="voice-section">
           <view class="voice-section-title">语音引擎</view>
-          <view class="voice-engine-list">
-            <view 
-              wx:for="{{voiceEngineList}}" 
-              wx:key="id"
-              class="voice-engine-item {{item.active ? 'active' : ''}}"
-              bindtap="selectVoiceEngine"
-              data-id="{{item.id}}"
-            >
-              <view class="voice-engine-name">{{item.name}}</view>
-              <view class="voice-engine-desc">{{item.desc}}</view>
+          <!-- 引擎分组 -->
+          <view wx:for="{{voiceEngineGroups}}" wx:key="groupKey" class="voice-engine-group">
+            <view class="voice-engine-group-title">{{item.groupName}}</view>
+            <view class="voice-engine-list">
+              <view 
+                wx:for="{{item.engines}}" 
+                wx:for-item="engine"
+                wx:key="id"
+                class="voice-engine-item {{engine.active ? 'active' : ''}}"
+                bindtap="selectVoiceEngine"
+                data-id="{{engine.id}}"
+              >
+                <view class="voice-engine-name">{{engine.name}}</view>
+                <view class="voice-engine-desc">{{engine.desc}}</view>
+              </view>
             </view>
           </view>
         </view>

@@ -2326,6 +2326,7 @@ Page({
     
     try {
       var engineList = speakTool.getEngineList()
+      var engineGroups = speakTool.getEngineGroups()
       var voiceList = speakTool.getVoiceList()
       var currentVoice = speakTool.getCurrentVoice()
       var currentEngine = speakTool.getEngine()
@@ -2351,6 +2352,24 @@ Page({
       }
     }
 
+    // 按分组组织引擎列表
+    var voiceEngineGroups = []
+    var groupKeys = Object.keys(engineGroups)
+    for (var k = 0; k < groupKeys.length; k++) {
+      var groupKey = groupKeys[k]
+      var groupInfo = engineGroups[groupKey]
+      var groupEngines = engineList.filter(function(engine) {
+        return engine.group === groupKey
+      })
+      if (groupEngines.length > 0) {
+        voiceEngineGroups.push({
+          groupKey: groupKey,
+          groupName: groupInfo.name,
+          engines: groupEngines
+        })
+      }
+    }
+
     // 处理音色分组Tab（百度TTS）
     var voiceGroupTabs = []
     var currentVoiceGroupTab = 'all'
@@ -2369,7 +2388,7 @@ Page({
 
     this.setData({
       showVoiceModal: true,
-      voiceEngineList: engineList,
+      voiceEngineGroups: voiceEngineGroups,
       voiceVoiceList: displayVoiceList,
       currentEngineName: currentEngineName,
       currentVoiceName: currentVoiceName,

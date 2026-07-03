@@ -10,9 +10,16 @@ var currentAudioContext = null
 
 // TTS引擎配置
 var TTS_ENGINES = {
-  'edge': { name: 'Edge TTS', voice: 'zh-CN-XiaoxiaoNeural', desc: '微软语音，自然流畅' },
-  'baidu': { name: '百度TTS', voice: '', desc: '百度语音，稳定可靠' },
-  'mimo': { name: '大模型TTS', voice: 'mimo-v2.5-tts', desc: '小米MiMo语音，AI生成' }
+  'edge': { name: 'Edge TTS', voice: 'zh-CN-XiaoxiaoNeural', desc: '微软语音，自然流畅', group: 'edge' },
+  'baidu': { name: '百度TTS', voice: '', desc: '百度语音，稳定可靠', group: 'baidu' },
+  'mimo': { name: '小米MiMo', voice: 'mimo-v2.5-tts', desc: '小米大模型语音，AI生成', group: 'llm' }
+}
+
+// TTS引擎分组
+var TTS_ENGINE_GROUPS = {
+  'edge': { name: 'Edge TTS', desc: '微软语音引擎' },
+  'baidu': { name: '百度TTS', desc: '百度语音引擎' },
+  'llm': { name: '大模型TTS', desc: 'AI大模型语音引擎' }
 }
 
 // 当前使用的TTS引擎
@@ -163,10 +170,16 @@ function getEngineList() {
       id: key,
       name: TTS_ENGINES[key].name,
       desc: TTS_ENGINES[key].desc,
+      group: TTS_ENGINES[key].group,
       active: key === currentEngine
     })
   }
   return list
+}
+
+// 获取引擎分组列表
+function getEngineGroups() {
+  return TTS_ENGINE_GROUPS
 }
 
 // 设置语音（根据当前引擎自动区分）
@@ -442,6 +455,7 @@ module.exports = {
   setEngine: setEngine,
   getEngine: getEngine,
   getEngineList: getEngineList,
+  getEngineGroups: getEngineGroups,
   setVoice: setVoice,
   getVoiceList: getVoiceList,
   getBaiduVoiceGroups: getBaiduVoiceGroups,
