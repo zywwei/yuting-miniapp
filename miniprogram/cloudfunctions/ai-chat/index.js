@@ -1502,10 +1502,10 @@ async function mimoTTS(text, voice) {
   
   console.log('mimoTTS调用:', { voice, voiceName })
   
-  // 获取小米API密钥（复用MiMo模型的配置）
-  const apiKey = await getMimoApiKey()
+  // 获取小米TTS API密钥
+  const apiKey = await getMimoTtsApiKey()
   if (!apiKey) {
-    return { code: -1, msg: '小米API密钥未配置' }
+    return { code: -1, msg: '小米TTS API密钥未配置' }
   }
   
   return new Promise((resolve, reject) => {
@@ -1575,8 +1575,8 @@ async function mimoTTS(text, voice) {
   })
 }
 
-// 获取小米API密钥
-async function getMimoApiKey() {
+// 获取小米TTS API密钥
+async function getMimoTtsApiKey() {
   try {
     const result = await db.collection('ai_config').where({
       userId: 'system'
@@ -1584,11 +1584,11 @@ async function getMimoApiKey() {
     
     if (result.data && result.data.length > 0) {
       const config = result.data[0]
-      return config.mimo?.apiKey || ''
+      return config.mimoTtsApiKey || ''
     }
     return ''
   } catch (err) {
-    console.error('获取小米API密钥失败:', err)
+    console.error('获取小米TTS API密钥失败:', err)
     return ''
   }
 }
