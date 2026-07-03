@@ -1148,14 +1148,26 @@ async function getBaiduKeys() {
     console.log('使用缓存的百度密钥')
     return _baiduKeysCache
   }
+  
+  // 优先从user_ai_configs获取（新配置）
+  const configRes = await db.collection('user_ai_configs').where({ userId: 'system' }).get()
+  if (configRes.data.length > 0 && configRes.data[0].baiduTtsApiKey && configRes.data[0].baiduTtsSecretKey) {
+    console.log('使用user_ai_configs中的百度TTS配置')
+    _baiduKeysCache = { 
+      apiKey: configRes.data[0].baiduTtsApiKey, 
+      secretKey: configRes.data[0].baiduTtsSecretKey 
+    }
+    _baiduKeysCacheTime = now
+    return _baiduKeysCache
+  }
+  
+  // 备用：从systemConfig获取（旧配置）
   const res = await db.collection('systemConfig').where({ key: 'baiduTTS' }).get()
   console.log('数据库查询结果:', JSON.stringify(res.data))
   if (res.data.length === 0) {
-    throw new Error('百度TTS密钥未配置，请在systemConfig集合中添加key=baiduTTS的记录')
+    throw new Error('百度TTS密钥未配置，请在语音设置中配置')
   }
-  console.log('百度密钥字段:', Object.keys(res.data[0]))
-  console.log('apiKey:', res.data[0].apiKey ? '已配置' : '未配置')
-  console.log('secretKey:', res.data[0].secretKey ? '已配置' : '未配置')
+  console.log('使用systemConfig中的百度TTS配置')
   _baiduKeysCache = { apiKey: res.data[0].apiKey, secretKey: res.data[0].secretKey }
   _baiduKeysCacheTime = now
   return _baiduKeysCache
