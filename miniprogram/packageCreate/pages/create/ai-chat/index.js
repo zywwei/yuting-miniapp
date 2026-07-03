@@ -2325,9 +2325,6 @@ Page({
     this.setData({ showMorePanel: false })
     
     try {
-      var engineList = speakTool.getEngineList()
-      var engineGroups = speakTool.getEngineGroups()
-      var voiceList = speakTool.getVoiceList()
       var currentVoice = speakTool.getCurrentVoice()
       var currentEngine = speakTool.getEngine()
     } catch (err) {
@@ -2336,77 +2333,66 @@ Page({
       return
     }
     
-    // 获取当前引擎和音色名称用于显示
-    var currentEngineName = '语音设置'
-    var currentVoiceName = ''
-    for (var i = 0; i < engineList.length; i++) {
-      if (engineList[i].active) {
-        currentEngineName = engineList[i].name
-        break
-      }
-    }
-    for (var j = 0; j < voiceList.length; j++) {
-      if (voiceList[j].id === currentVoice) {
-        currentVoiceName = voiceList[j].name
-        break
-      }
-    }
-
-    // 处理引擎分组Tab
-    var engineGroupTabs = []
-    var currentEngineGroupTab = 'all'
-    var filteredEngineList = engineList
+    // 获取所有音色（合并所有引擎）
+    var allVoiceList = []
+    var voiceGroupTabs = [{ key: 'all', name: '全部' }]
     
-    // 创建引擎分组Tab
-    Object.keys(engineGroups).forEach(function(groupKey) {
-      engineGroupTabs.push({
-        key: groupKey,
-        name: engineGroups[groupKey].name
+    // Edge TTS音色
+    var edgeVoiceList = speakTool.getEdgeVoiceList()
+    edgeVoiceList.forEach(function(voice) {
+      allVoiceList.push({
+        id: voice.id,
+        name: voice.name,
+        desc: voice.desc,
+        engine: 'edge',
+        group: 'edge'
       })
     })
+    voiceGroupTabs.push({ key: 'edge', name: 'Edge TTS' })
     
-    // 添加"全部"Tab
-    engineGroupTabs.unshift({ key: 'all', name: '全部' })
-    
-    // 默认显示当前引擎所在的分组
-    var currentEngineInfo = engineList.find(function(e) { return e.id === currentEngine })
-    if (currentEngineInfo) {
-      currentEngineGroupTab = currentEngineInfo.group || 'all'
-      if (currentEngineGroupTab !== 'all') {
-        filteredEngineList = engineList.filter(function(engine) {
-          return engine.group === currentEngineGroupTab
-        })
-      }
-    }
-
-    // 处理音色分组Tab（百度TTS）
-    var voiceGroupTabs = []
-    var currentVoiceGroupTab = 'all'
-    var displayVoiceList = voiceList
-    
-    if (currentEngine === 'baidu') {
-      // 获取分组数据
-      var groups = speakTool.getBaiduVoiceGroups()
-      voiceGroupTabs = [{ key: 'all', name: '全部' }]
-      Object.keys(groups).forEach(function(groupName) {
-        voiceGroupTabs.push({ key: groupName, name: groupName })
+    // 百度TTS音色
+    var baiduVoiceList = speakTool.getBaiduVoiceList()
+    baiduVoiceList.forEach(function(voice) {
+      allVoiceList.push({
+        id: voice.id,
+        name: voice.name,
+        desc: voice.desc,
+        engine: 'baidu',
+        group: 'baidu'
       })
-      currentVoiceGroupTab = 'all'
-      displayVoiceList = voiceList
+    })
+    voiceGroupTabs.push({ key: 'baidu', name: '百度TTS' })
+    
+    // 大模型TTS音色
+    var mimoVoiceList = speakTool.getMimoVoiceList()
+    mimoVoiceList.forEach(function(voice) {
+      allVoiceList.push({
+        id: voice.id,
+        name: voice.name,
+        desc: voice.desc,
+        engine: 'mimo',
+        group: 'llm'
+      })
+    })
+    voiceGroupTabs.push({ key: 'llm', name: '大模型TTS' })
+    
+    // 获取当前音色名称
+    var currentVoiceName = ''
+    for (var j = 0; j < allVoiceList.length; j++) {
+      if (allVoiceList[j].id === currentVoice) {
+        currentVoiceName = allVoiceList[j].name
+        break
+      }
     }
 
     this.setData({
       showVoiceModal: true,
-      engineGroupTabs: engineGroupTabs,
-      currentEngineGroupTab: currentEngineGroupTab,
-      filteredEngineList: filteredEngineList,
-      voiceVoiceList: displayVoiceList,
-      currentEngineName: currentEngineName,
+      voiceGroupTabs: voiceGroupTabs,
+      currentVoiceGroupTab: 'all',
+      voiceVoiceList: allVoiceList,
       currentVoiceName: currentVoiceName,
       currentVoiceId: currentVoice,
-      currentVoiceEngine: currentEngine,
-      voiceGroupTabs: voiceGroupTabs,
-      currentVoiceGroupTab: currentVoiceGroupTab
+      currentVoiceEngine: currentEngine
     })
   },
 
@@ -2447,25 +2433,70 @@ Page({
   // 切换音色
   selectVoice: function(e) {
     var voiceId = e.currentTarget.dataset.id
-    speakTool.setVoice(voiceId)
-    var voiceList = speakTool.getVoiceList()
-    var voiceName = ''
-    for (var j = 0; j < voiceList.length; j++) {
-      if (voiceList[j].id === voiceId) { voiceName = voiceList[j].name; break }
+    var voiceItem = this.data.voiceVoiceList.find(function(v) { return v.id === voiceId })
+    
+    if (voiceItem) {
+      // 根据音色所属引擎自动切换引擎
+      if (voiceItem.engine) {
+        speakTool.setEngine(voiceItem.engine)
+      }
+      speakTool.setVoice(voiceId)
+      this.setData({ 
+        currentVoiceId: voiceId, 
+        currentVoiceName: voiceItem.name,
+        currentVoiceEngine: voiceItem.engine
+      })
+      wx.showToast({ title: '已切换到 ' + voiceItem.name, icon: 'success' })
     }
-    this.setData({ currentVoiceId: voiceId, currentVoiceName: voiceName })
-    wx.showToast({ title: '已切换', icon: 'success' })
   },
 
   // 切换音色分组Tab
   switchVoiceGroupTab: function(e) {
     var tabKey = e.currentTarget.dataset.key
-    var voiceList = speakTool.getVoiceList()
+    
+    // 获取所有音色
+    var allVoiceList = []
+    
+    // Edge TTS音色
+    var edgeVoiceList = speakTool.getEdgeVoiceList()
+    edgeVoiceList.forEach(function(voice) {
+      allVoiceList.push({
+        id: voice.id,
+        name: voice.name,
+        desc: voice.desc,
+        engine: 'edge',
+        group: 'edge'
+      })
+    })
+    
+    // 百度TTS音色
+    var baiduVoiceList = speakTool.getBaiduVoiceList()
+    baiduVoiceList.forEach(function(voice) {
+      allVoiceList.push({
+        id: voice.id,
+        name: voice.name,
+        desc: voice.desc,
+        engine: 'baidu',
+        group: 'baidu'
+      })
+    })
+    
+    // 大模型TTS音色
+    var mimoVoiceList = speakTool.getMimoVoiceList()
+    mimoVoiceList.forEach(function(voice) {
+      allVoiceList.push({
+        id: voice.id,
+        name: voice.name,
+        desc: voice.desc,
+        engine: 'mimo',
+        group: 'llm'
+      })
+    })
     
     // 过滤音色列表
-    var filteredList = voiceList
+    var filteredList = allVoiceList
     if (tabKey !== 'all') {
-      filteredList = voiceList.filter(function(voice) {
+      filteredList = allVoiceList.filter(function(voice) {
         return voice.group === tabKey
       })
     }
@@ -2473,25 +2504,6 @@ Page({
     this.setData({
       currentVoiceGroupTab: tabKey,
       voiceVoiceList: filteredList
-    })
-  },
-
-  // 切换引擎分组Tab
-  switchEngineGroupTab: function(e) {
-    var tabKey = e.currentTarget.dataset.key
-    var engineList = speakTool.getEngineList()
-    
-    // 过滤引擎列表
-    var filteredList = engineList
-    if (tabKey !== 'all') {
-      filteredList = engineList.filter(function(engine) {
-        return engine.group === tabKey
-      })
-    }
-    
-    this.setData({
-      currentEngineGroupTab: tabKey,
-      filteredEngineList: filteredList
     })
   },
 

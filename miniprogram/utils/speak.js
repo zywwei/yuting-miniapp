@@ -207,6 +207,21 @@ function getVoiceList() {
   return BAIDU_VOICE_LIST
 }
 
+// 获取Edge TTS音色列表
+function getEdgeVoiceList() {
+  return EDGE_VOICE_LIST
+}
+
+// 获取百度TTS音色列表
+function getBaiduVoiceList() {
+  return BAIDU_VOICE_LIST
+}
+
+// 获取小米TTS音色列表
+function getMimoVoiceList() {
+  return MIMO_VOICE_LIST
+}
+
 // 获取百度TTS音色分组列表
 function getBaiduVoiceGroups() {
   var groups = {}
@@ -458,6 +473,9 @@ module.exports = {
   getEngineGroups: getEngineGroups,
   setVoice: setVoice,
   getVoiceList: getVoiceList,
+  getEdgeVoiceList: getEdgeVoiceList,
+  getBaiduVoiceList: getBaiduVoiceList,
+  getMimoVoiceList: getMimoVoiceList,
   getBaiduVoiceGroups: getBaiduVoiceGroups,
   getCurrentVoice: getCurrentVoice,
   getIsSpeaking: getIsSpeaking,
