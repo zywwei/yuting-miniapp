@@ -21,7 +21,8 @@ Page({
     showApiKey: false,
     showSecretKey: false,
     saving: false,
-    testing: false
+    testing: false,
+    testingMimoTts: false
   },
 
   onLoad: function() {
@@ -545,6 +546,46 @@ Page({
         title: err.message || '保存失败',
         icon: 'none'
       })
+    })
+  },
+
+  // 测试小米TTS连接
+  testMimoTts: function() {
+    var that = this
+    
+    if (this.data.testingMimoTts) return
+    
+    this.setData({ testingMimoTts: true })
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'testTts',
+        engine: 'mimo'
+      },
+      success: function(result) {
+        that.setData({ testingMimoTts: false })
+        
+        if (result.result && result.result.code === 0) {
+          wx.showToast({
+            title: '测试成功！',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: result.result?.msg || '测试失败',
+            icon: 'none',
+            duration: 3000
+          })
+        }
+      },
+      fail: function(err) {
+        that.setData({ testingMimoTts: false })
+        wx.showToast({
+          title: '测试失败',
+          icon: 'none'
+        })
+      }
     })
   }
 })

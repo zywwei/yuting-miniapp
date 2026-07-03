@@ -1519,7 +1519,7 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
   }
   
   if (!apiKey) {
-    return { code: -1, msg: '小米API密钥未配置，请先在模型配置中设置' }
+    return { code: -1, msg: '小米API密钥未配置，请先在模型配置中设置小米模型' }
   }
   
   console.log('mimoTTS调用参数:', {

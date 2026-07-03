@@ -38,6 +38,17 @@
             <view class="tab-desc">使用平台套餐</view>
           </view>
         </view>
+        <view 
+          class="call-type-tab {{callType === 'voice' ? 'active' : ''}}" 
+          bindtap="switchCallType"
+          data-type="voice"
+        >
+          <view class="tab-icon">🔊</view>
+          <view class="tab-info">
+            <view class="tab-name">语音设置</view>
+            <view class="tab-desc">测试语音合成</view>
+          </view>
+        </view>
       </view>
     </view>
   </view>
@@ -189,6 +200,57 @@
               </view>
             </view>
           </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 语音设置Tab内容 -->
+  <view class="tab-content" wx:if="{{activeTab === 'model' && callType === 'voice'}}">
+    <!-- 语音设置说明 -->
+    <view class="section">
+      <view class="section-title">语音设置</view>
+      <view class="tts-engine-desc">
+        <text>测试语音合成功能。小米TTS需要先在模型配置中设置小米模型的API密钥。</text>
+      </view>
+    </view>
+
+    <!-- 小米TTS测试 -->
+    <view class="section">
+      <view class="section-title">小米TTS测试</view>
+      <view class="config-card">
+        <view class="config-header">
+          <view class="config-icon">🤖</view>
+          <view class="config-info">
+            <view class="config-name">小米MiMo TTS</view>
+            <view class="config-desc">小米大模型语音合成，AI生成</view>
+          </view>
+        </view>
+        <view class="config-body">
+          <view class="config-actions">
+            <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">
+              {{testingMimoTts ? '测试中...' : '测试小米TTS'}}
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 配置说明 -->
+    <view class="section">
+      <view class="section-title">配置说明</view>
+      <view class="help-card">
+        <view class="help-item">
+          <text class="help-icon">💡</text>
+          <text class="help-text">小米TTS复用小米模型的API密钥</text>
+        </view>
+        <view class="help-item">
+          <text class="help-icon">💡</text>
+          <text class="help-text">请先在模型配置中设置小米模型的API密钥</text>
+        </view>
+        <view class="help-item">
+          <text class="help-icon">🔊</text>
+          <text class="help-text">可用音色：冰糖、茉莉、苏打、白桦</text>
         </view>
       </view>
     </view>
