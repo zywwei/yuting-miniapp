@@ -26,12 +26,31 @@ var EDGE_VOICE_LIST = [
   { id: 'zh-CN-YunjianNeural', name: '云健', desc: '沉稳男声', gender: 'male' }
 ]
 
-// 百度TTS音色列表（基础音库）
+// 百度TTS音色列表
 var BAIDU_VOICE_LIST = [
-  { id: '0', name: '度小美', desc: '标准女主播' },
-  { id: '1', name: '度小宇', desc: '亲切男声' },
-  { id: '3', name: '度逍遥', desc: '情感男声' },
-  { id: '4', name: '度丫丫', desc: '童声' }
+  // 基础音库
+  { id: '0', name: '度小美', desc: '标准女主播', group: '基础音库' },
+  { id: '1', name: '度小宇', desc: '亲切男声', group: '基础音库' },
+  { id: '3', name: '度逍遥', desc: '情感男声', group: '基础音库' },
+  { id: '4', name: '度丫丫', desc: '童声', group: '基础音库' },
+  // 精品音库
+  { id: '5', name: '度小娇', desc: '成熟女主播', group: '精品音库' },
+  { id: '103', name: '度米朵', desc: '可爱童声', group: '精品音库' },
+  { id: '106', name: '度博文', desc: '专业男主播', group: '精品音库' },
+  { id: '110', name: '度小童', desc: '童声主播', group: '精品音库' },
+  { id: '111', name: '度小萌', desc: '软萌妹子', group: '精品音库' },
+  { id: '5003', name: '度逍遥', desc: '情感男声', group: '精品音库' },
+  { id: '5118', name: '度小鹿', desc: '甜美女声', group: '精品音库' },
+  // 臻品音库
+  { id: '4114', name: '阿龙', desc: '说书男声', group: '臻品音库' },
+  { id: '4148', name: '度小夏', desc: '甜美女声', group: '臻品音库' },
+  { id: '4277', name: '西贝', desc: '脱口秀女声', group: '臻品音库' },
+  { id: '5153', name: '度常悦', desc: '民生女主播', group: '臻品音库' },
+  { id: '6561', name: '度小乐', desc: '可爱童声', group: '臻品音库' },
+  { id: '6644', name: '度书宁', desc: '亲和女声', group: '臻品音库' },
+  { id: '6746', name: '度书道', desc: '沉稳男声', group: '臻品音库' },
+  { id: '6747', name: '度书古', desc: '情感男声', group: '臻品音库' },
+  { id: '6748', name: '度书严', desc: '沉稳男声', group: '臻品音库' }
 ]
 
 // 预加载音效
@@ -349,31 +368,29 @@ function testBaiduVoice(text) {
     text = '你好，我是测试语音'
   }
 
-  var perList = [0, 1, 3, 4]
-  var perNames = ['度小美女声', '度小宇男声', '度逍遥情感男声', '度丫丫童声']
-
   console.log('开始测试百度TTS音色...')
+  console.log('音色列表:', BAIDU_VOICE_LIST.map(function(v) { return v.name + '(' + v.id + ')' }).join(', '))
 
-  perList.forEach(function(per, index) {
+  BAIDU_VOICE_LIST.forEach(function(voice, index) {
     setTimeout(function() {
-      console.log('测试音色:', perNames[index], '(per=' + per + ')')
+      console.log('测试音色:', voice.name, '(per=' + voice.id + ')')
 
       wx.cloud.callFunction({
         name: 'ai-chat',
         data: {
           action: 'textToSpeech',
           text: text.substring(0, 100),
-          baiduPer: String(per)
+          baiduPer: voice.id
         },
         success: function(result) {
           if (result.result && result.result.code === 0 && result.result.data.audio) {
-            console.log('音色', perNames[index], '成功，音频大小:', result.result.data.audio.length)
+            console.log('音色', voice.name, '成功，音频大小:', result.result.data.audio.length)
           } else {
-            console.log('音色', perNames[index], '失败:', result.result)
+            console.log('音色', voice.name, '失败:', result.result)
           }
         },
         fail: function(err) {
-          console.log('音色', perNames[index], '请求失败:', err)
+          console.log('音色', voice.name, '请求失败:', err)
         }
       })
     }, index * 3000) // 每个音色间隔3秒
