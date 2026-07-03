@@ -1508,13 +1508,19 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
   const voiceName = voice || 'mimo-v2.5-tts'
   const voiceParam = overrideVoice || '冰糖'
   
-  console.log('mimoTTS调用:', { voice, voiceName, voiceParam })
-  
   // 获取小米TTS API密钥（优先使用传入的密钥）
   const apiKey = overrideApiKey || await getMimoTtsApiKey()
   if (!apiKey) {
     return { code: -1, msg: '小米TTS API密钥未配置' }
   }
+  
+  console.log('mimoTTS调用参数:', {
+    voiceName,
+    voiceParam,
+    apiKeyLength: apiKey.length,
+    apiKeyPrefix: apiKey.substring(0, 10) + '...',
+    textLength: text.length
+  })
   
   return new Promise((resolve, reject) => {
     // 小米TTS使用chat/completions格式，不是audio/speech格式
