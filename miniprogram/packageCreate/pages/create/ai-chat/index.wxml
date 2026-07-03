@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight + 'px' : '0'}};">
   <!-- 顶部栏 -->
   <view class="top-bar">
     <view class="model-badge" bindtap="showQuickSwitch">
@@ -140,7 +140,7 @@
   </view>
 
   <!-- 聊天区域 -->
-  <view class="chat-area" wx:else>
+  <view class="chat-area" wx:else style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight + 120 : 120}}rpx;">
     <!-- 消息列表 -->
     <scroll-view 
       class="message-list" 
@@ -157,20 +157,17 @@
       <!-- 欢迎消息 -->
       <view class="welcome-msg" wx:if="{{messages.length === 0 && !loadingHistory}}">
         <view class="welcome-icon">👋</view>
-        <view class="welcome-title">你好，我是{{modelInfo.name}}</view>
+        <view class="welcome-title">{{welcomeTitle}}</view>
         <view class="welcome-desc">我可以根据你的成长数据和你聊天哦！</view>
         <view class="quick-questions">
-          <view class="quick-btn" bindtap="quickQuestion" data-q="我最近的学习情况怎么样？">
-            📚 学习情况
-          </view>
-          <view class="quick-btn" bindtap="quickQuestion" data-q="我的刷牙习惯坚持得怎么样？">
-            🦷 刷牙习惯
-          </view>
-          <view class="quick-btn" bindtap="quickQuestion" data-q="给我讲个有趣的故事吧">
-            📖 讲个故事
-          </view>
-          <view class="quick-btn" bindtap="quickQuestion" data-q="我的摆摊生意怎么样？">
-            🏪 摆摊经营
+          <view 
+            wx:for="{{quickQuestions}}" 
+            wx:key="q"
+            class="quick-btn" 
+            bindtap="quickQuestion" 
+            data-q="{{item.q}}"
+          >
+            {{item.icon}} {{item.label}}
           </view>
         </view>
       </view>
@@ -201,8 +198,20 @@
               {{item.thinking}}
             </view>
           </view>
-          <!-- 图片消息 -->
-          <view class="msg-image" wx:if="{{item.image}}" bindtap="previewImage" data-url="{{item.image}}">
+          <!-- 图片消息（支持多图） -->
+          <view class="msg-image-list" wx:if="{{item.images && item.images.length > 0}}">
+            <view 
+              wx:for="{{item.images}}" 
+              wx:key="*this"
+              class="msg-image"
+              bindtap="previewImage" 
+              data-url="{{item}}"
+            >
+              <image src="{{item}}" mode="widthFix" class="image-preview" />
+            </view>
+          </view>
+          <!-- 兼容旧格式单图 -->
+          <view class="msg-image" wx:elif="{{item.image}}" bindtap="previewImage" data-url="{{item.image}}">
             <image src="{{item.image}}" mode="widthFix" class="image-preview" />
           </view>
           <!-- 文本消息 -->
@@ -210,8 +219,12 @@
           <view class="msg-text msg-rich" wx:if="{{item.content && item.role === 'assistant'}}">
             <rich-text nodes="{{item.richText}}" />
           </view>
-          <!-- 错误消息重新发送按钮 -->
-          <view class="msg-retry" wx:if="{{item.isError}}" bindtap="retryMessage" data-id="{{item.id}}">
+          <!-- AI朗读按钮 -->
+          <view class="speak-btn {{item.isSpeaking ? 'speaking' : ''}}" wx:if="{{item.role === 'assistant' && item.content}}" bindtap="speakMessage" data-id="{{item.id}}" data-content="{{item.content}}">
+            <text>{{item.isSpeaking ? '🔊' : '🔈'}}</text>
+          </view>
+          <!-- 用户消息重新发送按钮 -->
+          <view class="msg-retry" wx:if="{{item.isError && item.role === 'user'}}" bindtap="retryMessage" data-id="{{item.id}}">
             <text class="retry-icon">🔄</text>
             <text class="retry-text">重新发送</text>
           </view>
@@ -239,9 +252,45 @@
       <view id="msg-bottom" style="height: 20rpx;"></view>
     </scroll-view>
 
+    <!-- 更多面板（加号展开） -->
+    <view class="more-panel" wx:if="{{showMorePanel}}">
+      <view class="more-panel-grid">
+        <view class="more-panel-item" bindtap="chooseImage">
+          <view class="more-panel-icon">🖼️</view>
+          <text class="more-panel-label">图片</text>
+        </view>
+        <view class="more-panel-item" bindtap="showSkillList">
+          <view class="more-panel-icon">⚡</view>
+          <text class="more-panel-label">技能</text>
+        </view>
+        <view class="more-panel-item" bindtap="showVoiceSettings">
+          <view class="more-panel-icon">🎵</view>
+          <text class="more-panel-label">{{currentEngineName}}</text>
+          <text class="more-panel-sub" wx:if="{{currentVoiceName}}">{{currentVoiceName}}</text>
+        </view>
+        <view class="more-panel-item {{streamThinkingEnabled ? 'active' : ''}}" bindtap="toggleStreamThinking">
+          <view class="more-panel-icon">🧠</view>
+          <text class="more-panel-label">实时思考</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 表情快捷栏 -->
     <view class="emoji-bar" wx:if="{{showEmojiBar}}">
-      <scroll-view scroll-x class="emoji-scroll">
+      <!-- 分类Tab -->
+      <scroll-view scroll-x class="emoji-tabs">
+        <view 
+          wx:for="{{emojiCategoryKeys}}" 
+          wx:key="*this"
+          class="emoji-tab {{currentEmojiCategory === item ? 'active' : ''}}"
+          bindtap="switchEmojiCategory"
+          data-category="{{item}}"
+        >
+          {{emojiCategories[item].name}}
+        </view>
+      </scroll-view>
+      <!-- 表情列表 -->
+      <scroll-view scroll-y class="emoji-scroll">
         <view class="emoji-list">
           <view 
             wx:for="{{emojiList}}" 
@@ -255,7 +304,7 @@
         </view>
       </scroll-view>
     </view>
-    
+
     <!-- 技能激活状态栏 -->
     <view class="skill-bar" wx:if="{{showSkillBar && activeSkill}}" bindtap="deactivateSkill">
       <view class="skill-bar-content">
@@ -312,39 +361,36 @@
     </view>
     
     <!-- 输入区域 -->
-    <view class="input-area">
-      <!-- 技能按钮 -->
-      <view class="action-btn" bindtap="showSkillList">
-        <text>⚡</text>
-      </view>
-      <!-- 流式思考开关 -->
-      <view class="action-btn {{streamThinkingEnabled ? 'active' : ''}}" bindtap="toggleStreamThinking">
-        <text>🧠</text>
+    <view class="input-area" style="bottom: {{keyboardHeight > 0 ? keyboardHeight + 'px' : '0'}};">
+      <!-- 加号按钮 -->
+      <view class="action-btn {{showMorePanel ? 'active' : ''}}" bindtap="toggleMorePanel">
+        <text>＋</text>
       </view>
       <!-- 表情按钮 -->
       <view class="action-btn {{showEmojiBar ? 'active' : ''}}" bindtap="toggleEmojiBar">
         <text>😊</text>
       </view>
-      <!-- 图片按钮 -->
-      <view class="action-btn" bindtap="chooseImage">
-        <text>🖼️</text>
-      </view>
       <!-- 输入框 -->
       <view class="input-wrapper">
-        <input 
+        <textarea 
           class="msg-input"
           placeholder="输入消息..."
           value="{{inputValue}}"
           bindinput="onInput"
+          bindlinechange="onInputLineChange"
           bindconfirm="sendMessage"
           confirm-type="send"
           disabled="{{loading}}"
           focus="{{inputFocus}}"
+          auto-height
+          maxlength="2000"
+          adjust-position="{{false}}"
+          show-confirm-bar="{{false}}"
         />
       </view>
       <!-- 语音/发送按钮 -->
       <view 
-        wx:if="{{inputValue.length > 0 || selectedImage}}"
+        wx:if="{{inputValue.length > 0 || selectedImages.length > 0}}"
         class="send-btn active" 
         bindtap="sendMessage"
       >
@@ -362,11 +408,63 @@
     </view>
     
     <!-- 选中的图片预览 -->
-    <view class="image-preview-bar" wx:if="{{selectedImage}}">
-      <view class="preview-image-wrapper">
-        <image src="{{selectedImage}}" mode="aspectFill" class="preview-image" />
-        <view class="remove-image" bindtap="removeImage">✕</view>
+    <view class="image-preview-bar" wx:if="{{selectedImages.length > 0}}">
+      <scroll-view scroll-x class="image-preview-scroll">
+        <view class="image-preview-list">
+          <view 
+            wx:for="{{selectedImages}}" 
+            wx:key="*this"
+            class="preview-image-wrapper"
+          >
+            <image src="{{item}}" mode="aspectFill" class="preview-image" />
+            <view class="remove-image" bindtap="removeImage" data-index="{{index}}">✕</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- 语音设置弹窗 -->
+  <view class="voice-modal" wx:if="{{showVoiceModal}}" bindtap="hideVoiceModal">
+    <view class="voice-modal-content" catchtap="stopPropagation">
+      <view class="voice-modal-header">
+        <text class="voice-modal-title">语音设置</text>
+        <view class="voice-modal-close" bindtap="hideVoiceModal">✕</view>
       </view>
+      <scroll-view scroll-y class="voice-modal-body">
+        <!-- 引擎选择 -->
+        <view class="voice-section">
+          <view class="voice-section-title">语音引擎</view>
+          <view class="voice-engine-list">
+            <view 
+              wx:for="{{voiceEngineList}}" 
+              wx:key="id"
+              class="voice-engine-item {{item.active ? 'active' : ''}}"
+              bindtap="selectVoiceEngine"
+              data-id="{{item.id}}"
+            >
+              <view class="voice-engine-name">{{item.name}}</view>
+              <view class="voice-engine-desc">{{item.desc}}</view>
+            </view>
+          </view>
+        </view>
+        <!-- 音色选择 -->
+        <view class="voice-section">
+          <view class="voice-section-title">音色选择</view>
+          <view class="voice-list">
+            <view 
+              wx:for="{{voiceVoiceList}}" 
+              wx:key="id"
+              class="voice-item {{item.id === currentVoiceId ? 'active' : ''}}"
+              bindtap="selectVoice"
+              data-id="{{item.id}}"
+            >
+              <view class="voice-item-name">{{item.name}}</view>
+              <view class="voice-item-desc">{{item.desc}}</view>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
     </view>
   </view>
 
@@ -378,6 +476,18 @@
         <view class="action-item" bindtap="copyMessage" data-content="{{actionMessage.content}}">
           <text class="action-icon">📋</text>
           <text class="action-text">复制</text>
+        </view>
+        <view class="action-item" bindtap="forwardMessage" data-content="{{actionMessage.content}}">
+          <text class="action-icon">📤</text>
+          <text class="action-text">转发</text>
+        </view>
+        <view class="action-item" bindtap="collectMessage" data-id="{{actionMessage.id}}" data-content="{{actionMessage.content}}">
+          <text class="action-icon">⭐</text>
+          <text class="action-text">收藏</text>
+        </view>
+        <view class="action-item" wx:if="{{actionMessage.role === 'assistant'}}" bindtap="speakMessage" data-content="{{actionMessage.content}}">
+          <text class="action-icon">🔊</text>
+          <text class="action-text">朗读</text>
         </view>
         <view class="action-item" wx:if="{{actionMessage.role === 'user'}}" bindtap="resendMessage" data-content="{{actionMessage.content}}" data-image="{{actionMessage.image}}">
           <text class="action-icon">🔄</text>

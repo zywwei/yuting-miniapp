@@ -71,11 +71,36 @@ async function getAccessToken(apiKey, secretKey) {
  */
 async function callWenxinAPI(accessToken, messages, model = 'ernie-4.0-turbo-8k') {
   return new Promise((resolve, reject) => {
-    // 转换消息格式
-    const wenxinMessages = messages.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }))
+    // 转换消息格式（支持多模态）
+    const wenxinMessages = messages.map(msg => {
+      // 处理多模态消息（content是数组的情况）
+      if (Array.isArray(msg.content)) {
+        // 提取图片URL和文本
+        var imageUrls = []
+        var textParts = []
+        
+        msg.content.forEach(function(part) {
+          if (part.type === 'image_url' && part.image_url) {
+            imageUrls.push(part.image_url.url)
+          } else if (part.type === 'text') {
+            textParts.push(part.text)
+          }
+        })
+        
+        // 文心一言的多模态格式
+        return {
+          role: msg.role,
+          content: textParts.join('\n'),
+          images: imageUrls.length > 0 ? imageUrls : undefined
+        }
+      }
+      
+      // 普通文本消息
+      return {
+        role: msg.role,
+        content: msg.content
+      }
+    })
 
     const data = JSON.stringify({
       messages: wenxinMessages,

@@ -2,9 +2,8 @@
  * AI Skills管理器
  * 管理技能的增删改查、触发检测、网络搜索、本地导入
  */
-var childStorage = require('./child-storage.js')
-var cloud = null
-try { cloud = require('./cloud.js') } catch (e) { cloud = null }
+var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 
 // 本地存储key
 var SKILLS_KEY = 'aiSkills'
@@ -182,6 +181,24 @@ function getSkillByName(name) {
   return null
 }
 
+// 技能拼音首字母映射
+var SKILL_PINYIN_MAP = {
+  'hh': '画画助手',
+  'hhzs': '画画助手',
+  'xgyc': '习惯养成',
+  'xg': '习惯养成',
+  'dk': '习惯养成',
+  'cycs': '创意故事',
+  'gs': '创意故事',
+  'czfz': '编程助手',
+  'bm': '编程助手',
+  'sx': '数学辅导',
+  'ss': '数学辅导',
+  'xxfd': '学习辅导',
+  'xx': '学习辅导',
+  'fd': '学习辅导'
+}
+
 /**
  * 检测消息中的技能触发
  * @param {string} message - 用户消息
@@ -194,8 +211,45 @@ function detectSkill(message) {
   var match = message.match(/^\/(\S+)/)
   if (match) {
     var skillName = match[1]
+    
+    // 1. 精确匹配
     var skill = getSkillByName(skillName)
     if (skill) return skill
+    
+    // 2. 拼音首字母匹配
+    if (SKILL_PINYIN_MAP[skillName.toLowerCase()]) {
+      skill = getSkillByName(SKILL_PINYIN_MAP[skillName.toLowerCase()])
+      if (skill) return skill
+    }
+    
+    // 3. 模糊匹配（包含关系）
+    var allSkills = getAllSkills()
+    for (var i = 0; i < allSkills.length; i++) {
+      var s = allSkills[i]
+      if (s.name.indexOf(skillName) !== -1 || skillName.indexOf(s.name) !== -1) {
+        return s
+      }
+    }
+    
+    // 4. 别名匹配
+    var aliasMap = {
+      '画画': '画画助手',
+      '绘画': '画画助手',
+      '习惯': '习惯养成',
+      '打卡': '习惯养成',
+      '故事': '创意故事',
+      '编程': '编程助手',
+      '代码': '编程助手',
+      '数学': '数学辅导',
+      '算数': '数学辅导',
+      '学习': '学习辅导',
+      '辅导': '学习辅导'
+    }
+    
+    if (aliasMap[skillName]) {
+      skill = getSkillByName(aliasMap[skillName])
+      if (skill) return skill
+    }
   }
   
   return null

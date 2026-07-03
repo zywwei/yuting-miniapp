@@ -2,16 +2,18 @@
  * AI上下文检测器
  * 检测用户消息是否涉及用户数据，获取并生成摘要
  */
-var cloud = require('./cloud.js')
-var auth = require('./auth.js')
+var cloud = require('../../utils/cloud.js')
+var auth = require('../../utils/auth.js')
 
 // 数据类型 → 关键词映射
 var DATA_KEYWORDS = {
-  brushing: ['刷牙', '牙齿', '牙刷', '口腔'],
-  habit: ['打卡', '习惯', '坚持', '连续', '早起', '运动', '阅读', '喝水', '锻炼', '读书', '跑步'],
-  learn: ['学习', '成绩', '进度', '古诗', '卡片', '英语', '数字', '数学'],
-  achievement: ['成就', '积分', '徽章', '奖励', '解锁'],
-  stall: ['摆摊', '商品', '销售', '收入', '摊位']
+  brushing: ['刷牙', '牙齿', '牙刷', '口腔', '漱口', '牙膏'],
+  habit: ['打卡', '习惯', '坚持', '连续', '早起', '运动', '阅读', '喝水', '锻炼', '读书', '跑步', 
+          '刷碗', '整理', '做家务', '收拾', '叠被', '洗碗', '扫地', '拖地', '擦桌子'],
+  learn: ['学习', '成绩', '进度', '古诗', '卡片', '英语', '数字', '数学', 
+          '语文', '拼音', '写字', '认字', '算术', '加减', '乘除', '背诵', '默写', '作业'],
+  achievement: ['成就', '积分', '徽章', '奖励', '解锁', '勋章', '星星', '奖状', '小红花'],
+  stall: ['摆摊', '商品', '销售', '收入', '摊位', '买卖', '进货', '定价', '找零']
 }
 
 // 排除误匹配的上下文
@@ -156,70 +158,63 @@ async function getDataSummary(dataTypes) {
 }
 
 /**
- * 生成注入AI的上下文文本
+ * 生成注入AI的上下文文本（压缩格式，节省token）
  * @param {Array<string>} dataTypes - 数据类型数组
  * @returns {Promise<string>} 格式化的上下文文本
  */
 async function buildContextText(dataTypes) {
-  var lines = ['【用户数据参考】']
+  var parts = []
   try {
     if (dataTypes.indexOf('brushing') !== -1) {
       var records = await cloud.fetchBrushingRecords()
       var stats = getBrushingStats(records)
       var today = getTodayStr()
-      var todayRecords = records.filter(function(r) { return r.date === today })
-      lines.push('刷牙：总计' + records.length + '条记录，今日' + todayRecords.length + '次，'
-        + '平均分' + stats.avgScore + '分，连续' + stats.streak + '天，本周完成率' + stats.weekRate + '%')
-      // 最近3天记录摘要
-      var recent = records.slice(-6)
-      if (recent.length > 0) {
-        var recentLines = recent.map(function(r) {
-          return r.date + ' ' + (r.timeOfDay === 'morning' ? '早' : '晚') + ' ' + (r.score || 0) + '分'
-        })
-        lines.push('  近期：' + recentLines.join('；'))
-      }
+      var todayCount = records.filter(function(r) { return r.date === today }).length
+      // 压缩格式：用竖线分隔，减少文字
+      parts.push('刷牙|总' + records.length + '|今' + todayCount + '次|均' + stats.avgScore + '分|连' + stats.streak + '天|周' + stats.weekRate + '%')
     }
     if (dataTypes.indexOf('habit') !== -1) {
       var hRecords = await cloud.fetchHabitRecords()
       var habitStats = getHabitStats(hRecords)
-      lines.push('习惯打卡：总计' + hRecords.length + '条记录，连续' + habitStats.streak + '天，本周完成率' + habitStats.weekRate + '%')
-      // 按类型分组统计
+      // 按类型分组统计（压缩格式）
       var typeMap = {}
       hRecords.forEach(function(r) {
         if (!typeMap[r.type]) typeMap[r.type] = 0
         typeMap[r.type]++
       })
       var typeNames = { early_up: '早起', reading: '阅读', exercise: '运动', wash_hands: '洗手', drink: '喝水', brushing: '刷牙' }
-      var typeStrs = Object.keys(typeMap).map(function(t) { return (typeNames[t] || t) + typeMap[t] + '次' })
-      if (typeStrs.length > 0) lines.push('  类型分布：' + typeStrs.join('，'))
+      var typeStrs = Object.keys(typeMap).map(function(t) { return (typeNames[t] || t) + typeMap[t] })
+      parts.push('习惯|总' + hRecords.length + '|连' + habitStats.streak + '天|周' + habitStats.weekRate + '%|' + typeStrs.join(','))
     }
     if (dataTypes.indexOf('learn') !== -1) {
       var progress = await cloud.fetchLearnProgress()
       if (progress) {
-        var parts = []
-        if (progress.poems) parts.push('古诗' + progress.poems.length + '首')
-        if (progress.cards) parts.push('卡片' + progress.cards.length + '张')
-        if (progress.numbers) parts.push('数字' + progress.numbers.length + '项')
-        if (progress.english) parts.push('英语' + progress.english.length + '项')
-        lines.push('学习进度：' + (parts.join('，') || '暂无'))
+        var learnParts = []
+        if (progress.poems) learnParts.push('诗' + progress.poems.length)
+        if (progress.cards) learnParts.push('卡' + progress.cards.length)
+        if (progress.numbers) learnParts.push('数' + progress.numbers.length)
+        if (progress.english) learnParts.push('英' + progress.english.length)
+        parts.push('学习|' + (learnParts.join(',') || '无'))
       }
     }
     if (dataTypes.indexOf('achievement') !== -1) {
       var achs = await cloud.fetchAchievements()
       if (achs && achs.length > 0) {
-        var names = achs.slice(0, 5).map(function(a) { return a.name || a.title || '未知' })
-        lines.push('成就：已解锁' + achs.length + '个（' + names.join('、') + '等）')
+        var names = achs.slice(0, 3).map(function(a) { return a.name || a.title || '?' })
+        parts.push('成就|' + achs.length + '个|' + names.join(','))
       }
     }
     if (dataTypes.indexOf('stall') !== -1) {
       var products = await cloud.fetchStallProducts()
       var sales = await cloud.fetchStallSales()
-      lines.push('摆摊：' + (products ? products.length : 0) + '件商品，' + (sales ? sales.length : 0) + '笔销售记录')
+      parts.push('摆摊|品' + (products ? products.length : 0) + '|销' + (sales ? sales.length : 0))
     }
   } catch (err) {
     console.error('构建上下文文本失败:', err)
   }
-  return lines.join('\n')
+  
+  // 返回压缩格式
+  return '【数据】' + parts.join(';')
 }
 
 // 获取今日日期字符串

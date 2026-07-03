@@ -2,6 +2,26 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
+// Polyfill global crypto for msedge-tts (Web Crypto API)
+if (typeof globalThis.crypto === 'undefined' || typeof globalThis.crypto.subtle === 'undefined') {
+  const nodeCrypto = require('crypto')
+  if (nodeCrypto.webcrypto) {
+    globalThis.crypto = nodeCrypto.webcrypto
+  } else {
+    // Fallback: create a minimal crypto object with subtle.digest
+    globalThis.crypto = {
+      subtle: {
+        digest: async (algorithm, data) => {
+          const hash = nodeCrypto.createHash(algorithm.replace('-', '').toLowerCase())
+          hash.update(Buffer.from(data))
+          return hash.digest()
+        }
+      },
+      getRandomValues: (arr) => nodeCrypto.randomFillSync(arr)
+    }
+  }
+}
+
 // 导入AI模型调用模块 - 国内模型
 const wenxin = require('./models/wenxin')
 const qwen = require('./models/qwen')
@@ -72,11 +92,22 @@ async function callAIModel(modelName, apiKey, messages, model, secretKey) {
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()
   const { action } = event
+  const startTime = Date.now()
 
   // 获取用户身份
   const member = await getMemberByOpenid(OPENID)
   if (!member) {
     return { code: -1, msg: '未加入家庭' }
+  }
+
+  // 记录请求日志
+  console.log(`[AI请求] action=${action}, userId=${OPENID}, time=${new Date().toISOString()}`)
+
+  // 检查速率限制
+  const rateLimitError = checkRateLimit(OPENID, action)
+  if (rateLimitError) {
+    console.log(`[AI限流] userId=${OPENID}, action=${action}`)
+    return rateLimitError
   }
 
   switch (action) {
@@ -101,14 +132,67 @@ exports.main = async (event, context) => {
     case 'clearHistory':
       return await clearHistory(member, event.childId, event.sessionId)
     case 'getSessions':
-      return await getSessions(member, event.childId)
+      return await getSessions(member, event.childId, event.limit)
     case 'deleteSession':
       return await deleteSession(member, event.childId, event.sessionId)
     case 'getModelPrices':
       return getModelPrices()
+    case 'speechToText':
+      return await speechToText(event.audioData)
+    case 'textToSpeech':
+      return await textToSpeech(event.text, event.voice, event.baiduPer)
     default:
       return { code: -1, msg: '未知操作' }
   }
+}
+
+// 速率限制配置
+const RATE_LIMIT_CONFIG = {
+  'chat': { maxRequests: 20, windowMs: 60000 }, // 每分钟最多20次
+  'chatStream': { maxRequests: 20, windowMs: 60000 },
+  'testConfig': { maxRequests: 5, windowMs: 60000 }
+}
+
+// 速率限制存储（内存中，重启后清空）
+const rateLimitStore = {}
+
+/**
+ * 检查速率限制
+ * @param {string} userId - 用户ID
+ * @param {string} action - 操作类型
+ * @returns {Object|null} 如果超限返回错误对象，否则返回null
+ */
+function checkRateLimit(userId, action) {
+  const config = RATE_LIMIT_CONFIG[action]
+  if (!config) return null
+  
+  const key = `${userId}:${action}`
+  const now = Date.now()
+  
+  // 清理过期记录
+  if (rateLimitStore[key]) {
+    rateLimitStore[key] = rateLimitStore[key].filter(time => now - time < config.windowMs)
+  } else {
+    rateLimitStore[key] = []
+  }
+  
+  // 检查是否超限
+  if (rateLimitStore[key].length >= config.maxRequests) {
+    return {
+      code: -6,
+      msg: `请求过于频繁，请稍后再试`
+    }
+  }
+
+  // 记录本次请求
+  rateLimitStore[key].push(now)
+
+  // 定期清理空 key，防止内存泄漏
+  if (rateLimitStore[key].length === 0) {
+    delete rateLimitStore[key]
+  }
+
+  return null
 }
 
 // 获取用户身份
@@ -133,21 +217,24 @@ async function getConfig(member, childId) {
       return { code: 0, data: res.data[0] }
     }
 
-    // 返回默认配置
+    // 返回默认配置（与前端ai-manager.js的getDefaultConfig保持一致）
     return {
       code: 0,
       data: {
         familyId: member.familyId,
         childId: childId || '',
-        currentModel: 'gpt-4o',
+        currentModel: 'minimax',
         models: {
-          'gpt-4o': { apiKey: '', enabled: true },
-          'claude-3.5': { apiKey: '', enabled: true },
+          'minimax': { apiKey: '', enabled: true },
+          'zhipu': { apiKey: '', enabled: true },
+          'kimi': { apiKey: '', enabled: true },
           'wenxin': { apiKey: '', secretKey: '', enabled: true },
           'qwen': { apiKey: '', enabled: true },
-          'deepseek': { apiKey: '', enabled: true }
+          'deepseek': { apiKey: '', enabled: true },
+          'mimo': { apiKey: '', enabled: true }
         },
         systemPrompt: '',
+        promptTemplate: 'default',
         createTime: new Date(),
         updateTime: new Date()
       }
@@ -168,10 +255,27 @@ async function saveConfig(member, childId, config) {
       })
       .get()
 
-    // 合并models配置，避免覆盖已有的API Key
-    let mergedModels = config.models || {}
+    // 合并models配置，使用深合并避免覆盖已有的API Key
+    let mergedModels = {}
     if (existing.data.length > 0 && existing.data[0].models) {
-      mergedModels = { ...existing.data[0].models, ...config.models }
+      // 先复制云端的完整配置
+      for (const providerKey in existing.data[0].models) {
+        mergedModels[providerKey] = { ...existing.data[0].models[providerKey] }
+      }
+    }
+    // 再合并前端传来的配置（只覆盖有值的字段）
+    if (config.models) {
+      for (const providerKey in config.models) {
+        if (!mergedModels[providerKey]) {
+          mergedModels[providerKey] = {}
+        }
+        for (const field in config.models[providerKey]) {
+          // 只覆盖非空值，避免空字符串覆盖已有的apiKey
+          if (config.models[providerKey][field] !== undefined && config.models[providerKey][field] !== '') {
+            mergedModels[providerKey][field] = config.models[providerKey][field]
+          }
+        }
+      }
     }
 
     const data = {
@@ -227,7 +331,8 @@ async function testConfig(member, childId, model, apiKey, secretKey) {
 // 验证并准备聊天参数（chat和chatStream共用）
 async function validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt) {
   // 1. 输入验证
-  if (!message && !imageFileID) {
+  const hasImages = Array.isArray(imageFileID) ? imageFileID.length > 0 : !!imageFileID
+  if (!message && !hasImages) {
     return { code: -5, msg: '消息内容不能为空' }
   }
   
@@ -262,7 +367,7 @@ async function validateAndPrepare(member, childId, sessionId, message, model, im
   const history = historyResult.code === 0 ? historyResult.data.list : []
 
   // 5. 构建消息列表（支持图片、额外上下文、技能提示词）
-  const messages = await buildMessages(config, history, message, imageFileID, extraContext, skillPrompt)
+  const messages = await buildMessages(config, history, message, imageFileID, extraContext, skillPrompt, member)
 
   // 6. 确定使用的模型
   const aiModel = model || config.currentModel
@@ -289,11 +394,21 @@ async function chat(member, childId, sessionId, message, model, imageFileID, ext
       return result
     }
 
-    // 3. 保存用户消息和AI回复（并行执行）
-    await Promise.all([
+    // 3. 保存用户消息和AI回复（并行执行，使用allSettled避免单个失败影响整体）
+    const saveResults = await Promise.allSettled([
       saveMessage(member, childId, sessionId, 'user', message, aiModel),
       saveMessage(member, childId, sessionId, 'assistant', result.data.content, aiModel, result.data.usage, result.data.thinking)
     ])
+    
+    // 记录保存失败的情况
+    saveResults.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`保存消息${index === 0 ? '用户' : 'AI'}失败:`, result.reason)
+      }
+    })
+    
+    // 4. 检查是否需要生成会话标题（会话第一条消息）
+    generateSessionTitleIfNeeded(member, childId, sessionId, message)
 
     return {
       code: 0,
@@ -309,7 +424,7 @@ async function chat(member, childId, sessionId, message, model, imageFileID, ext
 }
 
 // 构建消息列表
-async function buildMessages(config, history, newMessage, imageFileID, extraContext, skillPrompt) {
+async function buildMessages(config, history, newMessage, imageFileID, extraContext, skillPrompt, member) {
   const messages = []
 
   // 调试日志
@@ -336,6 +451,12 @@ async function buildMessages(config, history, newMessage, imageFileID, extraCont
     systemPrompt = templates[config.promptTemplate] || templates['default']
   }
   
+  // 替换占位符 {{childName}}
+  if (systemPrompt && member) {
+    const childName = member.childName || member.name || '小朋友'
+    systemPrompt = systemPrompt.replace(/\{\{childName\}\}/g, childName)
+  }
+  
   // 如果有技能提示词，附加到系统提示词
   if (skillPrompt) {
     systemPrompt = systemPrompt + '\n\n【当前技能指令】\n' + skillPrompt
@@ -353,48 +474,52 @@ async function buildMessages(config, history, newMessage, imageFileID, extraCont
     })
   }
 
-  // 历史消息
+  // 历史消息（验证role合法性）
+  const validRoles = ['user', 'assistant', 'system']
   for (const item of history) {
+    const role = item.role
+    // 跳过无效role的消息
+    if (!role || !validRoles.includes(role)) {
+      console.warn('跳过无效role的历史消息:', role)
+      continue
+    }
     messages.push({
-      role: item.role,
+      role: role,
       content: item.content
     })
   }
 
-  // 新消息（支持图片）
-  if (imageFileID) {
-    // 将云文件ID转换为临时URL
-    let imageUrl = imageFileID
-    if (imageFileID.startsWith('cloud://')) {
+  // 新消息（支持图片，兼容单张和多张）
+  const imageIDs = Array.isArray(imageFileID) ? imageFileID : (imageFileID ? [imageFileID] : [])
+  
+  if (imageIDs.length > 0) {
+    // 批量获取临时URL
+    const cloudIDs = imageIDs.filter(id => id.startsWith('cloud://'))
+    let urlMap = {}
+    if (cloudIDs.length > 0) {
       try {
-        const urlRes = await cloud.getTempFileURL({ fileList: [imageFileID] })
-        if (urlRes.fileList && urlRes.fileList.length > 0 && urlRes.fileList[0].tempFileURL) {
-          imageUrl = urlRes.fileList[0].tempFileURL
+        const urlRes = await cloud.getTempFileURL({ fileList: cloudIDs })
+        if (urlRes.fileList) {
+          urlRes.fileList.forEach(item => {
+            if (item.tempFileURL) urlMap[item.fileID] = item.tempFileURL
+          })
         }
       } catch (err) {
         console.error('获取图片临时链接失败:', err)
       }
     }
     
-    // 多模态消息：包含图片和文本
-    messages.push({
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: { url: imageUrl }
-        },
-        {
-          type: 'text',
-          text: newMessage || '请描述这张图片'
-        }
-      ]
+    // 构建content数组：多张图片 + 文本
+    const content = []
+    imageIDs.forEach(id => {
+      const url = urlMap[id] || id
+      content.push({ type: 'image_url', image_url: { url: url } })
     })
+    content.push({ type: 'text', text: newMessage || '请描述这些图片' })
+    
+    messages.push({ role: 'user', content: content })
   } else {
-    messages.push({
-      role: 'user',
-      content: newMessage
-    })
+    messages.push({ role: 'user', content: newMessage })
   }
 
   return messages
@@ -416,8 +541,10 @@ async function saveMessage(member, childId, sessionId, role, content, model, usa
         createTime: new Date()
       }
     })
+    return true
   } catch (err) {
     console.error('保存消息失败:', err)
+    throw err // 向上抛出异常，让调用者处理
   }
 }
 
@@ -448,9 +575,9 @@ async function chatStream(member, childId, sessionId, message, model, imageFileI
       }
     })
 
-    // 清理过期的思考记录（24小时前）
+    // 异步清理过期的思考记录（24小时前）- 不阻塞主流程
     const expireTime = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    await db.collection('aiThinkingProgress')
+    db.collection('aiThinkingProgress')
       .where({ createTime: db.command.lt(expireTime) })
       .limit(50)
       .get()
@@ -460,9 +587,12 @@ async function chatStream(member, childId, sessionId, message, model, imageFileI
             db.collection('aiThinkingProgress').doc(item._id).remove()
           )
           await Promise.all(deletePromises)
+          console.log(`清理了${res.data.length}条过期记录`)
         }
       })
-      .catch(function() {})
+      .catch(function(err) {
+        console.error('清理过期记录失败:', err)
+      })
 
     // 7. 异步调用AI模型
     callAIWithProgress(aiModel, modelConfig, messages, taskId, member, childId, sessionId, message).catch(function(err) {
@@ -483,33 +613,89 @@ async function chatStream(member, childId, sessionId, message, model, imageFileI
   }
 }
 
-// 异步调用AI并更新思考进度
+// 异步调用AI并更新思考进度（支持流式）
 async function callAIWithProgress(aiModel, modelConfig, messages, taskId, member, childId, sessionId, message) {
   try {
-    // 更新状态为思考中
-    await updateThinkingProgress(taskId, 'thinking', '正在思考中...')
-    
-    // 调用AI模型
-    const result = await callAIModel(aiModel, modelConfig.apiKey, messages, modelConfig.model, modelConfig.secretKey)
+    await updateThinkingProgress(taskId, 'thinking', '')
 
-    if (result.code !== 0) {
-      await updateThinkingProgress(taskId, 'error', result.msg)
-      return
+    const config = MODEL_DEFAULTS[aiModel]
+    const model = modelConfig.model || config.defaultModel
+
+    // 获取正确的 caller（支持 baseUrl 的模型需要创建新的 caller）
+    let caller = config.module.caller || config.module
+    if (config.baseUrl && config.module.caller) {
+      // 需要使用不同的 baseUrl，创建新的 caller
+      const url = new URL(config.baseUrl)
+      const OpenAICompatibleCaller = require('./models/base-caller').OpenAICompatibleCaller
+      caller = new OpenAICompatibleCaller({
+        hostname: url.hostname,
+        path: url.pathname + '/chat/completions'
+      })
     }
 
-    // 更新思考内容
-    if (result.data.thinking) {
-      await updateThinkingProgress(taskId, 'thinking', result.data.thinking)
+    // 尝试流式调用
+    if (caller && typeof caller.callStream === 'function') {
+      let lastThinkingLen = 0
+      let lastContentLen = 0
+      let updateTimer = null
+      let latestChunk = null
+
+      const streamResult = await caller.callStream(modelConfig.apiKey, messages, model, (chunk) => {
+        latestChunk = chunk
+        // 节流更新：最多每500ms更新一次数据库
+        if (updateTimer) return
+        updateTimer = setTimeout(() => {
+          updateTimer = null
+          const thinkingDelta = latestChunk.thinking.length - lastThinkingLen
+          const contentDelta = latestChunk.content.length - lastContentLen
+          if (thinkingDelta > 0 || contentDelta > 0) {
+            lastThinkingLen = latestChunk.thinking.length
+            lastContentLen = latestChunk.content.length
+            updateThinkingProgress(taskId, 'thinking', latestChunk.thinking, latestChunk.content).catch(() => {})
+          }
+        }, 500)
+      })
+
+      // 流结束后，刷新最后一次更新
+      if (updateTimer) {
+        clearTimeout(updateTimer)
+        updateTimer = null
+      }
+      if (latestChunk && (latestChunk.thinking.length > lastThinkingLen || latestChunk.content.length > lastContentLen)) {
+        await updateThinkingProgress(taskId, 'thinking', latestChunk.thinking, latestChunk.content).catch(() => {})
+      }
+
+      if (streamResult.code !== 0) {
+        await updateThinkingProgress(taskId, 'error', streamResult.msg)
+        return
+      }
+
+      await Promise.all([
+        saveMessage(member, childId, sessionId, 'user', message, aiModel),
+        saveMessage(member, childId, sessionId, 'assistant', streamResult.data.content, aiModel, streamResult.data.usage, streamResult.data.thinking)
+      ])
+
+      await updateThinkingProgress(taskId, 'completed', streamResult.data.thinking || '', streamResult.data.content, streamResult.data.usage)
+    } else {
+      // 降级：非流式调用
+      const result = await callAIModel(aiModel, modelConfig.apiKey, messages, modelConfig.model, modelConfig.secretKey)
+
+      if (result.code !== 0) {
+        await updateThinkingProgress(taskId, 'error', result.msg)
+        return
+      }
+
+      if (result.data.thinking) {
+        await updateThinkingProgress(taskId, 'thinking', result.data.thinking)
+      }
+
+      await Promise.all([
+        saveMessage(member, childId, sessionId, 'user', message, aiModel),
+        saveMessage(member, childId, sessionId, 'assistant', result.data.content, aiModel, result.data.usage, result.data.thinking)
+      ])
+
+      await updateThinkingProgress(taskId, 'completed', result.data.thinking || '', result.data.content, result.data.usage)
     }
-
-    // 保存消息
-    await Promise.all([
-      saveMessage(member, childId, sessionId, 'user', message, aiModel),
-      saveMessage(member, childId, sessionId, 'assistant', result.data.content, aiModel, result.data.usage, result.data.thinking)
-    ])
-
-    // 更新为完成状态
-    await updateThinkingProgress(taskId, 'completed', result.data.thinking || '', result.data.content, result.data.usage)
 
   } catch (err) {
     console.error('AI调用失败:', err)
@@ -621,14 +807,14 @@ async function clearHistory(member, childId, sessionId) {
       where.sessionId = sessionId
     }
 
-    // 批量删除（每次最多删除20条，循环执行）
+    // 批量删除（每次最多删除100条，循环执行）
     let deleted = 0
     let hasMore = true
     
     while (hasMore) {
       const res = await db.collection('aiChats')
         .where(where)
-        .limit(20)
+        .limit(100)
         .get()
       
       if (res.data.length === 0) {
@@ -643,8 +829,8 @@ async function clearHistory(member, childId, sessionId) {
       await Promise.all(deletePromises)
       deleted += res.data.length
       
-      // 如果返回的数据少于20条，说明已经删完
-      if (res.data.length < 20) {
+      // 如果返回的数据少于100条，说明已经删完
+      if (res.data.length < 100) {
         hasMore = false
       }
     }
@@ -656,15 +842,18 @@ async function clearHistory(member, childId, sessionId) {
 }
 
 // 获取会话列表
-async function getSessions(member, childId) {
+async function getSessions(member, childId, limit) {
   try {
+    // 默认限制500条，可传入自定义limit
+    const queryLimit = Math.min(limit || 500, 2000) // 最大2000条
+    
     const res = await db.collection('aiChats')
       .where({
         familyId: member.familyId,
         childId: childId || ''
       })
       .orderBy('createTime', 'desc')
-      .limit(500) // 限制最多获取500条记录
+      .limit(queryLimit)
       .get()
 
     // 按sessionId分组，获取每个会话的最新消息和统计信息
@@ -691,7 +880,13 @@ async function getSessions(member, childId) {
     }
 
     const sessions = Object.values(sessionMap)
-    return { code: 0, data: sessions }
+    return { 
+      code: 0, 
+      data: {
+        sessions: sessions,
+        hasMore: res.data.length >= queryLimit // 如果返回的数据等于limit，可能还有更多
+      }
+    }
   } catch (err) {
     return { code: -2, msg: '获取会话列表失败: ' + err.message }
   }
@@ -700,15 +895,52 @@ async function getSessions(member, childId) {
 // 删除会话
 async function deleteSession(member, childId, sessionId) {
   try {
-    await db.collection('aiChats')
+    const where = {
+      familyId: member.familyId,
+      childId: childId || '',
+      sessionId: sessionId
+    }
+    
+    // 循环删除（每次最多删除1000条，因为where().remove()有限制）
+    let deleted = 0
+    let hasMore = true
+    
+    while (hasMore) {
+      const res = await db.collection('aiChats')
+        .where(where)
+        .limit(1000)
+        .get()
+      
+      if (res.data.length === 0) {
+        hasMore = false
+        break
+      }
+      
+      // 批量删除当前批次
+      const deletePromises = res.data.map(item => 
+        db.collection('aiChats').doc(item._id).remove()
+      )
+      await Promise.all(deletePromises)
+      deleted += res.data.length
+      
+      if (res.data.length < 1000) {
+        hasMore = false
+      }
+    }
+    
+    // 同时删除会话标题
+    await db.collection('aiSessionTitles')
       .where({
         familyId: member.familyId,
         childId: childId || '',
         sessionId: sessionId
       })
       .remove()
+      .catch(function(err) {
+        console.error('删除会话标题失败:', err)
+      })
 
-    return { code: 0, msg: '会话已删除' }
+    return { code: 0, msg: '会话已删除', data: { deleted: deleted } }
   } catch (err) {
     return { code: -2, msg: '删除会话失败: ' + err.message }
   }
@@ -800,6 +1032,80 @@ async function saveUserPreference(member, key, value) {
   }
 }
 
+// 生成会话标题（异步执行，不阻塞主流程）
+async function generateSessionTitleIfNeeded(member, childId, sessionId, firstMessage) {
+  try {
+    // 检查是否已有标题
+    const existingTitle = await db.collection('aiSessionTitles')
+      .where({
+        familyId: member.familyId,
+        childId: childId || '',
+        sessionId: sessionId
+      })
+      .get()
+    
+    if (existingTitle.data.length > 0) {
+      return // 已有标题，跳过
+    }
+    
+    // 检查是否是第一条消息（通过消息数量判断）
+    const messageCount = await db.collection('aiChats')
+      .where({
+        familyId: member.familyId,
+        childId: childId || '',
+        sessionId: sessionId
+      })
+      .count()
+    
+    // 只有当消息数为2（用户消息+AI回复）时才生成标题
+    if (messageCount.total > 2) {
+      return
+    }
+    
+    // 生成标题（取用户消息前20个字符）
+    let title = firstMessage.substring(0, 20)
+    if (firstMessage.length > 20) {
+      title += '...'
+    }
+    
+    // 保存标题
+    await db.collection('aiSessionTitles').add({
+      data: {
+        familyId: member.familyId,
+        childId: childId || '',
+        sessionId: sessionId,
+        title: title,
+        createTime: new Date()
+      }
+    })
+    
+    console.log('会话标题已生成:', title)
+  } catch (err) {
+    console.error('生成会话标题失败:', err)
+  }
+}
+
+// 获取会话标题
+async function getSessionTitle(member, childId, sessionId) {
+  try {
+    const res = await db.collection('aiSessionTitles')
+      .where({
+        familyId: member.familyId,
+        childId: childId || '',
+        sessionId: sessionId
+      })
+      .get()
+    
+    if (res.data.length > 0) {
+      return res.data[0].title
+    }
+    return null
+  } catch (err) {
+    console.error('获取会话标题失败:', err)
+    return null
+  }
+}
+
 // 获取模型价格配置
 function getModelPrices() {
   // 每百万token价格（元）- 2026年6月官网最新价格
@@ -823,4 +1129,342 @@ function getModelPrices() {
   }
   
   return { code: 0, data: prices }
+}
+
+// 从云数据库读取百度API密钥（带25天TTL）
+let _baiduKeysCache = null
+let _baiduKeysCacheTime = 0
+const BAIDU_KEYS_TTL = 25 * 24 * 60 * 60 * 1000 // 25天
+
+async function getBaiduKeys() {
+  const now = Date.now()
+  if (_baiduKeysCache && (now - _baiduKeysCacheTime) < BAIDU_KEYS_TTL) {
+    console.log('使用缓存的百度密钥')
+    return _baiduKeysCache
+  }
+  const res = await db.collection('systemConfig').where({ key: 'baiduTTS' }).get()
+  console.log('数据库查询结果:', JSON.stringify(res.data))
+  if (res.data.length === 0) {
+    throw new Error('百度TTS密钥未配置，请在systemConfig集合中添加key=baiduTTS的记录')
+  }
+  console.log('百度密钥字段:', Object.keys(res.data[0]))
+  console.log('apiKey:', res.data[0].apiKey ? '已配置' : '未配置')
+  console.log('secretKey:', res.data[0].secretKey ? '已配置' : '未配置')
+  _baiduKeysCache = { apiKey: res.data[0].apiKey, secretKey: res.data[0].secretKey }
+  _baiduKeysCacheTime = now
+  return _baiduKeysCache
+}
+
+// 百度access_token缓存
+let _baiduTokenCache = null
+let _baiduTokenCacheTime = 0
+const BAIDU_TOKEN_TTL = 25 * 24 * 60 * 60 * 1000 // 25天
+
+// 获取百度access_token
+async function getBaiduAccessToken() {
+  const now = Date.now()
+  if (_baiduTokenCache && (now - _baiduTokenCacheTime) < BAIDU_TOKEN_TTL) {
+    return _baiduTokenCache
+  }
+
+  const https = require('https')
+  const keys = await getBaiduKeys()
+  return new Promise((resolve, reject) => {
+    const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${keys.apiKey}&client_secret=${keys.secretKey}`
+
+    https.get(url, (res) => {
+      let data = ''
+      res.on('data', (chunk) => data += chunk)
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data)
+          if (!result.access_token) {
+            console.error('百度token获取失败:', data)
+            reject(new Error('百度token获取失败: ' + (result.error_description || '未知错误')))
+            return
+          }
+          _baiduTokenCache = result.access_token
+          _baiduTokenCacheTime = now
+          resolve(result.access_token)
+        } catch (err) {
+          console.error('百度token解析失败:', err.message)
+          reject(err)
+        }
+      })
+    }).on('error', (err) => {
+      console.error('百度token请求失败:', err.message)
+      reject(err)
+    })
+  })
+}
+
+// 百度语音识别
+async function speechToText(audioData) {
+  const https = require('https')
+  
+  try {
+    // 获取access_token
+    const accessToken = await getBaiduAccessToken()
+    
+    return new Promise((resolve, reject) => {
+      const postData = JSON.stringify({
+        format: 'pcm',
+        rate: 16000,
+        channel: 1,
+        cuid: 'wechat-mini-program',
+        token: accessToken,
+        speech: audioData,
+        len: Buffer.from(audioData, 'base64').length
+      })
+      
+      const options = {
+        hostname: 'vop.baidu.com',
+        path: '/server_api',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }
+      
+      const req = https.request(options, (res) => {
+        let responseData = ''
+        res.on('data', (chunk) => responseData += chunk)
+        res.on('end', () => {
+          try {
+            const result = JSON.parse(responseData)
+            if (result.err_no === 0 && result.result && result.result.length > 0) {
+              resolve({
+                code: 0,
+                data: { text: result.result[0] }
+              })
+            } else {
+              resolve({
+                code: -1,
+                msg: result.err_msg || '识别失败'
+              })
+            }
+          } catch (err) {
+            resolve({
+              code: -1,
+              msg: '解析响应失败: ' + err.message
+            })
+          }
+        })
+      })
+      
+      req.on('error', (err) => {
+        resolve({
+          code: -1,
+          msg: '请求失败: ' + err.message
+        })
+      })
+      
+      req.write(postData)
+      req.end()
+    })
+  } catch (err) {
+    return {
+      code: -1,
+      msg: '获取token失败: ' + err.message
+    }
+  }
+}
+
+// 语音合成（优先使用Edge TTS，降级到百度TTS）
+async function textToSpeech(text, voice, baiduPer) {
+  const maxLen = 1000
+  const truncatedText = text.length > maxLen ? text.substring(0, maxLen) : text
+  const ttsVoice = voice || 'zh-CN-XiaoxiaoNeural'
+
+  console.log('textToSpeech调用:', { voice, ttsVoice, baiduPer })
+
+  // 根据参数判断使用哪个引擎
+  // 如果有 baiduPer 参数，使用百度TTS
+  // 如果有 voice 参数，使用Edge TTS
+  if (baiduPer) {
+    // 使用百度TTS
+    try {
+      return await baiduTTS(truncatedText, ttsVoice, baiduPer)
+    } catch (err) {
+      console.error('百度TTS异常:', err.message)
+      return { code: -1, msg: '百度TTS服务不可用: ' + err.message }
+    }
+  } else {
+    // 使用Edge TTS
+    try {
+      const result = await edgeTTS(truncatedText, ttsVoice)
+      if (result.code === 0) {
+        return result
+      }
+      console.log('Edge TTS失败:', result.msg)
+      return result
+    } catch (err) {
+      console.log('Edge TTS异常:', err.message)
+      return { code: -1, msg: 'Edge TTS服务不可用: ' + err.message }
+    }
+  }
+}
+
+// Edge TTS（免费，使用Edge浏览器朗读功能的接口）
+// 使用msedge-tts库，支持Sec-MS-GEC安全令牌
+const { MsEdgeTTS } = require('msedge-tts')
+
+async function edgeTTS(text, voice) {
+  const MAX_RETRIES = 3
+  const voiceName = voice || 'zh-CN-XiaoxiaoNeural'
+  
+  console.log('edgeTTS调用:', { voice, voiceName })
+  
+  for (let i = 0; i < MAX_RETRIES; i++) {
+    const tts = new MsEdgeTTS()
+    try {
+      // 设置语音和输出格式
+      console.log('设置语音:', voiceName)
+      await tts.setMetadata(voiceName, 'audio-24khz-48kbitrate-mono-mp3', {})
+      console.log('语音设置完成，当前voice:', tts._voice)
+      
+      // 合成语音
+      const { audioStream } = await tts.toStream(text)
+      
+      // 收集音频数据
+      const audioData = []
+      await new Promise((resolve, reject) => {
+        audioStream.on('data', (chunk) => audioData.push(chunk))
+        audioStream.on('end', resolve)
+        audioStream.on('error', reject)
+      })
+      
+      const audioBuffer = Buffer.concat(audioData)
+      if (audioBuffer.length > 0) {
+        return { code: 0, data: { audio: audioBuffer.toString('base64') } }
+      } else {
+        console.log(`Edge TTS尝试 ${i + 1} 失败: 返回空音频`)
+      }
+    } catch (err) {
+      console.log(`Edge TTS尝试 ${i + 1} 异常:`, err.message)
+    } finally {
+      // 确保关闭WebSocket连接
+      try { tts.close() } catch (e) {}
+    }
+    
+    // 等待递增延迟后重试
+    if (i < MAX_RETRIES - 1) {
+      await new Promise(r => setTimeout(r, (i + 1) * 1000))
+    }
+  }
+
+  return { code: -1, msg: 'Edge TTS重试耗尽' }
+}
+
+// 百度TTS（备用）
+async function baiduTTS(text, voice, baiduPer) {
+  const https = require('https')
+
+  if (!text || text.trim() === '') {
+    return { code: -1, msg: '文本为空' }
+  }
+
+  // 移除emoji和特殊字符（百度TTS不支持）
+  text = text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+    .replace(/[\u2600-\u27BF\uFE00-\uFE0F\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/\s+/g, ' ').trim()
+
+  // per: 0=女声，1=男声，3=情感女声，4=情感男声
+  let per = 0 // 默认女声
+  if (baiduPer !== undefined && baiduPer !== '') {
+    per = parseInt(baiduPer) || 0
+  } else if (voice) {
+    // 兼容旧逻辑：从Edge TTS voice name推断
+    if (voice.includes('Yunxi') || voice.includes('Yunyang') || voice.includes('Yunjian')) {
+      per = 1
+    } else if (voice.includes('Xiaoyi')) {
+      per = 3
+    }
+  }
+  
+  try {
+    const accessToken = await getBaiduAccessToken()
+    console.log('百度access_token:', accessToken ? '已获取' : '获取失败')
+    if (!accessToken) {
+      return { code: -1, msg: '百度access_token获取失败' }
+    }
+
+    return new Promise((resolve, reject) => {
+      const params = new URLSearchParams({
+        tex: text,
+        tok: accessToken,
+        cuid: 'wechat-mini-program',
+        ctp: 1,
+        lan: 'zh',
+        spd: 5,
+        pit: 5,
+        vol: 5,
+        per: per
+      })
+      const postData = params.toString()
+
+      const options = {
+        hostname: 'tsn.baidu.com',
+        path: '/text2audio',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }
+      
+      const req = https.request(options, (res) => {
+        const contentType = res.headers['content-type'] || ''
+        
+        if (contentType.includes('audio')) {
+          const chunks = []
+          res.on('data', (chunk) => chunks.push(chunk))
+          res.on('end', () => {
+            const audioBuffer = Buffer.concat(chunks)
+            resolve({
+              code: 0,
+              data: {
+                audio: audioBuffer.toString('base64')
+              }
+            })
+          })
+        } else {
+          let responseData = ''
+          res.on('data', (chunk) => responseData += chunk)
+          res.on('end', () => {
+            try {
+              const result = JSON.parse(responseData)
+              console.error('百度TTS错误响应:', result)
+              resolve({
+                code: -1,
+                msg: result.err_msg || '百度TTS失败'
+              })
+            } catch (err) {
+              console.error('百度TTS响应解析失败:', responseData)
+              resolve({
+                code: -1,
+                msg: '百度TTS失败'
+              })
+            }
+          })
+        }
+      })
+      
+      req.on('error', (err) => {
+        resolve({
+          code: -1,
+          msg: '百度TTS请求失败: ' + err.message
+        })
+      })
+      
+      req.write(postData)
+      req.end()
+    })
+  } catch (err) {
+    return {
+      code: -1,
+      msg: '获取百度token失败: ' + err.message
+    }
+  }
 }

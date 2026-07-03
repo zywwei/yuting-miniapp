@@ -376,12 +376,18 @@ function getConfig() {
         configCacheTime = now
         resolve(config)
       } else {
-        // 云端失败，使用本地缓存
+        // 云端失败，使用本地缓存，也更新缓存时间避免频繁重试
+        if (localConfig) {
+          configCacheTime = now
+        }
         resolve(localConfig || getDefaultConfig())
       }
     }).catch(function(err) {
       console.error('获取AI配置失败:', err)
-      // 云端失败，使用本地缓存
+      // 云端失败，使用本地缓存，也更新缓存时间避免频繁重试
+      if (localConfig) {
+        configCacheTime = now
+      }
       resolve(localConfig || getDefaultConfig())
     })
   })
@@ -414,6 +420,7 @@ function saveConfig(config) {
   return new Promise(function(resolve, reject) {
     // 先读取本地配置，合并后再保存
     var localConfig = childStorage.get(CONFIG_KEY) || getDefaultConfig()
+    var oldConfig = JSON.parse(JSON.stringify(localConfig)) // 深拷贝备份，用于回滚
     var merged = {}
     
     // 复制本地配置的所有字段
@@ -457,12 +464,16 @@ function saveConfig(config) {
       if (res.result.code === 0) {
         resolve(res.result)
       } else {
+        // 云端保存失败，回滚本地配置
+        console.error('云端保存配置失败，回滚本地:', res.result.msg)
+        childStorage.set(CONFIG_KEY, oldConfig)
         reject(new Error(res.result.msg))
       }
     }).catch(function(err) {
       console.error('保存AI配置失败:', err)
-      // 本地已保存，云端失败不影响使用
-      resolve({ code: 0, msg: '配置已保存到本地' })
+      // 云端失败，回滚本地配置
+      childStorage.set(CONFIG_KEY, oldConfig)
+      reject(err)
     })
   })
 }
@@ -487,8 +498,9 @@ function sendMessage(message, model, imageFileID, extraContext, skillPrompt) {
       model: model
     }
     
-    // 如果有图片，添加到请求数据
-    if (imageFileID) {
+    // 如果有图片，添加到请求数据（兼容数组和字符串）
+    var hasImages = Array.isArray(imageFileID) ? imageFileID.length > 0 : !!imageFileID
+    if (hasImages) {
       data.imageFileID = imageFileID
     }
     
@@ -526,7 +538,7 @@ function sendMessage(message, model, imageFileID, extraContext, skillPrompt) {
  * 流式发送消息 - 支持思考过程实时展示
  * @param {string} message - 文本消息
  * @param {string} model - 模型名称（可选）
- * @param {string} imageFileID - 图片文件ID（可选）
+ * @param {string} imageFileID - 图片文件ID（可选，支持数组）
  * @param {string} extraContext - 额外上下文（可选，数据注入）
  * @param {string} skillPrompt - 技能提示词（可选，技能激活时使用）
  * @returns {Promise} 返回taskId用于轮询
@@ -543,7 +555,8 @@ function sendMessageStream(message, model, imageFileID, extraContext, skillPromp
       model: model
     }
     
-    if (imageFileID) {
+    var hasImages = Array.isArray(imageFileID) ? imageFileID.length > 0 : !!imageFileID
+    if (hasImages) {
       data.imageFileID = imageFileID
     }
     
@@ -598,6 +611,38 @@ function getThinkingProgress(taskId) {
       reject(err)
     })
   })
+}
+
+/**
+ * 实时监听思考进度（使用 db.watch）
+ * @param {string} taskId - 任务ID
+ * @param {Function} onChange - 变化回调，参数为 progress 对象
+ * @param {Function} onError - 错误回调
+ * @returns {Object} watcher 对象，需要调用 close() 关闭
+ */
+function watchThinkingProgress(taskId, onChange, onError) {
+  var db = wx.cloud.database()
+  var watcher = db.collection('aiThinkingProgress')
+    .where({ taskId: taskId })
+    .watch({
+      onChange: function(snapshot) {
+        if (snapshot.docs.length > 0) {
+          var progress = snapshot.docs[0]
+          onChange({
+            taskId: progress.taskId,
+            status: progress.status,
+            thinkingContent: progress.thinkingContent,
+            finalContent: progress.finalContent,
+            usage: progress.usage
+          })
+        }
+      },
+      onError: function(err) {
+        console.error('监听思考进度失败:', err)
+        if (onError) onError(err)
+      }
+    })
+  return watcher
 }
 
 /**
@@ -702,24 +747,26 @@ function getHistory(sessionId, page, pageSize) {
 
 /**
  * 获取会话列表
+ * @param {number} limit - 限制数量，默认500
  */
-function getSessions() {
+function getSessions(limit) {
   return new Promise(function(resolve, reject) {
     wx.cloud.callFunction({
       name: 'ai-chat',
       data: {
         action: 'getSessions',
-        childId: auth.getCurrentChildId()
+        childId: auth.getCurrentChildId(),
+        limit: limit || 500
       }
     }).then(function(res) {
       if (res.result.code === 0) {
         resolve(res.result.data)
       } else {
-        resolve([])
+        resolve({ sessions: [], hasMore: false })
       }
     }).catch(function(err) {
       console.error('获取会话列表失败:', err)
-      resolve([])
+      resolve({ sessions: [], hasMore: false })
     })
   })
 }
@@ -786,7 +833,11 @@ function deleteSession(sessionId) {
  * 创建新会话
  */
 function createSession() {
-  var sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+  // 使用更长的随机字符串增强唯一性
+  var timestamp = Date.now()
+  var random1 = Math.random().toString(36).substr(2, 12)
+  var random2 = Math.random().toString(36).substr(2, 8)
+  var sessionId = 'session_' + timestamp + '_' + random1 + random2
   return sessionId
 }
 
@@ -811,8 +862,18 @@ function setCurrentSessionId(sessionId) {
 
 /**
  * 保存到本地缓存
+ * @param {string} sessionId - 会话ID，为null时自动获取当前会话
+ * @param {string} role - 消息角色
+ * @param {string} content - 消息内容
+ * @param {string} thinking - 思考内容
+ * @param {string} image - 图片
  */
 function saveToLocal(sessionId, role, content, thinking, image) {
+  // 如果sessionId为空，自动获取当前会话
+  if (!sessionId) {
+    sessionId = getCurrentSessionId()
+  }
+  
   var localChats = childStorage.get(CHATS_KEY) || {}
   if (!localChats[sessionId]) {
     localChats[sessionId] = []
@@ -871,6 +932,7 @@ module.exports = {
   sendMessage: sendMessage,
   sendMessageStream: sendMessageStream,
   getThinkingProgress: getThinkingProgress,
+  watchThinkingProgress: watchThinkingProgress,
   getUserPreference: getUserPreference,
   saveUserPreference: saveUserPreference,
   getHistory: getHistory,
@@ -880,6 +942,7 @@ module.exports = {
   createSession: createSession,
   getCurrentSessionId: getCurrentSessionId,
   setCurrentSessionId: setCurrentSessionId,
+  saveToLocal: saveToLocal,
   isConfigured: isConfigured,
   getCurrentModelInfo: getCurrentModelInfo
 }

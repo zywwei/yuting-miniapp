@@ -3,15 +3,39 @@ var childStorage = getApp().globalData.childStorage
 var contextDetector = require('../../../utils/ai-context-detector')
 var skillsManager = require('../../../utils/ai-skills')
 var markdown = require('../../../utils/markdown')
+var speakTool = require('../../../../utils/speak')
 
 // 常用表情列表
-var EMOJI_LIST = [
-  '😊', '😄', '😍', '🥰', '😎', '🤔', '😅', '😢', '😭', '😡',
-  '👍', '👎', '👏', '🙏', '💪', '🎉', '🎊', '✨', '🌟', '⭐',
-  '❤️', '💕', '💖', '💗', '💝', '🔥', '💯', '✅', '❌', '⚠️',
-  '📚', '📖', '✏️', '📝', '🎨', '🎭', '🎪', '🎠', '🎡', '🎢',
-  '🦷', '👦', '👧', '👶', '🧒', '👨‍👩‍👧', '👨‍👩‍👧‍👦', '🏠', '🏫', '🌳'
-]
+// 表情分类
+var EMOJI_CATEGORIES = {
+  'face': {
+    name: '表情',
+    list: ['😊', '😄', '😍', '🥰', '😎', '🤔', '😅', '😢', '😭', '😡', '🤗', '😏', '😴', '🤮', '🥳']
+  },
+  'gesture': {
+    name: '手势',
+    list: ['👍', '👎', '👏', '🙏', '💪', '✌️', '🤝', '👋', '👀', '🤙']
+  },
+  'heart': {
+    name: '爱心',
+    list: ['❤️', '💕', '💖', '💗', '💝', '💓', '💞', '💘', '💟', '♥️']
+  },
+  'symbol': {
+    name: '符号',
+    list: ['🔥', '💯', '✅', '❌', '⚠️', '✨', '🌟', '⭐', '🎉', '🎊']
+  },
+  'object': {
+    name: '物品',
+    list: ['📚', '📖', '✏️', '📝', '🎨', '🎭', '🎪', '🎠', '🎡', '🎢']
+  },
+  'people': {
+    name: '人物',
+    list: ['🦷', '👦', '👧', '👶', '🧒', '👨‍👩‍👧', '👨‍👩‍👧‍👦', '🏠', '🏫', '🌳']
+  }
+}
+
+// 默认表情列表（兼容旧代码）
+var EMOJI_LIST = EMOJI_CATEGORIES.face.list
 
 // 消息ID计数器
 var messageIdCounter = 0
@@ -27,7 +51,8 @@ Page({
     currentTemplateName: '通用助手',
     messages: [],
     inputValue: '',
-    selectedImage: '',
+    inputHeight: 36, // 输入框高度，自适应
+    selectedImages: [],
     loading: false,
     loadingText: '思考中...',
     scrollToView: '',
@@ -36,7 +61,11 @@ Page({
     filteredSessions: [],
     showSessionModal: false,
     showEmojiBar: false,
+    showMorePanel: false,
     emojiList: EMOJI_LIST,
+    emojiCategories: EMOJI_CATEGORIES,
+    emojiCategoryKeys: Object.keys(EMOJI_CATEGORIES),
+    currentEmojiCategory: 'face',
     inputFocus: false,
     isRecording: false,
     showActionModal: false,
@@ -63,7 +92,15 @@ Page({
     streamThinkingEnabled: false,
     currentTaskId: null,
     thinkingPollTimer: null,
+    thinkingWatcher: null,
     currentThinkingContent: '',
+    currentSpeakingId: null, // 当前正在朗读的消息ID
+    isPageUnloaded: false, // 页面是否已卸载
+    // 键盘高度
+    keyboardHeight: 0,
+    // 欢迎消息
+    welcomeTitle: '你好，我是AI助手',
+    quickQuestions: [],
     // 上下文统计
     contextTokens: 0,
     outputTokens: 0,
@@ -95,8 +132,25 @@ Page({
   },
 
   onLoad: function() {
+    var that = this
     this.checkConfig()
     this.initSession()
+    // 初始化语音工具
+    try {
+      speakTool.preload()
+      var initEngineList = speakTool.getEngineList()
+      var initVoiceList = speakTool.getVoiceList()
+      var initVoice = speakTool.getCurrentVoice()
+      var initEngineName = '语音设置'
+      var initVoiceName = ''
+      for (var i = 0; i < initEngineList.length; i++) {
+        if (initEngineList[i].active) { initEngineName = initEngineList[i].name; break }
+      }
+      for (var j = 0; j < initVoiceList.length; j++) {
+        if (initVoiceList[j].id === initVoice) { initVoiceName = initVoiceList[j].name; break }
+      }
+      this.setData({ currentEngineName: initEngineName, currentVoiceName: initVoiceName })
+    } catch (e) { console.error('speakTool.preload失败:', e) }
     // 读取流式思考开关状态
     var streamEnabled = childStorage.get('streamThinkingEnabled') || false
     this.setData({ streamThinkingEnabled: streamEnabled })
@@ -104,6 +158,14 @@ Page({
     this.restoreActiveSkill()
     // 从云端同步技能数据
     skillsManager.syncFromCloud()
+    // 生成欢迎消息和快捷问题
+    this.generateWelcomeContent()
+    
+    // 监听键盘高度变化（保存引用以便onUnload移除）
+    this._onKeyboardHeightChange = function(res) {
+      that.setData({ keyboardHeight: res.height })
+    }
+    wx.onKeyboardHeightChange(this._onKeyboardHeightChange)
   },
 
   onShow: function() {
@@ -111,10 +173,79 @@ Page({
     this.checkConfig()
   },
 
+  // 生成欢迎消息和快捷问题
+  generateWelcomeContent: function() {
+    var hour = new Date().getHours()
+    var welcomeTitle = '你好，我是AI助手'
+    var quickQuestions = []
+    
+    // 根据时间段生成不同的欢迎语
+    if (hour < 6) {
+      welcomeTitle = '夜深了，有什么我可以帮你的吗？'
+    } else if (hour < 9) {
+      welcomeTitle = '早上好！新的一天开始了'
+    } else if (hour < 12) {
+      welcomeTitle = '上午好！有什么我可以帮你的吗？'
+    } else if (hour < 14) {
+      welcomeTitle = '中午好！休息一下吧'
+    } else if (hour < 18) {
+      welcomeTitle = '下午好！有什么我可以帮你的吗？'
+    } else if (hour < 22) {
+      welcomeTitle = '晚上好！今天过得怎么样？'
+    } else {
+      welcomeTitle = '夜深了，有什么我可以帮你的吗？'
+    }
+    
+    // 生成快捷问题（从预设中随机选择4个）
+    var allQuestions = [
+      { q: '我最近的学习情况怎么样？', label: '学习情况', icon: '📚' },
+      { q: '我的刷牙习惯坚持得怎么样？', label: '刷牙习惯', icon: '🦷' },
+      { q: '给我讲个有趣的故事吧', label: '讲个故事', icon: '📖' },
+      { q: '我的摆摊生意怎么样？', label: '摆摊经营', icon: '🏪' },
+      { q: '帮我画一幅画', label: '画画助手', icon: '🎨' },
+      { q: '今天有什么作业需要帮忙吗？', label: '作业帮忙', icon: '✏️' },
+      { q: '给我出一道数学题', label: '数学练习', icon: '🔢' },
+      { q: '推荐一本好看的书', label: '推荐阅读', icon: '📕' }
+    ]
+    
+    // 使用Fisher-Yates洗牌算法随机选择4个
+    for (var i = allQuestions.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1))
+      var temp = allQuestions[i]
+      allQuestions[i] = allQuestions[j]
+      allQuestions[j] = temp
+    }
+    quickQuestions = allQuestions.slice(0, 4)
+    
+    this.setData({
+      welcomeTitle: welcomeTitle,
+      quickQuestions: quickQuestions
+    })
+  },
+
   onUnload: function() {
-    // 页面卸载时清除定时器
+    // 标记页面已卸载
+    this.setData({ isPageUnloaded: true })
+    
+    // 移除键盘高度监听
+    if (this._onKeyboardHeightChange) {
+      wx.offKeyboardHeightChange(this._onKeyboardHeightChange)
+    }
+    
+    // 页面卸载时清除所有定时器和 watcher
     if (this.data.thinkingPollTimer) {
       clearInterval(this.data.thinkingPollTimer)
+    }
+    if (this.data.thinkingWatcher) {
+      this.data.thinkingWatcher.close()
+    }
+    if (this.data.contextBannerTimer) {
+      clearTimeout(this.data.contextBannerTimer)
+    }
+    // 停止音频播放
+    if (this._audioContext) {
+      this._audioContext.stop()
+      this._audioContext = null
     }
   },
 
@@ -175,7 +306,7 @@ Page({
       templateList: templateList
     })
     
-    // 获取配置（可能是异步的）
+    // 获取配置（ai-manager已有5分钟缓存，无需额外Promise缓存）
     aiManager.getConfig().then(function(config) {
       var configuredModels = config.models || {}
       var currentProvider = config.currentModel || 'minimax'
@@ -259,8 +390,8 @@ Page({
         currentTemplateName: currentTemplateName,
         isConfigured: !!(configuredModels[currentProvider] && configuredModels[currentProvider].apiKey),
         modelInfo: {
-          icon: (models[currentProvider] || MODELS['minimax']).icon,
-          name: (models[currentProvider] || MODELS['minimax']).name
+          icon: (models[currentProvider] || models['minimax'] || { icon: '🤖' }).icon,
+          name: (models[currentProvider] || models['minimax'] || { name: 'AI助手' }).name
         }
       })
     }).catch(function(err) {
@@ -329,6 +460,9 @@ Page({
     if (!time) return ''
     
     var date = new Date(time)
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) return ''
+    
     var hours = date.getHours().toString().padStart(2, '0')
     var minutes = date.getMinutes().toString().padStart(2, '0')
     
@@ -466,7 +600,8 @@ Page({
       }
       
       // 获取该供应商的子模型
-      var providerModels = models[key] ? models[key].subModels || [] : []
+      var provider = models[key] || {}
+      var providerModels = provider.subModels || []
       var defaultModel = providerModels.length > 0 ? providerModels[0].key : ''
       
       // 切换供应商
@@ -474,8 +609,8 @@ Page({
         currentProvider: key,
         currentModelKey: defaultModel,
         modelInfo: {
-          icon: models[key].icon,
-          name: models[key].name
+          icon: provider.icon || '🤖',
+          name: provider.name || 'AI助手'
         },
         expandProvider: true
       })
@@ -561,27 +696,63 @@ Page({
 
   // 输入消息
   onInput: function(e) {
-    this.setData({ inputValue: e.detail.value })
+    this.setData({
+      inputValue: e.detail.value,
+      showMorePanel: false,
+      showEmojiBar: false
+    })
+  },
+
+  // 输入框行数变化
+  onInputLineChange: function(e) {
+    var lineCount = e.detail.lineCount || 1
+    // 限制最大6行高度（每行约36rpx，与wxss中的line-height一致）
+    var maxLines = 6
+    var lineHeight = 36
+    var height = Math.min(lineCount, maxLines) * lineHeight
+    this.setData({ inputHeight: height })
   },
 
   // 选择图片
   chooseImage: function() {
     var that = this
+    this.setData({ showMorePanel: false })
+    var currentCount = this.data.selectedImages.length
+    var maxCount = 9
+    var remainCount = maxCount - currentCount
+    
+    if (remainCount <= 0) {
+      wx.showToast({ title: '最多选择9张图片', icon: 'none' })
+      return
+    }
     
     wx.chooseMedia({
-      count: 1,
+      count: remainCount,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       success: function(res) {
-        var tempFilePath = res.tempFiles[0].tempFilePath
-        that.setData({ selectedImage: tempFilePath })
+        var newImages = res.tempFiles.map(function(file) {
+          return file.tempFilePath
+        })
+        that.setData({ 
+          selectedImages: that.data.selectedImages.concat(newImages)
+        })
       }
     })
   },
 
   // 移除选中的图片
-  removeImage: function() {
-    this.setData({ selectedImage: '' })
+  removeImage: function(e) {
+    var index = e.currentTarget.dataset.index
+    var images = this.data.selectedImages.filter(function(img, i) {
+      return i !== index
+    })
+    this.setData({ selectedImages: images })
+  },
+
+  // 清空所有选中的图片
+  clearImages: function() {
+    this.setData({ selectedImages: [] })
   },
 
   // 预览图片
@@ -624,6 +795,30 @@ Page({
       showSkillBar: true
     })
     wx.showToast({ title: '已激活: ' + skill.name, icon: 'success' })
+    
+    // 自动注入技能关联数据
+    this.autoInjectSkillData(skill)
+  },
+
+  // 自动注入技能关联数据
+  autoInjectSkillData: function(skill) {
+    var that = this
+    // 检测技能关联的数据类型
+    var dataTypes = contextDetector.detectDataTypes('', skill)
+    if (dataTypes.length === 0) return
+    
+    // 异步获取数据摘要
+    contextDetector.getDataSummary(dataTypes).then(function(result) {
+      if (result.hasData) {
+        // 构建上下文文本
+        contextDetector.buildContextText(dataTypes).then(function(text) {
+          if (text) {
+            that.setData({ pendingExtraContext: text })
+            console.log('技能关联数据已注入:', dataTypes)
+          }
+        })
+      }
+    })
   },
 
   // 取消激活技能
@@ -683,6 +878,7 @@ Page({
       skillGrouped: grouped, 
       skillFilterKeyword: '', 
       showSkillModal: true,
+      showMorePanel: false,
       skillActiveTab: 'all',
       skillCategories: categories,
       filteredSkillList: []
@@ -802,7 +998,7 @@ Page({
     wx.chooseMessageFile({
       count: 1,
       type: 'file',
-      extension: ['.json'],
+      extension: ['json'], // 不带点号
       success: function(res) {
         var filePath = res.tempFiles[0].path
         var fs = wx.getFileSystemManager()
@@ -899,9 +1095,9 @@ Page({
   // 发送消息（检测入口）
   sendMessage: function(options) {
     var message = options && options.content ? options.content : this.data.inputValue.trim()
-    var image = options && options.image ? options.image : this.data.selectedImage
+    var images = options && options.images ? options.images : this.data.selectedImages
     
-    if ((!message && !image) || this.data.loading) return
+    if ((!message && images.length === 0) || this.data.loading) return
     
     // 如果浮窗正在显示，先关闭
     if (this.data.showContextBanner) {
@@ -931,7 +1127,9 @@ Page({
       var types = contextDetector.detectDataTypes(message, this.data.activeSkill)
       if (types.length > 0) {
         // 暂存消息内容和选项，显示浮窗
-        this._pendingOptions = options || { content: message, image: image }
+        // 使用深拷贝避免被后续调用覆盖
+        this._pendingOptions = JSON.parse(JSON.stringify(options || { content: message, images: images }))
+        this._pendingOptions._timestamp = Date.now() // 添加时间戳用于验证
         this.detectAndShowBanner(message)
         return
       }
@@ -946,11 +1144,11 @@ Page({
     var that = this
     var opts = options || this._pendingOptions || {}
     var message = opts.content ? opts.content : this.data.inputValue.trim()
-    var image = opts.image ? opts.image : this.data.selectedImage
+    var images = opts.images ? opts.images : this.data.selectedImages
     var isRetry = opts.isRetry
     this._pendingOptions = null
 
-    if ((!message && !image) || this.data.loading) return
+    if ((!message && images.length === 0) || this.data.loading) return
 
     // 添加用户消息到列表（重试时不重复添加）
     if (!isRetry) {
@@ -959,7 +1157,7 @@ Page({
         id: 'msg_' + messageIdCounter,
         role: 'user',
         content: message || null,
-        image: image || null,
+        images: images.length > 0 ? images : null,
         thinking: null,
         showThinking: false,
         timeStr: this.formatTime(new Date())
@@ -968,17 +1166,25 @@ Page({
       this.setData({
         messages: this.data.messages.concat(userMsg),
         inputValue: '',
-        selectedImage: ''
+        selectedImages: [],
+        showMorePanel: false,
+        showEmojiBar: false
       })
     }
 
     this.setData({ loading: true, loadingText: '思考中...' })
     this.scrollToBottom()
 
-    if (image && image.indexOf('cloud://') === -1) {
-      this.uploadAndSend(message, image)
+    // 处理图片上传
+    var localImages = images.filter(function(img) {
+      return img.indexOf('cloud://') === -1
+    })
+    
+    if (localImages.length > 0) {
+      this.uploadAndSendMultiple(message, images)
     } else {
-      this.sendToAI(message, image)
+      // 只发送第一张图片（兼容旧接口）
+      this.sendToAI(message, images.length > 0 ? images[0] : null)
     }
   },
 
@@ -988,12 +1194,73 @@ Page({
     var cloud = getApp().globalData.cloud
     
     // 压缩并上传图片到云存储
-    cloud.uploadImageCompressed(imagePath, 'ai-chat-images').then(function(fileID) {
-      // 发送包含图片的消息
-      that.sendToAI(message, fileID)
-    }).catch(function(err) {
-      console.error('上传图片失败:', err)
-      that.showError('图片上传失败，请重试')
+    try {
+      cloud.uploadImageCompressed(imagePath, 'ai-chat-images').then(function(fileID) {
+        // 发送包含图片的消息
+        that.sendToAI(message, fileID)
+      }).catch(function(err) {
+        console.error('上传图片失败:', err)
+        that.showError('图片上传失败，请重试', message, imagePath)
+      })
+    } catch (err) {
+      // 捕获同步异常（如cloud对象未初始化等）
+      console.error('上传图片异常:', err)
+      that.showError('图片上传失败，请重试', message, imagePath)
+    }
+  },
+
+  // 上传多张图片并发送
+  uploadAndSendMultiple: function(message, images) {
+    var that = this
+    var cloud = getApp().globalData.cloud
+    var uploadedCount = 0
+    var totalImages = images.length
+    var uploadedFileIDs = []
+    
+    // 分离本地图片和已上传的云图片
+    var localImages = images.filter(function(img) {
+      return img.indexOf('cloud://') === -1
+    })
+    var cloudImages = images.filter(function(img) {
+      return img.indexOf('cloud://') === 0
+    })
+    
+    // 如果没有本地图片，直接发送
+    if (localImages.length === 0) {
+      that.sendToAI(message, cloudImages.length > 0 ? cloudImages : null)
+      return
+    }
+
+    // 上传每张本地图片
+    localImages.forEach(function(imagePath, index) {
+      try {
+        cloud.uploadImageCompressed(imagePath, 'ai-chat-images').then(function(fileID) {
+          uploadedCount++
+          uploadedFileIDs[index] = fileID
+
+          // 所有图片上传完成
+          if (uploadedCount === localImages.length) {
+            // 合并云图片和新上传的图片
+            var allFileIDs = cloudImages.concat(uploadedFileIDs.filter(Boolean))
+            that.sendToAI(message, allFileIDs.length > 0 ? allFileIDs : null)
+          }
+        }).catch(function(err) {
+          console.error('上传图片失败:', err)
+          uploadedCount++
+          // 即使某张图片上传失败，也继续发送
+          if (uploadedCount === localImages.length) {
+            var allFileIDs = cloudImages.concat(uploadedFileIDs.filter(Boolean))
+            that.sendToAI(message, allFileIDs.length > 0 ? allFileIDs : null)
+          }
+        })
+      } catch (err) {
+        console.error('上传图片异常:', err)
+        uploadedCount++
+        if (uploadedCount === localImages.length) {
+          var allFileIDs = cloudImages.concat(uploadedFileIDs.filter(Boolean))
+          that.sendToAI(message, allFileIDs.length > 0 ? allFileIDs : null)
+        }
+      }
     })
   },
 
@@ -1004,24 +1271,23 @@ Page({
     var model = modelInfo ? modelInfo.key : null
     var extraContext = this.data.pendingExtraContext
     var skillPrompt = this.data.activeSkill ? this.data.activeSkill.prompt : null
-    
-    // 调试日志
-    console.log('sendToAI:', {
-      message: message ? message.substring(0, 50) : null,
-      hasExtraContext: !!extraContext,
-      extraContextLength: extraContext ? extraContext.length : 0,
-      hasSkillPrompt: !!skillPrompt,
-      activeSkill: this.data.activeSkill ? this.data.activeSkill.name : null
-    })
-    
+
     // 用完即清
     this.setData({ pendingExtraContext: null })
-    
+
+    // 统一为数组格式
+    var imageFileIDs = Array.isArray(imageFileID) ? imageFileID : (imageFileID ? [imageFileID] : [])
+
     // 根据开关选择流式或普通模式
     if (this.data.streamThinkingEnabled) {
-      this.sendToAIStream(message, model, imageFileID, extraContext, skillPrompt)
+      this.sendToAIStream(message, model, imageFileIDs, extraContext, skillPrompt)
     } else {
-      aiManager.sendMessage(message, model, imageFileID, extraContext, skillPrompt).then(function(result) {
+      // 长时间等待提示（不作为错误处理）
+      var msgTimeout = setTimeout(function() {
+        that.setData({ loadingText: 'AI思考时间较长，请耐心等待...' })
+      }, 10000)
+      aiManager.sendMessage(message, model, imageFileIDs, extraContext, skillPrompt).then(function(result) {
+        clearTimeout(msgTimeout)
         messageIdCounter++
         // 检查AI回复是否包含图片URL
         var aiImage = null
@@ -1063,6 +1329,8 @@ Page({
         
         that.scrollToBottom()
       }).catch(function(err) {
+        clearTimeout(msgTimeout)
+        console.error('非流式调用失败:', err)
         that.showError('发送失败：' + (err.message || '网络错误，请稍后重试'), message, imageFileID)
       })
     }
@@ -1071,18 +1339,65 @@ Page({
   // 流式发送到AI
   sendToAIStream: function(message, model, imageFileID, extraContext, skillPrompt) {
     var that = this
-    
+
     aiManager.sendMessageStream(message, model, imageFileID, extraContext, skillPrompt).then(function(data) {
       that.setData({
         currentTaskId: data.taskId,
         currentThinkingContent: ''
       })
-      
-      // 开始轮询思考进度
+
       that.startThinkingPoll(data.taskId)
     }).catch(function(err) {
+      console.error('云函数调用失败:', err)
       that.showError('发送失败：' + (err.message || '网络错误，请稍后重试'), message, imageFileID)
     })
+  },
+
+  // 处理AI响应（提取公共逻辑）
+  handleAIResponse: function(finalContent, thinkingContent) {
+    var that = this
+    messageIdCounter++
+    
+    console.log('handleAIResponse:', { finalContent: finalContent ? finalContent.substring(0, 100) : finalContent, thinkingContent: thinkingContent ? '有' : '无' })
+    
+    var aiImage = null
+    var aiContent = finalContent
+    if (finalContent) {
+      var mdImageMatch = finalContent.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/)
+      if (mdImageMatch) {
+        aiImage = mdImageMatch[1]
+        aiContent = finalContent.replace(mdImageMatch[0], '').trim()
+      } else {
+        var imageUrlMatch = finalContent.match(/(https?:\/\/[^\s]*\.(jpg|jpeg|png|gif|webp|bmp)(\?[^\s]*)?|cloud:\/\/[^\s]+)/i)
+        if (imageUrlMatch) {
+          aiImage = imageUrlMatch[0]
+          aiContent = finalContent.replace(imageUrlMatch[0], '').trim()
+        }
+      }
+    }
+    
+    var displayContent = aiContent || finalContent || '（无内容）'
+    var aiMsg = {
+      id: 'msg_' + messageIdCounter,
+      role: 'assistant',
+      content: displayContent,
+      richText: markdown.parseMarkdown(displayContent),
+      image: aiImage,
+      thinking: thinkingContent || null,
+      showThinking: !!thinkingContent,
+      timeStr: that.formatTime(new Date())
+    }
+    
+    console.log('aiMsg:', { content: aiMsg.content ? aiMsg.content.substring(0, 50) : 'empty', hasRichText: !!aiMsg.richText })
+    
+    that.setData({
+      messages: that.data.messages.concat(aiMsg),
+      loading: false
+    })
+    
+    that.scrollToBottom()
+    
+    aiManager.saveToLocal(null, 'assistant', finalContent, thinkingContent)
   },
 
   // 累计token用量
@@ -1165,12 +1480,16 @@ Page({
         that.setData({ modelPrices: prices })
         that.calculateCost(key, prices)
       } else {
-        // 使用默认价格
-        that.calculateCost(key, that.getDefaultPrices())
+        // 使用默认价格并缓存，避免重复请求
+        var defaultPrices = that.getDefaultPrices()
+        that.setData({ modelPrices: defaultPrices })
+        that.calculateCost(key, defaultPrices)
       }
     }).catch(function() {
-      // 使用默认价格
-      that.calculateCost(key, that.getDefaultPrices())
+      // 使用默认价格并缓存，避免重复请求
+      var defaultPrices = that.getDefaultPrices()
+      that.setData({ modelPrices: defaultPrices })
+      that.calculateCost(key, defaultPrices)
     })
   },
 
@@ -1236,12 +1555,17 @@ Page({
       
       aiManager.getThinkingProgress(taskId).then(function(progress) {
         // 更新思考内容
-        if (progress.thinkingContent && progress.thinkingContent !== that.data.currentThinkingContent) {
-          var shortContent = progress.thinkingContent.length > 50 ? progress.thinkingContent.substring(0, 50) + '...' : progress.thinkingContent
-          that.setData({
-            currentThinkingContent: progress.thinkingContent,
-            loadingText: '思考中: ' + shortContent
-          })
+        if (progress.thinkingContent !== undefined && progress.thinkingContent !== that.data.currentThinkingContent) {
+          that.setData({ currentThinkingContent: progress.thinkingContent })
+          
+          // 根据内容决定显示文本（过滤掉默认的"正在思考中..."）
+          var content = progress.thinkingContent
+          if (content && content !== '正在思考中...') {
+            var shortContent = content.length > 50 ? content.substring(0, 50) + '...' : content
+            that.setData({ loadingText: '思考中: ' + shortContent })
+          } else {
+            that.setData({ loadingText: '思考中...' })
+          }
         }
         
         // 检查是否完成
@@ -1258,56 +1582,7 @@ Page({
           that.updateTokenUsage(progress.usage)
           
           // 添加AI回复消息
-          messageIdCounter++
-          // 检查AI回复是否包含图片URL
-          var aiImage = null
-          var aiContent = progress.finalContent
-          if (progress.finalContent) {
-            // 1. 先匹配markdown图片语法 ![alt](url)
-            var mdImageMatch = progress.finalContent.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/)
-            if (mdImageMatch) {
-              aiImage = mdImageMatch[1]
-              aiContent = progress.finalContent.replace(mdImageMatch[0], '').trim()
-            } else {
-              // 2. 匹配图片URL模式（http/https开头，以图片扩展名结尾或云文件ID）
-              var imageUrlMatch = progress.finalContent.match(/(https?:\/\/[^\s]*\.(jpg|jpeg|png|gif|webp|bmp)(\?[^\s]*)?|cloud:\/\/[^\s]+)/i)
-              if (imageUrlMatch) {
-                aiImage = imageUrlMatch[0]
-                aiContent = progress.finalContent.replace(imageUrlMatch[0], '').trim()
-              }
-            }
-          }
-          
-          var aiMsg = {
-            id: 'msg_' + messageIdCounter,
-            role: 'assistant',
-            content: aiContent || progress.finalContent,
-            richText: markdown.parseMarkdown(aiContent || progress.finalContent),
-            image: aiImage,
-            thinking: progress.thinkingContent || null,
-            showThinking: !!progress.thinkingContent,
-            timeStr: that.formatTime(new Date())
-          }
-          
-          that.setData({
-            messages: that.data.messages.concat(aiMsg),
-            loading: false
-          })
-          
-          that.scrollToBottom()
-          
-          // 保存到本地缓存
-          var sessionId = aiManager.getCurrentSessionId()
-          var childStorage = getApp().globalData.childStorage
-          var localChats = childStorage.get('aiChats') || {}
-          if (!localChats[sessionId]) localChats[sessionId] = []
-          localChats[sessionId].push({
-            role: 'assistant',
-            content: progress.finalContent,
-            thinking: progress.thinkingContent || null,
-            time: new Date().toISOString()
-          })
-          childStorage.set('aiChats', localChats)
+          that.handleAIResponse(progress.finalContent, progress.thinkingContent)
           
         } else if (progress.status === 'error') {
           clearInterval(timer)
@@ -1373,10 +1648,12 @@ Page({
   // 显示错误
   showError: function(msg, originalContent, originalImage) {
     messageIdCounter++
+    var errorText = '❌ ' + msg
     var errorMsg = {
       id: 'msg_' + messageIdCounter,
       role: 'assistant',
-      content: '❌ ' + msg,
+      content: errorText,
+      richText: markdown.parseMarkdown(errorText),
       image: null,
       thinking: null,
       showThinking: false,
@@ -1406,7 +1683,8 @@ Page({
     var id = e.currentTarget.dataset.id
     var messages = this.data.messages.map(function(msg) {
       if (msg.id === id) {
-        msg.showThinking = !msg.showThinking
+        // 创建新对象，避免直接修改原对象
+        return Object.assign({}, msg, { showThinking: !msg.showThinking })
       }
       return msg
     })
@@ -1443,10 +1721,13 @@ Page({
       showSessionModal: true,
       sessionPage: 1,
       searchKeyword: '',
-      loadingSessions: true
+      loadingSessions: true,
+      sessionLimit: 500 // 当前加载限制
     })
     
-    aiManager.getSessions().then(function(sessions) {
+    aiManager.getSessions(500).then(function(result) {
+      var sessions = result.sessions || []
+      var hasMore = result.hasMore || false
       var totalMessages = 0
       var totalTokens = 0
       
@@ -1470,7 +1751,7 @@ Page({
         totalSessions: formattedSessions.length,
         totalMessages: totalMessages,
         totalTokens: that.formatTokens(totalTokens),
-        hasMoreSessions: false,
+        hasMoreSessions: hasMore,
         loadingSessions: false
       })
     }).catch(function(err) {
@@ -1499,9 +1780,12 @@ Page({
       return
     }
     
+    var kw = keyword.toLowerCase()
     var filtered = sessions.filter(function(session) {
-      return session.lastMessage.indexOf(keyword) !== -1 || 
-             session.modelName.indexOf(keyword) !== -1
+      // 搜索最后消息、模型名称、会话标题
+      return (session.lastMessage && session.lastMessage.toLowerCase().indexOf(kw) !== -1) || 
+             (session.modelName && session.modelName.toLowerCase().indexOf(kw) !== -1) ||
+             (session.title && session.title.toLowerCase().indexOf(kw) !== -1)
     })
     
     this.setData({ filteredSessions: filtered })
@@ -1517,18 +1801,58 @@ Page({
 
   // 加载更多会话
   loadMoreSessions: function() {
+    var that = this
     if (this.data.loadingSessions || !this.data.hasMoreSessions) return
     
+    // 增加加载限制
+    var newLimit = (this.data.sessionLimit || 500) + 500
+    
     this.setData({ 
-      sessionPage: this.data.sessionPage + 1,
-      loadingSessions: true
+      loadingSessions: true,
+      sessionLimit: newLimit
     })
     
-    // 实际项目中这里应该调用分页接口
-    // 暂时模拟加载完成
-    this.setData({ 
-      hasMoreSessions: false,
-      loadingSessions: false
+    aiManager.getSessions(newLimit).then(function(result) {
+      var sessions = result.sessions || []
+      var hasMore = result.hasMore || false
+      var totalMessages = 0
+      var totalTokens = 0
+      
+      var formattedSessions = sessions.map(function(session) {
+        totalMessages += session.messageCount || 0
+        totalTokens += session.totalTokens || 0
+        
+        return {
+          sessionId: session.sessionId,
+          lastMessage: session.lastMessage || '新会话',
+          messageCount: session.messageCount || 0,
+          modelName: session.modelName || '未知模型',
+          totalTokens: session.totalTokens || 0,
+          timeStr: that.formatDate(session.lastTime)
+        }
+      })
+      
+      that.setData({
+        sessions: formattedSessions,
+        filteredSessions: that.data.searchKeyword ? 
+          formattedSessions.filter(function(s) {
+            var kw = that.data.searchKeyword.toLowerCase()
+            return (s.lastMessage && s.lastMessage.toLowerCase().indexOf(kw) !== -1) || 
+                   (s.modelName && s.modelName.toLowerCase().indexOf(kw) !== -1)
+          }) : formattedSessions,
+        totalSessions: formattedSessions.length,
+        totalMessages: totalMessages,
+        totalTokens: that.formatTokens(totalTokens),
+        hasMoreSessions: hasMore && newLimit < 2000, // 最大2000条
+        loadingSessions: false
+      })
+    }).catch(function(err) {
+      console.error('加载更多会话失败:', err)
+      that.setData({ loadingSessions: false })
+      wx.showToast({
+        title: '加载失败',
+        icon: 'none'
+      })
     })
   },
 
@@ -1633,11 +1957,30 @@ Page({
     })
   },
 
+  // 切换更多面板
+  toggleMorePanel: function() {
+    this.setData({
+      showMorePanel: !this.data.showMorePanel,
+      showEmojiBar: false,
+      inputFocus: false
+    })
+  },
+
   // 切换表情栏
   toggleEmojiBar: function() {
     this.setData({ 
       showEmojiBar: !this.data.showEmojiBar,
+      showMorePanel: false,
       inputFocus: false
+    })
+  },
+
+  // 切换表情分类
+  switchEmojiCategory: function(e) {
+    var category = e.currentTarget.dataset.category
+    this.setData({ 
+      currentEmojiCategory: category,
+      emojiList: EMOJI_CATEGORIES[category].list
     })
   },
 
@@ -1645,32 +1988,31 @@ Page({
   insertEmoji: function(e) {
     var emoji = e.currentTarget.dataset.emoji
     this.setData({
-      inputValue: this.data.inputValue + emoji,
-      showEmojiBar: false,
-      inputFocus: true
+      inputValue: this.data.inputValue + emoji
+      // 不关闭表情栏，方便连续输入
     })
   },
 
-  // 开始录音
-  startRecording: function() {
+  // 初始化录音管理器（只注册一次事件）
+  initRecorderManager: function() {
     var that = this
-    this.setData({ isRecording: true })
     
-    // 开始录音
+    // 如果已经初始化过，直接返回
+    if (this._recorderInitialized) return
+    
     this.recorderManager = wx.getRecorderManager()
+    
     this.recorderManager.onStart(function() {
-      // 录音开始
+      console.log('录音开始')
     })
     
     this.recorderManager.onStop(function(res) {
       that.setData({ isRecording: false })
       
-      // 语音转文字（这里需要接入语音识别API）
-      // 暂时显示提示
-      wx.showToast({
-        title: '语音识别功能开发中',
-        icon: 'none'
-      })
+      // 语音转文字
+      if (res.tempFilePath) {
+        that.speechToText(res.tempFilePath)
+      }
     })
     
     this.recorderManager.onError(function(err) {
@@ -1682,13 +2024,35 @@ Page({
       })
     })
     
-    this.recorderManager.start({
-      duration: 60000,
-      sampleRate: 16000,
-      numberOfChannels: 1,
-      encodeBitRate: 96000,
-      format: 'aac'
-    })
+    this._recorderInitialized = true
+  },
+
+  // 开始录音
+  startRecording: function() {
+    // 确保录音管理器已初始化
+    this.initRecorderManager()
+    
+    this.setData({ isRecording: true })
+
+    // 使用PCM格式录音（百度语音识别需要），不支持时降级到AAC
+    try {
+      this.recorderManager.start({
+        duration: 60000,
+        sampleRate: 16000,
+        numberOfChannels: 1,
+        encodeBitRate: 96000,
+        format: 'pcm'
+      })
+    } catch (err) {
+      console.warn('PCM格式不支持，降级到AAC:', err)
+      this.recorderManager.start({
+        duration: 60000,
+        sampleRate: 16000,
+        numberOfChannels: 1,
+        encodeBitRate: 96000,
+        format: 'aac'
+      })
+    }
   },
 
   // 停止录音
@@ -1708,6 +2072,56 @@ Page({
         icon: 'none'
       })
     }
+  },
+
+  // 语音转文字
+  speechToText: function(tempFilePath) {
+    var that = this
+    wx.showLoading({ title: '识别中...' })
+    
+    // 读取PCM音频文件并转为base64
+    var fs = wx.getFileSystemManager()
+    fs.readFile({
+      filePath: tempFilePath,
+      success: function(res) {
+        // 将音频数据转为base64
+        var base64Data = wx.arrayBufferToBase64(res.data)
+        
+        // 调用云函数进行语音识别
+        wx.cloud.callFunction({
+          name: 'ai-chat',
+          data: {
+            action: 'speechToText',
+            audioData: base64Data
+          },
+          success: function(result) {
+            wx.hideLoading()
+            if (result.result && result.result.code === 0 && result.result.data.text) {
+              // 识别成功，将文字填入输入框
+              that.setData({
+                inputValue: that.data.inputValue + result.result.data.text
+              })
+              wx.showToast({ title: '识别成功', icon: 'success' })
+            } else {
+              wx.showToast({ 
+                title: result.result ? result.result.msg : '未识别到内容', 
+                icon: 'none' 
+              })
+            }
+          },
+          fail: function(err) {
+            wx.hideLoading()
+            console.error('语音识别失败:', err)
+            wx.showToast({ title: '识别失败，请重试', icon: 'none' })
+          }
+        })
+      },
+      fail: function(err) {
+        wx.hideLoading()
+        console.error('读取音频文件失败:', err)
+        wx.showToast({ title: '识别失败', icon: 'none' })
+      }
+    })
   },
 
   // 显示消息操作菜单
@@ -1773,9 +2187,10 @@ Page({
     this.hideMessageActions()
     
     // 直接发送，不重复添加用户消息
+    // 将单个image转为images数组格式
     this.sendMessage({
       content: content,
-      image: image,
+      images: image ? [image] : [],
       isRetry: true
     })
   },
@@ -1797,6 +2212,195 @@ Page({
         isRetry: true
       })
     }
+  },
+
+  // 转发消息
+  forwardMessage: function(e) {
+    var content = e.currentTarget.dataset.content
+    if (!content) return
+
+    // 设置转发内容
+    this._shareContent = content
+
+    // 隐藏操作菜单
+    this.hideMessageActions()
+
+    // 复制内容到剪贴板（微信小程序只能分享页面链接，不能直接分享文本）
+    wx.setClipboardData({
+      data: content,
+      success: function() {
+        wx.showToast({ title: '已复制，可粘贴发送', icon: 'success', duration: 2000 })
+      }
+    })
+  },
+
+  // 分享给朋友（生命周期函数）
+  onShareAppMessage: function() {
+    var content = this._shareContent || '来自AI助手的分享'
+    // 截取前100字作为标题
+    var title = content.substring(0, 100)
+    if (content.length > 100) title += '...'
+    
+    return {
+      title: title,
+      path: '/packageCreate/pages/create/ai-chat/index'
+    }
+  },
+
+  // 收藏消息
+  collectMessage: function(e) {
+    var id = e.currentTarget.dataset.id
+    var content = e.currentTarget.dataset.content
+    if (!content) return
+    
+    // 保存到本地收藏
+    var collections = childStorage.get('messageCollections') || []
+    collections.unshift({
+      id: id,
+      content: content.substring(0, 200), // 只保存前200字
+      time: new Date().toISOString()
+    })
+    // 最多保存100条收藏
+    if (collections.length > 100) {
+      collections = collections.slice(0, 100)
+    }
+    childStorage.set('messageCollections', collections)
+    
+    wx.showToast({ title: '已收藏', icon: 'success' })
+    this.hideMessageActions()
+  },
+
+  // 朗读消息
+  speakMessage: function(e) {
+    var that = this
+    var id = e.currentTarget.dataset.id
+    var content = e.currentTarget.dataset.content
+    if (!content) return
+    
+    // 如果正在播放，停止播放
+    if (speakTool.getIsSpeaking() && this.data.currentSpeakingId === id) {
+      speakTool.stopSpeak()
+      this.updateSpeakingState(id, false)
+      return
+    }
+    
+    // 停止之前的播放
+    speakTool.stopSpeak()
+    if (this.data.currentSpeakingId) {
+      this.updateSpeakingState(this.data.currentSpeakingId, false)
+    }
+    
+    // 提取纯文本（去除markdown标记）
+    var plainText = content
+      .replace(/[#*`\[\]()!>~|]/g, '')
+      .replace(/\n+/g, '。')
+      .substring(0, 500)
+    
+    // 更新状态
+    this.updateSpeakingState(id, true)
+    
+    // 使用speak工具朗读
+    speakTool.speak(plainText, function(success) {
+      that.updateSpeakingState(id, false)
+    })
+  },
+
+  // 更新朗读状态
+  updateSpeakingState: function(id, isSpeaking) {
+    var messages = this.data.messages.map(function(msg) {
+      if (msg.id === id) {
+        return Object.assign({}, msg, { isSpeaking: isSpeaking })
+      }
+      return msg
+    })
+    this.setData({ 
+      messages: messages,
+      currentSpeakingId: isSpeaking ? id : null
+    })
+  },
+
+  // 显示语音设置
+  showVoiceSettings: function() {
+    var that = this
+    this.setData({ showMorePanel: false })
+    
+    try {
+      var engineList = speakTool.getEngineList()
+      var voiceList = speakTool.getVoiceList()
+      var currentVoice = speakTool.getCurrentVoice()
+    } catch (err) {
+      console.error('获取语音设置失败:', err)
+      wx.showToast({ title: '语音功能加载失败', icon: 'none' })
+      return
+    }
+    
+    // 获取当前引擎和音色名称用于显示
+    var currentEngineName = '语音设置'
+    var currentVoiceName = ''
+    for (var i = 0; i < engineList.length; i++) {
+      if (engineList[i].active) {
+        currentEngineName = engineList[i].name
+        break
+      }
+    }
+    for (var j = 0; j < voiceList.length; j++) {
+      if (voiceList[j].id === currentVoice) {
+        currentVoiceName = voiceList[j].name
+        break
+      }
+    }
+
+    this.setData({
+      showVoiceModal: true,
+      voiceEngineList: engineList,
+      voiceVoiceList: voiceList,
+      currentEngineName: currentEngineName,
+      currentVoiceName: currentVoiceName,
+      currentVoiceId: currentVoice
+    })
+  },
+
+  // 切换TTS引擎
+  selectVoiceEngine: function(e) {
+    var engineId = e.currentTarget.dataset.id
+    speakTool.setEngine(engineId)
+    var newList = speakTool.getEngineList()
+    var newVoice = speakTool.getCurrentVoice()
+    var engineName = '语音设置'
+    for (var i = 0; i < newList.length; i++) {
+      if (newList[i].active) { engineName = newList[i].name; break }
+    }
+    var voiceList = speakTool.getVoiceList()
+    var voiceName = ''
+    for (var j = 0; j < voiceList.length; j++) {
+      if (voiceList[j].id === newVoice) { voiceName = voiceList[j].name; break }
+    }
+    this.setData({
+      voiceEngineList: newList,
+      voiceVoiceList: voiceList,
+      currentVoiceId: newVoice,
+      currentEngineName: engineName,
+      currentVoiceName: voiceName
+    })
+    wx.showToast({ title: '已切换', icon: 'success' })
+  },
+
+  // 切换音色
+  selectVoice: function(e) {
+    var voiceId = e.currentTarget.dataset.id
+    speakTool.setVoice(voiceId)
+    var voiceList = speakTool.getVoiceList()
+    var voiceName = ''
+    for (var j = 0; j < voiceList.length; j++) {
+      if (voiceList[j].id === voiceId) { voiceName = voiceList[j].name; break }
+    }
+    this.setData({ currentVoiceId: voiceId, currentVoiceName: voiceName })
+    wx.showToast({ title: '已切换', icon: 'success' })
+  },
+
+  // 关闭语音设置弹窗
+  hideVoiceModal: function() {
+    this.setData({ showVoiceModal: false })
   },
 
   // 删除消息
