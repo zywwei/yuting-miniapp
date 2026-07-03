@@ -505,7 +505,7 @@
         <view wx:if="{{currentEngineTab === 'mimo'}}">
           <!-- 二级Tab：调用方式 -->
           <view class="voice-section">
-            <view class="voice-section-title">调用方式</view>
+            <view class="voice-section-title">小米TTS调用方式</view>
             <view class="voice-tabs voice-tabs-small">
               <view 
                 class="voice-tab {{mimoCallType === 'direct' ? 'active' : ''}}"
