@@ -2350,7 +2350,8 @@ Page({
     })
     voiceGroupTabs.push({ key: 'edge', name: 'Edge TTS' })
     
-    // 百度TTS音色
+    // 百度TTS音色（按分组）
+    var baiduVoiceGroups = speakTool.getBaiduVoiceGroups()
     var baiduVoiceList = speakTool.getBaiduVoiceList()
     baiduVoiceList.forEach(function(voice) {
       allVoiceList.push({
@@ -2358,10 +2359,17 @@ Page({
         name: voice.name,
         desc: voice.desc,
         engine: 'baidu',
-        group: 'baidu'
+        group: 'baidu',
+        subGroup: voice.group
       })
     })
     voiceGroupTabs.push({ key: 'baidu', name: '百度TTS' })
+    
+    // 百度TTS子分组
+    var baiduSubGroups = Object.keys(baiduVoiceGroups)
+    baiduSubGroups.forEach(function(subGroup) {
+      voiceGroupTabs.push({ key: 'baidu_' + subGroup, name: subGroup })
+    })
     
     // 大模型TTS音色
     var mimoVoiceList = speakTool.getMimoVoiceList()
@@ -2390,6 +2398,7 @@ Page({
       voiceGroupTabs: voiceGroupTabs,
       currentVoiceGroupTab: 'all',
       voiceVoiceList: allVoiceList,
+      allVoiceList: allVoiceList,
       currentVoiceName: currentVoiceName,
       currentVoiceId: currentVoice,
       currentVoiceEngine: currentEngine
@@ -2453,49 +2462,27 @@ Page({
   // 切换音色分组Tab
   switchVoiceGroupTab: function(e) {
     var tabKey = e.currentTarget.dataset.key
-    
-    // 获取所有音色
-    var allVoiceList = []
-    
-    // Edge TTS音色
-    var edgeVoiceList = speakTool.getEdgeVoiceList()
-    edgeVoiceList.forEach(function(voice) {
-      allVoiceList.push({
-        id: voice.id,
-        name: voice.name,
-        desc: voice.desc,
-        engine: 'edge',
-        group: 'edge'
-      })
-    })
-    
-    // 百度TTS音色
-    var baiduVoiceList = speakTool.getBaiduVoiceList()
-    baiduVoiceList.forEach(function(voice) {
-      allVoiceList.push({
-        id: voice.id,
-        name: voice.name,
-        desc: voice.desc,
-        engine: 'baidu',
-        group: 'baidu'
-      })
-    })
-    
-    // 大模型TTS音色
-    var mimoVoiceList = speakTool.getMimoVoiceList()
-    mimoVoiceList.forEach(function(voice) {
-      allVoiceList.push({
-        id: voice.id,
-        name: voice.name,
-        desc: voice.desc,
-        engine: 'mimo',
-        group: 'llm'
-      })
-    })
+    var allVoiceList = this.data.allVoiceList
     
     // 过滤音色列表
     var filteredList = allVoiceList
-    if (tabKey !== 'all') {
+    
+    if (tabKey === 'all') {
+      // 显示全部
+      filteredList = allVoiceList
+    } else if (tabKey === 'baidu') {
+      // 显示所有百度TTS音色
+      filteredList = allVoiceList.filter(function(voice) {
+        return voice.group === 'baidu'
+      })
+    } else if (tabKey.startsWith('baidu_')) {
+      // 显示百度TTS子分组
+      var subGroup = tabKey.replace('baidu_', '')
+      filteredList = allVoiceList.filter(function(voice) {
+        return voice.group === 'baidu' && voice.subGroup === subGroup
+      })
+    } else {
+      // 显示其他分组（edge/llm）
       filteredList = allVoiceList.filter(function(voice) {
         return voice.group === tabKey
       })
