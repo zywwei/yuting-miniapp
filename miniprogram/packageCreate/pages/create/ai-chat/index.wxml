@@ -503,23 +503,22 @@
 
         <!-- 大模型TTS音色 -->
         <view wx:if="{{currentEngineTab === 'mimo'}}">
-          <!-- 二级Tab：调用方式 -->
+          <!-- 二级Tab -->
           <view class="voice-section">
-            <view class="voice-section-title">小米TTS调用方式</view>
             <view class="voice-tabs voice-tabs-small">
               <view 
                 class="voice-tab {{mimoCallType === 'direct' ? 'active' : ''}}"
                 bindtap="switchMimoCallType"
                 data-type="direct"
               >
-                直接调用
+                小米直接调用
               </view>
               <view 
                 class="voice-tab {{mimoCallType === 'plan' ? 'active' : ''}}"
                 bindtap="switchMimoCallType"
                 data-type="plan"
               >
-                套餐服务
+                小米套餐服务
               </view>
             </view>
           </view>
