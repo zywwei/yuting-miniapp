@@ -9,10 +9,6 @@
       <text class="tab-icon">🤖</text>
       <text class="tab-text">模型配置</text>
     </view>
-    <view class="tab-item {{activeTab === 'voice' ? 'active' : ''}}" bindtap="switchTab" data-tab="voice">
-      <text class="tab-icon">🔊</text>
-      <text class="tab-text">语音设置</text>
-    </view>
   </view>
 
   <!-- 模型配置Tab -->
@@ -42,101 +38,15 @@
             <view class="tab-desc">使用平台套餐</view>
           </view>
         </view>
-      </view>
-    </view>
-
-    <!-- 模型列表 -->
-    <view class="section">
-      <view class="model-list">
         <view 
-          wx:for="{{callType === 'direct' ? domesticModels : platformModels}}" 
-          wx:key="key"
-          class="model-item {{currentModel === item.key ? 'active' : ''}}"
+          class="call-type-tab {{callType === 'voice' ? 'active' : ''}}" 
+          bindtap="switchCallType"
+          data-type="voice"
         >
-          <!-- 厂家主卡片 -->
-          <view class="model-main" bindtap="selectModel" data-key="{{item.key}}">
-            <view class="model-icon" style="background: {{item.info.color}}">{{item.info.icon}}</view>
-            <view class="model-info">
-              <view class="model-name">
-                {{item.info.name}}
-                <text class="configured-badge" wx:if="{{configuredModels[item.key]}}">✓</text>
-              </view>
-              <view class="model-provider">
-                {{item.info.provider}}
-                <text class="current-sub" wx:if="{{currentModel === item.key && currentSubModelName}}">· {{currentSubModelName}}</text>
-              </view>
-            </view>
-            <view class="model-expand {{currentModel === item.key && expandModel ? 'open' : ''}}" wx:if="{{item.info.subModels && item.info.subModels.length > 0}}">
-              <text>›</text>
-            </view>
-          </view>
-          
-          <!-- 子模型选择 + API Key配置（展开时显示） -->
-          <view class="model-expand-area" wx:if="{{currentModel === item.key && expandModel}}">
-            <!-- 子模型选择 -->
-            <view class="sub-model-section" wx:if="{{item.info.subModels && item.info.subModels.length > 0}}">
-              <view class="sub-model-title">选择模型版本</view>
-              <view class="sub-model-list">
-                <view 
-                  wx:for="{{item.info.subModels}}" 
-                  wx:for-item="sub"
-                  wx:key="key"
-                  class="sub-item {{currentSubModel === sub.key ? 'active' : ''}}"
-                  bindtap="selectSubModel"
-                  data-key="{{sub.key}}"
-                  data-name="{{sub.name}}"
-                >
-                  <view class="sub-name">{{sub.name}}</view>
-                  <view class="sub-desc">{{sub.desc}}</view>
-                  <view class="sub-check" wx:if="{{currentSubModel === sub.key}}">✓</view>
-                </view>
-              </view>
-            </view>
-            
-            <!-- API Key配置 -->
-            <view class="api-key-section">
-              <view class="api-key-title">API Key配置</view>
-              <view class="input-group">
-                <input 
-                  class="input-field"
-                  type="text"
-                  password="{{!showApiKey}}"
-                  placeholder="请输入{{item.info.name}}的API Key"
-                  value="{{apiKey}}"
-                  bindinput="onApiKeyInput"
-                />
-                <view class="input-actions">
-                  <view class="input-toggle" bindtap="toggleKeyVisibility">
-                    {{showApiKey ? '🙈' : '👁️'}}
-                  </view>
-                </view>
-              </view>
-              <!-- 文心一言需要额外的Secret Key -->
-              <view class="input-group" wx:if="{{currentModel === 'wenxin' || currentModel === 'wenxin-plan'}}">
-                <input 
-                  class="input-field"
-                  type="text"
-                  password="{{!showSecretKey}}"
-                  placeholder="请输入Secret Key"
-                  value="{{secretKey}}"
-                  bindinput="onSecretKeyInput"
-                />
-                <view class="input-actions">
-                  <view class="input-toggle" bindtap="toggleSecretVisibility">
-                    {{showSecretKey ? '🙈' : '👁️'}}
-                  </view>
-                </view>
-              </view>
-              <!-- 操作按钮 -->
-              <view class="api-key-actions">
-                <view class="test-btn" bindtap="testApiKey" disabled="{{testing}}">
-                  {{testing ? '测试中...' : '测试'}}
-                </view>
-                <view class="save-btn-small" bindtap="saveConfig" disabled="{{saving}}">
-                  {{saving ? '保存中...' : '保存'}}
-                </view>
-              </view>
-            </view>
+          <view class="tab-icon">🔊</view>
+          <view class="tab-info">
+            <view class="tab-name">语音设置</view>
+            <view class="tab-desc">配置语音合成</view>
           </view>
         </view>
       </view>
@@ -198,8 +108,105 @@
     </view>
   </view>
 
-  <!-- 语音设置Tab -->
-  <view class="tab-content" wx:if="{{activeTab === 'voice'}}">
+  <!-- 模型配置Tab内容（直接调用/套餐服务） -->
+  <view class="tab-content" wx:if="{{activeTab === 'model' && callType !== 'voice'}}">
+    <!-- 模型列表 -->
+    <view class="section">
+      <view class="model-list">
+        <view 
+          wx:for="{{callType === 'direct' ? domesticModels : platformModels}}" 
+          wx:key="key"
+          class="model-item {{currentModel === item.key ? 'active' : ''}}"
+        >
+          <!-- 厂家主卡片 -->
+          <view class="model-main" bindtap="selectModel" data-key="{{item.key}}">
+            <view class="model-icon" style="background: {{item.info.color}}">{{item.info.icon}}</view>
+            <view class="model-info">
+              <view class="model-name">
+                {{item.info.name}}
+                <text class="configured-badge" wx:if="{{configuredModels[item.key]}}">✓</text>
+              </view>
+              <view class="model-provider">
+                {{item.info.provider}}
+                <text class="current-sub" wx:if="{{currentModel === item.key && currentSubModelName}}">· {{currentSubModelName}}</text>
+              </view>
+            </view>
+            <view class="model-expand {{currentModel === item.key && expandModel ? 'open' : ''}}" wx:if="{{item.info.subModels && item.info.subModels.length > 0}}">
+              <text>›</text>
+            </view>
+          </view>
+          
+          <!-- 子模型选择 + API Key配置（展开时显示） -->
+          <view class="model-expand-area" wx:if="{{currentModel === item.key && expandModel}}">
+            <!-- 子模型选择 -->
+            <view class="sub-model-section" wx:if="{{item.info.subModels && item.info.subModels.length > 0}}">
+              <view class="sub-model-title">选择模型版本</view>
+              <view class="sub-model-list">
+                <view 
+                  wx:for="{{item.info.subModels}}" 
+                  wx:for-item="sub"
+                  wx:key="key"
+                  class="sub-item {{currentSubModel === sub.key ? 'active' : ''}}"
+                  bindtap="selectSubModel"
+                  data-key="{{sub.key}}"
+                  data-name="{{sub.name}}"
+                >
+                  <view class="sub-name">{{sub.name}}</view>
+                  <view class="sub-desc">{{sub.desc}}</view>
+                  <view class="sub-check" wx:if="{{currentSubModel === sub.key}}">✓</view>
+                </view>
+              </view>
+            </view>
+            
+            <!-- API Key配置 -->
+            <view class="api-key-section">
+              <view class="api-key-title">API Key配置</view>
+              <view class="input-group">
+                <input 
+                  class="input-field"
+                  type="text"
+                  password="{{!showApiKey}}"
+                  placeholder="请输入{{item.info.name}}的API Key"
+                  value="{{apiKey}}"
+                  bindinput="onApiKeyInput"
+                />
+                <view class="input-toggle" bindtap="toggleKeyVisibility">
+                  {{showApiKey ? '🙈' : '👁️'}}
+                </view>
+              </view>
+              
+              <!-- Secret Key（文心一言专用） -->
+              <view class="input-group" wx:if="{{currentModel === 'wenxin' || currentModel === 'wenxin-plan'}}">
+                <input 
+                  class="input-field"
+                  type="text"
+                  password="{{!showSecretKey}}"
+                  placeholder="请输入Secret Key"
+                  value="{{secretKey}}"
+                  bindinput="onSecretKeyInput"
+                />
+                <view class="input-toggle" bindtap="toggleSecretVisibility">
+                  {{showSecretKey ? '🙈' : '👁️'}}
+                </view>
+              </view>
+              
+              <view class="api-key-actions">
+                <button class="test-btn" bindtap="testApiKey" disabled="{{testing}}">
+                  {{testing ? '测试中...' : '测试连接'}}
+                </button>
+                <button class="save-btn-small" bindtap="saveConfig" disabled="{{saving}}">
+                  {{saving ? '保存中...' : '保存配置'}}
+                </button>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 语音设置Tab内容 -->
+  <view class="tab-content" wx:if="{{activeTab === 'model' && callType === 'voice'}}">
     <!-- 语音设置说明 -->
     <view class="section">
       <view class="section-title">语音设置</view>
