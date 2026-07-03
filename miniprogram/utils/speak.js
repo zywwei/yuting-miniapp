@@ -182,16 +182,20 @@ function getVoiceList() {
     return EDGE_VOICE_LIST
   }
   
-  // 按分组组织百度TTS音色
-  var grouped = {}
+  // 返回百度TTS音色列表（包含分组信息）
+  return BAIDU_VOICE_LIST
+}
+
+// 获取百度TTS音色分组列表
+function getBaiduVoiceGroups() {
+  var groups = {}
   BAIDU_VOICE_LIST.forEach(function(voice) {
-    if (!grouped[voice.group]) {
-      grouped[voice.group] = []
+    if (!groups[voice.group]) {
+      groups[voice.group] = []
     }
-    grouped[voice.group].push(voice)
+    groups[voice.group].push(voice)
   })
-  
-  return grouped
+  return groups
 }
 
 // 获取当前语音
@@ -425,6 +429,7 @@ module.exports = {
   getEngineList: getEngineList,
   setVoice: setVoice,
   getVoiceList: getVoiceList,
+  getBaiduVoiceGroups: getBaiduVoiceGroups,
   getCurrentVoice: getCurrentVoice,
   getIsSpeaking: getIsSpeaking,
   testBaiduVoice: testBaiduVoice
