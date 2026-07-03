@@ -1692,7 +1692,12 @@ async function getTtsConfig(member) {
 // 保存TTS配置
 async function saveTtsConfig(member, event) {
   try {
-    console.log('saveTtsConfig调用:', { member, event })
+    console.log('saveTtsConfig调用:', { 
+      familyId: member.familyId,
+      eventKeys: Object.keys(event),
+      mimoTtsApiKey: event.mimoTtsApiKey ? '已提供' : '未提供',
+      mimoTtsPlanApiKey: event.mimoTtsPlanApiKey ? '已提供' : '未提供'
+    })
     
     const { engine, mimoTtsApiKey, mimoTtsPlanApiKey, baiduAppId, baiduApiKey, baiduSecretKey } = event
     
@@ -1726,18 +1731,24 @@ async function saveTtsConfig(member, event) {
       updateData.baiduTtsSecretKey = baiduSecretKey.trim()
     }
     
+    console.log('saveTtsConfig准备保存的数据:', updateData)
+    
     // 查询现有配置（使用aiConfigs集合，与模型配置共用）
     const result = await db.collection('aiConfigs').where({
       familyId: member.familyId
     }).get()
     
+    console.log('saveTtsConfig查询结果:', result.data.length, '条记录')
+    
     if (result.data && result.data.length > 0) {
       // 更新现有配置
+      console.log('更新现有配置，ID:', result.data[0]._id)
       await db.collection('aiConfigs').doc(result.data[0]._id).update({
         data: updateData
       })
     } else {
       // 创建新配置
+      console.log('创建新配置')
       await db.collection('aiConfigs').add({
         data: {
           familyId: member.familyId,
