@@ -9,6 +9,10 @@
       <text class="tab-icon">🤖</text>
       <text class="tab-text">模型配置</text>
     </view>
+    <view class="tab-item {{activeTab === 'tts' ? 'active' : ''}}" bindtap="switchTab" data-tab="tts">
+      <text class="tab-icon">🔊</text>
+      <text class="tab-text">语音配置</text>
+    </view>
   </view>
 
   <!-- 模型配置Tab -->
@@ -191,6 +195,119 @@
       <button class="save-prompt-btn" bindtap="savePrompt" disabled="{{saving}}">
         {{saving ? '保存中...' : '保存提示词配置'}}
       </button>
+    </view>
+  </view>
+
+  <!-- 语音配置Tab -->
+  <view class="tab-content" wx:if="{{activeTab === 'tts'}}">
+    <!-- TTS引擎说明 -->
+    <view class="section">
+      <view class="section-title">语音合成引擎</view>
+      <view class="tts-engine-desc">
+        <text>配置不同TTS引擎的API密钥，用于语音合成功能。</text>
+      </view>
+    </view>
+
+    <!-- 小米TTS配置 -->
+    <view class="section">
+      <view class="section-title">大模型TTS - 小米MiMo</view>
+      <view class="config-card">
+        <view class="config-header">
+          <view class="config-icon">🤖</view>
+          <view class="config-info">
+            <view class="config-name">小米MiMo TTS</view>
+            <view class="config-desc">小米大模型语音合成，AI生成</view>
+          </view>
+          <view class="config-status {{mimoTtsApiKey ? 'configured' : ''}}">
+            {{mimoTtsApiKey ? '已配置' : '未配置'}}
+          </view>
+        </view>
+        <view class="config-body">
+          <view class="input-group">
+            <view class="input-label">API密钥</view>
+            <input 
+              class="input-field"
+              type="text"
+              password="{{!showMimoTtsKey}}"
+              placeholder="请输入小米TTS API密钥"
+              value="{{mimoTtsApiKey}}"
+              bindinput="onMimoTtsKeyInput"
+            />
+            <view class="input-toggle" bindtap="toggleMimoTtsKeyVisibility">
+              {{showMimoTtsKey ? '🙈' : '👁️'}}
+            </view>
+          </view>
+          <view class="config-actions">
+            <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">
+              {{testingMimoTts ? '测试中...' : '测试连接'}}
+            </button>
+            <button class="save-btn" bindtap="saveMimoTtsKey" disabled="{{savingMimoTts}}">
+              {{savingMimoTts ? '保存中...' : '保存'}}
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 百度TTS配置 -->
+    <view class="section">
+      <view class="section-title">百度TTS</view>
+      <view class="config-card">
+        <view class="config-header">
+          <view class="config-icon">🗣️</view>
+          <view class="config-info">
+            <view class="config-name">百度语音合成</view>
+            <view class="config-desc">百度语音引擎，稳定可靠</view>
+          </view>
+          <view class="config-status {{baiduTtsApiKey ? 'configured' : ''}}">
+            {{baiduTtsApiKey ? '已配置' : '使用默认'}}
+          </view>
+        </view>
+        <view class="config-body">
+          <view class="input-group">
+            <view class="input-label">API密钥（可选）</view>
+            <input 
+              class="input-field"
+              type="text"
+              password="{{!showBaiduTtsKey}}"
+              placeholder="留空使用默认配置"
+              value="{{baiduTtsApiKey}}"
+              bindinput="onBaiduTtsKeyInput"
+            />
+            <view class="input-toggle" bindtap="toggleBaiduTtsKeyVisibility">
+              {{showBaiduTtsKey ? '🙈' : '👁️'}}
+            </view>
+          </view>
+          <view class="config-actions">
+            <button class="save-btn" bindtap="saveBaiduTtsKey" disabled="{{savingBaiduTts}}">
+              {{savingBaiduTts ? '保存中...' : '保存'}}
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- TTS配置说明 -->
+    <view class="section">
+      <view class="section-title">配置说明</view>
+      <view class="help-card">
+        <view class="help-item">
+          <text class="help-icon">💡</text>
+          <text class="help-text">大模型TTS需要配置小米API密钥才能使用</text>
+        </view>
+        <view class="help-item">
+          <text class="help-icon">💡</text>
+          <text class="help-text">百度TTS基础版免费，无需配置密钥</text>
+        </view>
+        <view class="help-item">
+          <text class="help-icon">💡</text>
+          <text class="help-text">Edge TTS使用微软服务，无需配置</text>
+        </view>
+        <view class="help-item">
+          <text class="help-icon">🔗</text>
+          <text class="help-text">小米API申请：api.xiaomimimo.com</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>

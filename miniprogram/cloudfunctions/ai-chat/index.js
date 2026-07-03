@@ -141,6 +141,12 @@ exports.main = async (event, context) => {
       return await speechToText(event.audioData)
     case 'textToSpeech':
       return await textToSpeech(event.text, event.voice, event.baiduPer, event.mimoVoice)
+    case 'getTtsConfig':
+      return await getTtsConfig(member)
+    case 'saveTtsConfig':
+      return await saveTtsConfig(member, event)
+    case 'testTts':
+      return await testTts(member, event)
     default:
       return { code: -1, msg: '未知操作' }
   }
@@ -1590,5 +1596,103 @@ async function getMimoTtsApiKey() {
   } catch (err) {
     console.error('获取小米TTS API密钥失败:', err)
     return ''
+  }
+}
+
+// 获取TTS配置
+async function getTtsConfig(member) {
+  try {
+    const result = await db.collection('ai_config').where({
+      userId: 'system'
+    }).get()
+    
+    if (result.data && result.data.length > 0) {
+      const config = result.data[0]
+      return {
+        code: 0,
+        data: {
+          mimoTtsApiKey: config.mimoTtsApiKey || '',
+          baiduTtsApiKey: config.baiduTtsApiKey || ''
+        }
+      }
+    }
+    
+    return {
+      code: 0,
+      data: {
+        mimoTtsApiKey: '',
+        baiduTtsApiKey: ''
+      }
+    }
+  } catch (err) {
+    console.error('获取TTS配置失败:', err)
+    return { code: -1, msg: '获取配置失败' }
+  }
+}
+
+// 保存TTS配置
+async function saveTtsConfig(member, event) {
+  try {
+    const { mimoTtsApiKey, baiduTtsApiKey } = event
+    
+    // 查询现有配置
+    const result = await db.collection('ai_config').where({
+      userId: 'system'
+    }).get()
+    
+    const updateData = {}
+    if (mimoTtsApiKey !== undefined) {
+      updateData.mimoTtsApiKey = mimoTtsApiKey
+    }
+    if (baiduTtsApiKey !== undefined) {
+      updateData.baiduTtsApiKey = baiduTtsApiKey
+    }
+    
+    if (result.data && result.data.length > 0) {
+      // 更新现有配置
+      await db.collection('ai_config').doc(result.data[0]._id).update({
+        data: updateData
+      })
+    } else {
+      // 创建新配置
+      await db.collection('ai_config').add({
+        data: {
+          userId: 'system',
+          ...updateData
+        }
+      })
+    }
+    
+    return { code: 0, msg: '保存成功' }
+  } catch (err) {
+    console.error('保存TTS配置失败:', err)
+    return { code: -1, msg: '保存失败' }
+  }
+}
+
+// 测试TTS连接
+async function testTts(member, event) {
+  const { engine, mimoTtsApiKey } = event
+  
+  try {
+    if (engine === 'mimo') {
+      // 测试小米TTS
+      const apiKey = mimoTtsApiKey || await getMimoTtsApiKey()
+      if (!apiKey) {
+        return { code: -1, msg: '请先配置小米TTS API密钥' }
+      }
+      
+      const result = await mimoTTS('你好，这是测试', 'mimo-v2.5-tts')
+      if (result.code === 0) {
+        return { code: 0, msg: '测试成功' }
+      } else {
+        return { code: -1, msg: result.msg || '测试失败' }
+      }
+    }
+    
+    return { code: -1, msg: '不支持的引擎' }
+  } catch (err) {
+    console.error('测试TTS失败:', err)
+    return { code: -1, msg: '测试失败: ' + err.message }
   }
 }

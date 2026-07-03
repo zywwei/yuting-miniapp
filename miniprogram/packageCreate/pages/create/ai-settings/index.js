@@ -2,7 +2,7 @@ var aiManager = getApp().globalData.aiManager
 
 Page({
   data: {
-    activeTab: 'prompt', // model 或 prompt，默认打开提示词
+    activeTab: 'prompt', // model 或 prompt 或 tts，默认打开提示词
     callType: 'direct',
     domesticModels: [],
     platformModels: [],
@@ -21,7 +21,15 @@ Page({
     showApiKey: false,
     showSecretKey: false,
     saving: false,
-    testing: false
+    testing: false,
+    // TTS配置相关
+    mimoTtsApiKey: '',
+    baiduTtsApiKey: '',
+    showMimoTtsKey: false,
+    showBaiduTtsKey: false,
+    savingMimoTts: false,
+    savingBaiduTts: false,
+    testingMimoTts: false
   },
 
   onLoad: function() {
@@ -211,6 +219,33 @@ Page({
         platformModels: platformModels,
         expandModel: false
       })
+    })
+    
+    // 加载TTS配置
+    that.loadTtsConfig()
+  },
+
+  // 加载TTS配置
+  loadTtsConfig: function() {
+    var that = this
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'getTtsConfig'
+      },
+      success: function(result) {
+        if (result.result && result.result.code === 0) {
+          var config = result.result.data || {}
+          that.setData({
+            mimoTtsApiKey: config.mimoTtsApiKey || '',
+            baiduTtsApiKey: config.baiduTtsApiKey || ''
+          })
+        }
+      },
+      fail: function(err) {
+        console.error('加载TTS配置失败:', err)
+      }
     })
   },
 
@@ -544,6 +579,155 @@ Page({
         title: err.message || '保存失败',
         icon: 'none'
       })
+    })
+  },
+
+  // ========== TTS配置相关方法 ==========
+
+  // 输入小米TTS密钥
+  onMimoTtsKeyInput: function(e) {
+    this.setData({ mimoTtsApiKey: e.detail.value })
+  },
+
+  // 输入百度TTS密钥
+  onBaiduTtsKeyInput: function(e) {
+    this.setData({ baiduTtsApiKey: e.detail.value })
+  },
+
+  // 切换小米TTS密钥可见性
+  toggleMimoTtsKeyVisibility: function() {
+    this.setData({ showMimoTtsKey: !this.data.showMimoTtsKey })
+  },
+
+  // 切换百度TTS密钥可见性
+  toggleBaiduTtsKeyVisibility: function() {
+    this.setData({ showBaiduTtsKey: !this.data.showBaiduTtsKey })
+  },
+
+  // 保存小米TTS密钥
+  saveMimoTtsKey: function() {
+    var that = this
+    
+    if (this.data.savingMimoTts) return
+    
+    this.setData({ savingMimoTts: true })
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'saveTtsConfig',
+        mimoTtsApiKey: this.data.mimoTtsApiKey
+      },
+      success: function(result) {
+        that.setData({ savingMimoTts: false })
+        
+        if (result.result && result.result.code === 0) {
+          wx.showToast({
+            title: '保存成功',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: result.result?.msg || '保存失败',
+            icon: 'none'
+          })
+        }
+      },
+      fail: function(err) {
+        that.setData({ savingMimoTts: false })
+        wx.showToast({
+          title: '保存失败',
+          icon: 'none'
+        })
+      }
+    })
+  },
+
+  // 保存百度TTS密钥
+  saveBaiduTtsKey: function() {
+    var that = this
+    
+    if (this.data.savingBaiduTts) return
+    
+    this.setData({ savingBaiduTts: true })
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'saveTtsConfig',
+        baiduTtsApiKey: this.data.baiduTtsApiKey
+      },
+      success: function(result) {
+        that.setData({ savingBaiduTts: false })
+        
+        if (result.result && result.result.code === 0) {
+          wx.showToast({
+            title: '保存成功',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: result.result?.msg || '保存失败',
+            icon: 'none'
+          })
+        }
+      },
+      fail: function(err) {
+        that.setData({ savingBaiduTts: false })
+        wx.showToast({
+          title: '保存失败',
+          icon: 'none'
+        })
+      }
+    })
+  },
+
+  // 测试小米TTS连接
+  testMimoTts: function() {
+    var that = this
+    
+    if (this.data.testingMimoTts) return
+    
+    if (!this.data.mimoTtsApiKey) {
+      wx.showToast({
+        title: '请先输入API密钥',
+        icon: 'none'
+      })
+      return
+    }
+    
+    this.setData({ testingMimoTts: true })
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'testTts',
+        engine: 'mimo',
+        mimoTtsApiKey: this.data.mimoTtsApiKey
+      },
+      success: function(result) {
+        that.setData({ testingMimoTts: false })
+        
+        if (result.result && result.result.code === 0) {
+          wx.showToast({
+            title: '测试成功！',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: result.result?.msg || '测试失败',
+            icon: 'none',
+            duration: 3000
+          })
+        }
+      },
+      fail: function(err) {
+        that.setData({ testingMimoTts: false })
+        wx.showToast({
+          title: '测试失败',
+          icon: 'none'
+        })
+      }
     })
   }
 })
