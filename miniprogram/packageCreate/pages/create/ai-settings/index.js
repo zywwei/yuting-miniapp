@@ -22,6 +22,13 @@ Page({
     showSecretKey: false,
     saving: false,
     testing: false,
+    // TTS配置
+    ttsCallType: 'direct', // TTS调用方式：direct或plan
+    mimoTtsApiKey: '',
+    mimoTtsPlanApiKey: '',
+    showMimoTtsKey: false,
+    showMimoTtsPlanKey: false,
+    savingMimoTts: false,
     testingMimoTts: false
   },
 
@@ -546,6 +553,112 @@ Page({
         title: err.message || '保存失败',
         icon: 'none'
       })
+    })
+  },
+
+  // ========== TTS配置相关方法 ==========
+
+  // 切换TTS调用方式
+  switchTtsCallType: function(e) {
+    var type = e.currentTarget.dataset.type
+    this.setData({ ttsCallType: type })
+  },
+
+  // 输入小米TTS密钥
+  onMimoTtsKeyInput: function(e) {
+    this.setData({ mimoTtsApiKey: e.detail.value })
+  },
+
+  // 输入小米TTS套餐密钥
+  onMimoTtsPlanKeyInput: function(e) {
+    this.setData({ mimoTtsPlanApiKey: e.detail.value })
+  },
+
+  // 切换小米TTS密钥可见性
+  toggleMimoTtsKeyVisibility: function() {
+    this.setData({ showMimoTtsKey: !this.data.showMimoTtsKey })
+  },
+
+  // 切换小米TTS套餐密钥可见性
+  toggleMimoTtsPlanKeyVisibility: function() {
+    this.setData({ showMimoTtsPlanKey: !this.data.showMimoTtsPlanKey })
+  },
+
+  // 保存小米TTS密钥
+  saveMimoTtsKey: function() {
+    var that = this
+    
+    if (this.data.savingMimoTts) return
+    
+    this.setData({ savingMimoTts: true })
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'saveTtsConfig',
+        mimoTtsApiKey: this.data.mimoTtsApiKey
+      },
+      success: function(result) {
+        that.setData({ savingMimoTts: false })
+        
+        if (result.result && result.result.code === 0) {
+          wx.showToast({
+            title: '保存成功',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: result.result?.msg || '保存失败',
+            icon: 'none'
+          })
+        }
+      },
+      fail: function(err) {
+        that.setData({ savingMimoTts: false })
+        wx.showToast({
+          title: '保存失败',
+          icon: 'none'
+        })
+      }
+    })
+  },
+
+  // 保存小米TTS套餐密钥
+  saveMimoTtsPlanKey: function() {
+    var that = this
+    
+    if (this.data.savingMimoTts) return
+    
+    this.setData({ savingMimoTts: true })
+    
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: {
+        action: 'saveTtsConfig',
+        mimoTtsPlanApiKey: this.data.mimoTtsPlanApiKey
+      },
+      success: function(result) {
+        that.setData({ savingMimoTts: false })
+        
+        if (result.result && result.result.code === 0) {
+          wx.showToast({
+            title: '保存成功',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: result.result?.msg || '保存失败',
+            icon: 'none'
+          })
+        }
+      },
+      fail: function(err) {
+        that.setData({ savingMimoTts: false })
+        wx.showToast({
+          title: '保存失败',
+          icon: 'none'
+        })
+      }
     })
   },
 

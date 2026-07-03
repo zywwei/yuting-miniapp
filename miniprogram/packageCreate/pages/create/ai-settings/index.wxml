@@ -211,13 +211,42 @@
     <view class="section">
       <view class="section-title">语音设置</view>
       <view class="tts-engine-desc">
-        <text>测试语音合成功能。小米TTS需要先在模型配置中设置小米模型的API密钥。</text>
+        <text>配置小米TTS语音合成功能。</text>
       </view>
     </view>
 
-    <!-- 小米TTS测试 -->
+    <!-- 调用方式选择 -->
     <view class="section">
-      <view class="section-title">小米TTS测试</view>
+      <view class="section-title">调用方式</view>
+      <view class="call-type-tabs">
+        <view 
+          class="call-type-tab {{ttsCallType === 'direct' ? 'active' : ''}}" 
+          bindtap="switchTtsCallType"
+          data-type="direct"
+        >
+          <view class="tab-icon">🔗</view>
+          <view class="tab-info">
+            <view class="tab-name">直接调用</view>
+            <view class="tab-desc">使用自己的API Key</view>
+          </view>
+        </view>
+        <view 
+          class="call-type-tab {{ttsCallType === 'plan' ? 'active' : ''}}" 
+          bindtap="switchTtsCallType"
+          data-type="plan"
+        >
+          <view class="tab-icon">📦</view>
+          <view class="tab-info">
+            <view class="tab-name">套餐服务</view>
+            <view class="tab-desc">使用平台套餐</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 直接调用配置 -->
+    <view class="section" wx:if="{{ttsCallType === 'direct'}}">
+      <view class="section-title">小米TTS配置（直接调用）</view>
       <view class="config-card">
         <view class="config-header">
           <view class="config-icon">🤖</view>
@@ -225,32 +254,97 @@
             <view class="config-name">小米MiMo TTS</view>
             <view class="config-desc">小米大模型语音合成，AI生成</view>
           </view>
+          <view class="config-status {{mimoTtsApiKey ? 'configured' : ''}}">
+            {{mimoTtsApiKey ? '已配置' : '未配置'}}
+          </view>
         </view>
         <view class="config-body">
+          <view class="input-group">
+            <view class="input-label">API密钥</view>
+            <input 
+              class="input-field"
+              type="text"
+              password="{{!showMimoTtsKey}}"
+              placeholder="请输入小米TTS API密钥"
+              value="{{mimoTtsApiKey}}"
+              bindinput="onMimoTtsKeyInput"
+            />
+            <view class="input-toggle" bindtap="toggleMimoTtsKeyVisibility">
+              {{showMimoTtsKey ? '🙈' : '👁️'}}
+            </view>
+          </view>
           <view class="config-actions">
             <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">
-              {{testingMimoTts ? '测试中...' : '测试小米TTS'}}
+              {{testingMimoTts ? '测试中...' : '测试连接'}}
+            </button>
+            <button class="save-btn" bindtap="saveMimoTtsKey" disabled="{{savingMimoTts}}">
+              {{savingMimoTts ? '保存中...' : '保存'}}
             </button>
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 配置说明 -->
+    <!-- 套餐服务配置 -->
+    <view class="section" wx:if="{{ttsCallType === 'plan'}}">
+      <view class="section-title">小米TTS配置（套餐服务）</view>
+      <view class="config-card">
+        <view class="config-header">
+          <view class="config-icon">📦</view>
+          <view class="config-info">
+            <view class="config-name">小米MiMo TTS</view>
+            <view class="config-desc">小米大模型语音合成，套餐服务</view>
+          </view>
+          <view class="config-status {{mimoTtsPlanApiKey ? 'configured' : ''}}">
+            {{mimoTtsPlanApiKey ? '已配置' : '未配置'}}
+          </view>
+        </view>
+        <view class="config-body">
+          <view class="input-group">
+            <view class="input-label">套餐API密钥</view>
+            <input 
+              class="input-field"
+              type="text"
+              password="{{!showMimoTtsPlanKey}}"
+              placeholder="请输入套餐API密钥"
+              value="{{mimoTtsPlanApiKey}}"
+              bindinput="onMimoTtsPlanKeyInput"
+            />
+            <view class="input-toggle" bindtap="toggleMimoTtsPlanKeyVisibility">
+              {{showMimoTtsPlanKey ? '🙈' : '👁️'}}
+            </view>
+          </view>
+          <view class="config-actions">
+            <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">
+              {{testingMimoTts ? '测试中...' : '测试连接'}}
+            </button>
+            <button class="save-btn" bindtap="saveMimoTtsPlanKey" disabled="{{savingMimoTts}}">
+              {{savingMimoTts ? '保存中...' : '保存'}}
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 可用音色 -->
     <view class="section">
-      <view class="section-title">配置说明</view>
+      <view class="section-title">可用音色</view>
       <view class="help-card">
         <view class="help-item">
-          <text class="help-icon">💡</text>
-          <text class="help-text">小米TTS复用小米模型的API密钥</text>
+          <text class="help-icon">🍬</text>
+          <text class="help-text">冰糖 - 中文女声</text>
         </view>
         <view class="help-item">
-          <text class="help-icon">💡</text>
-          <text class="help-text">请先在模型配置中设置小米模型的API密钥</text>
+          <text class="help-icon">🌸</text>
+          <text class="help-text">茉莉 - 中文女声</text>
         </view>
         <view class="help-item">
-          <text class="help-icon">🔊</text>
-          <text class="help-text">可用音色：冰糖、茉莉、苏打、白桦</text>
+          <text class="help-icon">🥤</text>
+          <text class="help-text">苏打 - 中文男声</text>
+        </view>
+        <view class="help-item">
+          <text class="help-icon">🌳</text>
+          <text class="help-text">白桦 - 中文男声</text>
         </view>
       </view>
     </view>

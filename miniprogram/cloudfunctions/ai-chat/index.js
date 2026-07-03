@@ -141,6 +141,10 @@ exports.main = async (event, context) => {
       return await speechToText(event.audioData)
     case 'textToSpeech':
       return await textToSpeech(event.text, event.voice, event.baiduPer, event.mimoVoice)
+    case 'getTtsConfig':
+      return await getTtsConfig(member)
+    case 'saveTtsConfig':
+      return await saveTtsConfig(member, event)
     case 'testTts':
       return await testTts(member, event)
     default:
@@ -1632,13 +1636,94 @@ async function getMimoTtsApiKey() {
 }
 
 // 获取TTS配置
+async function getTtsConfig(member) {
+  try {
+    const result = await db.collection('user_ai_configs').where({
+      userId: 'system'
+    }).get()
+    
+    if (result.data && result.data.length > 0) {
+      const config = result.data[0]
+      return {
+        code: 0,
+        data: {
+          mimoTtsApiKey: config.mimoTtsApiKey || '',
+          mimoTtsPlanApiKey: config.mimoTtsPlanApiKey || ''
+        }
+      }
+    }
+    
+    return {
+      code: 0,
+      data: {
+        mimoTtsApiKey: '',
+        mimoTtsPlanApiKey: ''
+      }
+    }
+  } catch (err) {
+    console.error('获取TTS配置失败:', err)
+    return { code: -1, msg: '获取配置失败' }
+  }
+}
+
+// 保存TTS配置
+async function saveTtsConfig(member, event) {
+  try {
+    console.log('saveTtsConfig调用:', { member, event })
+    
+    const { mimoTtsApiKey, mimoTtsPlanApiKey } = event
+    
+    // 输入验证和清理
+    const updateData = {}
+    if (mimoTtsApiKey !== undefined) {
+      const trimmedKey = mimoTtsApiKey.trim()
+      if (trimmedKey.length > 200) {
+        return { code: -1, msg: 'API密钥长度不能超过200字符' }
+      }
+      updateData.mimoTtsApiKey = trimmedKey
+    }
+    if (mimoTtsPlanApiKey !== undefined) {
+      const trimmedKey = mimoTtsPlanApiKey.trim()
+      if (trimmedKey.length > 200) {
+        return { code: -1, msg: 'API密钥长度不能超过200字符' }
+      }
+      updateData.mimoTtsPlanApiKey = trimmedKey
+    }
+    
+    // 查询现有配置
+    const result = await db.collection('user_ai_configs').where({
+      userId: 'system'
+    }).get()
+    
+    if (result.data && result.data.length > 0) {
+      // 更新现有配置
+      await db.collection('user_ai_configs').doc(result.data[0]._id).update({
+        data: updateData
+      })
+    } else {
+      // 创建新配置
+      await db.collection('user_ai_configs').add({
+        data: {
+          userId: 'system',
+          ...updateData
+        }
+      })
+    }
+    
+    return { code: 0, msg: '保存成功' }
+  } catch (err) {
+    console.error('保存TTS配置失败:', err)
+    return { code: -1, msg: '保存失败' }
+  }
+}
+
 // 测试TTS连接
 async function testTts(member, event) {
   const { engine } = event
   
   try {
     if (engine === 'mimo') {
-      // 获取mimo模型的API密钥
+      // 获取TTS配置中的API密钥
       const configResult = await db.collection('user_ai_configs').where({
         userId: 'system'
       }).get()
@@ -1646,11 +1731,12 @@ async function testTts(member, event) {
       let apiKey = ''
       if (configResult.data && configResult.data.length > 0) {
         const config = configResult.data[0]
-        apiKey = config.models?.mimo?.apiKey || ''
+        // 优先使用直接调用的密钥，如果没有则使用套餐密钥
+        apiKey = config.mimoTtsApiKey || config.mimoTtsPlanApiKey || ''
       }
       
       if (!apiKey) {
-        return { code: -1, msg: '请先在模型配置中设置小米API密钥' }
+        return { code: -1, msg: '请先在语音设置中配置小米TTS API密钥' }
       }
       
       console.log('开始测试小米TTS，密钥长度:', apiKey.length)
