@@ -1492,6 +1492,7 @@ async function baiduTTS(text, voice, baiduPer) {
 }
 
 // 小米TTS（大模型语音合成）
+// 文档：https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/audio/speech-synthesis-v2.5
 async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
   const https = require('https')
   
@@ -1505,7 +1506,7 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
     .replace(/\s+/g, ' ').trim()
   
   const voiceName = voice || 'mimo-v2.5-tts'
-  const voiceParam = overrideVoice || 'mimo_default'
+  const voiceParam = overrideVoice || '冰糖'
   
   console.log('mimoTTS调用:', { voice, voiceName, voiceParam })
   
@@ -1516,11 +1517,19 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
   }
   
   return new Promise((resolve, reject) => {
+    // 小米TTS使用chat/completions格式，不是audio/speech格式
     const data = JSON.stringify({
       model: voiceName,
-      input: text,
-      voice: voiceParam,
-      response_format: 'mp3'
+      messages: [
+        {
+          role: 'assistant',
+          content: text
+        }
+      ],
+      audio: {
+        format: 'wav',
+        voice: voiceParam
+      }
     })
     
     console.log('mimoTTS请求数据:', data)
@@ -1528,11 +1537,11 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
     const options = {
       hostname: 'api.xiaomimimo.com',
       port: 443,
-      path: '/v1/audio/speech',
+      path: '/v1/chat/completions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'api-key': apiKey,
         'Content-Length': Buffer.byteLength(data)
       }
     }
@@ -1540,39 +1549,42 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
     const req = https.request(options, (res) => {
       console.log('小米TTS响应状态码:', res.statusCode)
       
-      if (res.statusCode === 200) {
-        const chunks = []
-        res.on('data', (chunk) => chunks.push(chunk))
-        res.on('end', () => {
-          const audioBuffer = Buffer.concat(chunks)
-          console.log('小米TTS音频大小:', audioBuffer.length)
-          resolve({
-            code: 0,
-            data: {
-              audio: audioBuffer.toString('base64')
+      let responseData = ''
+      res.on('data', (chunk) => responseData += chunk)
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(responseData)
+          console.log('小米TTS响应:', JSON.stringify(result).substring(0, 500))
+          
+          if (res.statusCode === 200 && result.choices && result.choices[0]) {
+            // 小米TTS返回格式：choices[0].message.audio.data
+            const message = result.choices[0].message
+            if (message && message.audio && message.audio.data) {
+              resolve({
+                code: 0,
+                data: {
+                  audio: message.audio.data
+                }
+              })
+            } else {
+              console.error('小米TTS响应格式错误:', result)
+              resolve({ code: -1, msg: '响应格式错误' })
             }
-          })
-        })
-      } else {
-        let responseData = ''
-        res.on('data', (chunk) => responseData += chunk)
-        res.on('end', () => {
-          try {
-            const result = JSON.parse(responseData)
+          } else {
             console.error('小米TTS错误响应:', result)
             resolve({
               code: -1,
               msg: result.error?.message || '小米TTS失败'
             })
-          } catch (err) {
-            console.error('小米TTS响应解析失败:', responseData)
-            resolve({
-              code: -1,
-              msg: '小米TTS失败'
-            })
           }
-        })
-      }
+        } catch (err) {
+          console.error('小米TTS响应解析失败:', responseData)
+          resolve({
+            code: -1,
+            msg: '小米TTS失败'
+          })
+        }
+      })
     })
     
     req.on('error', (err) => {
@@ -1713,13 +1725,13 @@ async function testTts(member, event) {
       
       console.log('开始测试小米TTS，密钥长度:', apiKey.length)
       
-      // 尝试不同的音色（小米TTS专用音色）
-      const voices = ['mimo_default', '冰糖', '茉莉', '苏打', '白桦']
+      // 尝试中文音色
+      const voices = ['冰糖', '茉莉', '苏打', '白桦', 'mimo_default']
       let lastError = null
       
       for (const voice of voices) {
         console.log('尝试音色:', voice)
-        const result = await mimoTTS('你好，这是测试', 'mimo-v2.5-tts', apiKey, voice)
+        const result = await mimoTTS('你好，这是小米TTS测试。', 'mimo-v2.5-tts', apiKey, voice)
         
         console.log('音色', voice, '测试结果:', result)
         
