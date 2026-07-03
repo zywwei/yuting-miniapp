@@ -1520,6 +1520,11 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
     .replace(/[\u2600-\u27BF\uFE00-\uFE0F\u{1F000}-\u{1FFFF}]/gu, '')
     .replace(/\s+/g, ' ').trim()
   
+  // 限制文本长度，避免音频数据过大
+  if (text.length > 500) {
+    text = text.substring(0, 500)
+  }
+  
   const voiceName = voice || 'mimo-v2.5-tts'
   const voiceParam = overrideVoice || '冰糖'
   
