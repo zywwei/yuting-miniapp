@@ -141,10 +141,6 @@ exports.main = async (event, context) => {
       return await speechToText(event.audioData)
     case 'textToSpeech':
       return await textToSpeech(event.text, event.voice, event.baiduPer, event.mimoVoice)
-    case 'getTtsConfig':
-      return await getTtsConfig(member)
-    case 'saveTtsConfig':
-      return await saveTtsConfig(member, event)
     case 'testTts':
       return await testTts(member, event)
     default:
@@ -1508,10 +1504,22 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
   const voiceName = voice || 'mimo-v2.5-tts'
   const voiceParam = overrideVoice || '冰糖'
   
-  // 获取小米TTS API密钥（优先使用传入的密钥）
-  const apiKey = overrideApiKey || await getMimoTtsApiKey()
+  // 获取小米API密钥（复用mimo模型的配置）
+  let apiKey = overrideApiKey
   if (!apiKey) {
-    return { code: -1, msg: '小米TTS API密钥未配置' }
+    // 从数据库获取mimo模型的API密钥
+    const configResult = await db.collection('user_ai_configs').where({
+      userId: 'system'
+    }).get()
+    
+    if (configResult.data && configResult.data.length > 0) {
+      const config = configResult.data[0]
+      apiKey = config.models?.mimo?.apiKey || ''
+    }
+  }
+  
+  if (!apiKey) {
+    return { code: -1, msg: '小米API密钥未配置，请先在模型配置中设置' }
   }
   
   console.log('mimoTTS调用参数:', {
@@ -1624,113 +1632,25 @@ async function getMimoTtsApiKey() {
 }
 
 // 获取TTS配置
-async function getTtsConfig(member) {
-  try {
-    const result = await db.collection('ai_config').where({
-      userId: 'system'
-    }).get()
-    
-    if (result.data && result.data.length > 0) {
-      const config = result.data[0]
-      return {
-        code: 0,
-        data: {
-          mimoTtsApiKey: maskApiKey(config.mimoTtsApiKey || ''),
-          baiduTtsApiKey: maskApiKey(config.baiduTtsApiKey || '')
-        }
-      }
-    }
-    
-    return {
-      code: 0,
-      data: {
-        mimoTtsApiKey: '',
-        baiduTtsApiKey: ''
-      }
-    }
-  } catch (err) {
-    console.error('获取TTS配置失败:', err)
-    return { code: -1, msg: '获取配置失败' }
-  }
-}
-
-// 掩码API密钥（只显示前3位和后3位）
-function maskApiKey(key) {
-  if (!key || key.length <= 6) {
-    return key
-  }
-  return key.substring(0, 3) + '***' + key.substring(key.length - 3)
-}
-
-// 保存TTS配置
-async function saveTtsConfig(member, event) {
-  try {
-    console.log('saveTtsConfig调用:', { member, event })
-    
-    // 权限检查：只允许管理员或家长修改系统配置
-    // 由于项目没有角色系统，这里检查是否是家长（非子账号）
-    if (member.childId) {
-      console.log('权限检查失败：子账号无权修改')
-      return { code: -1, msg: '子账号无权修改系统配置' }
-    }
-    
-    const { mimoTtsApiKey, baiduTtsApiKey } = event
-    console.log('接收到的密钥:', { mimoTtsApiKey: mimoTtsApiKey ? '有' : '无', baiduTtsApiKey: baiduTtsApiKey ? '有' : '无' })
-    
-    // 输入验证和清理
-    const updateData = {}
-    if (mimoTtsApiKey !== undefined) {
-      const trimmedKey = mimoTtsApiKey.trim()
-      if (trimmedKey.length > 200) {
-        return { code: -1, msg: 'API密钥长度不能超过200字符' }
-      }
-      updateData.mimoTtsApiKey = trimmedKey
-    }
-    if (baiduTtsApiKey !== undefined) {
-      const trimmedKey = baiduTtsApiKey.trim()
-      if (trimmedKey.length > 200) {
-        return { code: -1, msg: 'API密钥长度不能超过200字符' }
-      }
-      updateData.baiduTtsApiKey = trimmedKey
-    }
-    
-    // 查询现有配置
-    const result = await db.collection('ai_config').where({
-      userId: 'system'
-    }).get()
-    
-    if (result.data && result.data.length > 0) {
-      // 更新现有配置
-      await db.collection('ai_config').doc(result.data[0]._id).update({
-        data: updateData
-      })
-    } else {
-      // 创建新配置
-      await db.collection('ai_config').add({
-        data: {
-          userId: 'system',
-          ...updateData
-        }
-      })
-    }
-    
-    return { code: 0, msg: '保存成功' }
-  } catch (err) {
-    console.error('保存TTS配置失败:', err)
-    return { code: -1, msg: '保存失败' }
-  }
-}
-
 // 测试TTS连接
 async function testTts(member, event) {
-  const { engine, mimoTtsApiKey } = event
+  const { engine } = event
   
   try {
     if (engine === 'mimo') {
-      // 测试小米TTS - 使用传入的密钥
-      const apiKey = mimoTtsApiKey
+      // 获取mimo模型的API密钥
+      const configResult = await db.collection('user_ai_configs').where({
+        userId: 'system'
+      }).get()
+      
+      let apiKey = ''
+      if (configResult.data && configResult.data.length > 0) {
+        const config = configResult.data[0]
+        apiKey = config.models?.mimo?.apiKey || ''
+      }
+      
       if (!apiKey) {
-        return { code: -1, msg: '请先输入小米TTS API密钥' }
+        return { code: -1, msg: '请先在模型配置中设置小米API密钥' }
       }
       
       console.log('开始测试小米TTS，密钥长度:', apiKey.length)

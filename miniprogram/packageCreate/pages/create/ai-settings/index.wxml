@@ -38,17 +38,6 @@
             <view class="tab-desc">使用平台套餐</view>
           </view>
         </view>
-        <view 
-          class="call-type-tab {{callType === 'voice' ? 'active' : ''}}" 
-          bindtap="switchCallType"
-          data-type="voice"
-        >
-          <view class="tab-icon">🔊</view>
-          <view class="tab-info">
-            <view class="tab-name">语音设置</view>
-            <view class="tab-desc">配置语音合成</view>
-          </view>
-        </view>
       </view>
     </view>
   </view>
@@ -203,58 +192,5 @@
         </view>
       </view>
     </view>
-  </view>
-
-  <!-- 语音设置Tab内容 -->
-  <view class="tab-content" wx:if="{{activeTab === 'model' && callType === 'voice'}}">
-    <!-- 语音设置说明 -->
-    <view class="section">
-      <view class="section-title">语音设置</view>
-      <view class="tts-engine-desc">
-        <text>配置语音合成引擎的API密钥，用于朗读功能。</text>
-      </view>
-    </view>
-
-    <!-- 小米TTS配置 -->
-    <view class="section">
-      <view class="section-title">大模型TTS - 小米MiMo</view>
-      <view class="config-card">
-        <view class="config-header">
-          <view class="config-icon">🤖</view>
-          <view class="config-info">
-            <view class="config-name">小米MiMo TTS</view>
-            <view class="config-desc">小米大模型语音合成，AI生成</view>
-          </view>
-          <view class="config-status {{mimoTtsApiKey ? 'configured' : ''}}">
-            {{mimoTtsApiKey ? '已配置' : '未配置'}}
-          </view>
-        </view>
-        <view class="config-body">
-          <view class="input-group">
-            <view class="input-label">API密钥</view>
-            <input 
-              class="input-field"
-              type="text"
-              password="{{!showMimoTtsKey}}"
-              placeholder="请输入小米TTS API密钥"
-              value="{{mimoTtsApiKey}}"
-              bindinput="onMimoTtsKeyInput"
-            />
-            <view class="input-toggle" bindtap="toggleMimoTtsKeyVisibility">
-              {{showMimoTtsKey ? '🙈' : '👁️'}}
-            </view>
-          </view>
-          <view class="config-actions">
-            <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">
-              {{testingMimoTts ? '测试中...' : '测试连接'}}
-            </button>
-            <button class="save-btn" bindtap="saveMimoTtsKey" disabled="{{savingMimoTts}}">
-              {{savingMimoTts ? '保存中...' : '保存'}}
-            </button>
-          </view>
-        </view>
-      </view>
-    </view>
-
   </view>
 </view>
