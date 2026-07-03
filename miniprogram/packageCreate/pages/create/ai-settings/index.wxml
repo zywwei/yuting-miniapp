@@ -256,27 +256,5 @@
       </view>
     </view>
 
-    <!-- 配置说明 -->
-    <view class="section">
-      <view class="section-title">配置说明</view>
-      <view class="help-card">
-        <view class="help-item">
-          <text class="help-icon">💡</text>
-          <text class="help-text">大模型TTS需要配置小米API密钥才能使用</text>
-        </view>
-        <view class="help-item">
-          <text class="help-icon">💡</text>
-          <text class="help-text">百度TTS基础版免费，无需配置密钥</text>
-        </view>
-        <view class="help-item">
-          <text class="help-icon">💡</text>
-          <text class="help-text">Edge TTS使用微软服务，无需配置</text>
-        </view>
-        <view class="help-item">
-          <text class="help-icon">🔗</text>
-          <text class="help-text">小米API申请：api.xiaomimimo.com</text>
-        </view>
-      </view>
-    </view>
   </view>
 </view>
