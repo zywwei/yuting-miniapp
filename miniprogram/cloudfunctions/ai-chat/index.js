@@ -1492,7 +1492,7 @@ async function baiduTTS(text, voice, baiduPer) {
 }
 
 // 小米TTS（大模型语音合成）
-async function mimoTTS(text, voice) {
+async function mimoTTS(text, voice, overrideApiKey) {
   const https = require('https')
   
   if (!text || text.trim() === '') {
@@ -1508,8 +1508,8 @@ async function mimoTTS(text, voice) {
   
   console.log('mimoTTS调用:', { voice, voiceName })
   
-  // 获取小米TTS API密钥
-  const apiKey = await getMimoTtsApiKey()
+  // 获取小米TTS API密钥（优先使用传入的密钥）
+  const apiKey = overrideApiKey || await getMimoTtsApiKey()
   if (!apiKey) {
     return { code: -1, msg: '小米TTS API密钥未配置' }
   }
@@ -1611,8 +1611,8 @@ async function getTtsConfig(member) {
       return {
         code: 0,
         data: {
-          mimoTtsApiKey: config.mimoTtsApiKey || '',
-          baiduTtsApiKey: config.baiduTtsApiKey || ''
+          mimoTtsApiKey: maskApiKey(config.mimoTtsApiKey || ''),
+          baiduTtsApiKey: maskApiKey(config.baiduTtsApiKey || '')
         }
       }
     }
@@ -1630,23 +1630,46 @@ async function getTtsConfig(member) {
   }
 }
 
+// 掩码API密钥（只显示前3位和后3位）
+function maskApiKey(key) {
+  if (!key || key.length <= 6) {
+    return key
+  }
+  return key.substring(0, 3) + '***' + key.substring(key.length - 3)
+}
+
 // 保存TTS配置
 async function saveTtsConfig(member, event) {
   try {
+    // 权限检查：只允许管理员或家长修改系统配置
+    // 由于项目没有角色系统，这里检查是否是家长（非子账号）
+    if (member.childId) {
+      return { code: -1, msg: '子账号无权修改系统配置' }
+    }
+    
     const { mimoTtsApiKey, baiduTtsApiKey } = event
+    
+    // 输入验证和清理
+    const updateData = {}
+    if (mimoTtsApiKey !== undefined) {
+      const trimmedKey = mimoTtsApiKey.trim()
+      if (trimmedKey.length > 200) {
+        return { code: -1, msg: 'API密钥长度不能超过200字符' }
+      }
+      updateData.mimoTtsApiKey = trimmedKey
+    }
+    if (baiduTtsApiKey !== undefined) {
+      const trimmedKey = baiduTtsApiKey.trim()
+      if (trimmedKey.length > 200) {
+        return { code: -1, msg: 'API密钥长度不能超过200字符' }
+      }
+      updateData.baiduTtsApiKey = trimmedKey
+    }
     
     // 查询现有配置
     const result = await db.collection('ai_config').where({
       userId: 'system'
     }).get()
-    
-    const updateData = {}
-    if (mimoTtsApiKey !== undefined) {
-      updateData.mimoTtsApiKey = mimoTtsApiKey
-    }
-    if (baiduTtsApiKey !== undefined) {
-      updateData.baiduTtsApiKey = baiduTtsApiKey
-    }
     
     if (result.data && result.data.length > 0) {
       // 更新现有配置
@@ -1676,13 +1699,14 @@ async function testTts(member, event) {
   
   try {
     if (engine === 'mimo') {
-      // 测试小米TTS
-      const apiKey = mimoTtsApiKey || await getMimoTtsApiKey()
+      // 测试小米TTS - 使用传入的密钥
+      const apiKey = mimoTtsApiKey
       if (!apiKey) {
-        return { code: -1, msg: '请先配置小米TTS API密钥' }
+        return { code: -1, msg: '请先输入小米TTS API密钥' }
       }
       
-      const result = await mimoTTS('你好，这是测试', 'mimo-v2.5-tts')
+      // 直接调用测试，传入密钥
+      const result = await mimoTTS('你好，这是测试', 'mimo-v2.5-tts', apiKey)
       if (result.code === 0) {
         return { code: 0, msg: '测试成功' }
       } else {
