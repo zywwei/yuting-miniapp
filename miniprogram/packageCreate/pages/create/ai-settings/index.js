@@ -24,11 +24,11 @@ Page({
     testing: false,
     // TTS配置
     ttsEngines: [
-      { key: 'mimo', name: '小米TTS' },
+      { key: 'edge', name: 'Edge TTS' },
       { key: 'baidu', name: '百度TTS' },
-      { key: 'edge', name: 'Edge TTS' }
+      { key: 'mimo', name: '大模型TTS' }
     ],
-    currentTtsEngine: 'mimo',
+    currentTtsEngine: 'edge',
     ttsCallType: 'direct',
     // 小米TTS配置
     mimoTtsApiKey: '',
@@ -44,13 +44,19 @@ Page({
     showBaiduApiKey: false,
     showBaiduSecretKey: false,
     savingBaiduTts: false,
-    testingBaiduTts: false
+    testingBaiduTts: false,
+    baiduVoiceGroups: [],
+    currentBaiduGroup: 'all',
+    currentBaiduVoiceList: [],
+    // 小米TTS音色
+    mimoVoiceList: []
   },
 
   onLoad: function() {
     this.initModels()
     this.initTemplates()
     this.loadConfig()
+    this.initVoiceLists()
   },
 
   onShow: function() {
@@ -71,6 +77,51 @@ Page({
   switchTab: function(e) {
     var tab = e.currentTarget.dataset.tab
     this.setData({ activeTab: tab })
+  },
+
+  // 初始化音色列表
+  initVoiceLists: function() {
+    var speakTool = require('../../../../utils/speak')
+    
+    // 百度TTS音色分组
+    var baiduVoiceGroups = [
+      { key: 'all', name: '全部' },
+      { key: '基础音库', name: '基础音库' },
+      { key: '精品音库', name: '精品音库' },
+      { key: '臻品音库', name: '臻品音库' },
+      { key: '大模型音库', name: '大模型音库' }
+    ]
+    
+    var baiduVoiceList = speakTool.getBaiduVoiceList()
+    
+    // 小米TTS音色
+    var mimoVoiceList = speakTool.getMimoVoiceList()
+    
+    this.setData({
+      baiduVoiceGroups: baiduVoiceGroups,
+      currentBaiduGroup: 'all',
+      currentBaiduVoiceList: baiduVoiceList,
+      mimoVoiceList: mimoVoiceList
+    })
+  },
+
+  // 切换百度音色分组
+  switchBaiduGroup: function(e) {
+    var groupKey = e.currentTarget.dataset.key
+    var speakTool = require('../../../../utils/speak')
+    var baiduVoiceList = speakTool.getBaiduVoiceList()
+    
+    var filteredList = baiduVoiceList
+    if (groupKey !== 'all') {
+      filteredList = baiduVoiceList.filter(function(voice) {
+        return voice.group === groupKey
+      })
+    }
+    
+    this.setData({
+      currentBaiduGroup: groupKey,
+      currentBaiduVoiceList: filteredList
+    })
   },
 
   // 初始化模型列表

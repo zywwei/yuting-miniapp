@@ -223,27 +223,97 @@
       </view>
     </view>
 
-    <!-- 小米TTS配置 -->
+    <!-- Edge TTS -->
+    <view wx:if="{{currentTtsEngine === 'edge'}}">
+      <view class="section">
+        <view class="config-card">
+          <view class="config-header">
+            <view class="config-icon">🌐</view>
+            <view class="config-info">
+              <view class="config-name">Edge TTS</view>
+              <view class="config-desc">微软语音，自然流畅</view>
+            </view>
+            <view class="config-status configured">免费</view>
+          </view>
+          <view class="config-body">
+            <view class="help-card">
+              <view class="help-item">
+                <text class="help-icon">💡</text>
+                <text class="help-text">无需配置，直接使用</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 百度TTS -->
+    <view wx:if="{{currentTtsEngine === 'baidu'}}">
+      <!-- 配置 -->
+      <view class="section">
+        <view class="config-card">
+          <view class="config-header">
+            <view class="config-icon">🗣️</view>
+            <view class="config-info">
+              <view class="config-name">百度语音合成</view>
+              <view class="config-status {{baiduApiKey ? 'configured' : ''}}">
+                {{baiduApiKey ? '已配置' : '未配置'}}
+              </view>
+            </view>
+          </view>
+          <view class="config-body">
+            <view class="input-group">
+              <view class="input-label">App ID</view>
+              <input class="input-field" type="text" placeholder="请输入" value="{{baiduAppId}}" bindinput="onBaiduAppIdInput" />
+            </view>
+            <view class="input-group">
+              <view class="input-label">API Key</view>
+              <input class="input-field" type="text" password="{{!showBaiduApiKey}}" placeholder="请输入" value="{{baiduApiKey}}" bindinput="onBaiduApiKeyInput" />
+              <view class="input-toggle" bindtap="toggleBaiduApiKeyVisibility">{{showBaiduApiKey ? '🙈' : '👁️'}}</view>
+            </view>
+            <view class="input-group">
+              <view class="input-label">Secret Key</view>
+              <input class="input-field" type="text" password="{{!showBaiduSecretKey}}" placeholder="请输入" value="{{baiduSecretKey}}" bindinput="onBaiduSecretKeyInput" />
+              <view class="input-toggle" bindtap="toggleBaiduSecretKeyVisibility">{{showBaiduSecretKey ? '🙈' : '👁️'}}</view>
+            </view>
+            <view class="config-actions">
+              <button class="test-btn" bindtap="testBaiduTts" disabled="{{testingBaiduTts}}">{{testingBaiduTts ? '测试中...' : '测试'}}</button>
+              <button class="save-btn" bindtap="saveBaiduTtsConfig" disabled="{{savingBaiduTts}}">{{savingBaiduTts ? '保存中...' : '保存'}}</button>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 音色分组 -->
+      <view class="section">
+        <view class="section-title">可用音色</view>
+        <view class="voice-group-tabs">
+          <view wx:for="{{baiduVoiceGroups}}" wx:key="key" class="voice-group-tab {{currentBaiduGroup === item.key ? 'active' : ''}}" bindtap="switchBaiduGroup" data-key="{{item.key}}">
+            {{item.name}}
+          </view>
+        </view>
+        <view class="voice-list">
+          <view wx:for="{{currentBaiduVoiceList}}" wx:key="id" class="voice-item">
+            <view class="voice-item-name">{{item.name}}</view>
+            <view class="voice-item-desc">{{item.desc}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 大模型TTS -->
     <view wx:if="{{currentTtsEngine === 'mimo'}}">
-      <!-- 调用方式选择 -->
+      <!-- 调用方式 -->
       <view class="section">
         <view class="call-type-tabs">
-          <view 
-            class="call-type-tab {{ttsCallType === 'direct' ? 'active' : ''}}" 
-            bindtap="switchTtsCallType"
-            data-type="direct"
-          >
+          <view class="call-type-tab {{ttsCallType === 'direct' ? 'active' : ''}}" bindtap="switchTtsCallType" data-type="direct">
             <view class="tab-icon">🔗</view>
             <view class="tab-info">
               <view class="tab-name">直接调用</view>
               <view class="tab-desc">api.xiaomimimo.com</view>
             </view>
           </view>
-          <view 
-            class="call-type-tab {{ttsCallType === 'plan' ? 'active' : ''}}" 
-            bindtap="switchTtsCallType"
-            data-type="plan"
-          >
+          <view class="call-type-tab {{ttsCallType === 'plan' ? 'active' : ''}}" bindtap="switchTtsCallType" data-type="plan">
             <view class="tab-icon">📦</view>
             <view class="tab-info">
               <view class="tab-name">套餐服务</view>
@@ -260,33 +330,18 @@
             <view class="config-icon">🤖</view>
             <view class="config-info">
               <view class="config-name">小米MiMo TTS</view>
-              <view class="config-status {{mimoTtsApiKey ? 'configured' : ''}}">
-                {{mimoTtsApiKey ? '已配置' : '未配置'}}
-              </view>
+              <view class="config-status {{mimoTtsApiKey ? 'configured' : ''}}">{{mimoTtsApiKey ? '已配置' : '未配置'}}</view>
             </view>
           </view>
           <view class="config-body">
             <view class="input-group">
               <view class="input-label">API密钥</view>
-              <input 
-                class="input-field"
-                type="text"
-                password="{{!showMimoTtsKey}}"
-                placeholder="请输入API密钥"
-                value="{{mimoTtsApiKey}}"
-                bindinput="onMimoTtsKeyInput"
-              />
-              <view class="input-toggle" bindtap="toggleMimoTtsKeyVisibility">
-                {{showMimoTtsKey ? '🙈' : '👁️'}}
-              </view>
+              <input class="input-field" type="text" password="{{!showMimoTtsKey}}" placeholder="请输入" value="{{mimoTtsApiKey}}" bindinput="onMimoTtsKeyInput" />
+              <view class="input-toggle" bindtap="toggleMimoTtsKeyVisibility">{{showMimoTtsKey ? '🙈' : '👁️'}}</view>
             </view>
             <view class="config-actions">
-              <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">
-                {{testingMimoTts ? '测试中...' : '测试'}}
-              </button>
-              <button class="save-btn" bindtap="saveMimoTtsKey" disabled="{{savingMimoTts}}">
-                {{savingMimoTts ? '保存中...' : '保存'}}
-              </button>
+              <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">{{testingMimoTts ? '测试中...' : '测试'}}</button>
+              <button class="save-btn" bindtap="saveMimoTtsKey" disabled="{{savingMimoTts}}">{{savingMimoTts ? '保存中...' : '保存'}}</button>
             </view>
           </view>
         </view>
@@ -299,124 +354,30 @@
             <view class="config-icon">📦</view>
             <view class="config-info">
               <view class="config-name">小米MiMo TTS</view>
-              <view class="config-status {{mimoTtsPlanApiKey ? 'configured' : ''}}">
-                {{mimoTtsPlanApiKey ? '已配置' : '未配置'}}
-              </view>
+              <view class="config-status {{mimoTtsPlanApiKey ? 'configured' : ''}}">{{mimoTtsPlanApiKey ? '已配置' : '未配置'}}</view>
             </view>
           </view>
           <view class="config-body">
             <view class="input-group">
               <view class="input-label">套餐API密钥</view>
-              <input 
-                class="input-field"
-                type="text"
-                password="{{!showMimoTtsPlanKey}}"
-                placeholder="请输入套餐API密钥"
-                value="{{mimoTtsPlanApiKey}}"
-                bindinput="onMimoTtsPlanKeyInput"
-              />
-              <view class="input-toggle" bindtap="toggleMimoTtsPlanKeyVisibility">
-                {{showMimoTtsPlanKey ? '🙈' : '👁️'}}
-              </view>
+              <input class="input-field" type="text" password="{{!showMimoTtsPlanKey}}" placeholder="请输入" value="{{mimoTtsPlanApiKey}}" bindinput="onMimoTtsPlanKeyInput" />
+              <view class="input-toggle" bindtap="toggleMimoTtsPlanKeyVisibility">{{showMimoTtsPlanKey ? '🙈' : '👁️'}}</view>
             </view>
             <view class="config-actions">
-              <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">
-                {{testingMimoTts ? '测试中...' : '测试'}}
-              </button>
-              <button class="save-btn" bindtap="saveMimoTtsPlanKey" disabled="{{savingMimoTts}}">
-                {{savingMimoTts ? '保存中...' : '保存'}}
-              </button>
+              <button class="test-btn" bindtap="testMimoTts" disabled="{{testingMimoTts}}">{{testingMimoTts ? '测试中...' : '测试'}}</button>
+              <button class="save-btn" bindtap="saveMimoTtsPlanKey" disabled="{{savingMimoTts}}">{{savingMimoTts ? '保存中...' : '保存'}}</button>
             </view>
           </view>
         </view>
       </view>
-    </view>
 
-    <!-- 百度TTS配置 -->
-    <view wx:if="{{currentTtsEngine === 'baidu'}}">
+      <!-- 可用音色 -->
       <view class="section">
-        <view class="config-card">
-          <view class="config-header">
-            <view class="config-icon">🗣️</view>
-            <view class="config-info">
-              <view class="config-name">百度语音合成</view>
-              <view class="config-status {{baiduApiKey ? 'configured' : ''}}">
-                {{baiduApiKey ? '已配置' : '未配置'}}
-              </view>
-            </view>
-          </view>
-          <view class="config-body">
-            <view class="input-group">
-              <view class="input-label">App ID</view>
-              <input 
-                class="input-field"
-                type="text"
-                placeholder="请输入百度App ID"
-                value="{{baiduAppId}}"
-                bindinput="onBaiduAppIdInput"
-              />
-            </view>
-            <view class="input-group">
-              <view class="input-label">API Key</view>
-              <input 
-                class="input-field"
-                type="text"
-                password="{{!showBaiduApiKey}}"
-                placeholder="请输入API Key"
-                value="{{baiduApiKey}}"
-                bindinput="onBaiduApiKeyInput"
-              />
-              <view class="input-toggle" bindtap="toggleBaiduApiKeyVisibility">
-                {{showBaiduApiKey ? '🙈' : '👁️'}}
-              </view>
-            </view>
-            <view class="input-group">
-              <view class="input-label">Secret Key</view>
-              <input 
-                class="input-field"
-                type="text"
-                password="{{!showBaiduSecretKey}}"
-                placeholder="请输入Secret Key"
-                value="{{baiduSecretKey}}"
-                bindinput="onBaiduSecretKeyInput"
-              />
-              <view class="input-toggle" bindtap="toggleBaiduSecretKeyVisibility">
-                {{showBaiduSecretKey ? '🙈' : '👁️'}}
-              </view>
-            </view>
-            <view class="config-actions">
-              <button class="test-btn" bindtap="testBaiduTts" disabled="{{testingBaiduTts}}">
-                {{testingBaiduTts ? '测试中...' : '测试'}}
-              </button>
-              <button class="save-btn" bindtap="saveBaiduTtsConfig" disabled="{{savingBaiduTts}}">
-                {{savingBaiduTts ? '保存中...' : '保存'}}
-              </button>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- Edge TTS配置 -->
-    <view wx:if="{{currentTtsEngine === 'edge'}}">
-      <view class="section">
-        <view class="config-card">
-          <view class="config-header">
-            <view class="config-icon">🌐</view>
-            <view class="config-info">
-              <view class="config-name">Edge TTS</view>
-              <view class="config-status configured">
-                免费使用
-              </view>
-            </view>
-          </view>
-          <view class="config-body">
-            <view class="help-card">
-              <view class="help-item">
-                <text class="help-icon">💡</text>
-                <text class="help-text">Edge TTS免费，无需配置</text>
-              </view>
-            </view>
+        <view class="section-title">可用音色</view>
+        <view class="voice-list">
+          <view wx:for="{{mimoVoiceList}}" wx:key="id" class="voice-item">
+            <view class="voice-item-name">{{item.name}}</view>
+            <view class="voice-item-desc">{{item.desc}}</view>
           </view>
         </view>
       </view>
