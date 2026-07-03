@@ -23,6 +23,12 @@ Page({
     saving: false,
     testing: false,
     // TTS配置
+    ttsEngines: [
+      { key: 'mimo', name: '小米TTS' },
+      { key: 'baidu', name: '百度TTS' },
+      { key: 'edge', name: 'Edge TTS' }
+    ],
+    currentTtsEngine: 'mimo',
     ttsCallType: 'direct', // TTS调用方式：direct或plan
     mimoTtsApiKey: '',
     mimoTtsPlanApiKey: '',
@@ -557,6 +563,12 @@ Page({
   },
 
   // ========== TTS配置相关方法 ==========
+
+  // 切换TTS引擎
+  switchTtsEngine: function(e) {
+    var engine = e.currentTarget.dataset.key
+    this.setData({ currentTtsEngine: engine })
+  },
 
   // 切换TTS调用方式
   switchTtsCallType: function(e) {

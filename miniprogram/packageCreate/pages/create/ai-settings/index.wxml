@@ -211,14 +211,32 @@
     <view class="section">
       <view class="section-title">语音设置</view>
       <view class="tts-engine-desc">
-        <text>配置小米TTS语音合成功能。</text>
+        <text>配置语音合成引擎，支持多种TTS服务。</text>
       </view>
     </view>
 
-    <!-- 调用方式选择 -->
+    <!-- TTS引擎选择 -->
     <view class="section">
-      <view class="section-title">调用方式</view>
-      <view class="call-type-tabs">
+      <view class="section-title">选择引擎</view>
+      <view class="voice-tabs">
+        <view 
+          wx:for="{{ttsEngines}}" 
+          wx:key="key"
+          class="voice-tab {{currentTtsEngine === item.key ? 'active' : ''}}"
+          bindtap="switchTtsEngine"
+          data-key="{{item.key}}"
+        >
+          {{item.name}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 小米TTS配置 -->
+    <view class="section" wx:if="{{currentTtsEngine === 'mimo'}}">
+      <view class="section-title">小米MiMo TTS配置</view>
+      
+      <!-- 调用方式选择 -->
+      <view class="call-type-tabs" style="margin-bottom: 24rpx;">
         <view 
           class="call-type-tab {{ttsCallType === 'direct' ? 'active' : ''}}" 
           bindtap="switchTtsCallType"
@@ -242,17 +260,14 @@
           </view>
         </view>
       </view>
-    </view>
 
-    <!-- 直接调用配置 -->
-    <view class="section" wx:if="{{ttsCallType === 'direct'}}">
-      <view class="section-title">小米TTS配置（直接调用）</view>
-      <view class="config-card">
+      <!-- 直接调用配置 -->
+      <view class="config-card" wx:if="{{ttsCallType === 'direct'}}">
         <view class="config-header">
           <view class="config-icon">🤖</view>
           <view class="config-info">
-            <view class="config-name">小米MiMo TTS</view>
-            <view class="config-desc">小米大模型语音合成，AI生成</view>
+            <view class="config-name">直接调用</view>
+            <view class="config-desc">api.xiaomimimo.com</view>
           </view>
           <view class="config-status {{mimoTtsApiKey ? 'configured' : ''}}">
             {{mimoTtsApiKey ? '已配置' : '未配置'}}
@@ -283,17 +298,14 @@
           </view>
         </view>
       </view>
-    </view>
 
-    <!-- 套餐服务配置 -->
-    <view class="section" wx:if="{{ttsCallType === 'plan'}}">
-      <view class="section-title">小米TTS配置（套餐服务）</view>
-      <view class="config-card">
+      <!-- 套餐服务配置 -->
+      <view class="config-card" wx:if="{{ttsCallType === 'plan'}}">
         <view class="config-header">
           <view class="config-icon">📦</view>
           <view class="config-info">
-            <view class="config-name">小米MiMo TTS</view>
-            <view class="config-desc">小米大模型语音合成，套餐服务</view>
+            <view class="config-name">套餐服务</view>
+            <view class="config-desc">token-plan-cn.xiaomimimo.com</view>
           </view>
           <view class="config-status {{mimoTtsPlanApiKey ? 'configured' : ''}}">
             {{mimoTtsPlanApiKey ? '已配置' : '未配置'}}
@@ -324,12 +336,9 @@
           </view>
         </view>
       </view>
-    </view>
 
-    <!-- 可用音色 -->
-    <view class="section">
-      <view class="section-title">可用音色</view>
-      <view class="help-card">
+      <!-- 可用音色 -->
+      <view class="help-card" style="margin-top: 24rpx;">
         <view class="help-item">
           <text class="help-icon">🍬</text>
           <text class="help-text">冰糖 - 中文女声</text>
@@ -345,6 +354,64 @@
         <view class="help-item">
           <text class="help-icon">🌳</text>
           <text class="help-text">白桦 - 中文男声</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 百度TTS配置 -->
+    <view class="section" wx:if="{{currentTtsEngine === 'baidu'}}">
+      <view class="section-title">百度TTS配置</view>
+      <view class="config-card">
+        <view class="config-header">
+          <view class="config-icon">🗣️</view>
+          <view class="config-info">
+            <view class="config-name">百度语音合成</view>
+            <view class="config-desc">百度语音引擎，稳定可靠</view>
+          </view>
+          <view class="config-status configured">
+            基础版免费
+          </view>
+        </view>
+        <view class="config-body">
+          <view class="help-card">
+            <view class="help-item">
+              <text class="help-icon">💡</text>
+              <text class="help-text">百度TTS基础版免费，无需配置密钥</text>
+            </view>
+            <view class="help-item">
+              <text class="help-icon">🔊</text>
+              <text class="help-text">支持96种音色，包括基础音库、精品音库等</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- Edge TTS配置 -->
+    <view class="section" wx:if="{{currentTtsEngine === 'edge'}}">
+      <view class="section-title">Edge TTS配置</view>
+      <view class="config-card">
+        <view class="config-header">
+          <view class="config-icon">🌐</view>
+          <view class="config-info">
+            <view class="config-name">Edge TTS</view>
+            <view class="config-desc">微软语音引擎，自然流畅</view>
+          </view>
+          <view class="config-status configured">
+            免费使用
+          </view>
+        </view>
+        <view class="config-body">
+          <view class="help-card">
+            <view class="help-item">
+              <text class="help-icon">💡</text>
+              <text class="help-text">Edge TTS免费，无需配置密钥</text>
+            </view>
+            <view class="help-item">
+              <text class="help-icon">🔊</text>
+              <text class="help-text">支持5种中文音色</text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
