@@ -1150,7 +1150,10 @@ async function getBaiduKeys() {
   }
   
   // 优先从aiConfigs获取（新配置，语音设置页面配置）
-  const configRes = await db.collection('aiConfigs').where({ familyId: 'system' }).get()
+  // 注意：getBaiduKeys没有member参数，需要查询所有配置
+  const configRes = await db.collection('aiConfigs').where({ 
+    baiduTtsApiKey: db.command.exists(true) 
+  }).get()
   if (configRes.data.length > 0 && configRes.data[0].baiduTtsApiKey && configRes.data[0].baiduTtsSecretKey) {
     console.log('使用aiConfigs中的百度TTS配置')
     _baiduKeysCache = { 
@@ -1523,9 +1526,9 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
   // 获取小米API密钥（复用mimo模型的配置）
   let apiKey = overrideApiKey
   if (!apiKey) {
-    // 从数据库获取TTS配置（使用默认familyId）
+    // 从数据库获取TTS配置（查询有mimoTtsApiKey的配置）
     const configResult = await db.collection('aiConfigs').where({
-      familyId: 'default'
+      mimoTtsApiKey: db.command.exists(true)
     }).get()
     
     if (configResult.data && configResult.data.length > 0) {
