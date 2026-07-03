@@ -2375,8 +2375,7 @@ Page({
       baiduGroupTabs: baiduGroupTabs,
       currentBaiduGroupTab: 'all',
       baiduVoiceList: baiduVoiceList,
-      mimoGroupTabs: [{ key: 'all', name: '全部' }],
-      currentMimoGroupTab: 'all',
+      mimoCallType: 'direct',
       mimoVoiceList: mimoVoiceList,
       currentVoiceName: currentVoiceName,
       currentVoiceId: currentVoice
@@ -2412,6 +2411,12 @@ Page({
   switchMimoGroupTab: function(e) {
     // 目前大模型只有一个音色，不需要过滤
     this.setData({ currentMimoGroupTab: 'all' })
+  },
+
+  // 切换大模型调用方式
+  switchMimoCallType: function(e) {
+    var callType = e.currentTarget.dataset.type
+    this.setData({ mimoCallType: callType })
   },
 
   // 切换TTS引擎

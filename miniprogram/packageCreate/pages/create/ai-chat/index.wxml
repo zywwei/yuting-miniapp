@@ -503,23 +503,29 @@
 
         <!-- 大模型TTS音色 -->
         <view wx:if="{{currentEngineTab === 'mimo'}}">
-          <!-- 二级Tab -->
+          <!-- 二级Tab：调用方式 -->
           <view class="voice-section">
-            <view class="voice-section-title">音色类型</view>
+            <view class="voice-section-title">调用方式</view>
             <view class="voice-tabs voice-tabs-small">
               <view 
-                wx:for="{{mimoGroupTabs}}" 
-                wx:key="key"
-                class="voice-tab {{currentMimoGroupTab === item.key ? 'active' : ''}}"
-                bindtap="switchMimoGroupTab"
-                data-key="{{item.key}}"
+                class="voice-tab {{mimoCallType === 'direct' ? 'active' : ''}}"
+                bindtap="switchMimoCallType"
+                data-type="direct"
               >
-                {{item.name}}
+                直接调用
+              </view>
+              <view 
+                class="voice-tab {{mimoCallType === 'plan' ? 'active' : ''}}"
+                bindtap="switchMimoCallType"
+                data-type="plan"
+              >
+                套餐服务
               </view>
             </view>
           </view>
           <!-- 音色列表 -->
           <view class="voice-section">
+            <view class="voice-section-title">选择音色</view>
             <view class="voice-list">
               <view 
                 wx:for="{{mimoVoiceList}}" 
