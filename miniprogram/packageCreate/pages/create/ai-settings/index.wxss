@@ -589,3 +589,32 @@
   color: #666;
   line-height: 1.6;
 }
+
+/* 引擎选择样式 */
+.voice-tabs {
+  display: flex;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  gap: 8rpx;
+}
+
+.voice-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 16rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: transparent;
+  border-radius: 12rpx;
+  transition: all 0.2s;
+}
+
+.voice-tab.active {
+  color: #FF6B8A;
+  background: #fff;
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
