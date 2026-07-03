@@ -1492,7 +1492,7 @@ async function baiduTTS(text, voice, baiduPer) {
 }
 
 // 小米TTS（大模型语音合成）
-async function mimoTTS(text, voice, overrideApiKey) {
+async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
   const https = require('https')
   
   if (!text || text.trim() === '') {
@@ -1505,8 +1505,9 @@ async function mimoTTS(text, voice, overrideApiKey) {
     .replace(/\s+/g, ' ').trim()
   
   const voiceName = voice || 'mimo-v2.5-tts'
+  const voiceParam = overrideVoice || 'alloy'
   
-  console.log('mimoTTS调用:', { voice, voiceName })
+  console.log('mimoTTS调用:', { voice, voiceName, voiceParam })
   
   // 获取小米TTS API密钥（优先使用传入的密钥）
   const apiKey = overrideApiKey || await getMimoTtsApiKey()
@@ -1518,7 +1519,7 @@ async function mimoTTS(text, voice, overrideApiKey) {
     const data = JSON.stringify({
       model: voiceName,
       input: text,
-      voice: 'zh-CN-XiaoxiaoNeural',
+      voice: voiceParam,
       response_format: 'mp3'
     })
     
@@ -1712,22 +1713,31 @@ async function testTts(member, event) {
       
       console.log('开始测试小米TTS，密钥长度:', apiKey.length)
       
-      // 直接调用测试，传入密钥
-      const result = await mimoTTS('你好，这是测试', 'mimo-v2.5-tts', apiKey)
+      // 尝试不同的音色
+      const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+      let lastError = null
       
-      console.log('小米TTS测试结果:', result)
-      
-      if (result.code === 0) {
-        return { 
-          code: 0, 
-          msg: '测试成功',
-          data: {
-            audioLength: result.data?.audio?.length || 0
+      for (const voice of voices) {
+        console.log('尝试音色:', voice)
+        const result = await mimoTTS('你好，这是测试', 'mimo-v2.5-tts', apiKey, voice)
+        
+        console.log('音色', voice, '测试结果:', result)
+        
+        if (result.code === 0) {
+          return { 
+            code: 0, 
+            msg: '测试成功，使用音色: ' + voice,
+            data: {
+              voice: voice,
+              audioLength: result.data?.audio?.length || 0
+            }
           }
         }
-      } else {
-        return { code: -1, msg: result.msg || '测试失败' }
+        
+        lastError = result.msg
       }
+      
+      return { code: -1, msg: '所有音色测试失败，最后错误: ' + lastError }
     }
     
     return { code: -1, msg: '不支持的引擎' }
