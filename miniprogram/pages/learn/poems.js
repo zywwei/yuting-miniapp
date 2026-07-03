@@ -129,11 +129,11 @@ Page({
     }
   },
 
-  // 朗读古诗（标题+内容）
+  // 朗读古诗（标题+朝代+作者+内容）
   speakTitle: function() {
     var poem = this.data.poems[this.data.currentIndex]
     if (!poem) return
-    var text = poem.title + '。' + poem.author + '。' + poem.content.replace(/\n/g, '，')
+    var text = poem.title + '。' + poem.dynasty + '代，' + poem.author + '。' + poem.content.replace(/\n/g, '，')
     speak.speak(text)
   }
 })
