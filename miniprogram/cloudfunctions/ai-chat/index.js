@@ -1277,7 +1277,7 @@ async function textToSpeech(text, voice, baiduPer) {
   const truncatedText = text.length > maxLen ? text.substring(0, maxLen) : text
   const ttsVoice = voice || 'zh-CN-XiaoxiaoNeural'
 
-  console.log('textToSpeech调用:', { voice, ttsVoice, baiduPer })
+  console.log('textToSpeech调用:', { voice, ttsVoice, baiduPer, baiduPerType: typeof baiduPer })
 
   // 根据参数判断使用哪个引擎
   // 如果有 baiduPer 参数，使用百度TTS
@@ -1387,6 +1387,8 @@ async function baiduTTS(text, voice, baiduPer) {
       per = 3
     }
   }
+
+  console.log('baiduTTS参数:', { voice, baiduPer, per })
   
   try {
     const accessToken = await getBaiduAccessToken()
