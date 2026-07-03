@@ -1316,6 +1316,11 @@ async function edgeTTS(text, voice) {
   
   console.log('edgeTTS调用:', { voice, voiceName })
   
+  // 移除emoji和特殊字符（Edge TTS不支持）
+  text = text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
+    .replace(/[\u2600-\u27BF\uFE00-\uFE0F\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/\s+/g, ' ').trim()
+  
   for (let i = 0; i < MAX_RETRIES; i++) {
     const tts = new MsEdgeTTS()
     try {
