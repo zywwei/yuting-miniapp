@@ -31,7 +31,8 @@ var BAIDU_VOICE_LIST = [
   { id: '0', name: '女声', desc: '清晰柔和' },
   { id: '1', name: '男声', desc: '沉稳有力' },
   { id: '3', name: '情感女声', desc: '生动自然' },
-  { id: '4', name: '情感男声', desc: '富有感情' }
+  { id: '4', name: '情感男声', desc: '富有感情' },
+  { id: '5', name: '情感童声', desc: '活泼可爱' }
 ]
 
 // 预加载音效
@@ -339,5 +340,43 @@ module.exports = {
   setVoice: setVoice,
   getVoiceList: getVoiceList,
   getCurrentVoice: getCurrentVoice,
-  getIsSpeaking: getIsSpeaking
+  getIsSpeaking: getIsSpeaking,
+  testBaiduVoice: testBaiduVoice
+}
+
+// 测试百度TTS不同音色（调试用）
+function testBaiduVoice(text) {
+  if (!text || text.trim() === '') {
+    text = '你好，我是测试语音'
+  }
+
+  var perList = [0, 1, 3, 4, 5]
+  var perNames = ['女声', '男声', '情感女声', '情感男声', '情感童声']
+
+  console.log('开始测试百度TTS音色...')
+
+  perList.forEach(function(per, index) {
+    setTimeout(function() {
+      console.log('测试音色:', perNames[index], '(per=' + per + ')')
+
+      wx.cloud.callFunction({
+        name: 'ai-chat',
+        data: {
+          action: 'textToSpeech',
+          text: text.substring(0, 100),
+          baiduPer: String(per)
+        },
+        success: function(result) {
+          if (result.result && result.result.code === 0 && result.result.data.audio) {
+            console.log('音色', perNames[index], '成功，音频大小:', result.result.data.audio.length)
+          } else {
+            console.log('音色', perNames[index], '失败:', result.result)
+          }
+        },
+        fail: function(err) {
+          console.log('音色', perNames[index], '请求失败:', err)
+        }
+      })
+    }, index * 3000) // 每个音色间隔3秒
+  })
 }
