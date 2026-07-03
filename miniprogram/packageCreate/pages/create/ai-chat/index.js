@@ -2352,20 +2352,29 @@ Page({
       }
     }
 
-    // 按分组组织引擎列表
-    var voiceEngineGroups = []
-    var groupKeys = Object.keys(engineGroups)
-    for (var k = 0; k < groupKeys.length; k++) {
-      var groupKey = groupKeys[k]
-      var groupInfo = engineGroups[groupKey]
-      var groupEngines = engineList.filter(function(engine) {
-        return engine.group === groupKey
+    // 处理引擎分组Tab
+    var engineGroupTabs = []
+    var currentEngineGroupTab = 'all'
+    var filteredEngineList = engineList
+    
+    // 创建引擎分组Tab
+    Object.keys(engineGroups).forEach(function(groupKey) {
+      engineGroupTabs.push({
+        key: groupKey,
+        name: engineGroups[groupKey].name
       })
-      if (groupEngines.length > 0) {
-        voiceEngineGroups.push({
-          groupKey: groupKey,
-          groupName: groupInfo.name,
-          engines: groupEngines
+    })
+    
+    // 添加"全部"Tab
+    engineGroupTabs.unshift({ key: 'all', name: '全部' })
+    
+    // 默认显示当前引擎所在的分组
+    var currentEngineInfo = engineList.find(function(e) { return e.id === currentEngine })
+    if (currentEngineInfo) {
+      currentEngineGroupTab = currentEngineInfo.group || 'all'
+      if (currentEngineGroupTab !== 'all') {
+        filteredEngineList = engineList.filter(function(engine) {
+          return engine.group === currentEngineGroupTab
         })
       }
     }
@@ -2388,7 +2397,9 @@ Page({
 
     this.setData({
       showVoiceModal: true,
-      voiceEngineGroups: voiceEngineGroups,
+      engineGroupTabs: engineGroupTabs,
+      currentEngineGroupTab: currentEngineGroupTab,
+      filteredEngineList: filteredEngineList,
       voiceVoiceList: displayVoiceList,
       currentEngineName: currentEngineName,
       currentVoiceName: currentVoiceName,
@@ -2414,8 +2425,17 @@ Page({
     for (var j = 0; j < voiceList.length; j++) {
       if (voiceList[j].id === newVoice) { voiceName = voiceList[j].name; break }
     }
+    
+    // 更新筛选后的引擎列表
+    var filteredEngineList = newList
+    if (this.data.currentEngineGroupTab !== 'all') {
+      filteredEngineList = newList.filter(function(engine) {
+        return engine.group === this.data.currentEngineGroupTab
+      }.bind(this))
+    }
+    
     this.setData({
-      voiceEngineList: newList,
+      filteredEngineList: filteredEngineList,
       voiceVoiceList: voiceList,
       currentVoiceId: newVoice,
       currentEngineName: engineName,
@@ -2453,6 +2473,25 @@ Page({
     this.setData({
       currentVoiceGroupTab: tabKey,
       voiceVoiceList: filteredList
+    })
+  },
+
+  // 切换引擎分组Tab
+  switchEngineGroupTab: function(e) {
+    var tabKey = e.currentTarget.dataset.key
+    var engineList = speakTool.getEngineList()
+    
+    // 过滤引擎列表
+    var filteredList = engineList
+    if (tabKey !== 'all') {
+      filteredList = engineList.filter(function(engine) {
+        return engine.group === tabKey
+      })
+    }
+    
+    this.setData({
+      currentEngineGroupTab: tabKey,
+      filteredEngineList: filteredList
     })
   },
 
