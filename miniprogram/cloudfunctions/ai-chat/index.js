@@ -1149,10 +1149,10 @@ async function getBaiduKeys() {
     return _baiduKeysCache
   }
   
-  // 优先从user_ai_configs获取（新配置）
-  const configRes = await db.collection('user_ai_configs').where({ userId: 'system' }).get()
+  // 优先从aiConfigs获取（新配置，语音设置页面配置）
+  const configRes = await db.collection('aiConfigs').where({ familyId: 'system' }).get()
   if (configRes.data.length > 0 && configRes.data[0].baiduTtsApiKey && configRes.data[0].baiduTtsSecretKey) {
-    console.log('使用user_ai_configs中的百度TTS配置')
+    console.log('使用aiConfigs中的百度TTS配置')
     _baiduKeysCache = { 
       apiKey: configRes.data[0].baiduTtsApiKey, 
       secretKey: configRes.data[0].baiduTtsSecretKey 
@@ -1523,14 +1523,15 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
   // 获取小米API密钥（复用mimo模型的配置）
   let apiKey = overrideApiKey
   if (!apiKey) {
-    // 从数据库获取mimo模型的API密钥
-    const configResult = await db.collection('user_ai_configs').where({
-      userId: 'system'
+    // 从数据库获取TTS配置
+    const configResult = await db.collection('aiConfigs').where({
+      familyId: 'system'
     }).get()
     
     if (configResult.data && configResult.data.length > 0) {
       const config = configResult.data[0]
-      apiKey = config.models?.mimo?.apiKey || ''
+      // 优先使用TTS专用密钥，如果没有则使用模型配置的密钥
+      apiKey = config.mimoTtsApiKey || config.models?.mimo?.apiKey || ''
     }
   }
   
@@ -1650,8 +1651,9 @@ async function getMimoTtsApiKey() {
 // 获取TTS配置
 async function getTtsConfig(member) {
   try {
-    const result = await db.collection('user_ai_configs').where({
-      userId: 'system'
+    // 从aiConfigs集合获取（与模型配置共用）
+    const result = await db.collection('aiConfigs').where({
+      familyId: member.familyId
     }).get()
     
     if (result.data && result.data.length > 0) {
@@ -1721,21 +1723,21 @@ async function saveTtsConfig(member, event) {
       updateData.baiduTtsSecretKey = baiduSecretKey.trim()
     }
     
-    // 查询现有配置
-    const result = await db.collection('user_ai_configs').where({
-      userId: 'system'
+    // 查询现有配置（使用aiConfigs集合，与模型配置共用）
+    const result = await db.collection('aiConfigs').where({
+      familyId: member.familyId
     }).get()
     
     if (result.data && result.data.length > 0) {
       // 更新现有配置
-      await db.collection('user_ai_configs').doc(result.data[0]._id).update({
+      await db.collection('aiConfigs').doc(result.data[0]._id).update({
         data: updateData
       })
     } else {
       // 创建新配置
-      await db.collection('user_ai_configs').add({
+      await db.collection('aiConfigs').add({
         data: {
-          userId: 'system',
+          familyId: member.familyId,
           ...updateData
         }
       })
@@ -1755,8 +1757,8 @@ async function testTts(member, event) {
   try {
     if (engine === 'mimo') {
       // 获取TTS配置中的API密钥
-      const configResult = await db.collection('user_ai_configs').where({
-        userId: 'system'
+      const configResult = await db.collection('aiConfigs').where({
+        familyId: 'system'
       }).get()
       
       let apiKey = ''
