@@ -505,12 +505,14 @@
 }
 
 .config-status {
+  display: inline-block;
   font-size: 20rpx;
   color: #999;
-  padding: 6rpx 14rpx;
+  padding: 4rpx 12rpx;
   background: #f0f0f0;
-  border-radius: 16rpx;
+  border-radius: 8rpx;
   letter-spacing: 1rpx;
+  width: auto;
 }
 
 .config-status.configured {
