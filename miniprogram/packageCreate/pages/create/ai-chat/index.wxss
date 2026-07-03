@@ -1128,6 +1128,35 @@ page.dark-mode {
   margin-bottom: 20rpx;
 }
 
+.voice-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid var(--border-color, #f0f0f0);
+}
+
+.voice-tab {
+  padding: 10rpx 20rpx;
+  font-size: 22rpx;
+  color: var(--text-secondary, #666);
+  background: var(--bg-tertiary, #f8f8f8);
+  border-radius: 20rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.2s ease;
+}
+
+.voice-tab.active {
+  color: var(--accent-color, #FF6B8A);
+  background: var(--accent-light, #FFF0F3);
+  border-color: var(--accent-color, #FF6B8A);
+}
+
+.voice-tab:active {
+  transform: scale(0.95);
+}
+
 .voice-engine-list {
   display: flex;
   gap: 20rpx;

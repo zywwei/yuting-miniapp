@@ -451,6 +451,18 @@
         <!-- 音色选择 -->
         <view class="voice-section">
           <view class="voice-section-title">音色选择</view>
+          <!-- 音色分组Tab（仅百度TTS显示） -->
+          <view class="voice-tabs" wx:if="{{currentVoiceEngine === 'baidu'}}">
+            <view 
+              wx:for="{{voiceGroupTabs}}" 
+              wx:key="key"
+              class="voice-tab {{currentVoiceGroupTab === item.key ? 'active' : ''}}"
+              bindtap="switchVoiceGroupTab"
+              data-key="{{item.key}}"
+            >
+              {{item.name}}
+            </view>
+          </view>
           <view class="voice-list">
             <view 
               wx:for="{{voiceVoiceList}}" 

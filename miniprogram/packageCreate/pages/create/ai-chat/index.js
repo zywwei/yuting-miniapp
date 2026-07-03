@@ -2328,6 +2328,7 @@ Page({
       var engineList = speakTool.getEngineList()
       var voiceList = speakTool.getVoiceList()
       var currentVoice = speakTool.getCurrentVoice()
+      var currentEngine = speakTool.getEngine()
     } catch (err) {
       console.error('获取语音设置失败:', err)
       wx.showToast({ title: '语音功能加载失败', icon: 'none' })
@@ -2350,13 +2351,32 @@ Page({
       }
     }
 
+    // 处理音色分组Tab（百度TTS）
+    var voiceGroupTabs = []
+    var currentVoiceGroupTab = 'all'
+    var displayVoiceList = voiceList
+    
+    if (currentEngine === 'baidu') {
+      // 获取分组数据
+      var groups = speakTool.getBaiduVoiceGroups()
+      voiceGroupTabs = [{ key: 'all', name: '全部' }]
+      Object.keys(groups).forEach(function(groupName) {
+        voiceGroupTabs.push({ key: groupName, name: groupName })
+      })
+      currentVoiceGroupTab = 'all'
+      displayVoiceList = voiceList
+    }
+
     this.setData({
       showVoiceModal: true,
       voiceEngineList: engineList,
-      voiceVoiceList: voiceList,
+      voiceVoiceList: displayVoiceList,
       currentEngineName: currentEngineName,
       currentVoiceName: currentVoiceName,
-      currentVoiceId: currentVoice
+      currentVoiceId: currentVoice,
+      currentVoiceEngine: currentEngine,
+      voiceGroupTabs: voiceGroupTabs,
+      currentVoiceGroupTab: currentVoiceGroupTab
     })
   },
 
@@ -2396,6 +2416,25 @@ Page({
     }
     this.setData({ currentVoiceId: voiceId, currentVoiceName: voiceName })
     wx.showToast({ title: '已切换', icon: 'success' })
+  },
+
+  // 切换音色分组Tab
+  switchVoiceGroupTab: function(e) {
+    var tabKey = e.currentTarget.dataset.key
+    var voiceList = speakTool.getVoiceList()
+    
+    // 过滤音色列表
+    var filteredList = voiceList
+    if (tabKey !== 'all') {
+      filteredList = voiceList.filter(function(voice) {
+        return voice.group === tabKey
+      })
+    }
+    
+    this.setData({
+      currentVoiceGroupTab: tabKey,
+      voiceVoiceList: filteredList
+    })
   },
 
   // 关闭语音设置弹窗
