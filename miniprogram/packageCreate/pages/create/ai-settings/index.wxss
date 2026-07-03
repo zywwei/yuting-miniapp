@@ -505,16 +505,18 @@
 }
 
 .config-status {
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: #999;
-  padding: 8rpx 16rpx;
-  background: #f5f5f5;
-  border-radius: 20rpx;
+  padding: 6rpx 14rpx;
+  background: #f0f0f0;
+  border-radius: 16rpx;
+  letter-spacing: 1rpx;
 }
 
 .config-status.configured {
   color: #52c41a;
   background: #f6ffed;
+  font-weight: 500;
 }
 
 .config-body {
