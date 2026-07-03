@@ -1518,9 +1518,11 @@ async function mimoTTS(text, voice, overrideApiKey) {
     const data = JSON.stringify({
       model: voiceName,
       input: text,
-      voice: 'alloy',
+      voice: 'zh-CN-XiaoxiaoNeural',
       response_format: 'mp3'
     })
+    
+    console.log('mimoTTS请求数据:', data)
     
     const options = {
       hostname: 'api.xiaomimimo.com',
@@ -1535,11 +1537,14 @@ async function mimoTTS(text, voice, overrideApiKey) {
     }
     
     const req = https.request(options, (res) => {
+      console.log('小米TTS响应状态码:', res.statusCode)
+      
       if (res.statusCode === 200) {
         const chunks = []
         res.on('data', (chunk) => chunks.push(chunk))
         res.on('end', () => {
           const audioBuffer = Buffer.concat(chunks)
+          console.log('小米TTS音频大小:', audioBuffer.length)
           resolve({
             code: 0,
             data: {
