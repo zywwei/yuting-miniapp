@@ -1307,7 +1307,7 @@ async function textToSpeech(text, voice, baiduPer, mimoVoice) {
   if (mimoVoice) {
     // 使用小米TTS
     try {
-      return await mimoTTS(truncatedText, mimoVoice)
+      return await mimoTTS(truncatedText, 'mimo-v2.5-tts', null, mimoVoice)
     } catch (err) {
       console.error('小米TTS异常:', err.message)
       return { code: -1, msg: '小米TTS服务不可用: ' + err.message }
