@@ -1648,7 +1648,10 @@ async function getTtsConfig(member) {
         code: 0,
         data: {
           mimoTtsApiKey: config.mimoTtsApiKey || '',
-          mimoTtsPlanApiKey: config.mimoTtsPlanApiKey || ''
+          mimoTtsPlanApiKey: config.mimoTtsPlanApiKey || '',
+          baiduTtsAppId: config.baiduTtsAppId || '',
+          baiduTtsApiKey: config.baiduTtsApiKey || '',
+          baiduTtsSecretKey: config.baiduTtsSecretKey || ''
         }
       }
     }
@@ -1657,7 +1660,10 @@ async function getTtsConfig(member) {
       code: 0,
       data: {
         mimoTtsApiKey: '',
-        mimoTtsPlanApiKey: ''
+        mimoTtsPlanApiKey: '',
+        baiduTtsAppId: '',
+        baiduTtsApiKey: '',
+        baiduTtsSecretKey: ''
       }
     }
   } catch (err) {
@@ -1671,10 +1677,12 @@ async function saveTtsConfig(member, event) {
   try {
     console.log('saveTtsConfig调用:', { member, event })
     
-    const { mimoTtsApiKey, mimoTtsPlanApiKey } = event
+    const { engine, mimoTtsApiKey, mimoTtsPlanApiKey, baiduAppId, baiduApiKey, baiduSecretKey } = event
     
     // 输入验证和清理
     const updateData = {}
+    
+    // 小米TTS配置
     if (mimoTtsApiKey !== undefined) {
       const trimmedKey = mimoTtsApiKey.trim()
       if (trimmedKey.length > 200) {
@@ -1688,6 +1696,17 @@ async function saveTtsConfig(member, event) {
         return { code: -1, msg: 'API密钥长度不能超过200字符' }
       }
       updateData.mimoTtsPlanApiKey = trimmedKey
+    }
+    
+    // 百度TTS配置
+    if (baiduAppId !== undefined) {
+      updateData.baiduTtsAppId = baiduAppId.trim()
+    }
+    if (baiduApiKey !== undefined) {
+      updateData.baiduTtsApiKey = baiduApiKey.trim()
+    }
+    if (baiduSecretKey !== undefined) {
+      updateData.baiduTtsSecretKey = baiduSecretKey.trim()
     }
     
     // 查询现有配置
