@@ -1665,13 +1665,17 @@ function maskApiKey(key) {
 // 保存TTS配置
 async function saveTtsConfig(member, event) {
   try {
+    console.log('saveTtsConfig调用:', { member, event })
+    
     // 权限检查：只允许管理员或家长修改系统配置
     // 由于项目没有角色系统，这里检查是否是家长（非子账号）
     if (member.childId) {
+      console.log('权限检查失败：子账号无权修改')
       return { code: -1, msg: '子账号无权修改系统配置' }
     }
     
     const { mimoTtsApiKey, baiduTtsApiKey } = event
+    console.log('接收到的密钥:', { mimoTtsApiKey: mimoTtsApiKey ? '有' : '无', baiduTtsApiKey: baiduTtsApiKey ? '有' : '无' })
     
     // 输入验证和清理
     const updateData = {}
