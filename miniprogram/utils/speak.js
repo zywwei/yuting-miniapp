@@ -26,13 +26,12 @@ var EDGE_VOICE_LIST = [
   { id: 'zh-CN-YunjianNeural', name: '云健', desc: '沉稳男声', gender: 'male' }
 ]
 
-// 百度TTS音色列表
+// 百度TTS音色列表（基础音库）
 var BAIDU_VOICE_LIST = [
-  { id: '0', name: '女声', desc: '清晰柔和' },
-  { id: '1', name: '男声', desc: '沉稳有力' },
-  { id: '3', name: '情感女声', desc: '生动自然' },
-  { id: '4', name: '情感男声', desc: '富有感情' },
-  { id: '5', name: '情感童声', desc: '活泼可爱' }
+  { id: '0', name: '度小美', desc: '标准女主播' },
+  { id: '1', name: '度小宇', desc: '亲切男声' },
+  { id: '3', name: '度逍遥', desc: '情感男声' },
+  { id: '4', name: '度丫丫', desc: '童声' }
 ]
 
 // 预加载音效
@@ -350,8 +349,8 @@ function testBaiduVoice(text) {
     text = '你好，我是测试语音'
   }
 
-  var perList = [0, 1, 3, 4, 5]
-  var perNames = ['女声', '男声', '情感女声', '情感男声', '情感童声']
+  var perList = [0, 1, 3, 4]
+  var perNames = ['度小美女声', '度小宇男声', '度逍遥情感男声', '度丫丫童声']
 
   console.log('开始测试百度TTS音色...')
 

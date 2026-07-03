@@ -1375,8 +1375,8 @@ async function baiduTTS(text, voice, baiduPer) {
     .replace(/[\u2600-\u27BF\uFE00-\uFE0F\u{1F000}-\u{1FFFF}]/gu, '')
     .replace(/\s+/g, ' ').trim()
 
-  // per: 0=女声，1=男声，3=情感女声，4=情感男声
-  let per = 0 // 默认女声
+  // per: 0=度小美女声，1=度小宇男声，3=度逍遥情感男声，4=度丫丫童声
+  let per = 0 // 默认度小美女声
   if (baiduPer !== undefined && baiduPer !== '') {
     per = parseInt(baiduPer) || 0
   } else if (voice) {
