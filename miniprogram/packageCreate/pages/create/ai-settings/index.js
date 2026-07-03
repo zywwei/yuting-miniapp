@@ -2,7 +2,7 @@ var aiManager = getApp().globalData.aiManager
 
 Page({
   data: {
-    activeTab: 'prompt', // model 或 prompt 或 tts，默认打开提示词
+    activeTab: 'prompt', // model 或 prompt 或 voice，默认打开提示词
     callType: 'direct',
     domesticModels: [],
     platformModels: [],
