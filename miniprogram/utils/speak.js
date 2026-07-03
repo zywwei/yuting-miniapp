@@ -36,7 +36,15 @@ var EDGE_VOICE_LIST = [
 
 // 小米TTS音色列表（大模型TTS）
 var MIMO_VOICE_LIST = [
-  { id: 'mimo-v2.5-tts', name: 'MiMo TTS', desc: '小米大模型语音' }
+  { id: 'mimo_default', name: 'MiMo默认', desc: '默认音色', group: 'llm' },
+  { id: '冰糖', name: '冰糖', desc: '中文女声', group: 'llm' },
+  { id: '茉莉', name: '茉莉', desc: '中文女声', group: 'llm' },
+  { id: '苏打', name: '苏打', desc: '中文男声', group: 'llm' },
+  { id: '白桦', name: '白桦', desc: '中文男声', group: 'llm' },
+  { id: 'Mia', name: 'Mia', desc: '英文女声', group: 'llm' },
+  { id: 'Chloe', name: 'Chloe', desc: '英文女声', group: 'llm' },
+  { id: 'Milo', name: 'Milo', desc: '英文男声', group: 'llm' },
+  { id: 'Dean', name: 'Dean', desc: '英文男声', group: 'llm' }
 ]
 
 // 百度TTS音色列表

@@ -1505,7 +1505,7 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
     .replace(/\s+/g, ' ').trim()
   
   const voiceName = voice || 'mimo-v2.5-tts'
-  const voiceParam = overrideVoice || 'alloy'
+  const voiceParam = overrideVoice || 'mimo_default'
   
   console.log('mimoTTS调用:', { voice, voiceName, voiceParam })
   
@@ -1713,8 +1713,8 @@ async function testTts(member, event) {
       
       console.log('开始测试小米TTS，密钥长度:', apiKey.length)
       
-      // 尝试不同的音色
-      const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer']
+      // 尝试不同的音色（小米TTS专用音色）
+      const voices = ['mimo_default', '冰糖', '茉莉', '苏打', '白桦']
       let lastError = null
       
       for (const voice of voices) {
