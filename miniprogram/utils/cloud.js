@@ -8,6 +8,33 @@ var auth = require('./auth.js')
 var childStorage = require('./child-storage.js')
 var syncQueue = require('./sync-queue.js')
 
+// ===== 数据隔离级别枚举 =====
+var ISOLATION_LEVEL = {
+  FAMILY: 'family',      // 家庭级：familyId
+  CHILD: 'child',        // 孩子级：familyId + childId（当前默认）
+  MEMBER: 'member'       // 成员级：familyId + memberId
+}
+
+// ===== 单例文档隔离级别枚举 =====
+var SINGLETON_ISOLATION = {
+  FAMILY: 'family',      // familyId + key
+  CHILD: 'child',        // familyId + childId + key（当前默认）
+  MEMBER: 'member'       // familyId + memberId + key
+}
+
+// ===== 墓碑 key 常量表 =====
+var TOMBSTONE_KEYS = {
+  drawings: 'deletedDrawingIds',
+  notes: 'deletedNoteIds',
+  brushingRecords: 'deletedBrushingIds',
+  habitRecords: 'deletedHabitRecordIds',
+  stallProducts: 'deletedStallProductIds',
+  stallSales: 'deletedStallSaleIds',
+  accountBooks: 'deletedBookIds',
+  bookEntries: 'deletedEntryIds',
+  gameRecords: 'deletedGameRecordIds'
+}
+
 var isCloudReady = function() {
   try {
     return typeof wx.cloud !== 'undefined' && wx.cloud
@@ -32,32 +59,138 @@ function getRecordMeta() {
   }
 }
 
+// ===== 存储 key 获取函数（根据隔离级别）=====
+
+/**
+ * 根据隔离级别获取存储 key
+ * @param {Object} config
+ * @param {string} config.storageKey - 基础存储 key
+ * @param {string} [config.isolation='child'] - 隔离级别
+ * @returns {string} 最终存储 key
+ */
+function getStorageKey(config) {
+  var member = auth.getMember()
+  var isolation = config.isolation || ISOLATION_LEVEL.CHILD
+  
+  switch (isolation) {
+    case ISOLATION_LEVEL.FAMILY:
+      return config.storageKey + '_family_' + (member ? member.familyId : '')
+    case ISOLATION_LEVEL.CHILD:
+      return config.storageKey
+    case ISOLATION_LEVEL.MEMBER:
+      return config.storageKey + '_member_' + (member ? member._id : '')
+    default:
+      return config.storageKey
+  }
+}
+
+/**
+ * 根据隔离级别获取墓碑 key
+ * @param {Object} config
+ * @param {string} config.deletedKey - 基础墓碑 key
+ * @param {string} [config.isolation='child'] - 隔离级别
+ * @returns {string} 最终墓碑 key
+ */
+function getTombstoneKey(config) {
+  var member = auth.getMember()
+  var isolation = config.isolation || ISOLATION_LEVEL.CHILD
+  
+  switch (isolation) {
+    case ISOLATION_LEVEL.FAMILY:
+      return config.deletedKey + '_family_' + (member ? member.familyId : '')
+    case ISOLATION_LEVEL.CHILD:
+      return config.deletedKey
+    case ISOLATION_LEVEL.MEMBER:
+      return config.deletedKey + '_member_' + (member ? member._id : '')
+    default:
+      return config.deletedKey
+  }
+}
+
+/**
+ * 标记记录为已同步
+ * @param {string} storageKey - 本地存储 key
+ * @param {string} id - 记录 ID
+ */
+function markRecordSynced(storageKey, id) {
+  var list = childStorage.get(storageKey) || []
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === id) {
+      list[i].synced = true
+      list[i].lastSyncAt = new Date().toISOString()
+      break
+    }
+  }
+  childStorage.set(storageKey, list)
+}
+
+/**
+ * 更新本地记录的指定字段
+ * @param {string} storageKey - 本地存储 key
+ * @param {string} id - 记录 ID
+ * @param {string} field - 字段名
+ * @param {*} value - 字段值
+ */
+function updateLocalRecord(storageKey, id, field, value) {
+  var list = childStorage.get(storageKey) || []
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === id) {
+      list[i][field] = value
+      break
+    }
+  }
+  childStorage.set(storageKey, list)
+}
+
+/**
+ * 乐观锁比较：云端 updatedAt 比本地新时返回 true
+ * @param {string} cloudUpdatedAt - 云端更新时间
+ * @param {string} localUpdatedAt - 本地更新时间
+ * @returns {boolean} 是否应该使用云端数据
+ */
+function shouldUseCloud(cloudUpdatedAt, localUpdatedAt) {
+  if (!cloudUpdatedAt) return true  // 云端无时间戳（旧数据），兼容使用
+  if (!localUpdatedAt) return true  // 本地无时间戳，使用云端
+  return new Date(cloudUpdatedAt).getTime() > new Date(localUpdatedAt).getTime()
+}
+
 // ===== 单例文档云端读写 =====
 // 单例数据（习惯定义、学习进度、设置、成就、刷牙故事/角色/积分/装饰、摆摊设置等）
 // 统一通过 upsertSingleton/getSingleton 同步：云端 _id 由 familyId + childId + key
 // 复合生成，确保不同家庭、不同孩子各自独立，互不覆盖。
-function callUpsertSingleton(collection, key, data) {
+// 支持三种隔离级别：家庭级（childId=''）、孩子级（childId=当前孩子）、成员级（memberId=当前成员）
+function callUpsertSingleton(collection, key, data, childId, memberId) {
+  var callData = {
+    action: 'upsertSingleton',
+    collection: collection,
+    key: key,
+    childId: childId !== undefined ? childId : auth.getCurrentChildId(),
+    data: data || {}
+  }
+  // 如果传入了 memberId，添加到请求中
+  if (memberId) {
+    callData.memberId = memberId
+  }
   return wx.cloud.callFunction({
     name: 'record',
-    data: {
-      action: 'upsertSingleton',
-      collection: collection,
-      key: key,
-      childId: auth.getCurrentChildId(),
-      data: data || {}
-    }
+    data: callData
   })
 }
 
-function callGetSingleton(collection, key) {
+function callGetSingleton(collection, key, childId, memberId) {
+  var callData = {
+    action: 'getSingleton',
+    collection: collection,
+    key: key,
+    childId: childId !== undefined ? childId : auth.getCurrentChildId()
+  }
+  // 如果传入了 memberId，添加到请求中
+  if (memberId) {
+    callData.memberId = memberId
+  }
   return wx.cloud.callFunction({
     name: 'record',
-    data: {
-      action: 'getSingleton',
-      collection: collection,
-      key: key,
-      childId: auth.getCurrentChildId()
-    }
+    data: callData
   })
 }
 
@@ -358,22 +491,9 @@ async function fetchDrawings() {
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
-      // 构建云端数据映射
-      var cloudMap = {}
-      cloudList.forEach(function(d) {
-        if (d && d.id && !deletedSet[d.id]) {
-          cloudMap[d.id] = d
-        }
-      })
-
-      // 合并策略：
-      // 1. 云端有的数据 → 使用云端数据
-      // 2. 云端没有但本地有且 synced!=true → 保留（新添加未同步）
-      // 3. 云端没有但本地有且 synced=true → 不保留（已被其他设备合法删除）
       var merged = []
       var mergedIds = {}
 
-      // 先添加云端数据
       cloudList.forEach(function(d) {
         if (d && d.id && !deletedSet[d.id]) {
           merged.push(d)
@@ -381,26 +501,20 @@ async function fetchDrawings() {
         }
       })
 
-      // 再添加本地独有数据（仅保留未同步的，已同步但云端缺失的说明已被其他设备删除）
       localDrawings.forEach(function(d) {
         if (d && d.id && !mergedIds[d.id] && !deletedSet[d.id] && !d.synced) {
           merged.push(d)
-          mergedIds[d.id] = true
         }
       })
 
-      // 自愈：本地未同步的记录补传到云端（synced=true 的不补传，可能已被其他设备合法删除）
       selfHealDrawings(cloudList, localDrawings, deletedSet)
 
-      // 按创建时间倒序排序
       merged.sort(function(a, b) {
         return new Date(b.createTime || 0) - new Date(a.createTime || 0)
       })
 
-      // 用合并结果更新本地缓存
       childStorage.set('drawings', merged)
 
-      // 云端仍存在但本地已删除的记录：立即尝试删除，失败则入队重试（避免墓碑过期后孤儿记录复活）
       cloudList.forEach(function(d) {
         if (d && d.id && deletedSet[d.id]) {
           wx.cloud.callFunction({
@@ -410,14 +524,8 @@ async function fetchDrawings() {
             if (res.result && res.result.code === 0) {
               removeTombstone(DELETED_DRAWINGS_KEY, d.id)
             }
-          }).catch(function() {
-            // 失败入队，由 syncQueue 重试，确保云端记录最终被删除
-            syncQueue.enqueue({
-              id: 'remove_drawing_' + d.id,
-              action: 'remove',
-              collection: 'drawings',
-              extra: { id: d.id }
-            })
+          }).catch(function(err) {
+            console.warn('画作云端删除同步失败:', d.id, err)
           })
         }
       })
@@ -583,7 +691,8 @@ async function uploadBrushingRecord(record) {
     var img = images[i]
     if (img && !img.startsWith('cloud://')) {
       var util = require('./util.js')
-      localImages.push(await util.saveImageToPersistent(img))
+      var savedPath = await util.saveImageToPersistent(img)
+      localImages.push(savedPath)
     } else {
       localImages.push(img)
     }
@@ -607,14 +716,6 @@ async function uploadBrushingRecord(record) {
     }
   }
 
-  syncQueue.enqueue({
-    id: record.id,
-    action: 'add',
-    collection: 'brushingRecords',
-    data: fullRecord,
-    uploadImages: uploadImages
-  })
-
   try {
     // 逐张上传图片，每张成功后立即回写本地与 fullRecord，避免部分失败时丢失已传 fileID
     for (var k = 0; k < uploadImages.length; k++) {
@@ -637,20 +738,26 @@ async function uploadBrushingRecord(record) {
         }
         childStorage.set('brushingRecords', tmpRecs)
       } catch (imgErr) {
-        // 单张失败：把已传成功的 fileID 更新到队列项，抛出触发整体重试（flush 会跳过已传的图）
-        console.warn('刷牙图片上传失败:', img2.localPath, imgErr)
-        syncQueue.updateData(record.id, fullRecord)
-        throw imgErr
+        // 图片上传失败，不保存到云端，只保留本地，入队等待重试
+        syncQueue.enqueue({
+          id: record.id,
+          action: 'add',
+          collection: 'brushingRecords',
+          data: fullRecord,
+          uploadImages: uploadImages
+        })
+        return fullRecord.imagePath
       }
     }
+    
+    // 图片全部上传成功后，保存到云端
     await wx.cloud.callFunction({
       name: 'record',
       data: { action: 'add', collection: 'brushingRecords', data: fullRecord }
     })
-    syncQueue.dequeue(record.id, 'add')
 
     // 同步成功，标记 synced=true
-    var localRecords = childStorage.get('brushingRecords') || []
+    localRecords = childStorage.get('brushingRecords') || []
     for (var i = 0; i < localRecords.length; i++) {
       if (localRecords[i].id === record.id) {
         localRecords[i].synced = true
@@ -659,13 +766,21 @@ async function uploadBrushingRecord(record) {
     }
     childStorage.set('brushingRecords', localRecords)
   } catch (err) {
-    console.warn('刷牙记录同步失败，已入队列:', err)
+    console.warn('[刷牙上传] 云端保存失败:', err)
+    // 云端保存失败，入队等待重试（此时图片已是云端路径）
+    syncQueue.enqueue({
+      id: record.id,
+      action: 'add',
+      collection: 'brushingRecords',
+      data: fullRecord,
+      uploadImages: []
+    })
   }
 
   return fullRecord.imagePath
 }
 
-async function fetchBrushingRecords() {
+async function fetchBrushingRecords(date) {
   var localRecords = childStorage.get('brushingRecords') || []
   var member = auth.getMember()
   if (!member) return localRecords
@@ -675,15 +790,21 @@ async function fetchBrushingRecords() {
   }
 
   try {
+    var queryData = {
+      action: 'list',
+      collection: 'brushingRecords',
+      childId: auth.getCurrentChildId(),
+      page: 1,
+      pageSize: 200
+    }
+    // 如果指定了日期，只拉取该日期的数据
+    if (date) {
+      queryData.date = date
+    }
+
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: {
-        action: 'list',
-        collection: 'brushingRecords',
-        childId: auth.getCurrentChildId(),
-        page: 1,
-        pageSize: 200
-      }
+      data: queryData
     })
 
     if (res.result.code === 0) {
@@ -693,14 +814,21 @@ async function fetchBrushingRecords() {
       deletedIds.forEach(function(id) { deletedSet[id] = true })
 
       var merged = mergeAndHeal('brushingRecords', 'brushingRecords', localRecords, cloudList, deletedSet, function(r) {
+        // 优先使用云端路径，其次使用本地路径
+        var images = r.images || []
+        var imagePath = r.imagePath || ''
+        var cloudFileID = r.cloudFileID || ''
+        
+        // 优先使用云端路径
+        var firstImage = cloudFileID || imagePath || images[0] || ''
+        
         return {
           ...r,
           id: r.id || r._id,
-          imagePath: r.cloudFileID || r.imagePath || '',
-          images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+          imagePath: firstImage,
+          images: images.length > 0 ? images : (firstImage ? [firstImage] : [])
         }
       })
-
       return merged
     }
   } catch (err) {
@@ -749,9 +877,33 @@ async function updateBrushingRecord(timeOfDay, updates) {
 
   if (!target) throw new Error('未找到对应记录')
 
+  // 上传图片到云存储
+  var cloudUpdates = { ...updates }
+  if (updates.images && Array.isArray(updates.images)) {
+    var cloudImages = []
+    for (var j = 0; j < updates.images.length; j++) {
+      var img = updates.images[j]
+      if (img && !img.startsWith('cloud://')) {
+        try {
+          var savedPath = await util.saveImageToPersistent(img)
+          var cloudPath = 'brushing/' + target.id + '_update_' + j + '_' + Date.now() + '.jpg'
+          var uploadRes = await wx.cloud.uploadFile({ cloudPath: cloudPath, filePath: savedPath })
+          cloudImages.push(uploadRes.fileID)
+        } catch (imgErr) {
+          console.warn('[updateBrushingRecord] 图片上传失败:', img, imgErr)
+          cloudImages.push(img)  // 上传失败保留原路径
+        }
+      } else {
+        cloudImages.push(img)
+      }
+    }
+    cloudUpdates.images = cloudImages
+    cloudUpdates.imagePath = cloudImages[0] || ''
+  }
+
   var updatedRecords = localRecords.map(function(r) {
     if (r.date === today && r.timeOfDay === timeOfDay) {
-      return { ...r, ...updates }
+      return { ...r, ...cloudUpdates }
     }
     return r
   })
@@ -761,7 +913,7 @@ async function updateBrushingRecord(timeOfDay, updates) {
     try {
       await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'update', collection: 'brushingRecords', id: target.id, data: updates }
+        data: { action: 'update', collection: 'brushingRecords', id: target.id, data: cloudUpdates }
       })
     } catch (err) {
       console.warn('云端更新失败，已入队重试:', err)
@@ -769,7 +921,7 @@ async function updateBrushingRecord(timeOfDay, updates) {
         id: 'update_brushing_' + target.id,
         action: 'update',
         collection: 'brushingRecords',
-        data: updates,
+        data: cloudUpdates,
         extra: { id: target.id }
       })
     }
@@ -898,7 +1050,7 @@ async function uploadNote(note) {
     syncQueue.dequeue(note.id, 'add')
 
     // 同步成功，标记 synced=true
-    var localNotes = childStorage.get('notes') || []
+    localNotes = childStorage.get('notes') || []
     for (var i = 0; i < localNotes.length; i++) {
       if (localNotes[i].id === note.id) {
         localNotes[i].synced = true
@@ -996,6 +1148,785 @@ function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, 
   })
 
   return merged
+}
+
+// ===== 增强版 mergeAndHeal（支持图片自愈）=====
+
+/**
+ * 通用合并 + 自愈 + 排序 + 存储 + 墓碑重试
+ * @param {string} collection - 集合名
+ * @param {string} storageKey - 本地存储 key
+ * @param {Array} localList - 本地数据
+ * @param {Array} cloudList - 云端数据
+ * @param {Object} deletedSet - 已删除 ID 集合
+ * @param {Function} [transformCloudItem] - 云端数据转换函数
+ * @param {string} [imageField] - 图片字段名（用于自愈时处理图片）
+ * @returns {Array} 合并后的数据
+ */
+function mergeAndHealV2(collection, storageKey, localList, cloudList, deletedSet, transformCloudItem, imageField) {
+  var merged = []
+  var mergedIds = {}
+
+  // 1. 先添加云端数据（标记为已同步，防止自愈误判）
+  cloudList.forEach(function(item) {
+    if (item && item.id && !deletedSet[item.id] && !deletedSet[item._id]) {
+      var transformed = transformCloudItem ? transformCloudItem(item) : item
+      transformed.synced = true
+      transformed.lastSyncAt = transformed.lastSyncAt || new Date().toISOString()
+      merged.push(transformed)
+      mergedIds[item.id] = true
+    }
+  })
+
+  // 2. 再添加本地独有数据：仅保留未同步的（新创建的）
+  // 已同步但云端缺失的视为被其他设备删除，不保留
+  localList.forEach(function(r) {
+    if (r && r.id && !mergedIds[r.id] && !deletedSet[r.id] && !r.synced) {
+      merged.push(r)
+    }
+  })
+
+  // 3. 自愈：本地未同步的记录补传到云端
+  var cloudIdSet = {}
+  cloudList.forEach(function(r) { if (r && r.id) cloudIdSet[r.id] = true })
+  
+  if (imageField) {
+    selfHealWithImages(collection, storageKey, localList, cloudIdSet, deletedSet, imageField)
+  } else {
+    selfHealRecords(collection, localList, cloudIdSet, deletedSet)
+  }
+
+  // 4. 按创建时间倒序排序
+  merged.sort(function(a, b) {
+    return new Date(b.createTime || 0) - new Date(a.createTime || 0)
+  })
+
+  // 5. 用合并结果更新本地缓存
+  childStorage.set(storageKey, merged)
+
+  // 6. 云端仍存在但本地已删除的记录，再次尝试删除
+  cloudList.forEach(function(item) {
+    if (item && item.id && (deletedSet[item.id] || deletedSet[item._id])) {
+      wx.cloud.callFunction({
+        name: 'record',
+        data: { action: 'remove', collection: collection, id: item.id }
+      }).catch(function(err) { console.warn('云端删除同步失败:', item.id, err) })
+    }
+  })
+
+  return merged
+}
+
+/**
+ * 带图片的自愈：补传未同步的记录（含图片上传）
+ * @param {string} collection - 集合名
+ * @param {string} storageKey - 本地存储 key
+ * @param {Array} localList - 本地数据
+ * @param {Object} cloudIdSet - 云端已存在 ID 集合
+ * @param {Object} deletedSet - 已删除 ID 集合
+ * @param {string} imageField - 图片字段名
+ */
+function selfHealWithImages(collection, storageKey, localList, cloudIdSet, deletedSet, imageField) {
+  if (!isCloudReady()) return
+  var count = 0
+  localList.forEach(function(r) {
+    if (count >= SELF_HEAL_MAX) return
+    if (r && r.id && !r.synced && !cloudIdSet[r.id] && !deletedSet[r.id] && !r.lastSyncAt) {
+      var imageData = r[imageField]
+      
+      if (imageData && typeof imageData === 'string' && !imageData.startsWith('cloud://')) {
+        // 图片是本地路径，先上传图片再补传记录
+        var cloudPath = collection + '/' + r.id + '.png'
+        wx.cloud.uploadFile({ cloudPath: cloudPath, filePath: imageData })
+          .then(function(uploadRes) {
+            var healed = Object.assign({}, r, { 
+              [imageField]: uploadRes.fileID,
+              synced: true 
+            })
+            return wx.cloud.callFunction({
+              name: 'record',
+              data: { action: 'add', collection: collection, data: healed }
+            })
+          })
+          .then(function() {
+            // 补传成功后回写本地缓存
+            var cur = childStorage.get(storageKey) || []
+            for (var i = 0; i < cur.length; i++) {
+              if (cur[i].id === r.id) {
+                cur[i].synced = true
+                break
+              }
+            }
+            childStorage.set(storageKey, cur)
+          })
+          .catch(function(err) { console.warn('自愈补传失败:', r.id, err) })
+      } else {
+        // 图片已是云端 fileID 或无图片，直接补传记录
+        wx.cloud.callFunction({
+          name: 'record',
+          data: { action: 'add', collection: collection, data: r }
+        }).catch(function(err) { console.warn('自愈补传失败:', r.id, err) })
+      }
+      count++
+    }
+  })
+}
+
+// ===== 工厂函数 =====
+
+/**
+ * 创建列表型数据的 fetch 函数
+ * @param {Object} config
+ * @param {string} config.collection - 云函数集合名
+ * @param {string} config.storageKey - 本地存储 key
+ * @param {string} config.deletedKey - 墓碑存储 key
+ * @param {string} [config.isolation='child'] - 隔离级别：'family'|'child'|'member'
+ * @param {number} [config.pageSize=100] - 分页大小
+ * @param {Function} [config.transformCloudItem] - 云端数据转换函数
+ * @param {Function} [config.expandLegacyItem] - 旧格式展开函数
+ * @param {Function} [config.migrateLegacy] - 旧数据迁移函数
+ * @param {boolean} [config.hasImage=false] - 是否有图片字段
+ * @param {string} [config.imageField] - 图片字段名（hasImage=true 时必填）
+ * @param {string} [config.gameType] - 游戏类型（游戏模块专用）
+ * @returns {Function} fetch 函数
+ */
+function createListFetcher(config) {
+  var isolation = config.isolation || ISOLATION_LEVEL.CHILD
+  
+  return async function fetchList() {
+    var storageKey = getStorageKey(config)
+    var localList = childStorage.get(storageKey) || []
+    
+    // 一次性迁移旧格式数据
+    if (config.migrateLegacy) {
+      localList = config.migrateLegacy(localList)
+    }
+    
+    var member = auth.getMember()
+    if (!member) return localList
+    if (!isCloudReady()) return localList
+    
+    try {
+      // 根据隔离级别构建查询参数
+      var queryParams = {
+        action: 'list',
+        collection: config.collection,
+        page: 1,
+        pageSize: config.pageSize || 100
+      }
+      
+      switch (isolation) {
+        case ISOLATION_LEVEL.FAMILY:
+          queryParams.childId = ''
+          break
+        case ISOLATION_LEVEL.CHILD:
+          queryParams.childId = auth.getCurrentChildId()
+          break
+        case ISOLATION_LEVEL.MEMBER:
+          queryParams.childId = ''
+          queryParams.memberId = member._id
+          break
+        default:
+          queryParams.childId = auth.getCurrentChildId()
+      }
+      
+      var res = await wx.cloud.callFunction({
+        name: 'record',
+        data: queryParams
+      })
+      
+      if (res.result.code === 0) {
+        var cloudList = res.result.data.list || []
+        
+        // 兼容旧格式：展开数组类型的文档
+        if (config.expandLegacyItem) {
+          cloudList = config.expandLegacyItem(cloudList)
+        }
+        
+        // 游戏模块：本地过滤 gameType
+        if (config.gameType) {
+          cloudList = cloudList.filter(function(r) {
+            return r && r.gameType === config.gameType
+          })
+        }
+        
+        // 获取墓碑
+        var tombstoneKey = getTombstoneKey(config)
+        var deletedIds = getDeletedIdsByKey(tombstoneKey)
+        var deletedSet = {}
+        deletedIds.forEach(function(id) { deletedSet[id] = true })
+        
+        // 通用合并 + 自愈
+        return mergeAndHealV2(
+          config.collection,
+          storageKey,
+          localList,
+          cloudList,
+          deletedSet,
+          config.transformCloudItem,
+          config.hasImage ? config.imageField : null
+        )
+      }
+    } catch (err) {
+      console.warn(config.collection + ' 云端读取失败，使用本地缓存:', err)
+    }
+    
+    return localList
+  }
+}
+
+/**
+ * 创建上传操作函数（不带图片）
+ * @param {Object} config
+ * @param {string} config.collection - 云函数集合名
+ * @param {string} config.storageKey - 本地存储 key
+ * @param {string} [config.isolation='child'] - 隔离级别
+ * @returns {Function} 上传函数
+ */
+function createUploader(config) {
+  return async function uploadRecord(record) {
+    var meta = getRecordMeta()
+    var recordData = { 
+      ...record, 
+      ...meta, 
+      synced: false 
+    }
+    
+    var storageKey = getStorageKey(config)
+    
+    // 1. 写本地（立即生效）
+    var localList = childStorage.get(storageKey) || []
+    var existing = localList.findIndex(function(item) { return item.id === record.id })
+    if (existing >= 0) {
+      localList[existing] = { ...localList[existing], ...recordData }
+    } else {
+      localList.unshift(recordData)
+    }
+    childStorage.set(storageKey, localList)
+    
+    // 2. 同步云端
+    if (!isCloudReady()) return
+    
+    try {
+      await wx.cloud.callFunction({
+        name: 'record',
+        data: { 
+          action: 'add', 
+          collection: config.collection, 
+          data: { _id: record.id, ...recordData } 
+        }
+      })
+      
+      // 3. 成功：标记已同步
+      markRecordSynced(storageKey, record.id)
+    } catch (err) {
+      console.warn(config.collection + ' 同步失败，入队重试:', err)
+      // 4. 失败：入队等待重试
+      syncQueue.enqueue({ 
+        id: record.id, 
+        action: 'add', 
+        collection: config.collection, 
+        data: { _id: record.id, ...recordData } 
+      })
+    }
+  }
+}
+
+/**
+ * 创建带图片的上传操作函数（两阶段同步）
+ * @param {Object} config
+ * @param {string} config.collection - 云函数集合名
+ * @param {string} config.storageKey - 本地存储 key
+ * @param {string} config.imageField - 图片字段名
+ * @param {string} config.cloudPathPrefix - 云存储路径前缀
+ * @param {string} [config.isolation='child'] - 隔离级别
+ * @param {boolean} [config.multiImage=false] - 是否支持多图
+ * @returns {Function} 上传函数
+ */
+function createUploaderWithImage(config) {
+  return async function uploadRecordWithImage(record, tempFilePaths) {
+    var meta = getRecordMeta()
+    var recordData = { 
+      ...record, 
+      ...meta, 
+      synced: false 
+    }
+    
+    var storageKey = getStorageKey(config)
+    var util = require('./util.js')
+    var images = Array.isArray(tempFilePaths) ? tempFilePaths : [tempFilePaths]
+    var localImages = []
+    
+    // 1. 图片落到持久化目录（保证本地能展示）
+    for (var i = 0; i < images.length; i++) {
+      var savedPath = await util.saveImageToPersistent(images[i])
+      localImages.push(savedPath)
+    }
+    
+    if (config.multiImage) {
+      recordData[config.imageField] = localImages
+    } else {
+      recordData[config.imageField] = localImages[0]
+    }
+    
+    // 2. 写本地（立即生效）
+    var localList = childStorage.get(storageKey) || []
+    localList.unshift(recordData)
+    childStorage.set(storageKey, localList)
+    
+    // 3. 入队（含图片上传任务，两阶段同步）
+    var uploadImages = []
+    for (var j = 0; j < localImages.length; j++) {
+      uploadImages.push({
+        field: config.multiImage ? config.imageField + '[' + j + ']' : config.imageField,
+        localPath: localImages[j],
+        cloudPath: config.cloudPathPrefix + record.id + '_' + j + '.png'
+      })
+    }
+    
+    syncQueue.enqueue({
+      id: record.id,
+      action: 'add',
+      collection: config.collection,
+      data: recordData,
+      uploadImages: uploadImages
+    })
+    
+    // 4. 尝试立即同步
+    if (!isCloudReady()) return
+    
+    try {
+      // 逐张上传图片，每张成功后立即回写本地与 recordData，避免部分失败时丢失已传 fileID
+      for (var k = 0; k < uploadImages.length; k++) {
+        var img = uploadImages[k]
+        try {
+          var uploadRes = await wx.cloud.uploadFile({ 
+            cloudPath: img.cloudPath, 
+            filePath: img.localPath 
+          })
+          
+          if (config.multiImage) {
+            recordData[config.imageField][k] = uploadRes.fileID
+          } else {
+            recordData[config.imageField] = uploadRes.fileID
+          }
+          
+          // 回写本地缓存
+          var tmpList = childStorage.get(storageKey) || []
+          for (var ti = 0; ti < tmpList.length; ti++) {
+            if (tmpList[ti].id === record.id) {
+              if (config.multiImage) {
+                tmpList[ti][config.imageField][k] = uploadRes.fileID
+              } else {
+                tmpList[ti][config.imageField] = uploadRes.fileID
+              }
+              break
+            }
+          }
+          childStorage.set(storageKey, tmpList)
+        } catch (imgErr) {
+          // 单张失败：更新队列项，抛出触发整体重试
+          console.warn('图片上传失败:', img.localPath, imgErr)
+          syncQueue.updateData(record.id, recordData)
+          throw imgErr
+        }
+      }
+      
+      // 再同步记录
+      await wx.cloud.callFunction({
+        name: 'record',
+        data: { 
+          action: 'add', 
+          collection: config.collection, 
+          data: { _id: record.id, ...recordData } 
+        }
+      })
+      
+      // 成功：标记已同步 + 从队列移除
+      markRecordSynced(storageKey, record.id)
+      syncQueue.dequeue(record.id, 'add')
+    } catch (err) {
+      console.warn(config.collection + ' 同步失败，等待重试:', err)
+    }
+  }
+}
+
+/**
+ * 创建删除操作函数
+ * @param {Object} config
+ * @param {string} config.collection - 云函数集合名
+ * @param {string} config.storageKey - 本地存储 key
+ * @param {string} config.deletedKey - 墓碑存储 key
+ * @param {string} [config.isolation='child'] - 隔离级别
+ * @returns {Function} 删除函数
+ */
+function createRemover(config) {
+  return async function removeRecord(id) {
+    var tombstoneKey = getTombstoneKey(config)
+    var storageKey = getStorageKey(config)
+    
+    // 1. 写入墓碑
+    addDeletedIdByKey(tombstoneKey, id)
+    
+    // 2. 从本地缓存删除
+    var localList = childStorage.get(storageKey) || []
+    childStorage.set(storageKey, localList.filter(function(item) { 
+      return item.id !== id 
+    }))
+    
+    // 3. 尝试删除云端记录
+    if (!isCloudReady()) return false
+    
+    try {
+      var res = await wx.cloud.callFunction({
+        name: 'record',
+        data: { 
+          action: 'remove', 
+          collection: config.collection, 
+          id: id 
+        }
+      })
+      
+      if (res.result && res.result.code === 0) {
+        removeTombstoneByKey(tombstoneKey, id)
+        return true
+      }
+    } catch (err) {
+      console.warn('云端删除' + config.collection + '失败:', err)
+    }
+    
+    return false
+  }
+}
+
+// ===== 模块配置表 =====
+
+var LIST_MODULE_CONFIGS = {
+  // 孩子级隔离（当前默认）
+  drawings: {
+    collection: 'drawings',
+    storageKey: 'drawings',
+    deletedKey: 'deletedDrawingIds',
+    isolation: ISOLATION_LEVEL.CHILD,
+    pageSize: 100,
+    hasImage: true,
+    imageField: 'imagePath',
+    cloudPathPrefix: 'drawings/'
+  },
+  notes: {
+    collection: 'notes',
+    storageKey: 'notes',
+    deletedKey: 'deletedNoteIds',
+    isolation: ISOLATION_LEVEL.CHILD,
+    pageSize: 200,
+    hasImage: false
+  },
+  brushingRecords: {
+    collection: 'brushingRecords',
+    storageKey: 'brushingRecords',
+    deletedKey: 'deletedBrushingIds',
+    isolation: ISOLATION_LEVEL.CHILD,
+    pageSize: 200,
+    hasImage: true,
+    multiImage: true,
+    imageField: 'images',
+    cloudPathPrefix: 'brushing/',
+    transformCloudItem: function(r) {
+      return {
+        ...r,
+        id: r.id || r._id,
+        imagePath: r.cloudFileID || r.imagePath || '',
+        images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+      }
+    }
+  },
+  habitRecords: {
+    collection: 'habitRecords',
+    storageKey: 'habitRecords',
+    deletedKey: 'deletedHabitRecordIds',
+    isolation: ISOLATION_LEVEL.CHILD,
+    pageSize: 200,
+    hasImage: true,
+    imageField: 'images',
+    cloudPathPrefix: 'habits/'
+  },
+  stallProducts: {
+    collection: 'stallProducts',
+    storageKey: 'stallProducts',
+    deletedKey: 'deletedStallProductIds',
+    isolation: ISOLATION_LEVEL.CHILD,
+    pageSize: 100,
+    hasImage: true,
+    imageField: 'imagePath',
+    cloudPathPrefix: 'stall/products/',
+    expandLegacyItem: function(list) {
+      var expanded = []
+      list.forEach(function(item) {
+        if (Array.isArray(item)) {
+          item.forEach(function(p) { if (p && p.id) expanded.push(p) })
+        } else if (item && item.id) {
+          expanded.push(item)
+        }
+      })
+      return expanded
+    }
+  },
+  stallSales: {
+    collection: 'stallSales',
+    storageKey: 'stallSales',
+    deletedKey: 'deletedStallSaleIds',
+    isolation: ISOLATION_LEVEL.CHILD,
+    pageSize: 100,
+    hasImage: false,
+    expandLegacyItem: function(list) {
+      var expanded = []
+      list.forEach(function(item) {
+        if (Array.isArray(item)) {
+          item.forEach(function(s) { if (s && s.id) expanded.push(s) })
+        } else if (item && item.id) {
+          expanded.push(item)
+        }
+      })
+      return expanded
+    }
+  },
+  accountBooks: {
+    collection: 'accountBooks',
+    storageKey: 'accountBooks',
+    deletedKey: 'deletedBookIds',
+    isolation: ISOLATION_LEVEL.CHILD,
+    pageSize: 100,
+    hasImage: false
+  },
+  bookEntries: {
+    collection: 'bookEntries',
+    storageKey: 'accountEntries',
+    deletedKey: 'deletedEntryIds',
+    isolation: ISOLATION_LEVEL.CHILD,
+    pageSize: 100,
+    hasImage: true,
+    imageField: 'images',
+    cloudPathPrefix: 'account/'
+  },
+  // 家庭级共享（游戏记录）
+  gameRecords: {
+    collection: 'gameRecords',
+    storageKey: 'gameRecords',
+    deletedKey: 'deletedGameRecordIds',
+    isolation: ISOLATION_LEVEL.FAMILY,
+    pageSize: 200,
+    hasImage: false
+  }
+}
+
+// ===== 单例型同步工厂 =====
+
+/**
+ * 创建单例型数据的同步函数
+ * @param {Object} config
+ * @param {string} config.collection - 云函数集合名
+ * @param {string} config.key - 单例 key
+ * @param {string} config.storageKey - 本地存储 key
+ * @param {string} [config.isolation='child'] - 隔离级别：'family'|'child'|'member'
+ * @param {boolean} [config.useOptimisticLock=true] - 是否使用乐观锁
+ * @returns {Object} { upload, fetch } 函数
+ */
+function createSingletonSync(config) {
+  var isolation = config.isolation || SINGLETON_ISOLATION.CHILD
+  var useLock = config.useOptimisticLock !== false
+  
+  return {
+    /**
+     * 上传单例数据到云端
+     * @param {Object} data - 要上传的数据
+     */
+    upload: async function uploadSingleton(data) {
+      var storageKey = getStorageKey(config)
+      
+      // 1. 写本地（立即生效）
+      childStorage.set(storageKey, data)
+      
+      if (!isCloudReady()) return
+      
+      try {
+        var now = new Date().toISOString()
+        childStorage.set(storageKey + 'UpdatedAt', now)
+        
+        // 根据隔离级别构建上传参数
+        var childId = undefined
+        var memberId = undefined
+        
+        switch (isolation) {
+          case SINGLETON_ISOLATION.FAMILY:
+            childId = ''
+            break
+          case SINGLETON_ISOLATION.CHILD:
+            childId = auth.getCurrentChildId()
+            break
+          case SINGLETON_ISOLATION.MEMBER:
+            childId = ''
+            memberId = auth.getMember()._id
+            break
+        }
+        
+        // 2. 同步云端
+        await callUpsertSingleton(config.collection, config.key, {
+          ...data,
+          updatedAt: now
+        }, childId, memberId)
+      } catch (err) {
+        console.warn(config.key + ' 云端保存失败:', err)
+        // 3. 失败入队离线重试
+        enqueueSingleton(config.collection, config.key, data)
+      }
+    },
+    
+    /**
+     * 从云端拉取单例数据
+     * @returns {Object} 本地数据
+     */
+    fetch: async function fetchSingleton() {
+      var storageKey = getStorageKey(config)
+      var member = auth.getMember()
+      if (!member) return childStorage.get(storageKey) || {}
+      
+      if (!isCloudReady()) {
+        return childStorage.get(storageKey) || {}
+      }
+      
+      try {
+        // 根据隔离级别构建查询参数
+        var childId = undefined
+        var memberId = undefined
+        
+        switch (isolation) {
+          case SINGLETON_ISOLATION.FAMILY:
+            childId = ''
+            break
+          case SINGLETON_ISOLATION.CHILD:
+            childId = auth.getCurrentChildId()
+            break
+          case SINGLETON_ISOLATION.MEMBER:
+            childId = ''
+            memberId = member._id
+            break
+        }
+        
+        var res = await callGetSingleton(config.collection, config.key, childId, memberId)
+        var doc = res.result.code === 0 ? res.result.data : null
+        
+        if (doc) {
+          var cloudUpdatedAt = doc.updatedAt
+          
+          // 提取纯数据（剥离元数据）
+          var { _id, familyId, childId: cId, memberId: mId, skey, createdBy, createdByName, 
+                updatedBy, likes, createTime, updateTime, updatedAt, ...data } = doc
+          
+          // 乐观锁：仅云端更新时覆盖本地
+          if (!useLock || shouldUseCloud(cloudUpdatedAt, childStorage.get(storageKey + 'UpdatedAt'))) {
+            childStorage.set(storageKey, data)
+            childStorage.set(storageKey + 'UpdatedAt', cloudUpdatedAt)
+          }
+          
+          return childStorage.get(storageKey) || {}
+        }
+      } catch (err) {
+        console.warn(config.key + ' 云端读取失败:', err)
+      }
+      
+      return childStorage.get(storageKey) || {}
+    }
+  }
+}
+
+// ===== 单例型模块配置表 =====
+
+var SINGLETON_MODULE_CONFIGS = {
+  // 孩子级隔离（当前默认）
+  habits: {
+    collection: 'userSettings',
+    key: 'habits',
+    storageKey: 'habits',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  learnProgress: {
+    collection: 'userSettings',
+    key: 'learnProgress',
+    storageKey: 'learnProgress',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  settings: {
+    collection: 'userSettings',
+    key: 'settings',
+    storageKey: 'settings',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  accountSettings: {
+    collection: 'userSettings',
+    key: 'accountSettings',
+    storageKey: 'accountSettings',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: false
+  },
+  brushingStory: {
+    collection: 'userSettings',
+    key: 'brushingStory',
+    storageKey: 'brushingStory',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  brushingAvatar: {
+    collection: 'userSettings',
+    key: 'brushingAvatar',
+    storageKey: 'brushingAvatar',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  brushPoints: {
+    collection: 'userSettings',
+    key: 'brushPoints',
+    storageKey: 'brushPoints',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  toothDecorations: {
+    collection: 'userSettings',
+    key: 'toothDecorations',
+    storageKey: 'toothDecorations',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  aiSkills: {
+    collection: 'userSettings',
+    key: 'aiSkills',
+    storageKey: 'aiSkills',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  stallSettings: {
+    collection: 'userSettings',
+    key: 'stallSettings',
+    storageKey: 'stallSettings',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  stallChallenges: {
+    collection: 'userSettings',
+    key: 'stallChallenges',
+    storageKey: 'stallChallenges',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  },
+  stallBusinessHours: {
+    collection: 'userSettings',
+    key: 'stallBusinessHours',
+    storageKey: 'stallBusinessHours',
+    isolation: SINGLETON_ISOLATION.CHILD,
+    useOptimisticLock: true
+  }
 }
 
 async function fetchNotes() {
@@ -1137,36 +2068,16 @@ async function fetchAchievements() {
 /**
  * 上传AI技能到云端（调用前需确保本地已保存）
  */
+// 使用工厂函数创建AI技能模块的同步函数
+var _aiSkillsSync = createSingletonSync(SINGLETON_MODULE_CONFIGS.aiSkills)
+
+// 向后兼容：保留原有函数名
 async function uploadAiSkills(skills) {
-  if (isCloudReady()) {
-    try {
-      await callUpsertSingleton('aiSkills', 'user_aiSkills', { list: skills })
-    } catch (err) {
-      console.warn('AI技能云端保存失败:', err)
-    }
-  }
+  return _aiSkillsSync.upload(skills)
 }
 
 async function fetchAiSkills() {
-  var member = auth.getMember()
-  if (!member) return childStorage.get('aiSkills') || []
-
-  if (!isCloudReady()) {
-    return childStorage.get('aiSkills') || []
-  }
-
-  try {
-    var res = await callGetSingleton('aiSkills', 'user_aiSkills')
-    if (res.result.code === 0 && res.result.data) {
-      var list = res.result.data.list || []
-      childStorage.set('aiSkills', list)
-      return list
-    }
-  } catch (err) {
-    console.warn('AI技能云端读取失败:', err)
-  }
-
-  return childStorage.get('aiSkills') || []
+  return _aiSkillsSync.fetch()
 }
 
 // ===== 习惯打卡 =====
@@ -1250,7 +2161,7 @@ async function uploadHabitRecord(record) {
     syncQueue.dequeue(record.id, 'add')
 
     // 同步成功，标记 synced=true
-    var localRecords = childStorage.get('habitRecords') || []
+    localRecords = childStorage.get('habitRecords') || []
     for (var i = 0; i < localRecords.length; i++) {
       if (localRecords[i].id === record.id) {
         localRecords[i].synced = true
@@ -1352,183 +2263,58 @@ async function removeHabitRecord(id) {
 
 // ===== 习惯定义 =====
 
-async function uploadHabits(habits) {
-  childStorage.set('habits', habits)
+// 使用工厂函数创建习惯定义模块的同步函数
+var _habitsSync = createSingletonSync(SINGLETON_MODULE_CONFIGS.habits)
 
-  if (isCloudReady()) {
-    try {
-      var now = new Date().toISOString()
-      childStorage.set('habitsUpdatedAt', now)
-      // 单例：习惯定义按"家庭+孩子"隔离存储
-      await callUpsertSingleton('userSettings', 'habits', { list: habits, updatedAt: now })
-    } catch (err) {
-      console.warn('习惯定义云端保存失败:', err)
-    }
-  }
+// 向后兼容：保留原有函数名
+async function uploadHabits(habits) {
+  return _habitsSync.upload(habits)
 }
 
 async function fetchHabits() {
-  var member = auth.getMember()
-  if (!member) return childStorage.get('habits') || []
-
-  if (!isCloudReady()) {
-    return childStorage.get('habits') || []
-  }
-
-  try {
-    var res = await callGetSingleton('userSettings', 'habits')
-    var habitsDoc = res.result.code === 0 ? res.result.data : null
-    if (habitsDoc && habitsDoc.list) {
-      // 乐观锁：仅当云端比本地更新时才覆盖，避免本地新改动被旧云端数据覆盖
-      if (shouldUseCloud(habitsDoc.updatedAt, childStorage.get('habitsUpdatedAt'))) {
-        childStorage.set('habits', habitsDoc.list)
-        childStorage.set('habitsUpdatedAt', habitsDoc.updatedAt)
-      }
-      return childStorage.get('habits') || []
-    }
-  } catch (err) {
-    console.warn('习惯定义云端读取失败:', err)
-  }
-
-  return childStorage.get('habits') || []
-}
-
-// 乐观锁比较：云端 updatedAt 比本地新（或本地无记录）时返回 true
-function shouldUseCloud(cloudUpdatedAt, localUpdatedAt) {
-  if (!cloudUpdatedAt) return true  // 云端无时间戳（旧数据），兼容使用
-  if (!localUpdatedAt) return true  // 本地无时间戳，使用云端
-  return new Date(cloudUpdatedAt).getTime() > new Date(localUpdatedAt).getTime()
+  return _habitsSync.fetch()
 }
 
 // ===== 学习进度 =====
 
-async function uploadLearnProgress(progress) {
-  childStorage.set('learnProgress', progress)
+// 使用工厂函数创建学习进度模块的同步函数
+var _learnProgressSync = createSingletonSync(SINGLETON_MODULE_CONFIGS.learnProgress)
 
-  if (isCloudReady()) {
-    try {
-      var now = new Date().toISOString()
-      childStorage.set('learnProgressUpdatedAt', now)
-      // 单例：学习进度按"家庭+孩子"隔离存储
-      await callUpsertSingleton('userSettings', 'learnProgress', { ...progress, updatedAt: now })
-    } catch (err) {
-      console.warn('学习进度云端保存失败:', err)
-    }
-  }
+// 向后兼容：保留原有函数名
+async function uploadLearnProgress(progress) {
+  return _learnProgressSync.upload(progress)
 }
 
 async function fetchLearnProgress() {
-  var member = auth.getMember()
-  if (!member) return childStorage.get('learnProgress') || {}
-
-  if (!isCloudReady()) {
-    return childStorage.get('learnProgress') || {}
-  }
-
-  try {
-    var res = await callGetSingleton('userSettings', 'learnProgress')
-    var progressDoc = res.result.code === 0 ? res.result.data : null
-    if (progressDoc) {
-      var cloudUpdatedAt = progressDoc.updatedAt
-      var { _id, familyId, childId, skey, createdBy, createdByName, updatedBy, likes, createTime, updateTime, updatedAt, ...progress } = progressDoc
-      // 乐观锁：仅云端更新时覆盖本地
-      if (shouldUseCloud(cloudUpdatedAt, childStorage.get('learnProgressUpdatedAt'))) {
-        childStorage.set('learnProgress', progress)
-        childStorage.set('learnProgressUpdatedAt', cloudUpdatedAt)
-      }
-      return childStorage.get('learnProgress') || {}
-    }
-  } catch (err) {
-    console.warn('学习进度云端读取失败:', err)
-  }
-
-  return childStorage.get('learnProgress') || {}
+  return _learnProgressSync.fetch()
 }
 
 // ===== 设置 =====
 
-async function uploadSettings(settings) {
-  childStorage.set('settings', settings)
+// 使用工厂函数创建设置模块的同步函数
+var _settingsSync = createSingletonSync(SINGLETON_MODULE_CONFIGS.settings)
 
-  if (isCloudReady()) {
-    try {
-      var now = new Date().toISOString()
-      childStorage.set('settingsUpdatedAt', now)
-      // 单例：设置按"家庭+孩子"隔离存储
-      await callUpsertSingleton('userSettings', 'settings', { ...settings, updatedAt: now })
-    } catch (err) {
-      console.warn('设置云端保存失败:', err)
-    }
-  }
+// 向后兼容：保留原有函数名
+async function uploadSettings(settings) {
+  return _settingsSync.upload(settings)
 }
 
 async function fetchSettings() {
-  var member = auth.getMember()
-  if (!member) return childStorage.get('settings') || {}
-
-  if (!isCloudReady()) {
-    return childStorage.get('settings') || {}
-  }
-
-  try {
-    var res = await callGetSingleton('userSettings', 'settings')
-    var settingsDoc = res.result.code === 0 ? res.result.data : null
-    if (settingsDoc) {
-      var cloudUpdatedAt = settingsDoc.updatedAt
-      var { _id, familyId, childId, skey, createdBy, createdByName, updatedBy, likes, createTime, updateTime, updatedAt, ...settings } = settingsDoc
-      if (shouldUseCloud(cloudUpdatedAt, childStorage.get('settingsUpdatedAt'))) {
-        childStorage.set('settings', settings)
-        childStorage.set('settingsUpdatedAt', cloudUpdatedAt)
-      }
-      return childStorage.get('settings') || {}
-    }
-  } catch (err) {
-    console.warn('设置云端读取失败:', err)
-  }
-
-  return childStorage.get('settings') || {}
+  return _settingsSync.fetch()
 }
 
 // ===== 刷牙故事 =====
 
-async function uploadBrushingStory(story) {
-  childStorage.set('brushingStory', story)
+// 使用工厂函数创建刷牙故事模块的同步函数
+var _brushingStorySync = createSingletonSync(SINGLETON_MODULE_CONFIGS.brushingStory)
 
-  if (isCloudReady()) {
-    try {
-      var now = new Date().toISOString()
-      childStorage.set('brushingStoryUpdatedAt', now)
-      // 单例：刷牙故事进度按"家庭+孩子"隔离存储
-      await callUpsertSingleton('userSettings', 'brushingStory', { ...story, updatedAt: now })
-    } catch (err) {
-      console.warn('故事进度云端保存失败:', err)
-    }
-  }
+// 向后兼容：保留原有函数名
+async function uploadBrushingStory(story) {
+  return _brushingStorySync.upload(story)
 }
 
 async function fetchBrushingStory() {
-  var member = auth.getMember()
-  if (!member) return null
-
-  if (!isCloudReady()) {
-    return childStorage.get('brushingStory') || null
-  }
-
-  try {
-    var res = await callGetSingleton('userSettings', 'brushingStory')
-    var storyDoc = res.result.code === 0 ? res.result.data : null
-    if (storyDoc) {
-      var cloudUpdatedAt = storyDoc.updatedAt
-      var { _id, familyId, childId, skey, createdBy, createdByName, updatedBy, likes, createTime, updateTime, updatedAt, ...story } = storyDoc
-      if (shouldUseCloud(cloudUpdatedAt, childStorage.get('brushingStoryUpdatedAt'))) {
-        childStorage.set('brushingStory', story)
-        childStorage.set('brushingStoryUpdatedAt', cloudUpdatedAt)
-      }
-      return childStorage.get('brushingStory') || null
-    }
-  } catch (err) { console.warn('刷牙故事云端读取失败:', err) }
-
-  return childStorage.get('brushingStory') || null
+  return _brushingStorySync.fetch()
 }
 
 // ===== 刷牙角色 =====
@@ -1693,19 +2479,8 @@ async function uploadStallProduct(product) {
       }
       childStorage.set('stallProducts', localProducts)
     } catch (imgErr) {
-      console.warn('商品图片上传失败:', imgErr)
-      // 图片上传失败，入队列重试
-      syncQueue.enqueue({ 
-        id: productData.id, 
-        action: 'add', 
-        collection: 'stallProducts', 
-        data: { _id: productData.id, ...productData },
-        uploadImages: [{
-          field: 'imagePath',
-          localPath: productData.imagePath,
-          cloudPath: 'stall/products/' + product.id + '.png'
-        }]
-      })
+      console.error('[商品上传] 图片上传失败详情:', productData.imagePath, JSON.stringify(imgErr))
+      // 图片上传失败，只保留本地，不保存到云端
       return
     }
   }
@@ -1828,156 +2603,35 @@ async function removeStallProduct(id) {
 }
 
 // 上传单条销售记录（带 _id 走 upsert）
+// 使用工厂函数创建销售模块的 fetch/upload/remove 函数
+var _stallSalesFetcher = createListFetcher(LIST_MODULE_CONFIGS.stallSales)
+var _stallSalesUploader = createUploader(LIST_MODULE_CONFIGS.stallSales)
+var _stallSalesRemover = createRemover(LIST_MODULE_CONFIGS.stallSales)
+
+// 向后兼容：保留原有函数名
 async function uploadStallSale(sale) {
-  if (!isCloudReady()) return
-  try {
-    await wx.cloud.callFunction({
-      name: 'record',
-      data: { action: 'add', collection: 'stallSales', data: { _id: sale.id, ...sale } }
-    })
-    
-    // 同步成功，标记 synced=true
-    var localSales = childStorage.get('stallSales') || []
-    for (var i = 0; i < localSales.length; i++) {
-      if (localSales[i].id === sale.id) {
-        localSales[i].synced = true
-        break
-      }
-    }
-    childStorage.set('stallSales', localSales)
-  } catch (err) {
-    console.warn('云端同步销售记录失败，入队列重试:', err)
-    syncQueue.enqueue({ id: sale.id, action: 'add', collection: 'stallSales', data: { _id: sale.id, ...sale } })
-  }
+  return _stallSalesUploader(sale)
 }
 
 async function fetchStallSales() {
-  var localSales = childStorage.get('stallSales') || []
-  if (!isCloudReady()) return localSales
-  try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: { action: 'list', collection: 'stallSales', childId: auth.getCurrentChildId(), pageSize: 100 }
-    })
-    if (res.result.code === 0) {
-      var cloudList = res.result.data.list || []
-      var deletedIds = getDeletedStallSaleIds()
-      var deletedSet = {}
-      deletedIds.forEach(function(id) { deletedSet[id] = true })
-
-      // 兼容旧格式：展开数组类型的文档
-      var expandedList = []
-      cloudList.forEach(function(item) {
-        if (Array.isArray(item)) {
-          item.forEach(function(s) { if (s && s.id) expandedList.push(s) })
-        } else if (item && item.id) {
-          expandedList.push(item)
-        }
-      })
-
-      // 合并策略（过滤已删除的记录）
-      var merged = []
-      var mergedIds = {}
-
-      // 先添加云端数据（排除已删除的）
-      expandedList.forEach(function(s) {
-        if (s && s.id && !deletedSet[s.id] && !deletedSet[s._id]) {
-          merged.push(s)
-          mergedIds[s.id] = true
-        }
-      })
-
-      // 再添加本地独有数据（未同步到云端的）
-      localSales.forEach(function(s) {
-        if (s && s.id && !mergedIds[s.id] && !deletedSet[s.id]) {
-          if (!s.synced) {
-            merged.push(s)
-          }
-        }
-      })
-
-      childStorage.set('stallSales', merged)
-
-      // 云端仍存在但本地已删除的记录，再次尝试删除
-      expandedList.forEach(function(s) {
-        if (s && s.id && deletedSet[s.id]) {
-          wx.cloud.callFunction({
-            name: 'record',
-            data: { action: 'remove', collection: 'stallSales', id: s._id || s.id }
-          }).catch(function(err) { console.warn('销售记录云端删除失败:', s.id, err) })
-        }
-      })
-
-      // 清理云端旧格式的数组文档
-      cleanLegacyArrayDocs('stallSales', cloudList)
-
-      return merged
-    }
-  } catch (err) {
-    console.warn('云端读取销售记录失败:', err)
-  }
-  return localSales
+  return _stallSalesFetcher()
 }
 
 async function removeStallSale(id) {
-  // 先记录墓碑，防止 fetch 时把已删除记录拉回来
-  addDeletedStallSaleId(id)
-
-  // 从本地缓存删除
-  childStorage.set('stallSales', (childStorage.get('stallSales') || []).filter(function(s) { return s.id !== id }))
-
-  // 尝试删除云端记录
-  if (!isCloudReady()) return
-  try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: { action: 'remove', collection: 'stallSales', id: id }
-    })
-    // 云端删除成功后，清除墓碑
-    if (res.result && res.result.code === 0) {
-      removeTombstone(DELETED_STALL_SALES_KEY, id)
-    } else {
-      console.warn('云端删除销售记录失败:', res.result)
-    }
-  } catch (err) {
-    console.warn('云端删除销售记录失败:', err)
-  }
+  return _stallSalesRemover(id)
 }
 
 // 上传摊位设置（用固定 _id 的 upsert 一步到位）
+// 使用工厂函数创建摆摊设置模块的同步函数
+var _stallSettingsSync = createSingletonSync(SINGLETON_MODULE_CONFIGS.stallSettings)
+
+// 向后兼容：保留原有函数名
 async function uploadStallSettings(settings) {
-  childStorage.set('stallSettings', settings)
-  if (!isCloudReady()) return
-  try {
-    var now = new Date().toISOString()
-    childStorage.set('stallSettingsUpdatedAt', now)
-    // 单例：摊位设置按"家庭+孩子"隔离存储
-    await callUpsertSingleton('stallSettings', 'stall_settings', { ...settings, updatedAt: now })
-  } catch (err) {
-    console.warn('云端同步摊位设置失败，入队列重试:', err)
-    enqueueSingleton('stallSettings', 'stall_settings', { ...settings, updatedAt: now })
-  }
+  return _stallSettingsSync.upload(settings)
 }
 
 async function fetchStallSettings() {
-  if (!isCloudReady()) return childStorage.get('stallSettings') || null
-  try {
-    var res = await callGetSingleton('stallSettings', 'stall_settings')
-    if (res.result.code === 0 && res.result.data) {
-      var doc = res.result.data
-      // 乐观锁：仅云端更新时覆盖本地
-      if (shouldUseCloud(doc.updatedAt, childStorage.get('stallSettingsUpdatedAt'))) {
-        var { _id, familyId, childId, skey, createdBy, createdByName, updatedBy, likes, createTime, updateTime, updatedAt, ...settings } = doc
-        childStorage.set('stallSettings', settings)
-        childStorage.set('stallSettingsUpdatedAt', doc.updatedAt)
-        return settings
-      }
-      return childStorage.get('stallSettings') || null
-    }
-  } catch (err) {
-    console.warn('云端读取摊位设置失败:', err)
-  }
-  return childStorage.get('stallSettings') || null
+  return _stallSettingsSync.fetch()
 }
 
 // 清理云端旧格式的数组文档（一次性迁移，旧 uploadStallProduct 传整个数组导致每条文档是数组快照）
@@ -2000,70 +2654,28 @@ async function cleanLegacyArrayDocs(collection, cloudList) {
 
 // ===== 摆摊挑战和营业时间 =====
 
+// 使用工厂函数创建摆摊挑战模块的同步函数
+var _stallChallengesSync = createSingletonSync(SINGLETON_MODULE_CONFIGS.stallChallenges)
+
+// 向后兼容：保留原有函数名
 async function uploadStallChallenges(challenges) {
-  childStorage.set('stallDailyChallenges', challenges)
-  if (!isCloudReady()) return
-  try {
-    var now = new Date().toISOString()
-    childStorage.set('stallDailyChallengesUpdatedAt', now)
-    // 单例：摊位挑战按"家庭+孩子"隔离存储
-    await callUpsertSingleton('stallChallenges', 'stall_challenges', { ...challenges, updatedAt: now })
-  } catch (err) {
-    console.warn('云端同步挑战数据失败:', err)
-  }
+  return _stallChallengesSync.upload(challenges)
 }
 
 async function fetchStallChallenges() {
-  if (!isCloudReady()) return childStorage.get('stallDailyChallenges') || null
-  try {
-    var res = await callGetSingleton('stallChallenges', 'stall_challenges')
-    if (res.result.code === 0 && res.result.data) {
-      var doc = res.result.data
-      if (shouldUseCloud(doc.updatedAt, childStorage.get('stallDailyChallengesUpdatedAt'))) {
-        var { _id, familyId, childId, skey, createdBy, createdByName, updatedBy, likes, createTime, updateTime, updatedAt, ...challenges } = doc
-        childStorage.set('stallDailyChallenges', challenges)
-        childStorage.set('stallDailyChallengesUpdatedAt', doc.updatedAt)
-        return challenges
-      }
-      return childStorage.get('stallDailyChallenges') || null
-    }
-  } catch (err) {
-    console.warn('云端读取挑战数据失败:', err)
-  }
-  return childStorage.get('stallDailyChallenges') || null
+  return _stallChallengesSync.fetch()
 }
 
+// 使用工厂函数创建营业时间模块的同步函数
+var _stallBusinessHoursSync = createSingletonSync(SINGLETON_MODULE_CONFIGS.stallBusinessHours)
+
+// 向后兼容：保留原有函数名
 async function uploadStallBusinessHours(hours) {
-  childStorage.set('stallBusinessHours', hours)
-  if (!isCloudReady()) return
-  try {
-    var now = new Date().toISOString()
-    childStorage.set('stallBusinessHoursUpdatedAt', now)
-    // 单例：营业时间按"家庭+孩子"隔离存储
-    await callUpsertSingleton('stallBusinessHours', 'stall_business_hours', { ...hours, updatedAt: now })
-  } catch (err) {
-    console.warn('云端同步营业时间失败:', err)
-  }
+  return _stallBusinessHoursSync.upload(hours)
 }
 
 async function fetchStallBusinessHours() {
-  if (!isCloudReady()) return childStorage.get('stallBusinessHours') || null
-  try {
-    var res = await callGetSingleton('stallBusinessHours', 'stall_business_hours')
-    if (res.result.code === 0 && res.result.data) {
-      var doc = res.result.data
-      if (shouldUseCloud(doc.updatedAt, childStorage.get('stallBusinessHoursUpdatedAt'))) {
-        var { _id, familyId, childId, skey, createdBy, createdByName, updatedBy, likes, createTime, updateTime, updatedAt, ...hours } = doc
-        childStorage.set('stallBusinessHours', hours)
-        childStorage.set('stallBusinessHoursUpdatedAt', doc.updatedAt)
-        return hours
-      }
-      return childStorage.get('stallBusinessHours') || null
-    }
-  } catch (err) {
-    console.warn('云端读取营业时间失败:', err)
-  }
-  return childStorage.get('stallBusinessHours') || null
+  return _stallBusinessHoursSync.fetch()
 }
 
 // ===== 单例文档一次性迁移（V2：固定 _id → 家庭+孩子复合 _id） =====
@@ -2135,160 +2747,52 @@ function addDeletedEntryId(id) {
   addDeletedIdByKey(DELETED_ENTRIES_KEY, id)
 }
 
+// 使用工厂函数创建记账账本模块的 fetch/upload/remove 函数
+var _accountBooksFetcher = createListFetcher(LIST_MODULE_CONFIGS.accountBooks)
+var _accountBooksUploader = createUploader(LIST_MODULE_CONFIGS.accountBooks)
+var _accountBooksRemover = createRemover(LIST_MODULE_CONFIGS.accountBooks)
+
+// 向后兼容：保留原有函数名
 async function uploadAccountBook(book) {
-  if (!isCloudReady()) return
-  try {
-    await wx.cloud.callFunction({
-      name: 'record',
-      data: { action: 'add', collection: 'accountBooks', data: { _id: book.id, ...book } }
-    })
-    var books = childStorage.get('accountBooks') || []
-    for (var i = 0; i < books.length; i++) {
-      if (books[i].id === book.id) {
-        books[i].synced = true
-        books[i].lastSyncAt = new Date().toISOString()
-        break
-      }
-    }
-    childStorage.set('accountBooks', books)
-  } catch (err) {
-    console.warn('账本同步失败，入队重试:', err)
-    syncQueue.enqueue({ id: book.id, action: 'add', collection: 'accountBooks', data: { _id: book.id, ...book } })
-  }
+  return _accountBooksUploader(book)
 }
 
 async function fetchAccountBooks() {
-  var localBooks = childStorage.get('accountBooks') || []
-  if (!isCloudReady()) return localBooks
-  try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: { action: 'list', collection: 'accountBooks', childId: '', page: 1, pageSize: 100 }
-    })
-    if (res.result.code === 0) {
-      var cloudList = res.result.data.list || []
-      var deletedIds = getDeletedBookIds()
-      var deletedSet = {}
-      deletedIds.forEach(function(id) { deletedSet[id] = true })
-      var merged = mergeAndHeal('accountBooks', 'accountBooks', localBooks, cloudList, deletedSet)
-      return merged
-    }
-  } catch (err) {
-    console.warn('账本云端读取失败:', err)
-  }
-  return localBooks
+  return _accountBooksFetcher()
 }
 
 async function removeAccountBook(id) {
-  addDeletedBookId(id)
-  childStorage.set('accountBooks', (childStorage.get('accountBooks') || []).filter(function(b) { return b.id !== id }))
-  if (!isCloudReady()) return
-  try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: { action: 'remove', collection: 'accountBooks', id: id }
-    })
-    if (res.result && res.result.code === 0) {
-      removeTombstone(DELETED_BOOKS_KEY, id)
-    }
-  } catch (err) {
-    console.warn('云端删除账本失败:', err)
-  }
+  return _accountBooksRemover(id)
 }
 
+// 使用工厂函数创建记账条目模块的 fetch/upload/remove 函数
+var _bookEntriesFetcher = createListFetcher(LIST_MODULE_CONFIGS.bookEntries)
+var _bookEntriesUploader = createUploader(LIST_MODULE_CONFIGS.bookEntries)
+var _bookEntriesRemover = createRemover(LIST_MODULE_CONFIGS.bookEntries)
+
+// 向后兼容：保留原有函数名
 async function uploadBookEntry(entry) {
-  if (!isCloudReady()) return
-  try {
-    await wx.cloud.callFunction({
-      name: 'record',
-      data: { action: 'add', collection: 'bookEntries', data: { _id: entry.id, ...entry } }
-    })
-    var entries = childStorage.get('accountEntries') || []
-    for (var i = 0; i < entries.length; i++) {
-      if (entries[i].id === entry.id) {
-        entries[i].synced = true
-        entries[i].lastSyncAt = new Date().toISOString()
-        break
-      }
-    }
-    childStorage.set('accountEntries', entries)
-  } catch (err) {
-    console.warn('记账条目同步失败，入队重试:', err)
-    syncQueue.enqueue({ id: entry.id, action: 'add', collection: 'bookEntries', data: { _id: entry.id, ...entry } })
-  }
+  return _bookEntriesUploader(entry)
 }
 
 async function fetchBookEntries() {
-  var localEntries = childStorage.get('accountEntries') || []
-  if (!isCloudReady()) return localEntries
-  try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: { action: 'list', collection: 'bookEntries', childId: '', page: 1, pageSize: 100 }
-    })
-    if (res.result.code === 0) {
-      var cloudList = res.result.data.list || []
-      var deletedIds = getDeletedEntryIds()
-      var deletedSet = {}
-      deletedIds.forEach(function(id) { deletedSet[id] = true })
-      var merged = mergeAndHeal('bookEntries', 'accountEntries', localEntries, cloudList, deletedSet)
-      return merged
-    }
-  } catch (err) {
-    console.warn('记账条目云端读取失败:', err)
-  }
-  return localEntries
+  return _bookEntriesFetcher()
 }
 
 async function removeBookEntry(id) {
-  addDeletedEntryId(id)
-  childStorage.set('accountEntries', (childStorage.get('accountEntries') || []).filter(function(e) { return e.id !== id }))
-  if (!isCloudReady()) return
-  try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: { action: 'remove', collection: 'bookEntries', id: id }
-    })
-    if (res.result && res.result.code === 0) {
-      removeTombstone(DELETED_ENTRIES_KEY, id)
-    }
-  } catch (err) {
-    console.warn('云端删除记账条目失败:', err)
-  }
+  return _bookEntriesRemover(id)
 }
 
+// 使用工厂函数创建记账设置模块的同步函数
+var _accountSettingsSync = createSingletonSync(SINGLETON_MODULE_CONFIGS.accountSettings)
+
+// 向后兼容：保留原有函数名
 async function uploadAccountSettings(settings) {
-  if (!isCloudReady()) return
-  try {
-    var now = new Date().toISOString()
-    await callUpsertSingleton('accountSettings', 'account_settings', { ...settings, updatedAt: now })
-  } catch (err) {
-    console.warn('记账设置同步失败:', err)
-  }
+  return _accountSettingsSync.upload(settings)
 }
 
 async function fetchAccountSettings() {
-  if (!isCloudReady()) return childStorage.get('accountSettings') || {}
-  try {
-    var res = await callGetSingleton('accountSettings', 'account_settings')
-    if (res.result.code === 0 && res.result.data) {
-      var data = res.result.data
-      delete data._id
-      delete data.familyId
-      delete data.childId
-      delete data.skey
-      delete data.createdBy
-      delete data.createdByName
-      delete data.updatedBy
-      delete data.likes
-      delete data.createTime
-      delete data.updateTime
-      return data
-    }
-  } catch (err) {
-    console.warn('记账设置云端读取失败:', err)
-  }
-  return childStorage.get('accountSettings') || {}
+  return _accountSettingsSync.fetch()
 }
 
 // ===== 图片压缩上传公共函数 =====
@@ -2343,66 +2847,138 @@ async function uploadImage(filePath, cloudDir) {
 }
 
 module.exports = {
+  // ===== 枚举和常量 =====
+  ISOLATION_LEVEL: ISOLATION_LEVEL,
+  SINGLETON_ISOLATION: SINGLETON_ISOLATION,
+  TOMBSTONE_KEYS: TOMBSTONE_KEYS,
+  
+  // ===== 通用工具函数 =====
   isCloudReady: isCloudReady,
-  // 通用墓碑操作（供 game-cloud 等模块复用）
+  getRecordMeta: getRecordMeta,
+  getStorageKey: getStorageKey,
+  getTombstoneKey: getTombstoneKey,
+  markRecordSynced: markRecordSynced,
+  updateLocalRecord: updateLocalRecord,
+  shouldUseCloud: shouldUseCloud,
+  
+  // ===== 通用墓碑操作（供 game-cloud 等模块复用）=====
   getDeletedIdsByKey: getDeletedIdsByKey,
   addDeletedIdByKey: addDeletedIdByKey,
   removeTombstoneByKey: removeTombstoneByKey,
+  
+  // ===== 画作模块 =====
   uploadDrawing: uploadDrawing,
   fetchDrawings: fetchDrawings,
   removeDrawing: removeDrawing,
   updateDrawingName: updateDrawingName,
+  
+  // ===== 刷牙模块 =====
   uploadBrushingRecord: uploadBrushingRecord,
   fetchBrushingRecords: fetchBrushingRecords,
   removeBrushingRecord: removeBrushingRecord,
   updateBrushingRecord: updateBrushingRecord,
   updateBrushingRecordById: updateBrushingRecordById,
+  
+  // ===== 打卡模块 =====
   uploadHabitRecord: uploadHabitRecord,
   fetchHabitRecords: fetchHabitRecords,
   removeHabitRecord: removeHabitRecord,
+  
+  // ===== 笔记模块 =====
   uploadNote: uploadNote,
   fetchNotes: fetchNotes,
   updateNoteInCloud: updateNoteInCloud,
   removeNote: removeNote,
+  
+  // ===== 成就模块 =====
   uploadAchievements: uploadAchievements,
   fetchAchievements: fetchAchievements,
+  
+  // ===== 习惯定义 =====
   uploadHabits: uploadHabits,
   fetchHabits: fetchHabits,
+  
+  // ===== 学习进度 =====
   uploadLearnProgress: uploadLearnProgress,
   fetchLearnProgress: fetchLearnProgress,
+  
+  // ===== 设置 =====
   uploadSettings: uploadSettings,
   fetchSettings: fetchSettings,
+  
+  // ===== 刷牙故事 =====
   uploadBrushingStory: uploadBrushingStory,
   fetchBrushingStory: fetchBrushingStory,
+  
+  // ===== 刷牙角色 =====
   uploadBrushingAvatar: uploadBrushingAvatar,
   fetchBrushingAvatar: fetchBrushingAvatar,
+  
+  // ===== 刷牙积分 =====
   uploadBrushPoints: uploadBrushPoints,
   fetchBrushPoints: fetchBrushPoints,
+  
+  // ===== 牙齿装饰 =====
   uploadToothDecorations: uploadToothDecorations,
   fetchToothDecorations: fetchToothDecorations,
+  
+  // ===== 摆摊商品 =====
   uploadStallProduct: uploadStallProduct,
   fetchStallProducts: fetchStallProducts,
   removeStallProduct: removeStallProduct,
+  
+  // ===== 摆摊销售 =====
   uploadStallSale: uploadStallSale,
   fetchStallSales: fetchStallSales,
   removeStallSale: removeStallSale,
+  
+  // ===== 摆摊设置 =====
   uploadStallSettings: uploadStallSettings,
   fetchStallSettings: fetchStallSettings,
+  
+  // ===== 摆摊挑战 =====
   uploadStallChallenges: uploadStallChallenges,
   fetchStallChallenges: fetchStallChallenges,
+  
+  // ===== 营业时间 =====
   uploadStallBusinessHours: uploadStallBusinessHours,
   fetchStallBusinessHours: fetchStallBusinessHours,
+  
+  // ===== 迁移函数 =====
   migrateSingletonsToV2: migrateSingletonsToV2,
+  
+  // ===== 记账账本 =====
   uploadAccountBook: uploadAccountBook,
   fetchAccountBooks: fetchAccountBooks,
   removeAccountBook: removeAccountBook,
+  
+  // ===== 记账条目 =====
   uploadBookEntry: uploadBookEntry,
   fetchBookEntries: fetchBookEntries,
   removeBookEntry: removeBookEntry,
-   uploadAccountSettings: uploadAccountSettings,
+  
+  // ===== 记账设置 =====
+  uploadAccountSettings: uploadAccountSettings,
   fetchAccountSettings: fetchAccountSettings,
+  
+  // ===== AI技能 =====
   uploadAiSkills: uploadAiSkills,
   fetchAiSkills: fetchAiSkills,
+  
+  // ===== 图片上传工具 =====
   uploadImageCompressed: uploadImageCompressed,
-  uploadImage: uploadImage
+  uploadImage: uploadImage,
+  
+  // ===== 工厂函数 =====
+  createListFetcher: createListFetcher,
+  createUploader: createUploader,
+  createUploaderWithImage: createUploaderWithImage,
+  createRemover: createRemover,
+  createSingletonSync: createSingletonSync,
+  mergeAndHealV2: mergeAndHealV2,
+  selfHealWithImages: selfHealWithImages,
+  
+  // ===== 模块配置表 =====
+  LIST_MODULE_CONFIGS: LIST_MODULE_CONFIGS,
+  SINGLETON_MODULE_CONFIGS: SINGLETON_MODULE_CONFIGS
 }

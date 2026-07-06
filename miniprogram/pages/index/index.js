@@ -4,6 +4,7 @@ var achievements = require('../../utils/achievements.js')
 var auth = require('../../utils/auth.js')
 var childStorage = require('../../utils/child-storage.js')
 var habitConfig = require('../../utils/habit-config.js')
+var cloud = require('../../utils/cloud.js')
 
 var app = getApp()
 
@@ -59,10 +60,19 @@ Page({
       }).catch(function() {})
     }
 
+    // 同步云端业务数据（习惯、打卡、刷牙等）
     this.setGreeting()
-    this.loadTodayHabits()
-    this.loadAchievements()
-    this.loadRecommendations()
+    this.syncCloudData().then(function() {
+      // 同步完成后再加载数据，确保显示最新状态
+      that.loadTodayHabits()
+      that.loadAchievements()
+      that.loadRecommendations()
+    }).catch(function() {
+      // 同步失败也加载本地数据
+      that.loadTodayHabits()
+      that.loadAchievements()
+      that.loadRecommendations()
+    })
 
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 })
@@ -78,9 +88,18 @@ Page({
         clearInterval(timer)
         that.updateFromApp()
         that.setGreeting()
-        that.loadTodayHabits()
-        that.loadAchievements()
-        that.loadRecommendations()
+        
+        // 首次加载强制同步云端数据
+        that.syncCloudData(true).then(function() {
+          that.loadTodayHabits()
+          that.loadAchievements()
+          that.loadRecommendations()
+        }).catch(function() {
+          // 同步失败也加载本地数据
+          that.loadTodayHabits()
+          that.loadAchievements()
+          that.loadRecommendations()
+        })
       }
     }, 300)
   },
@@ -209,6 +228,33 @@ Page({
     this.setData({ greeting: greeting, dateStr: dateStr, weekdayStr: weekdayStr })
   },
 
+  // 同步云端业务数据（习惯、打卡、刷牙等）
+  async syncCloudData(force) {
+    // 节流：30秒内不重复同步（首次加载强制同步）
+    if (!force) {
+      var now = Date.now()
+      if (this._lastSyncCloudData && now - this._lastSyncCloudData < 30000) {
+        return
+      }
+      this._lastSyncCloudData = now
+    }
+    
+    try {
+      // 并行拉取数据，首页只拉取今日的刷牙记录
+      var today = util.getTodayStr()
+      await Promise.all([
+        cloud.fetchHabits(),
+        cloud.fetchHabitRecords(),
+        cloud.fetchBrushingRecords(today),  // 只拉取今日的刷牙记录
+        achievements.syncAchievementsFromCloud()
+      ])
+      
+      // 不在这里调用 loadTodayHabits，由调用方决定何时加载
+    } catch (err) {
+      console.warn('首页云端数据同步失败:', err)
+    }
+  },
+
   // 加载今日习惯
   loadTodayHabits: function() {
     var today = util.getTodayStr()
@@ -252,13 +298,6 @@ Page({
 
   // 加载成就
   async loadAchievements() {
-    // 先从云端合并成就（解决多设备不同步：A 解锁的成就 B 也能看到）
-    try {
-      await achievements.syncAchievementsFromCloud()
-    } catch (e) {
-      console.warn('成就云端同步失败:', e)
-    }
-
     // 检查并解锁新成就（使用云端合并数据）
     var newAchievements = await achievements.checkAchievementsAsync()
 

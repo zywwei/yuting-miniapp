@@ -12,7 +12,7 @@ const ALLOWED_COLLECTIONS = [
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()
-  const { action, collection, data, id, childId, key, page, pageSize } = event
+  const { action, collection, data, id, childId, key, page, pageSize, memberId, date } = event
 
   const member = await getMemberByOpenid(OPENID)
   if (!member) {
@@ -32,11 +32,11 @@ exports.main = async (event, context) => {
     case 'remove':
       return await removeRecord(member, collection, id)
     case 'list':
-      return await listRecords(member, collection, childId, page || 1, pageSize || 20)
+      return await listRecords(member, collection, childId, page || 1, pageSize || 20, memberId, date)
     case 'upsertSingleton':
-      return await upsertSingleton(member, collection, key, childId, data)
+      return await upsertSingleton(member, collection, key, childId, data, memberId)
     case 'getSingleton':
-      return await getSingleton(member, collection, key, childId)
+      return await getSingleton(member, collection, key, childId, memberId)
     default:
       return { code: -1, msg: '未知操作' }
   }
@@ -53,8 +53,40 @@ function isAdmin(member) {
   return member && member.permissions && member.permissions.indexOf('admin') >= 0
 }
 
-function canEdit(member, record) {
+// 字段级权限配置
+const FIELD_PERMISSIONS = {
+  habitRecords: {
+    editable: ['note', 'score', 'images'],
+    adminOnly: ['delete']
+  },
+  bookEntries: {
+    editable: ['note', 'category', 'tags'],
+    creatorOnly: ['amount', 'type']
+  }
+}
+
+function canEdit(member, record, collection, field) {
+  // 管理员全部权限
   if (isAdmin(member)) return true
+  
+  // 检查字段级权限
+  var fieldPerms = FIELD_PERMISSIONS[collection]
+  if (field && fieldPerms) {
+    // 管理员专属字段
+    if (fieldPerms.adminOnly && fieldPerms.adminOnly.indexOf(field) >= 0) {
+      return false
+    }
+    // 创建者专属字段
+    if (fieldPerms.creatorOnly && fieldPerms.creatorOnly.indexOf(field) >= 0) {
+      return record.createdBy === member._id
+    }
+    // 可编辑字段
+    if (fieldPerms.editable && fieldPerms.editable.indexOf(field) >= 0) {
+      return true
+    }
+  }
+  
+  // 默认：创建者可编辑
   return record.createdBy === member._id
 }
 
@@ -193,9 +225,23 @@ async function removeRecord(member, collection, id) {
   }
 }
 
-async function listRecords(member, collection, childId, page, pageSize) {
+async function listRecords(member, collection, childId, page, pageSize, memberId, date) {
   const where = { familyId: member.familyId }
-  if (childId) where.childId = childId
+  
+  // 根据隔离级别过滤
+  if (memberId) {
+    // 成员级：只看自己的
+    where.createdBy = memberId
+  } else if (childId) {
+    // 孩子级：按 childId 过滤
+    where.childId = childId
+  }
+  // 家庭级：不额外过滤
+
+  // 日期筛选（只加载指定日期的数据）
+  if (date) {
+    where.date = date
+  }
 
   try {
     const countRes = await db.collection(collection)
@@ -223,15 +269,26 @@ async function listRecords(member, collection, childId, page, pageSize) {
   }
 }
 
-// ===== 单例文档（按"家庭 + 孩子"维度隔离） =====
+// ===== 单例文档（支持多隔离级别） =====
 // 习惯定义、学习进度、设置、成就、刷牙故事/角色/积分/装饰、摆摊设置等属于
 // "每个孩子一份"的单例数据。其云端 _id 由服务端用可信的 familyId 拼接生成，
 // 杜绝客户端伪造 _id 覆盖其它家庭/孩子的数据，彻底解决跨家庭、跨孩子串号问题。
-function singletonDocId(member, key, childId) {
-  return member.familyId + '_' + (childId || '') + '_' + key
+// 支持三种隔离级别：家庭级（familyId + key）、孩子级（familyId + childId + key）、成员级（familyId + memberId + key）
+function singletonDocId(member, key, childId, memberId) {
+  var parts = [member.familyId]
+  
+  // 优先级：memberId > childId > 纯家庭级
+  if (memberId) {
+    parts.push('member_' + memberId)
+  } else if (childId) {
+    parts.push(childId)
+  }
+  
+  parts.push(key)
+  return parts.join('_')
 }
 
-async function upsertSingleton(member, collection, key, childId, data) {
+async function upsertSingleton(member, collection, key, childId, data, memberId) {
   if (!key) return { code: -1, msg: '缺少 key' }
   // 校验 childId 是否属于当前家庭，防止家庭内跨孩子篡改数据
   if (childId) {
@@ -246,11 +303,12 @@ async function upsertSingleton(member, collection, key, childId, data) {
       return { code: -2, msg: '家庭校验失败' }
     }
   }
-  const docId = singletonDocId(member, key, childId)
+  const docId = singletonDocId(member, key, childId, memberId)
   const record = {
     ...(data || {}),
     familyId: member.familyId,
     childId: childId || '',
+    memberId: memberId || '',
     skey: key,
     updatedBy: member._id,
     updateTime: new Date()
@@ -272,7 +330,7 @@ async function upsertSingleton(member, collection, key, childId, data) {
   }
 }
 
-async function getSingleton(member, collection, key, childId) {
+async function getSingleton(member, collection, key, childId, memberId) {
   if (!key) return { code: -1, msg: '缺少 key' }
   // 校验 childId 是否属于当前家庭（与 upsertSingleton 保持一致的权限检查）
   if (childId) {
@@ -286,7 +344,7 @@ async function getSingleton(member, collection, key, childId) {
       return { code: -2, msg: '家庭校验失败' }
     }
   }
-  const docId = singletonDocId(member, key, childId)
+  const docId = singletonDocId(member, key, childId, memberId)
   try {
     const doc = await db.collection(collection).doc(docId).get()
     return { code: 0, data: doc.data }
