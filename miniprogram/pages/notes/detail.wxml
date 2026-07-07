@@ -5,25 +5,51 @@
     <view class="note-type-tag {{note.type}}">
       {{note.type === 'diary' ? '📖 成长日记' : note.type === 'funny' ? '😄 今日趣事' : '📚 学习笔记'}}
     </view>
-    <view class="mood">{{note.mood === 'happy' ? '😊' : note.mood === 'excited' ? '🤩' : note.mood === 'calm' ? '😌' : '😴'}}</view>
+    <view class="header-right">
+      <view class="visibility-tag {{note.visibility || 'family'}}">
+        {{note.visibility === 'private' ? '🔒 仅自己' : note.visibility === 'designated' ? '👥 指定人' : '👨‍👩‍👧‍👦 家庭'}}
+      </view>
+      <view class="mood">{{note.mood === 'happy' ? '😊' : note.mood === 'excited' ? '🤩' : note.mood === 'calm' ? '😌' : '😴'}}</view>
+    </view>
   </view>
 
   <!-- 标题 -->
   <view class="title">{{note.title}}</view>
 
   <!-- 内容 -->
-  <view class="content">{{note.content}}</view>
+  <view class="content" wx:if="{{note.content}}">{{note.content}}</view>
+
+  <!-- 图片展示 -->
+  <view class="images-section" wx:if="{{note.images && note.images.length > 0}}">
+    <view class="images-grid {{note.images.length === 1 ? 'single' : note.images.length === 2 ? 'double' : note.images.length <= 4 ? 'quad' : 'multi'}}">
+      <view wx:for="{{note.images}}" wx:key="*this" class="image-item">
+        <image 
+          src="{{item}}" 
+          mode="aspectFill" 
+          class="note-image" 
+          bindtap="previewImage" 
+          data-index="{{index}}"
+          lazy-load
+        />
+      </view>
+    </view>
+  </view>
 
   <!-- 标签 -->
   <view class="tags" wx:if="{{note.tags && note.tags.length > 0}}">
     <view wx:for="{{note.tags}}" wx:key="*this" class="tag">{{item}}</view>
   </view>
 
-  <!-- 日期 -->
-  <view class="date">{{note.createTime}}</view>
+  <!-- 日期和作者 -->
+  <view class="date">
+    <text wx:if="{{note.createdByName}}">{{note.createdByName}} · </text>
+    <text>创建于 {{formattedCreateTime}}</text>
+    <text wx:if="{{formattedUpdateTime}}"> · 更新于 {{formattedUpdateTime}}</text>
+  </view>
 
   <!-- 操作 -->
-  <view class="actions">
+  <view class="actions" wx:if="{{isCreator}}">
+    <view class="edit-btn" bindtap="editNote">编辑笔记</view>
     <view class="delete-btn" bindtap="deleteNote">删除笔记</view>
   </view>
 </view>

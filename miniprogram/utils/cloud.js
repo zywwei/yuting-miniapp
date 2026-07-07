@@ -926,8 +926,16 @@ async function uploadNote(note) {
   record.images = localImages
   record.voice = localVoice
 
+  // 不再重复添加到本地存储（noteManager.addNote已添加）
+  // 只更新已有记录的图片路径
   var localNotes = childStorage.get('notes') || []
-  localNotes.unshift(record)
+  for (var i = 0; i < localNotes.length; i++) {
+    if (localNotes[i].id === note.id) {
+      localNotes[i].images = localImages
+      localNotes[i].voice = localVoice
+      break
+    }
+  }
   childStorage.set('notes', localNotes)
 
   var uploadImages = []
@@ -979,27 +987,54 @@ async function uploadNote(note) {
         childStorage.set('notes', tmpNotes)
       } catch (imgErr) {
         console.warn('笔记媒体上传失败:', img.localPath, imgErr)
-        syncQueue.updateData(note.id, record)
-        throw imgErr
+        // 图片上传失败不阻塞笔记记录上传，继续处理
       }
     }
-    await wx.cloud.callFunction({
+    
+    // 准备上传的数据（移除本地临时字段）
+    var uploadData = {
+      id: record.id,
+      type: record.type,
+      title: record.title,
+      content: record.content,
+      mood: record.mood,
+      tags: record.tags,
+      images: record.images,
+      voice: record.voice,
+      visibility: record.visibility,
+      visibleTo: record.visibleTo,
+      createTime: record.createTime,
+      createdBy: record.createdBy,
+      createdByName: record.createdByName
+    }
+    
+    // 上传笔记记录到云端（即使图片上传失败也要尝试）
+    var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'notes', data: record }
+      data: { action: 'add', collection: 'notes', data: uploadData }
     })
-    syncQueue.dequeue(note.id, 'add')
+    
+    // 检查云函数返回值
+    if (res.result && res.result.code === 0) {
+      syncQueue.dequeue(note.id, 'add')
 
-    // 同步成功，标记 synced=true
-    localNotes = childStorage.get('notes') || []
-    for (var i = 0; i < localNotes.length; i++) {
-      if (localNotes[i].id === note.id) {
-        localNotes[i].synced = true
-        break
+      // 同步成功，标记 synced=true
+      localNotes = childStorage.get('notes') || []
+      for (var i = 0; i < localNotes.length; i++) {
+        if (localNotes[i].id === note.id) {
+          localNotes[i].synced = true
+          break
+        }
       }
+      childStorage.set('notes', localNotes)
+    } else {
+      console.warn('笔记同步失败，云函数返回错误:', res.result)
+      syncQueue.updateData(note.id, record)
     }
-    childStorage.set('notes', localNotes)
   } catch (err) {
-    console.warn('笔记同步失败，已入队列:', err)
+    console.warn('笔记同步失败，异常:', err)
+    // 更新同步队列
+    syncQueue.updateData(note.id, record)
   }
 
   return localImages
@@ -1892,6 +1927,7 @@ async function fetchNotes() {
 
     if (res.result.code === 0) {
       var cloudList = res.result.data.list || []
+      
       var deletedIds = getDeletedNoteIds()
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
@@ -1907,6 +1943,8 @@ async function fetchNotes() {
       var merged = mergeAndHeal('notes', 'notes', localNotes, cloudList, deletedSet)
 
       return merged
+    } else {
+      console.warn('fetchNotes: 云函数返回错误:', res.result)
     }
   } catch (err) {
     console.warn('笔记云端读取失败，使用本地缓存:', err)
@@ -1964,6 +2002,51 @@ async function removeNote(id) {
       console.warn('笔记云端删除失败:', err)
     }
   }
+}
+
+// 获取家庭成员列表（用于笔记权限选择）
+async function getFamilyMembers() {
+  var member = auth.getMember()
+  if (!member) return []
+
+  // 尝试从云函数获取
+  if (isCloudReady()) {
+    try {
+      var res = await wx.cloud.callFunction({
+        name: 'family',
+        data: { action: 'getMembers', familyId: member.familyId }
+      })
+      if (res.result && res.result.code === 0) {
+        var members = res.result.data || []
+        // 缓存到本地
+        try {
+          wx.setStorageSync('cachedFamilyMembers', members)
+        } catch (e) {}
+        return members
+      }
+    } catch (err) {
+      console.warn('获取家庭成员失败，尝试本地缓存:', err)
+    }
+  }
+
+  // fallback：从本地缓存读取
+  try {
+    var cached = wx.getStorageSync('cachedFamilyMembers')
+    if (cached && cached.length > 0) {
+      return cached
+    }
+  } catch (e) {}
+
+  // 最后尝试从myFamilies中提取
+  var families = auth.getMyFamilies()
+  if (families && families.length > 0) {
+    var currentFamily = families.find(function(f) { return f.familyId === member.familyId })
+    if (currentFamily && currentFamily.family && currentFamily.family.members) {
+      return currentFamily.family.members
+    }
+  }
+
+  return []
 }
 
 // ===== 成就 =====
@@ -2829,6 +2912,7 @@ module.exports = {
   fetchNotes: fetchNotes,
   updateNoteInCloud: updateNoteInCloud,
   removeNote: removeNote,
+  getFamilyMembers: getFamilyMembers,
   
   // ===== 成就模块 =====
   uploadAchievements: uploadAchievements,

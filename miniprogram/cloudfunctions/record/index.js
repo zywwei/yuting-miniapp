@@ -111,7 +111,38 @@ async function addRecord(member, collection, data) {
     createdBy: member._id,
     createdByName: member.roleName,
     likes: [],
-    createTime: new Date()
+    createTime: data.createTime || new Date().toISOString()
+  }
+
+  // 笔记权限字段校验
+  if (collection === 'notes') {
+    // 确保 visibility 字段有默认值
+    if (!record.visibility) {
+      record.visibility = 'family'
+    }
+    // 校验 visibility 字段值
+    const validVisibility = ['family', 'designated', 'private']
+    if (validVisibility.indexOf(record.visibility) < 0) {
+      record.visibility = 'family'  // 无效值回退到默认
+    }
+    // designated 模式校验 visibleTo
+    if (record.visibility === 'designated') {
+      if (!record.visibleTo || !Array.isArray(record.visibleTo) || record.visibleTo.length === 0) {
+        record.visibility = 'family'  // 未选择成员，回退到家庭公开
+      } else {
+        // 校验 visibleTo 中的成员是否属于当前家庭
+        const validMembers = await db.collection('familyMembers')
+          .where({ familyId: member.familyId, status: 'active' })
+          .field({ _id: true })
+          .get()
+        const validIds = validMembers.data.map(m => m._id)
+        record.visibleTo = record.visibleTo.filter(vid => validIds.indexOf(vid) >= 0)
+        if (record.visibleTo.length === 0) {
+          record.visibility = 'family'  // 所选成员无效，回退到家庭公开
+        }
+      }
+    }
+    
   }
 
   // 如果指定了 _id，则使用指定的 _id（用于设置等单例文档）
@@ -179,6 +210,33 @@ async function updateRecord(member, collection, id, updates) {
       return { code: -2, msg: '无权限修改' }
     }
 
+    // 笔记权限字段校验
+    if (collection === 'notes') {
+      // 校验 visibility 字段值
+      if (updates.visibility !== undefined) {
+        const validVisibility = ['family', 'designated', 'private']
+        if (validVisibility.indexOf(updates.visibility) < 0) {
+          return { code: -4, msg: '无效的可见范围值' }
+        }
+        // designated 模式必须选择可见成员
+        if (updates.visibility === 'designated') {
+          if (!updates.visibleTo || !Array.isArray(updates.visibleTo) || updates.visibleTo.length === 0) {
+            return { code: -4, msg: '指定人模式必须选择可见成员' }
+          }
+          // 校验 visibleTo 中的成员是否属于当前家庭
+          const validMembers = await db.collection('familyMembers')
+            .where({ familyId: member.familyId, status: 'active' })
+            .field({ _id: true })
+            .get()
+          const validIds = validMembers.data.map(m => m._id)
+          updates.visibleTo = updates.visibleTo.filter(vid => validIds.indexOf(vid) >= 0)
+          if (updates.visibleTo.length === 0) {
+            return { code: -4, msg: '选择的成员无效' }
+          }
+        }
+      }
+    }
+
     delete updates._id
     delete updates.familyId
     delete updates.createdBy
@@ -226,21 +284,35 @@ async function removeRecord(member, collection, id) {
 }
 
 async function listRecords(member, collection, childId, page, pageSize, memberId, date) {
-  const where = { familyId: member.familyId }
+  let where = { familyId: member.familyId }
   
-  // 根据隔离级别过滤
-  if (memberId) {
-    // 成员级：只看自己的
-    where.createdBy = memberId
-  } else if (childId) {
-    // 孩子级：按 childId 过滤
-    where.childId = childId
+  // 笔记不按 childId 隔离，通过 visibility 控制权限
+  if (collection !== 'notes') {
+    // 根据隔离级别过滤
+    if (memberId) {
+      // 成员级：只看自己的
+      where.createdBy = memberId
+    } else if (childId) {
+      // 孩子级：按 childId 过滤
+      where.childId = childId
+    }
+    // 家庭级：不额外过滤
   }
-  // 家庭级：不额外过滤
 
   // 日期筛选（只加载指定日期的数据）
   if (date) {
     where.date = date
+  }
+
+  // 笔记权限过滤
+  if (collection === 'notes') {
+    const _ = db.command
+    where = _.or(
+      { familyId: member.familyId, visibility: 'family' },
+      { familyId: member.familyId, visibility: 'designated', visibleTo: member._id },
+      { familyId: member.familyId, visibility: 'private', createdBy: member._id },
+      { familyId: member.familyId, visibility: _.exists(false) }
+    )
   }
 
   try {

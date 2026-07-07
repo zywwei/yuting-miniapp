@@ -37,7 +37,12 @@ var addNote = function(note) {
     tags: note.tags || [],
     images: note.images || [],
     voice: note.voice || '',
-    createTime: new Date().toISOString()
+    visibility: note.visibility || 'family',
+    visibleTo: note.visibleTo || [],
+    createTime: new Date().toISOString(),
+    updateTime: null,
+    createdBy: note.createdBy || '',
+    createdByName: note.createdByName || ''
   }
   notes.unshift(newNote)
   childStorage.set('notes', notes)
@@ -64,6 +69,7 @@ var updateNote = function(id, updates) {
     for (var key in updates) {
       updated[key] = updates[key]
     }
+    updated.updateTime = new Date().toISOString()
     notes[index] = updated
     childStorage.set('notes', notes)
 
@@ -74,12 +80,18 @@ var updateNote = function(id, updates) {
   return null
 }
 
-var deleteNote = function(id) {
+var deleteNote = async function(id) {
   var notes = getAllNotes()
   var filtered = notes.filter(function(n) { return n.id !== id })
   childStorage.set('notes', filtered)
 
-  cloud.removeNote(id).catch(function() {})
+  try {
+    await cloud.removeNote(id)
+    return { success: true }
+  } catch (err) {
+    console.warn('删除笔记失败:', err)
+    return { success: false, error: err }
+  }
 }
 
 var getNotesByTag = function(tag) {
@@ -100,13 +112,58 @@ var getAllTags = function() {
   return Object.keys(tagSet)
 }
 
-var searchNotes = function(keyword) {
-  var notes = getAllNotes()
-  var lowerKeyword = keyword.toLowerCase()
-  return notes.filter(function(n) {
-    return n.title.toLowerCase().indexOf(lowerKeyword) !== -1 ||
-           n.content.toLowerCase().indexOf(lowerKeyword) !== -1
+var searchNotes = function(options, notesList) {
+  var notes = notesList || getAllNotes()
+  
+  // 支持简单关键词搜索（向后兼容）
+  if (typeof options === 'string') {
+    var keyword = options.toLowerCase()
+    return notes.filter(function(n) {
+      return (n.title && n.title.toLowerCase().indexOf(keyword) !== -1) ||
+             (n.content && n.content.toLowerCase().indexOf(keyword) !== -1)
+    })
+  }
+  
+  // 支持高级搜索
+  var keyword = (options.keyword || '').toLowerCase()
+  var startDate = options.startDate || ''
+  var endDate = options.endDate || ''
+  var type = options.type || 'all'
+  var tag = options.tag || ''
+  var sortOrder = options.sortOrder || 'desc'
+  
+  var filtered = notes.filter(function(n) {
+    // 关键词匹配（标题+内容+标签）
+    var keywordMatch = !keyword || 
+      (n.title && n.title.toLowerCase().indexOf(keyword) >= 0) ||
+      (n.content && n.content.toLowerCase().indexOf(keyword) >= 0) ||
+      (n.tags && n.tags.some(function(t) { return t.toLowerCase().indexOf(keyword) >= 0 }))
+    
+    // 时间范围匹配
+    var dateMatch = true
+    if (startDate || endDate) {
+      var noteDate = new Date(n.createTime)
+      if (startDate) dateMatch = dateMatch && noteDate >= new Date(startDate)
+      if (endDate) dateMatch = dateMatch && noteDate <= new Date(endDate + 'T23:59:59')
+    }
+    
+    // 类型匹配
+    var typeMatch = type === 'all' || n.type === type
+    
+    // 标签匹配
+    var tagMatch = !tag || (n.tags && n.tags.indexOf(tag) >= 0)
+    
+    return keywordMatch && dateMatch && typeMatch && tagMatch
   })
+  
+  // 排序
+  filtered.sort(function(a, b) {
+    var timeA = new Date(a.createTime).getTime()
+    var timeB = new Date(b.createTime).getTime()
+    return sortOrder === 'desc' ? timeB - timeA : timeA - timeB
+  })
+  
+  return filtered
 }
 
 module.exports = {

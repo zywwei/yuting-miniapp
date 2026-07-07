@@ -22,6 +22,8 @@ exports.main = async (event, context) => {
       return await getMyFamilies(OPENID)
     case 'getFamilyDetail':
       return await getFamilyDetail(OPENID, event)
+    case 'getMembers':
+      return await getMembers(OPENID, event)
     case 'refreshInviteCode':
       return await refreshInviteCode(OPENID)
     case 'addChild':
@@ -290,6 +292,38 @@ async function resolveAvatarURLs(data) {
     console.warn('getTempFileURL 失败:', e)
   }
   return data
+}
+
+// 获取家庭成员列表（只返回活跃成员）
+async function getMembers(openid, { familyId }) {
+  try {
+    // 验证请求者是否属于该家庭
+    const member = await db.collection('familyMembers')
+      .where({ openid, familyId, status: 'active' })
+      .get()
+    
+    if (!member.data || member.data.length === 0) {
+      return { code: -1, msg: '无权限访问' }
+    }
+
+    // 获取该家庭的所有活跃成员
+    const membersRes = await db.collection('familyMembers')
+      .where({ familyId, status: 'active' })
+      .field({
+        _id: true,
+        role: true,
+        roleName: true,
+        nickname: true,
+        avatar: true,
+        isChild: true,
+        childId: true
+      })
+      .get()
+
+    return { code: 0, data: membersRes.data || [] }
+  } catch (err) {
+    return { code: -2, msg: '获取成员失败: ' + err.message }
+  }
 }
 
 async function getMyFamilies(openid) {

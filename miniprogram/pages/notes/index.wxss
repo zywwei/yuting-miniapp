@@ -103,11 +103,116 @@
   padding: 8rpx;
 }
 
+.search-options {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16rpx;
+  padding: 0 8rpx;
+}
+
+.search-option {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #666;
+  padding: 8rpx 0;
+}
+
+.option-arrow {
+  font-size: 20rpx;
+  color: #999;
+}
+
+/* 高级搜索面板 */
+.advanced-search {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.search-row {
+  margin-bottom: 16rpx;
+}
+
+.search-label {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 12rpx;
+}
+
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.date-picker,
+.tag-picker {
+  flex: 1;
+  background: #F5F7FA;
+  padding: 16rpx 20rpx;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.date-picker.has-value,
+.tag-picker.has-value {
+  color: #333;
+}
+
+.date-separator {
+  font-size: 24rpx;
+  color: #999;
+}
+
 .search-result {
   font-size: 24rpx;
   color: #999;
   margin-top: 12rpx;
   padding-left: 8rpx;
+}
+
+/* 分类Tab */
+.category-tabs {
+  display: flex;
+  background: #fff;
+  padding: 20rpx 30rpx;
+  gap: 16rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 12rpx;
+  background: #F5F7FA;
+  border-radius: 12rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.tab-item.active {
+  background: #E8F5E9;
+  border-color: #66BB6A;
+}
+
+.tab-icon {
+  font-size: 32rpx;
+}
+
+.tab-label {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.tab-item.active .tab-label {
+  color: #43A047;
+  font-weight: bold;
 }
 
 /* 笔记列表 */
@@ -116,17 +221,17 @@
 }
 
 .note-card {
+  position: relative;
   background: white;
   border-radius: 20rpx;
   margin-bottom: 20rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-  display: flex;
   overflow: hidden;
 }
 
 .note-content-wrap {
-  flex: 1;
   padding: 28rpx;
+  transition: transform 0.3s ease;
 }
 
 .note-content-wrap:active {
@@ -138,6 +243,12 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16rpx;
+}
+
+.note-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
 }
 
 .note-type-tag {
@@ -164,8 +275,50 @@
   color: #43A047;
 }
 
+.visibility-tag {
+  font-size: 20rpx;
+  padding: 4rpx 8rpx;
+  border-radius: 6rpx;
+  background: rgba(0, 0, 0, 0.05);
+}
+
 .note-mood {
   font-size: 32rpx;
+}
+
+.note-body {
+  display: flex;
+  gap: 20rpx;
+}
+
+.note-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.note-thumbnail {
+  position: relative;
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.thumbnail-img {
+  width: 100%;
+  height: 100%;
+}
+
+.image-count {
+  position: absolute;
+  bottom: 8rpx;
+  right: 8rpx;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 20rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 10rpx;
 }
 
 .note-date {
@@ -214,19 +367,28 @@
 
 /* 删除按钮 */
 .note-delete {
-  width: 100rpx;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 140rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #FFEBEE;
+  background: #FF4444;
+  color: white;
+  font-size: 28rpx;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
 }
 
-.note-delete:active {
-  background: #FFCDD2;
+.note-card.swiped .note-delete {
+  transform: translateX(0);
 }
 
-.delete-icon {
-  font-size: 36rpx;
+.note-card.swiped .note-content-wrap {
+  transform: translateX(-140rpx);
+  transition: transform 0.3s ease;
 }
 
 /* 加载更多 */
@@ -254,6 +416,12 @@
 .empty-text {
   font-size: 28rpx;
   color: #999;
+  margin-bottom: 16rpx;
+}
+
+.empty-desc {
+  font-size: 24rpx;
+  color: #bbb;
   margin-bottom: 40rpx;
 }
 

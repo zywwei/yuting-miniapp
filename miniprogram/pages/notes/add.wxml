@@ -1,4 +1,4 @@
-<!-- 添加笔记 -->
+<!-- 添加/编辑笔记 -->
 <view class="container">
   <!-- 笔记类型 -->
   <view class="section">
@@ -95,6 +95,50 @@
     <view class="photo-hint">支持拍照或从相册选择，最多9张，可画画编辑</view>
   </view>
 
+  <!-- 可见范围 -->
+  <view class="section">
+    <view class="section-title">可见范围</view>
+    <view class="visibility-list">
+      <view 
+        wx:for="{{visibilityOptions}}" 
+        wx:key="value"
+        class="visibility-item {{visibility === item.value ? 'selected' : ''}}"
+        bindtap="selectVisibility"
+        data-visibility="{{item.value}}"
+      >
+        <view class="visibility-icon">{{item.icon}}</view>
+        <view class="visibility-info">
+          <view class="visibility-label">{{item.label}}</view>
+          <view class="visibility-desc">{{item.desc}}</view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 指定人选择 -->
+    <view class="member-select" wx:if="{{visibility === 'designated'}}">
+      <view class="member-title">选择可见成员</view>
+      <view class="member-list" wx:if="{{familyMembers.length > 0}}">
+        <view 
+          wx:for="{{familyMembers}}" 
+          wx:key="_id"
+          class="member-item {{item._selected ? 'selected' : ''}}"
+          bindtap="toggleMember"
+          data-id="{{item._id}}"
+        >
+          <view class="member-avatar-wrap">
+            <image wx:if="{{item.avatar && item.avatar !== '/images/default-avatar.png'}}" src="{{item.avatar}}" class="member-avatar" mode="aspectFill" binderror="onAvatarError" data-index="{{index}}" />
+            <view wx:else class="member-avatar-default">{{item.roleIcon || '👤'}}</view>
+            <view wx:if="{{item._selected}}" class="member-check">✓</view>
+          </view>
+          <view class="member-name">{{item.roleName || item.nickname || '成员'}}</view>
+        </view>
+      </view>
+      <view class="member-empty" wx:else>
+        <text>暂无其他家庭成员</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 保存按钮 -->
-  <view class="save-btn" bindtap="save">保存笔记</view>
+  <view class="save-btn" bindtap="save">{{isEdit ? '更新笔记' : '保存笔记'}}</view>
 </view>
