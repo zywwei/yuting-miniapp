@@ -1,4 +1,5 @@
 const cloud = getApp().globalData.cloud
+const { previewImage: previewImageHelper } = getApp().globalData.pageHelpers
 
 Component({
   properties: {
@@ -71,10 +72,7 @@ Component({
 
     previewImage(e) {
       const index = e.currentTarget.dataset.index
-      wx.previewImage({
-        current: this.data.record.images[index],
-        urls: this.data.record.images
-      })
+      previewImageHelper(this.data.record.images[index], this.data.record.images)
     },
 
     // 编辑照片（跳转画板）
@@ -161,10 +159,7 @@ Component({
     // 预览编辑中的图片
     previewEditImage(e) {
       const index = e.currentTarget.dataset.index
-      wx.previewImage({
-        current: this.data.editImages[index],
-        urls: this.data.editImages
-      })
+      previewImageHelper(this.data.editImages[index], this.data.editImages)
     },
 
     // 保存编辑

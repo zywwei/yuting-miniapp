@@ -1,3 +1,5 @@
+const { previewImage } = getApp().globalData.pageHelpers
+
 Component({
   properties: {
     photos: { type: Array, value: [] },
@@ -42,10 +44,7 @@ Component({
     // 预览图片
     previewPhoto(e) {
       const index = e.currentTarget.dataset.index
-      wx.previewImage({
-        current: this.properties.photos[index],
-        urls: this.properties.photos
-      })
+      previewImage(this.properties.photos[index], this.properties.photos)
     },
 
     // 编辑图片

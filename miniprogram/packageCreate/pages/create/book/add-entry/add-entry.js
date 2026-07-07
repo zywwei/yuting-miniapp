@@ -237,7 +237,7 @@ Page({
 
   previewImage: function(e) {
     var url = e.currentTarget.dataset.url
-    wx.previewImage({ urls: this.data.images, current: url })
+    pageHelpers.previewImage(url, this.data.images)
   },
 
   selectRepeatRule: function(e) {

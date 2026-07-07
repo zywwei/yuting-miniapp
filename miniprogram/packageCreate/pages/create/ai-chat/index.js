@@ -4,6 +4,7 @@ var contextDetector = require('../../../utils/ai-context-detector')
 var skillsManager = require('../../../utils/ai-skills')
 var markdown = require('../../../utils/markdown')
 var speakTool = require('../../../../utils/speak')
+const { previewImage: previewImageHelper } = getApp().globalData.pageHelpers
 
 // 常用表情列表
 // 表情分类
@@ -91,8 +92,6 @@ Page({
     // 流式思考相关
     streamThinkingEnabled: false,
     currentTaskId: null,
-    thinkingPollTimer: null,
-    thinkingWatcher: null,
     currentThinkingContent: '',
     currentSpeakingId: null, // 当前正在朗读的消息ID
     isPageUnloaded: false, // 页面是否已卸载
@@ -113,7 +112,6 @@ Page({
     showContextBanner: false,
     contextBannerItems: [],
     contextDataTypes: [],
-    contextBannerTimer: null,
     pendingExtraContext: null,
     // Skills相关
     activeSkill: null,
@@ -233,14 +231,14 @@ Page({
     }
     
     // 页面卸载时清除所有定时器和 watcher
-    if (this.data.thinkingPollTimer) {
-      clearInterval(this.data.thinkingPollTimer)
+    if (this._thinkingPollTimer) {
+      clearInterval(this._thinkingPollTimer)
     }
-    if (this.data.thinkingWatcher) {
-      this.data.thinkingWatcher.close()
+    if (this._thinkingWatcher) {
+      this._thinkingWatcher.close()
     }
-    if (this.data.contextBannerTimer) {
-      clearTimeout(this.data.contextBannerTimer)
+    if (this._contextBannerTimer) {
+      clearTimeout(this._contextBannerTimer)
     }
     // 停止音频播放
     if (this._audioContext) {
@@ -758,10 +756,7 @@ Page({
   // 预览图片
   previewImage: function(e) {
     var url = e.currentTarget.dataset.url
-    wx.previewImage({
-      urls: [url],
-      current: url
-    })
+    previewImageHelper(url, [url])
   },
 
   // ========== Skills相关方法 ==========
@@ -1029,8 +1024,8 @@ Page({
     if (types.length === 0) return
 
     // 清除之前的定时器
-    if (this.data.contextBannerTimer) {
-      clearTimeout(this.data.contextBannerTimer)
+    if (this._contextBannerTimer) {
+      clearTimeout(this._contextBannerTimer)
     }
 
     contextDetector.getDataSummary(types).then(function(result) {
@@ -1044,7 +1039,7 @@ Page({
       var timer = setTimeout(function() {
         that.dismissBanner()
       }, 10000)
-      that.setData({ contextBannerTimer: timer })
+      that._contextBannerTimer = timer
     })
   },
 
@@ -1081,14 +1076,14 @@ Page({
 
   // 关闭浮窗
   dismissBanner: function() {
-    if (this.data.contextBannerTimer) {
-      clearTimeout(this.data.contextBannerTimer)
+    if (this._contextBannerTimer) {
+      clearTimeout(this._contextBannerTimer)
     }
+    this._contextBannerTimer = null
     this.setData({
       showContextBanner: false,
       contextBannerItems: [],
-      contextDataTypes: [],
-      contextBannerTimer: null
+      contextDataTypes: []
     })
   },
 
@@ -1540,8 +1535,8 @@ Page({
     var maxFails = 5 // 连续失败5次后放弃
     
     // 清除之前的定时器
-    if (this.data.thinkingPollTimer) {
-      clearInterval(this.data.thinkingPollTimer)
+    if (this._thinkingPollTimer) {
+      clearInterval(this._thinkingPollTimer)
     }
     
     var timer = setInterval(function() {
@@ -1572,12 +1567,12 @@ Page({
         if (progress.status === 'completed') {
           clearInterval(timer)
           failCount = 0
+          that._thinkingPollTimer = null
           that.setData({
-            thinkingPollTimer: null,
             currentTaskId: null,
             currentThinkingContent: ''
           })
-          
+
           // 累计token用量
           that.updateTokenUsage(progress.usage)
           
@@ -1587,8 +1582,8 @@ Page({
         } else if (progress.status === 'error') {
           clearInterval(timer)
           failCount = 0
+          that._thinkingPollTimer = null
           that.setData({
-            thinkingPollTimer: null,
             currentTaskId: null,
             currentThinkingContent: ''
           })
@@ -1599,8 +1594,8 @@ Page({
         console.error('轮询思考进度失败:', failCount + '/' + maxFails, err)
         if (failCount >= maxFails) {
           clearInterval(timer)
+          that._thinkingPollTimer = null
           that.setData({
-            thinkingPollTimer: null,
             currentTaskId: null,
             currentThinkingContent: ''
           })
@@ -1609,7 +1604,7 @@ Page({
       })
     }, 1000) // 每1000ms轮询一次
     
-    this.setData({ thinkingPollTimer: timer })
+    this._thinkingPollTimer = timer
   },
 
   // 更新加载中的消息显示思考内容

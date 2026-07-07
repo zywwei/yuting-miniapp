@@ -1,6 +1,7 @@
 var util = getApp().globalData.util
 var cloud = getApp().globalData.cloud
 var auth = getApp().globalData.auth
+var { previewImage } = getApp().globalData.pageHelpers
 
 Page({
   data: {
@@ -377,10 +378,7 @@ Page({
   previewDrawing: function(e) {
     var path = e.currentTarget.dataset.path
     if (path) {
-      wx.previewImage({
-        current: path,
-        urls: [path]
-      })
+      previewImage(path, [path])
     }
   },
 

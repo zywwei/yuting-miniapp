@@ -144,6 +144,33 @@ async function deleteComment(member, { commentId }) {
   }
 }
 
+// 把评论里的 cloud:// imageFileId 转成临时 https URL，解决跨账户读取问题
+async function resolveCommentImages(comments) {
+  var fileList = []
+  comments.forEach(function(c) {
+    if (c.imageFileId && typeof c.imageFileId === 'string' && c.imageFileId.indexOf('cloud://') === 0) {
+      fileList.push(c.imageFileId)
+    }
+  })
+  if (fileList.length === 0) return comments
+  var uniqueIds = []
+  var seen = {}
+  fileList.forEach(function(id) { if (!seen[id]) { seen[id] = true; uniqueIds.push(id) } })
+  try {
+    var BATCH_SIZE = 50
+    var urlMap = {}
+    for (var b = 0; b < uniqueIds.length; b += BATCH_SIZE) {
+      var batch = uniqueIds.slice(b, b + BATCH_SIZE)
+      var batchRes = await cloud.getTempFileURL({ fileList: batch })
+      batchRes.fileList.forEach(function(f) { if (f.tempFileURL) urlMap[f.fileID] = f.tempFileURL })
+    }
+    comments.forEach(function(c) {
+      if (c.imageFileId && urlMap[c.imageFileId]) c.imageFileId = urlMap[c.imageFileId]
+    })
+  } catch (e) { console.warn('getTempFileURL 失败:', e) }
+  return comments
+}
+
 async function getComments(member, { targetType, targetId, page, pageSize }) {
   try {
     const where = {
@@ -159,8 +186,8 @@ async function getComments(member, { targetType, targetId, page, pageSize }) {
       .get()
 
     const filtered = res.data.filter(c => c.familyId === member.familyId)
-
-    return { code: 0, data: filtered }
+    var list = await resolveCommentImages(filtered)
+    return { code: 0, data: list }
   } catch (err) {
     return { code: -2, msg: '查询失败' }
   }

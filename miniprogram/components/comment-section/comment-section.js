@@ -1,6 +1,7 @@
 var auth = require('../../utils/auth.js')
 var syncQueue = require('../../utils/sync-queue.js')
 var cloud = require('../../utils/cloud.js')
+var { previewImage: previewImageHelper } = getApp().globalData.pageHelpers
 
 var EMOJI_LIST = ['😊', '😂', '🥰', '😍', '🤩', '😘', '😋', '🤗', '👏', '👍', '❤️', '🎉', '✨', '🌟', '💪', '🥳']
 
@@ -234,7 +235,7 @@ Component({
 
     previewImage(e) {
       var url = e.currentTarget.dataset.url
-      wx.previewImage({ urls: [url] })
+      previewImageHelper(url)
     }
   }
 })

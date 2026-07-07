@@ -4,6 +4,7 @@ const childStorage = getApp().globalData.childStorage
 const achievements = getApp().globalData.achievements
 const { getNavBarInfo, previewImage } = getApp().globalData.pageHelpers
 const { getHabitConfig } = require('./habit-config.js')
+const formHelper = require('../habit-form-helper.js')
 
 Page({
   data: {
@@ -178,97 +179,13 @@ Page({
     this.setData({ note: e.detail.value })
   },
 
-  // ===== 特色表单处理 =====
+  // ===== 特色表单处理（抽取到 habit-form-helper，使用路径更新优化）=====
 
-  // 文本输入
-  onFieldInput: function(e) {
-    var key = e.currentTarget.dataset.key
-    var formData = this.data.formData
-    formData[key] = e.detail.value
-    this.setData({ formData: formData })
-  },
-
-  // 时间选择
-  onFieldTimeChange: function(e) {
-    var key = e.currentTarget.dataset.key
-    var formData = this.data.formData
-    formData[key] = e.detail.value
-    this.setData({ formData: formData })
-  },
-
-  // 计数器增减
-  onFieldCounter: function(e) {
-    var key = e.currentTarget.dataset.key
-    var action = e.currentTarget.dataset.action
-    var field = this.data.habitFields.find(function(f) { return f.key === key })
-    var formData = this.data.formData
-    var value = formData[key] || 0
-
-    if (action === 'add') {
-      value = Math.min(value + 1, field.max || 99)
-    } else {
-      value = Math.max(value - 1, field.min || 0)
-    }
-
-    formData[key] = value
-    this.setData({ formData: formData })
-  },
-
-  // 单选/多选
-  onFieldSelect: function(e) {
-    var key = e.currentTarget.dataset.key
-    var value = e.currentTarget.dataset.value
-    var field = this.data.habitFields.find(function(f) { return f.key === key })
-    var formData = this.data.formData
-    var habitFields = this.data.habitFields
-
-    if (field.multiple) {
-      // 多选 - 创建新数组确保 setData 能检测到变化
-      var arr = (formData[key] || []).slice()
-      var index = arr.indexOf(value)
-      if (index > -1) {
-        arr.splice(index, 1)
-      } else {
-        arr.push(value)
-      }
-      formData[key] = arr
-    } else {
-      // 单选
-      formData[key] = value
-    }
-
-    // 更新 habitFields 中的选项选中状态
-    habitFields = habitFields.map(function(f) {
-      if (f.key === key && f.options) {
-        var selectedValues = formData[key]
-        var updatedOptions = f.options.map(function(opt) {
-          var isSelected = false
-          if (Array.isArray(selectedValues)) {
-            isSelected = selectedValues.indexOf(opt.value) > -1
-          } else {
-            isSelected = selectedValues === opt.value
-          }
-          return Object.assign({}, opt, { selected: isSelected })
-        })
-        return Object.assign({}, f, { options: updatedOptions })
-      }
-      return f
-    })
-
-    this.setData({
-      formData: formData,
-      habitFields: habitFields
-    })
-  },
-
-  // 心情选择
-  onFieldMood: function(e) {
-    var key = e.currentTarget.dataset.key
-    var value = e.currentTarget.dataset.value
-    var formData = this.data.formData
-    formData[key] = value
-    this.setData({ formData: formData })
-  },
+  onFieldInput: function(e) { formHelper.onFieldInput(this, e) },
+  onFieldTimeChange: function(e) { formHelper.onFieldTimeChange(this, e) },
+  onFieldCounter: function(e) { formHelper.onFieldCounter(this, e) },
+  onFieldSelect: function(e) { formHelper.onFieldSelect(this, e) },
+  onFieldMood: function(e) { formHelper.onFieldMood(this, e) },
 
   // 选择评分
   selectScore: function(e) {

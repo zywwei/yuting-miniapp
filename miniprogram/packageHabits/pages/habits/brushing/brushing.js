@@ -4,7 +4,7 @@ const cloud = getApp().globalData.cloud
 const childStorage = getApp().globalData.childStorage
 const achievements = getApp().globalData.achievements
 const auth = getApp().globalData.auth
-const { getNavBarInfo, previewImage, getTodayStr, getYesterdayStr } = getApp().globalData.pageHelpers
+const { getNavBarInfo, previewImage: previewImageHelper, getTodayStr, getYesterdayStr } = getApp().globalData.pageHelpers
 const { CHAPTERS, getOrSelectTodayChapter } = require('../brushing-timer/constants.js')
 
 Page({
@@ -545,12 +545,9 @@ Page({
     const path = e.currentTarget.dataset.path
     const images = e.currentTarget.dataset.images
     if (images && images.length > 0) {
-      wx.previewImage({
-        current: path,
-        urls: images
-      })
+      previewImageHelper(path, images)
     } else {
-      previewImage(path)
+      previewImageHelper(path)
     }
   },
 
@@ -637,9 +634,6 @@ Page({
     const imageList = images.length > 0 ? images : [record.imagePath]
     const current = e.currentTarget.dataset.path || imageList[0]
 
-    wx.previewImage({
-      current: current,
-      urls: imageList
-    })
+    previewImageHelper(current, imageList)
   }
 })

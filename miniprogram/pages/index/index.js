@@ -79,13 +79,21 @@ Page({
     }
   },
 
+  onUnload: function() {
+    if (this.waitForDataTimer) {
+      clearInterval(this.waitForDataTimer)
+      this.waitForDataTimer = null
+    }
+  },
+
   waitForAppData: function() {
     var that = this
     var checkCount = 0
-    var timer = setInterval(function() {
+    this.waitForDataTimer = setInterval(function() {
       checkCount++
       if (app.globalData.children.length > 0 || checkCount > 30) {
-        clearInterval(timer)
+        clearInterval(that.waitForDataTimer)
+        that.waitForDataTimer = null
         that.updateFromApp()
         that.setGreeting()
         

@@ -244,36 +244,12 @@ function getDeletedDrawingIds() {
   return extractTombstoneIds(tombstones)
 }
 
-function addDeletedDrawingId(id) {
-  if (!id) return
-  var tombstones = cleanExpiredTombstones(DELETED_DRAWINGS_KEY)
-  var exists = tombstones.some(function(item) {
-    return (typeof item === 'string' ? item : item.id) === id
-  })
-  if (!exists) {
-    tombstones.push({ id: id, ts: Date.now() })
-    childStorage.set(DELETED_DRAWINGS_KEY, tombstones)
-  }
-}
-
 // ===== 已删除笔记的墓碑清单（按孩子隔离）=====
 var DELETED_NOTES_KEY = 'deletedNoteIds'
 
 function getDeletedNoteIds() {
   var tombstones = cleanExpiredTombstones(DELETED_NOTES_KEY)
   return extractTombstoneIds(tombstones)
-}
-
-function addDeletedNoteId(id) {
-  if (!id) return
-  var tombstones = cleanExpiredTombstones(DELETED_NOTES_KEY)
-  var exists = tombstones.some(function(item) {
-    return (typeof item === 'string' ? item : item.id) === id
-  })
-  if (!exists) {
-    tombstones.push({ id: id, ts: Date.now() })
-    childStorage.set(DELETED_NOTES_KEY, tombstones)
-  }
 }
 
 // ===== 已删除刷牙记录的墓碑清单（按孩子隔离）=====
@@ -284,18 +260,6 @@ function getDeletedBrushingIds() {
   return extractTombstoneIds(tombstones)
 }
 
-function addDeletedBrushingId(id) {
-  if (!id) return
-  var tombstones = cleanExpiredTombstones(DELETED_BRUSHING_KEY)
-  var exists = tombstones.some(function(item) {
-    return (typeof item === 'string' ? item : item.id) === id
-  })
-  if (!exists) {
-    tombstones.push({ id: id, ts: Date.now() })
-    childStorage.set(DELETED_BRUSHING_KEY, tombstones)
-  }
-}
-
 // ===== 已删除摆摊商品的墓碑清单 =====
 var DELETED_STALL_PRODUCTS_KEY = 'deletedStallProductIds'
 
@@ -304,36 +268,12 @@ function getDeletedStallProductIds() {
   return extractTombstoneIds(tombstones)
 }
 
-function addDeletedStallProductId(id) {
-  if (!id) return
-  var tombstones = cleanExpiredTombstones(DELETED_STALL_PRODUCTS_KEY)
-  var exists = tombstones.some(function(item) {
-    return (typeof item === 'string' ? item : item.id) === id
-  })
-  if (!exists) {
-    tombstones.push({ id: id, ts: Date.now() })
-    childStorage.set(DELETED_STALL_PRODUCTS_KEY, tombstones)
-  }
-}
-
 // ===== 已删除摆摊销售的墓碑清单 =====
 var DELETED_STALL_SALES_KEY = 'deletedStallSaleIds'
 
 function getDeletedStallSaleIds() {
   var tombstones = cleanExpiredTombstones(DELETED_STALL_SALES_KEY)
   return extractTombstoneIds(tombstones)
-}
-
-function addDeletedStallSaleId(id) {
-  if (!id) return
-  var tombstones = cleanExpiredTombstones(DELETED_STALL_SALES_KEY)
-  var exists = tombstones.some(function(item) {
-    return (typeof item === 'string' ? item : item.id) === id
-  })
-  if (!exists) {
-    tombstones.push({ id: id, ts: Date.now() })
-    childStorage.set(DELETED_STALL_SALES_KEY, tombstones)
-  }
 }
 
 // 清除指定墓碑（删除成功后调用）
@@ -621,7 +561,7 @@ function migrateLegacyDrawings(childScopedDrawings) {
 
 async function removeDrawing(id) {
   // 记录墓碑，防止 fetchDrawings 合并时把已删除记录拉回来
-  addDeletedDrawingId(id)
+  addDeletedIdByKey(DELETED_DRAWINGS_KEY, id)
 
   // 从本地缓存删除
   childStorage.set('drawings', (childStorage.get('drawings') || []).filter(function(d) { return d.id !== id }))
@@ -840,7 +780,7 @@ async function fetchBrushingRecords(date) {
 
 async function removeBrushingRecord(id) {
   // 记录墓碑，防止 fetchBrushingRecords 合并时把已删除记录拉回来
-  addDeletedBrushingId(id)
+  addDeletedIdByKey(DELETED_BRUSHING_KEY, id)
 
   // 从本地缓存删除
   childStorage.set('brushingRecords', (childStorage.get('brushingRecords') || []).filter(function(r) { return r.id !== id }))
@@ -2004,7 +1944,7 @@ async function updateNoteInCloud(id, updates) {
 
 async function removeNote(id) {
   // 记录墓碑，防止 fetchNotes 合并时把已删除记录拉回来
-  addDeletedNoteId(id)
+  addDeletedIdByKey(DELETED_NOTES_KEY, id)
 
   // 从本地缓存删除
   childStorage.set('notes', (childStorage.get('notes') || []).filter(function(n) { return n.id !== id && n._id !== id }))
@@ -2576,7 +2516,7 @@ async function fetchStallProducts() {
 
 async function removeStallProduct(id) {
   // 先记录墓碑，防止 fetch 时把已删除记录拉回来
-  addDeletedStallProductId(id)
+  addDeletedIdByKey(DELETED_STALL_PRODUCTS_KEY, id)
 
   // 从本地缓存删除
   childStorage.set('stallProducts', (childStorage.get('stallProducts') || []).filter(function(p) { return p.id !== id }))

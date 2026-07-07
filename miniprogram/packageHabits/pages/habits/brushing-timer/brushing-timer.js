@@ -4,7 +4,7 @@ const beep = getApp().globalData.beep
 const cloud = getApp().globalData.cloud
 const auth = getApp().globalData.auth
 const achievements = getApp().globalData.achievements
-const { getNavBarInfo } = getApp().globalData.pageHelpers
+const { getNavBarInfo, previewImage } = getApp().globalData.pageHelpers
 const {
   BRUSH_AREAS, BRUSHING_TIPS, THEMES, REWARD_TEXTS, getCompletedTexts,
   CHEER_LEFT, CHEER_RIGHT, RING_MODES, BUBBLE_LIST, PRE_GERM_TYPES,
@@ -848,10 +848,7 @@ Page({
   // 预览照片
   previewPhoto(e) {
     const index = e.currentTarget.dataset.index
-    wx.previewImage({
-      current: this.data.photos[index],
-      urls: this.data.photos
-    })
+    previewImage(this.data.photos[index], this.data.photos)
   },
 
   // 编辑照片

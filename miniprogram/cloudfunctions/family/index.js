@@ -239,18 +239,57 @@ async function getFamilyInfo(openid) {
       })
       .get()
 
-    return {
-      code: 0,
-      data: {
-        family,
-        member,
-        children: family.children || [],
-        members: membersRes.data || []
-      }
+    var infoData = {
+      family,
+      member,
+      children: family.children || [],
+      members: membersRes.data || []
     }
+    await resolveAvatarURLs(infoData)
+    return { code: 0, data: infoData }
   } catch (err) {
     return { code: -2, msg: '获取家庭信息失败: ' + err.message }
   }
+}
+
+// 把家庭数据里的 cloud:// avatar 转成临时 https URL，解决跨账户读取问题
+async function resolveAvatarURLs(data) {
+  var fileList = []
+  var fields = [
+    { obj: data.family, key: 'avatar' },
+    { obj: data.member, key: 'avatar' },
+    { obj: data, key: 'familyAvatar' }
+  ]
+  if (data.children) {
+    data.children.forEach(function(c) { fields.push({ obj: c, key: 'avatar' }) })
+  }
+  if (data.members) {
+    data.members.forEach(function(m) { fields.push({ obj: m, key: 'avatar' }) })
+  }
+  fields.forEach(function(f) {
+    if (f.obj && typeof f.obj[f.key] === 'string' && f.obj[f.key].indexOf('cloud://') === 0) {
+      fileList.push(f.obj[f.key])
+    }
+  })
+  if (fileList.length === 0) return data
+  var uniqueIds = []
+  var seen = {}
+  fileList.forEach(function(id) { if (!seen[id]) { seen[id] = true; uniqueIds.push(id) } })
+  try {
+    var urlMap = {}
+    var BATCH_SIZE = 50
+    for (var b = 0; b < uniqueIds.length; b += BATCH_SIZE) {
+      var batch = uniqueIds.slice(b, b + BATCH_SIZE)
+      var batchRes = await cloud.getTempFileURL({ fileList: batch })
+      batchRes.fileList.forEach(function(f) { if (f.tempFileURL) urlMap[f.fileID] = f.tempFileURL })
+    }
+    fields.forEach(function(f) {
+      if (f.obj && f.obj[f.key] && urlMap[f.obj[f.key]]) f.obj[f.key] = urlMap[f.obj[f.key]]
+    })
+  } catch (e) {
+    console.warn('getTempFileURL 失败:', e)
+  }
+  return data
 }
 
 async function getMyFamilies(openid) {
@@ -299,6 +338,9 @@ async function getMyFamilies(openid) {
       })
     }
 
+    for (var fi = 0; fi < families.length; fi++) {
+      await resolveAvatarURLs(families[fi])
+    }
     return { code: 0, data: { families } }
   } catch (err) {
     return { code: -2, msg: '获取家庭列表失败: ' + err.message }
@@ -341,15 +383,14 @@ async function getFamilyDetail(openid, { familyId }) {
       })
       .get()
 
-    return {
-      code: 0,
-      data: {
-        family,
-        member,
-        children: family.children || [],
-        members: membersRes.data || []
-      }
+    var detailData = {
+      family,
+      member,
+      children: family.children || [],
+      members: membersRes.data || []
     }
+    await resolveAvatarURLs(detailData)
+    return { code: 0, data: detailData }
   } catch (err) {
     return { code: -2, msg: '获取家庭详情失败: ' + err.message }
   }

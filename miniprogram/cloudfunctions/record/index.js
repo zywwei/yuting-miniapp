@@ -255,10 +255,11 @@ async function listRecords(member, collection, childId, page, pageSize, memberId
       .limit(pageSize)
       .get()
 
+    var list = await resolveCloudFileIDs(res.data)
     return {
       code: 0,
       data: {
-        list: res.data,
+        list: list,
         total: countRes.total,
         page,
         pageSize
@@ -267,6 +268,62 @@ async function listRecords(member, collection, childId, page, pageSize, memberId
   } catch (err) {
     return { code: -2, msg: '查询失败: ' + err.message }
   }
+}
+
+// 批量把记录里的 cloud:// fileID 转成临时 https URL
+// 云函数用管理员权限调用 getTempFileURL，不受存储安全规则限制，解决跨账户读取问题
+async function resolveCloudFileIDs(records) {
+  var fileList = []
+  for (var i = 0; i < records.length; i++) {
+    var r = records[i]
+    if (r.images && Array.isArray(r.images)) {
+      for (var j = 0; j < r.images.length; j++) {
+        if (typeof r.images[j] === 'string' && r.images[j].indexOf('cloud://') === 0) {
+          fileList.push(r.images[j])
+        }
+      }
+    }
+    if (typeof r.imagePath === 'string' && r.imagePath.indexOf('cloud://') === 0) {
+      fileList.push(r.imagePath)
+    }
+    if (typeof r.cloudFileID === 'string' && r.cloudFileID.indexOf('cloud://') === 0) {
+      fileList.push(r.cloudFileID)
+    }
+  }
+  if (fileList.length === 0) return records
+  var uniqueIds = []
+  var seen = {}
+  for (var k = 0; k < fileList.length; k++) {
+    if (!seen[fileList[k]]) { seen[fileList[k]] = true; uniqueIds.push(fileList[k]) }
+  }
+  try {
+    var urlMap = {}
+    var BATCH_SIZE = 50
+    for (var b = 0; b < uniqueIds.length; b += BATCH_SIZE) {
+      var batch = uniqueIds.slice(b, b + BATCH_SIZE)
+      var batchRes = await cloud.getTempFileURL({ fileList: batch })
+      for (var m = 0; m < batchRes.fileList.length; m++) {
+        if (batchRes.fileList[m].tempFileURL) {
+          urlMap[batchRes.fileList[m].fileID] = batchRes.fileList[m].tempFileURL
+        }
+      }
+    }
+    for (var n = 0; n < records.length; n++) {
+      var rec = records[n]
+      if (rec.images && Array.isArray(rec.images)) {
+        rec.images = rec.images.map(function(img) { return urlMap[img] || img })
+      }
+      if (typeof rec.imagePath === 'string' && urlMap[rec.imagePath]) {
+        rec.imagePath = urlMap[rec.imagePath]
+      }
+      if (typeof rec.cloudFileID === 'string' && urlMap[rec.cloudFileID]) {
+        rec.cloudFileID = urlMap[rec.cloudFileID]
+      }
+    }
+  } catch (e) {
+    console.warn('getTempFileURL 失败，返回原始 fileID:', e)
+  }
+  return records
 }
 
 // ===== 单例文档（支持多隔离级别） =====
@@ -347,7 +404,12 @@ async function getSingleton(member, collection, key, childId, memberId) {
   const docId = singletonDocId(member, key, childId, memberId)
   try {
     const doc = await db.collection(collection).doc(docId).get()
-    return { code: 0, data: doc.data }
+    var singletonData = doc.data
+    if (singletonData) {
+      var resolvedList = await resolveCloudFileIDs([singletonData])
+      singletonData = resolvedList[0]
+    }
+    return { code: 0, data: singletonData }
   } catch (err) {
     // 文档不存在时返回 null，由客户端回退本地数据
     return { code: 0, data: null }

@@ -22,8 +22,11 @@ App({
       this.globalData.cloudEnabled = false
     }
 
-    this.checkAuth()
-    syncQueue.startAutoSync()
+    this.checkAuth().then(function() {
+      syncQueue.startAutoSync()
+    }).catch(function() {
+      syncQueue.startAutoSync()
+    })
   },
 
   async checkAuth() {

@@ -617,24 +617,32 @@ Page({
     })
   },
 
+  onUnload: function() {
+    if (this.rollInterval) {
+      clearInterval(this.rollInterval)
+      this.rollInterval = null
+    }
+  },
+
   rollDice: function() {
     if (this.data.isAnimating) return
-    
+
     var that = this
     this.setData({ isAnimating: true, isRolling: true, showRollButton: false })
-    
+
     if (this.soundEnabled) {
       beep.playBeep('diceRoll')
     }
-    
+
     var rollCount = 0
-    var rollInterval = setInterval(function() {
+    this.rollInterval = setInterval(function() {
       var tempValue = Math.floor(Math.random() * 6) + 1
       that.setData({ diceValue: tempValue })
-      
+
       rollCount++
       if (rollCount >= 10) {
-        clearInterval(rollInterval)
+        clearInterval(that.rollInterval)
+        that.rollInterval = null
         
         var diceValue = engine.rollDice()
         that.setData({ 
