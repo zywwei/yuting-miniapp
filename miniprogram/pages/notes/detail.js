@@ -2,10 +2,13 @@ var childStorage = require('../../utils/child-storage.js')
 var cloud = require('../../utils/cloud.js')
 var auth = require('../../utils/auth.js')
 var dateUtils = require('../../utils/date-utils.js')
+var noteTypes = require('../../utils/note-types.js')
 
 Page({
   data: {
     note: null,
+    typeInfo: null,
+    moodInfo: null,
     canEdit: false,
     formattedCreateTime: '',
     formattedUpdateTime: ''
@@ -65,8 +68,13 @@ Page({
       return
     }
 
+    var typeInfo = noteTypes.getTypeInfo(note.type)
+    var moodInfo = noteTypes.getMoodInfo(note.mood)
+
     self.setData({
       note: note,
+      typeInfo: typeInfo,
+      moodInfo: moodInfo,
       canEdit: isCreator || isAdmin,
       formattedCreateTime: dateUtils.formatDate(note.createTime),
       formattedUpdateTime: note.updateTime ? dateUtils.formatDate(note.updateTime) : ''

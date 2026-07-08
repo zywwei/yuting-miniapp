@@ -4,6 +4,7 @@ var cloud = require('../../utils/cloud.js')
 var achievements = require('../../utils/achievements.js')
 var auth = require('../../utils/auth.js')
 var { previewImage } = require('../../utils/page-helpers.js')
+var noteTypes = require('../../utils/note-types.js')
 
 Page({
   data: {
@@ -19,22 +20,21 @@ Page({
     visibility: 'family',
     visibleTo: [],
     familyMembers: [],
-    types: [
-      { value: 'diary', label: '成长日记', icon: '📖' },
-      { value: 'funny', label: '今日趣事', icon: '😄' },
-      { value: 'learning', label: '学习笔记', icon: '📚' }
-    ],
-    moods: [
-      { value: 'happy', label: '开心', icon: '😊' },
-      { value: 'excited', label: '兴奋', icon: '🤩' },
-      { value: 'calm', label: '平静', icon: '😌' },
-      { value: 'tired', label: '累了', icon: '😴' }
-    ],
+    types: noteTypes.getAllTypes(),
+    typeGroups: noteTypes.TYPE_GROUPS,
+    moods: noteTypes.MOODS,
+    moodGroups: noteTypes.MOOD_GROUPS,
     visibilityOptions: [
       { value: 'family', label: '家庭公开', icon: '👨‍👩‍👧‍👦', desc: '所有家庭成员可见' },
       { value: 'designated', label: '指定人', icon: '👥', desc: '仅选中的成员可见' },
       { value: 'private', label: '仅自己', icon: '🔒', desc: '仅自己可见' }
-    ]
+    ],
+    showCustomTypeModal: false,
+    customTypeName: '',
+    customTypeIcon: '📝',
+    customIconOptions: ['📝', '🎨', '🎵', '📷', '🎬', '💻', '🏠', '🌟', '💡', '❤️'],
+    typeCollapsed: true,
+    moodCollapsed: true
   },
 
   onLoad: function(options) {
@@ -167,10 +167,103 @@ Page({
     wx.showToast({ title: '编辑已保存！', icon: 'success' })
   },
 
+  // 切换类型折叠状态
+  toggleTypeCollapsed: function() {
+    this.setData({ typeCollapsed: !this.data.typeCollapsed })
+  },
+
+  // 切换心情折叠状态
+  toggleMoodCollapsed: function() {
+    this.setData({ moodCollapsed: !this.data.moodCollapsed })
+  },
+
   // 选择笔记类型
   selectType: function(e) {
     var type = e.currentTarget.dataset.type
     this.setData({ type: type })
+  },
+
+  // 显示自定义类型弹窗
+  showCustomTypeModal: function() {
+    if (noteTypes.getCustomTypes().length >= noteTypes.MAX_CUSTOM_TYPES) {
+      wx.showToast({ title: '最多创建' + noteTypes.MAX_CUSTOM_TYPES + '个自定义类型', icon: 'none' })
+      return
+    }
+    this.setData({ showCustomTypeModal: true })
+  },
+
+  // 隐藏自定义类型弹窗
+  hideCustomTypeModal: function() {
+    this.setData({ showCustomTypeModal: false, customTypeName: '' })
+  },
+
+  // 自定义类型名称输入
+  onCustomTypeNameInput: function(e) {
+    this.setData({ customTypeName: e.detail.value })
+  },
+
+  // 选择自定义类型图标
+  selectCustomIcon: function(e) {
+    this.setData({ customTypeIcon: e.currentTarget.dataset.icon })
+  },
+
+  // 创建自定义类型
+  createCustomType: function() {
+    var name = this.data.customTypeName.trim()
+    if (!name) {
+      wx.showToast({ title: '请输入类型名称', icon: 'none' })
+      return
+    }
+    if (name.length > 6) {
+      wx.showToast({ title: '名称最多6个字', icon: 'none' })
+      return
+    }
+    var value = 'custom_' + Date.now()
+    var result = noteTypes.addCustomType({
+      value: value,
+      label: name,
+      icon: this.data.customTypeIcon
+    })
+    if (result.success) {
+      this.setData({
+        types: noteTypes.getAllTypes(),
+        type: value,
+        showCustomTypeModal: false,
+        customTypeName: ''
+      })
+      wx.showToast({ title: '创建成功', icon: 'success' })
+    } else {
+      var msg = result.reason === 'max_limit' ? '最多创建' + noteTypes.MAX_CUSTOM_TYPES + '个自定义类型' : result.reason === 'builtin_conflict' ? '与内置类型冲突' : '类型名称已存在'
+      wx.showToast({ title: msg, icon: 'none' })
+    }
+  },
+
+  // 删除自定义类型（长按触发）
+  deleteCustomType: function(e) {
+    var value = e.currentTarget.dataset.value
+    var that = this
+
+    // 检查是否有笔记使用该类型
+    var notes = childStorage.get('notes') || []
+    var notesWithType = notes.filter(function(n) { return n.type === value })
+    var confirmContent = notesWithType.length > 0
+      ? '有 ' + notesWithType.length + ' 篇笔记使用此类型，删除后将显示为"成长日记"，确定继续？'
+      : '确定要删除这个自定义类型吗？'
+
+    wx.showModal({
+      title: '删除类型',
+      content: confirmContent,
+      success: function(res) {
+        if (res.confirm) {
+          noteTypes.removeCustomType(value)
+          that.setData({
+            types: noteTypes.getAllTypes(),
+            type: that.data.type === value ? 'diary' : that.data.type
+          })
+          wx.showToast({ title: '已删除', icon: 'success' })
+        }
+      }
+    })
   },
 
   // 输入标题
@@ -277,7 +370,7 @@ Page({
     var path = e.currentTarget.dataset.path
     wx.setStorageSync('noteEditPhoto', path)
     wx.navigateTo({
-      url: '/packageCreate/pages/create/draw/draw?mode=note&photo=' + encodeURIComponent(path)
+      url: '/packageCreate/pages/create/draw/draw?mode=note'
     })
   },
 

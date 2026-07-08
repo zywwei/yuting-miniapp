@@ -66,18 +66,20 @@
   </view>
 
   <!-- 分类Tab -->
-  <view class="category-tabs">
-    <view 
-      wx:for="{{categories}}" 
-      wx:key="value"
-      class="tab-item {{currentCategory === item.value ? 'active' : ''}}"
-      bindtap="switchCategory"
-      data-category="{{item.value}}"
-    >
-      <view class="tab-icon">{{item.icon}}</view>
-      <view class="tab-label">{{item.label}}</view>
+  <scroll-view scroll-x class="category-tabs-scroll">
+    <view class="category-tabs">
+      <view
+        wx:for="{{categories}}"
+        wx:key="value"
+        class="tab-item {{currentCategory === item.value ? 'active' : ''}}"
+        bindtap="switchCategory"
+        data-category="{{item.value}}"
+      >
+        <view class="tab-icon">{{item.icon}}</view>
+        <view class="tab-label">{{item.label}}</view>
+      </view>
     </view>
-  </view>
+  </scroll-view>
 
   <!-- 笔记列表 -->
   <view class="note-list" wx:if="{{notes.length > 0}}">
@@ -93,14 +95,14 @@
     >
       <view class="note-content-wrap" bindtap="goDetail" data-id="{{item.id}}">
         <view class="note-header">
-          <view class="note-type-tag {{item.type}}">
-            {{item.type === 'diary' ? '📖 日记' : item.type === 'funny' ? '😄 趣事' : '📚 学习'}}
+          <view class="note-type-tag" style="background:{{item._typeColor}};color:{{item._typeTextColor}}">
+            {{item._typeIcon}} {{item._typeLabel}}
           </view>
           <view class="note-header-right">
             <view class="visibility-tag {{item.visibility || 'family'}}">
               {{item.visibility === 'private' ? '🔒' : item.visibility === 'designated' ? '👥' : '👨‍👩‍👧‍👦'}}
             </view>
-            <view class="note-mood">{{item.mood === 'happy' ? '😊' : item.mood === 'excited' ? '🤩' : item.mood === 'calm' ? '😌' : '😴'}}</view>
+            <view class="note-mood">{{item._moodIcon}}</view>
           </view>
         </view>
         <view class="note-body">

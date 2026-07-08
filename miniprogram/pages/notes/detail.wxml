@@ -2,14 +2,14 @@
 <view class="container" wx:if="{{note}}">
   <!-- 头部 -->
   <view class="header">
-    <view class="note-type-tag {{note.type}}">
-      {{note.type === 'diary' ? '📖 成长日记' : note.type === 'funny' ? '😄 今日趣事' : '📚 学习笔记'}}
+    <view class="note-type-tag" style="background:{{typeInfo.color}};color:{{typeInfo.textColor}}">
+      {{typeInfo.icon}} {{typeInfo.label}}
     </view>
     <view class="header-right">
       <view class="visibility-tag {{note.visibility || 'family'}}">
         {{note.visibility === 'private' ? '🔒 仅自己' : note.visibility === 'designated' ? '👥 指定人' : '👨‍👩‍👧‍👦 家庭'}}
       </view>
-      <view class="mood">{{note.mood === 'happy' ? '😊' : note.mood === 'excited' ? '🤩' : note.mood === 'calm' ? '😌' : '😴'}}</view>
+      <view class="mood">{{moodInfo.icon}}</view>
     </view>
   </view>
 

@@ -175,21 +175,27 @@
 }
 
 /* 分类Tab */
-.category-tabs {
-  display: flex;
+.category-tabs-scroll {
   background: #fff;
+  border-bottom: 1rpx solid #f0f0f0;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.category-tabs {
+  display: inline-flex;
   padding: 20rpx 30rpx;
   gap: 16rpx;
-  border-bottom: 1rpx solid #f0f0f0;
 }
 
 .tab-item {
-  flex: 1;
-  display: flex;
+  flex-shrink: 0;
+  min-width: 120rpx;
+  display: inline-flex;
   flex-direction: column;
   align-items: center;
   gap: 8rpx;
-  padding: 16rpx 12rpx;
+  padding: 16rpx 20rpx;
   background: #F5F7FA;
   border-radius: 12rpx;
   border: 2rpx solid transparent;

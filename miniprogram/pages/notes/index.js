@@ -4,6 +4,7 @@ var childStorage = require('../../utils/child-storage.js')
 var cloud = require('../../utils/cloud.js')
 var auth = require('../../utils/auth.js')
 var noteManager = require('../../utils/note-manager.js')
+var noteTypes = require('../../utils/note-types.js')
 
 var app = getApp()
 var PAGE_SIZE = 20
@@ -28,12 +29,7 @@ Page({
     sortOrder: 'desc',
     showEmpty: false,
     currentCategory: 'all',
-    categories: [
-      { value: 'all', label: '全部', icon: '📋' },
-      { value: 'diary', label: '日记', icon: '📖' },
-      { value: 'funny', label: '趣事', icon: '😄' },
-      { value: 'learning', label: '学习', icon: '📚' }
-    ],
+    categories: noteTypes.getCategoryTabs(),
     allTags: []
   },
 
@@ -53,7 +49,8 @@ Page({
   onShow: function() {
     this.setData({
       children: app.globalData.children || [],
-      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId(),
+      categories: noteTypes.getCategoryTabs()
     })
 
     // 总是先加载本地数据（确保新建/编辑的笔记立即显示）
@@ -158,6 +155,13 @@ Page({
       note._isCreator = note.createdBy === memberId
       note._canDelete = note._isCreator || isAdmin
       note._formattedTime = dateUtils.formatDate(note.createTime)
+      var typeInfo = noteTypes.getTypeInfo(note.type)
+      var moodInfo = noteTypes.getMoodInfo(note.mood)
+      note._typeLabel = typeInfo.label
+      note._typeIcon = typeInfo.icon
+      note._typeColor = typeInfo.color
+      note._typeTextColor = typeInfo.textColor
+      note._moodIcon = moodInfo.icon
       return note
     }).sort(function(a, b) {
       return new Date(b.createTime) - new Date(a.createTime)

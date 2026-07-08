@@ -119,7 +119,10 @@ Page({
     const mode = options.mode || 'free'
     const templateId = options.templateId || ''
     const templateName = options.name || ''
-    const photoPath = options.photo ? decodeURIComponent(options.photo) : ''
+    // 笔记和习惯模式从 storage 读取图片路径，避免 cloud:// 路径在 URL 传递中被截断
+    const photoPath = (mode === 'note' || mode === 'habit')
+      ? (wx.getStorageSync('noteEditPhoto') || wx.getStorageSync('habitEditPhoto') || '')
+      : (options.photo ? decodeURIComponent(options.photo) : '')
     const timeOfDay = options.timeOfDay || 'morning'
     const windowInfo = wx.getWindowInfo()
 
@@ -158,19 +161,31 @@ Page({
   // ========== 画布初始化 ==========
 
   initCanvas(templateId, photoPath) {
+    console.log('[draw] initCanvas called, photoPath:', photoPath)
+
     const query = wx.createSelectorQuery()
     query.select('#drawingCanvas')
       .fields({ node: true, size: true })
       .exec((res) => {
-        if (!res[0]) return
+        if (!res[0]) {
+          console.error('[draw] 画布节点未找到')
+          return
+        }
 
         const canvas = res[0].node
         const ctx = canvas.getContext('2d')
-        const deviceInfo = wx.getDeviceInfo()
+        const windowInfo = wx.getWindowInfo()
 
-        this.pixelRatio = deviceInfo.pixelRatio
+        // 使用 windowInfo.pixelRatio 或默认值 2
+        this.pixelRatio = windowInfo.pixelRatio || 2
         this.canvasWidth = res[0].width
         this.canvasHeight = res[0].height
+
+        console.log('[draw] 画布初始化:', {
+          width: this.canvasWidth,
+          height: this.canvasHeight,
+          pixelRatio: this.pixelRatio
+        })
 
         canvas.width = res[0].width * this.pixelRatio
         canvas.height = res[0].height * this.pixelRatio
@@ -193,6 +208,7 @@ Page({
 
         // 刷牙模式：自动加载照片作为背景
         if (photoPath) {
+          console.log('[draw] 加载照片作为背景:', photoPath)
           this.loadPhotoAsBackground(photoPath)
           // loadPhotoAsBackground 内部会调用 saveHistory
         } else {
@@ -575,32 +591,78 @@ Page({
 
   // 将照片加载到画布背景
   loadPhotoAsBackground(filePath) {
-    if (!this.ctx || !this.canvas) return
+    console.log('[draw] loadPhotoAsBackground:', filePath)
+
+    if (!this.ctx || !this.canvas) {
+      console.error('[draw] 画布未初始化')
+      return
+    }
+
+    if (!filePath) {
+      console.error('[draw] 文件路径为空')
+      return
+    }
 
     // 如果是云文件ID，先转为临时URL
     if (filePath.startsWith('cloud://')) {
+      console.log('[draw] 云文件，转换为临时URL')
       wx.cloud.getTempFileURL({
         fileList: [filePath],
         success: (res) => {
+          console.log('[draw] getTempFileURL success:', res)
           if (res.fileList && res.fileList[0] && res.fileList[0].tempFileURL) {
             this._loadImageToCanvas(res.fileList[0].tempFileURL)
           } else {
+            console.error('[draw] getTempFileURL 返回为空')
             wx.showToast({ title: '图片加载失败', icon: 'none' })
           }
         },
-        fail: () => {
+        fail: (err) => {
+          console.error('[draw] getTempFileURL fail:', err)
+          wx.showToast({ title: '图片加载失败', icon: 'none' })
+        }
+      })
+    } else if (filePath.startsWith('https://') || filePath.startsWith('http://')) {
+      // 临时URL，需要先下载到本地再加载
+      console.log('[draw] 临时URL，下载到本地')
+      wx.downloadFile({
+        url: filePath,
+        success: (res) => {
+          if (res.statusCode === 200) {
+            console.log('[draw] 下载成功:', res.tempFilePath)
+            this._loadImageToCanvas(res.tempFilePath)
+          } else {
+            console.error('[draw] 下载失败:', res.statusCode)
+            wx.showToast({ title: '图片加载失败', icon: 'none' })
+          }
+        },
+        fail: (err) => {
+          console.error('[draw] 下载失败:', err)
           wx.showToast({ title: '图片加载失败', icon: 'none' })
         }
       })
     } else {
+      console.log('[draw] 本地文件，直接加载')
       this._loadImageToCanvas(filePath)
     }
   },
 
   _loadImageToCanvas(filePath) {
+    if (!this.canvas || !this.ctx) {
+      wx.showToast({ title: '画布未初始化', icon: 'none' })
+      return
+    }
+
+    console.log('[draw] 开始加载图片到画布:', filePath)
+    console.log('[draw] 画布尺寸:', this.canvasWidth, this.canvasHeight)
+
     const img = this.canvas.createImage()
     img.onload = () => {
-      this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight)
+      console.log('[draw] 图片加载成功, 尺寸:', img.width, img.height)
+
+      // 先填充白色背景
+      this.ctx.fillStyle = '#FFFFFF'
+      this.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight)
 
       const imgW = img.width
       const imgH = img.height
@@ -609,25 +671,30 @@ Page({
       const imgRatio = imgW / imgH
       const canvasRatio = canvasW / canvasH
 
+      // contain 模式：保持比例，完整显示图片（不裁剪）
       let drawW, drawH, drawX, drawY
       if (imgRatio > canvasRatio) {
-        drawH = canvasH
-        drawW = canvasH * imgRatio
-        drawX = (canvasW - drawW) / 2
-        drawY = 0
-      } else {
+        // 图片更宽，按宽度适配
         drawW = canvasW
         drawH = canvasW / imgRatio
         drawX = 0
         drawY = (canvasH - drawH) / 2
+      } else {
+        // 图片更高，按高度适配
+        drawH = canvasH
+        drawW = canvasH * imgRatio
+        drawX = (canvasW - drawW) / 2
+        drawY = 0
       }
 
+      console.log('[draw] 绘制图片:', { drawX, drawY, drawW, drawH })
       this.ctx.drawImage(img, drawX, drawY, drawW, drawH)
       this.saveHistory()
       audio.stickerPlace()
       wx.showToast({ title: '已加载照片', icon: 'success' })
     }
-    img.onerror = () => {
+    img.onerror = (err) => {
+      console.error('[draw] 图片加载失败:', err)
       wx.showToast({ title: '图片加载失败', icon: 'none' })
     }
     img.src = filePath

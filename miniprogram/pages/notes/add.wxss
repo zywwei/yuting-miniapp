@@ -19,16 +19,56 @@
   margin-bottom: 20rpx;
 }
 
+.section-title.collapsible {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.collapse-arrow {
+  font-size: 24rpx;
+  color: #999;
+  transition: transform 0.3s;
+}
+
+.collapse-arrow.collapsed {
+  transform: rotate(-90deg);
+}
+
+.collapse-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  max-height: 2000rpx;
+}
+
+.collapse-content.hidden {
+  max-height: 0;
+  margin-top: 0;
+}
+
+.collapse-content:not(.hidden) {
+  margin-top: 20rpx;
+}
+
 /* 笔记类型选择 */
+.type-group-label {
+  font-size: 22rpx;
+  color: #999;
+  margin: 16rpx 0 12rpx;
+}
+
 .type-list {
   display: flex;
+  flex-wrap: wrap;
   gap: 16rpx;
 }
 
 .type-item {
-  flex: 1;
+  min-width: 140rpx;
   text-align: center;
-  padding: 20rpx 12rpx;
+  padding: 20rpx 16rpx;
   background: #F5F7FA;
   border-radius: 16rpx;
   border: 3rpx solid transparent;
@@ -69,15 +109,29 @@
   line-height: 1.8;
 }
 
+/* 心情选择 */
+.mood-group-label {
+  font-size: 22rpx;
+  color: #999;
+  margin: 16rpx 0 12rpx;
+}
+
+.mood-scroll {
+  white-space: nowrap;
+  width: 100%;
+}
+
 .mood-list {
-  display: flex;
-  gap: 24rpx;
+  display: inline-flex;
+  gap: 16rpx;
+  padding-bottom: 8rpx;
 }
 
 .mood-item {
-  flex: 1;
+  flex-shrink: 0;
+  min-width: 100rpx;
   text-align: center;
-  padding: 20rpx;
+  padding: 16rpx 12rpx;
   background: #F5F7FA;
   border-radius: 16rpx;
   border: 3rpx solid transparent;
@@ -389,4 +443,93 @@
   padding: 24rpx;
   color: #999;
   font-size: 24rpx;
+}
+
+/* 创建类型按钮 */
+.create-type {
+  border: 3rpx dashed #CCC;
+  background: transparent;
+}
+
+/* 自定义类型弹窗 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-content {
+  width: 80%;
+  background: white;
+  border-radius: 24rpx;
+  padding: 40rpx;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.modal-input {
+  background: #F5F7FA;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.modal-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  justify-content: center;
+  margin-bottom: 30rpx;
+}
+
+.modal-icon-item {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  background: #F5F7FA;
+  border-radius: 12rpx;
+  border: 3rpx solid transparent;
+}
+
+.modal-icon-item.selected {
+  border-color: #66BB6A;
+  background: #E8F5E9;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.modal-btn {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}
+
+.modal-btn.cancel {
+  background: #F5F7FA;
+  color: #666;
+}
+
+.modal-btn.confirm {
+  background: linear-gradient(135deg, #66BB6A, #43A047);
+  color: white;
 }

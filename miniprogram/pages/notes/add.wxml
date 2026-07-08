@@ -1,22 +1,5 @@
 <!-- 添加/编辑笔记 -->
 <view class="container">
-  <!-- 笔记类型 -->
-  <view class="section">
-    <view class="section-title">笔记类型</view>
-    <view class="type-list">
-      <view
-        wx:for="{{types}}"
-        wx:key="value"
-        class="type-item {{type === item.value ? 'selected' : ''}}"
-        bindtap="selectType"
-        data-type="{{item.value}}"
-      >
-        <view class="type-icon">{{item.icon}}</view>
-        <view class="type-label">{{item.label}}</view>
-      </view>
-    </view>
-  </view>
-
   <!-- 标题 -->
   <view class="section">
     <input
@@ -40,19 +23,69 @@
     />
   </view>
 
-  <!-- 心情选择 -->
+  <!-- 笔记类型（可折叠） -->
   <view class="section">
-    <view class="section-title">今天的心情</view>
-    <view class="mood-list">
-      <view
-        wx:for="{{moods}}"
-        wx:key="value"
-        class="mood-item {{mood === item.value ? 'selected' : ''}}"
-        bindtap="selectMood"
-        data-mood="{{item.value}}"
-      >
-        <view class="mood-icon">{{item.icon}}</view>
-        <view class="mood-label">{{item.label}}</view>
+    <view class="section-title collapsible" bindtap="toggleTypeCollapsed">
+      <text>笔记类型</text>
+      <text class="collapse-arrow {{typeCollapsed ? 'collapsed' : ''}}">▼</text>
+    </view>
+    <view class="collapse-content {{typeCollapsed ? 'hidden' : ''}}">
+      <view wx:for="{{typeGroups}}" wx:for-item="group" wx:key="key">
+        <view class="type-group-label">{{group.label}}</view>
+        <view class="type-list">
+          <block wx:for="{{types}}" wx:for-item="t" wx:key="value">
+            <view wx:if="{{t.group === group.key}}"
+              class="type-item {{type === t.value ? 'selected' : ''}}"
+              bindtap="selectType" data-type="{{t.value}}"
+              bindlongpress="{{t.isCustom ? 'deleteCustomType' : ''}}"
+              data-value="{{t.value}}">
+              <view class="type-icon">{{t.icon}}</view>
+              <view class="type-label">{{t.label}}</view>
+            </view>
+          </block>
+        </view>
+      </view>
+      <view class="type-group-label">其他</view>
+      <view class="type-list">
+        <block wx:for="{{types}}" wx:for-item="t" wx:key="value">
+          <view wx:if="{{t.group === 'other'}}"
+            class="type-item {{type === t.value ? 'selected' : ''}}"
+            bindtap="selectType" data-type="{{t.value}}"
+            bindlongpress="{{t.isCustom ? 'deleteCustomType' : ''}}"
+            data-value="{{t.value}}">
+            <view class="type-icon">{{t.icon}}</view>
+            <view class="type-label">{{t.label}}</view>
+          </view>
+        </block>
+        <view class="type-item create-type" bindtap="showCustomTypeModal">
+          <view class="type-icon">➕</view>
+          <view class="type-label">新建类型</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 心情选择（可折叠） -->
+  <view class="section">
+    <view class="section-title collapsible" bindtap="toggleMoodCollapsed">
+      <text>今天的心情</text>
+      <text class="collapse-arrow {{moodCollapsed ? 'collapsed' : ''}}">▼</text>
+    </view>
+    <view class="collapse-content {{moodCollapsed ? 'hidden' : ''}}">
+      <view wx:for="{{moodGroups}}" wx:for-item="group" wx:key="key">
+        <view class="mood-group-label">{{group.label}}</view>
+        <scroll-view scroll-x class="mood-scroll">
+          <view class="mood-list">
+            <block wx:for="{{moods}}" wx:for-item="m" wx:key="value">
+              <view wx:if="{{m.group === group.key}}"
+                class="mood-item {{mood === m.value ? 'selected' : ''}}"
+                bindtap="selectMood" data-mood="{{m.value}}">
+                <view class="mood-icon">{{m.icon}}</view>
+                <view class="mood-label">{{m.label}}</view>
+              </view>
+            </block>
+          </view>
+        </scroll-view>
       </view>
     </view>
   </view>
@@ -141,4 +174,23 @@
 
   <!-- 保存按钮 -->
   <view class="save-btn" bindtap="save">{{isEdit ? '更新笔记' : '保存笔记'}}</view>
+</view>
+
+<!-- 自定义类型创建弹窗 -->
+<view class="modal-mask" wx:if="{{showCustomTypeModal}}" bindtap="hideCustomTypeModal">
+  <view class="modal-content" catchtap="">
+    <view class="modal-title">创建新类型</view>
+    <input class="modal-input" placeholder="输入类型名称（如：手工记录）" value="{{customTypeName}}" bindinput="onCustomTypeNameInput" maxlength="6" />
+    <view class="modal-icons">
+      <view wx:for="{{customIconOptions}}" wx:key="*this"
+        class="modal-icon-item {{customTypeIcon === item ? 'selected' : ''}}"
+        bindtap="selectCustomIcon" data-icon="{{item}}">
+        {{item}}
+      </view>
+    </view>
+    <view class="modal-actions">
+      <view class="modal-btn cancel" bindtap="hideCustomTypeModal">取消</view>
+      <view class="modal-btn confirm" bindtap="createCustomType">创建</view>
+    </view>
+  </view>
 </view>
