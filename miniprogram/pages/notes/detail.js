@@ -6,7 +6,7 @@ var dateUtils = require('../../utils/date-utils.js')
 Page({
   data: {
     note: null,
-    isCreator: false,
+    canEdit: false,
     formattedCreateTime: '',
     formattedUpdateTime: ''
   },
@@ -17,9 +17,16 @@ Page({
   },
 
   onShow: function() {
-    // 从编辑页面返回时刷新数据
+    var self = this
     if (this.data.note) {
-      this.loadNote(this.data.note.id)
+      // 从编辑页面返回时刷新数据
+      // 同时尝试从云端同步最新笔记（防止其他设备修改 visibility 后本地缓存未更新）
+      cloud.fetchNotes().then(function() {
+        self.loadNote(self.data.note.id)
+      }).catch(function() {
+        // 同步失败时仍从本地加载
+        self.loadNote(self.data.note.id)
+      })
     }
   },
 
@@ -28,20 +35,42 @@ Page({
     var self = this
     var notes = childStorage.get('notes') || []
     var note = notes.find(function(n) { return n.id === id })
-    if (note) {
-      var member = auth.getMember()
-      var isCreator = note.createdBy === (member ? member._id : '')
-      var isAdmin = member && member.permissions && member.permissions.indexOf('admin') >= 0
-      self.setData({ 
-        note: note, 
-        isCreator: isCreator || isAdmin,
-        formattedCreateTime: dateUtils.formatDate(note.createTime),
-        formattedUpdateTime: note.updateTime ? dateUtils.formatDate(note.updateTime) : ''
-      })
-    } else {
+    if (!note) {
       wx.showToast({ title: '笔记不存在', icon: 'none' })
       setTimeout(function() { wx.navigateBack() }, 1500)
+      return
     }
+
+    var member = auth.getMember()
+    var memberId = member ? member._id : ''
+    var isAdmin = member && member.permissions && member.permissions.indexOf('admin') >= 0
+    var isCreator = note.createdBy === memberId
+
+    // 可见性权限校验：非创建者/管理员需按 visibility 判断
+    var canView = isCreator || isAdmin
+    if (!canView) {
+      var vis = note.visibility || 'family'
+      if (vis === 'family') {
+        canView = true
+      } else if (vis === 'designated') {
+        canView = (note.visibleTo || []).indexOf(memberId) >= 0
+      } else {
+        canView = false  // private 仅创建者可见
+      }
+    }
+
+    if (!canView) {
+      wx.showToast({ title: '无权查看此笔记', icon: 'none' })
+      setTimeout(function() { wx.navigateBack() }, 1500)
+      return
+    }
+
+    self.setData({
+      note: note,
+      canEdit: isCreator || isAdmin,
+      formattedCreateTime: dateUtils.formatDate(note.createTime),
+      formattedUpdateTime: note.updateTime ? dateUtils.formatDate(note.updateTime) : ''
+    })
   },
 
   // 图片预览

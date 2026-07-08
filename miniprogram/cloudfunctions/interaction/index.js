@@ -174,6 +174,7 @@ async function resolveCommentImages(comments) {
 async function getComments(member, { targetType, targetId, page, pageSize }) {
   try {
     const where = {
+      familyId: member.familyId,
       targetType,
       targetId,
       isDeleted: false
@@ -185,8 +186,7 @@ async function getComments(member, { targetType, targetId, page, pageSize }) {
       .limit(pageSize || 100)
       .get()
 
-    const filtered = res.data.filter(c => c.familyId === member.familyId)
-    var list = await resolveCommentImages(filtered)
+    var list = await resolveCommentImages(res.data)
     return { code: 0, data: list }
   } catch (err) {
     return { code: -2, msg: '查询失败' }

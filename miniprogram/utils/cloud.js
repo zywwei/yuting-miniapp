@@ -244,7 +244,7 @@ function getDeletedDrawingIds() {
   return extractTombstoneIds(tombstones)
 }
 
-// ===== 已删除笔记的墓碑清单（按孩子隔离）=====
+// ===== 已删除笔记的墓碑清单（家庭级，不按孩子隔离）=====
 var DELETED_NOTES_KEY = 'deletedNoteIds'
 
 function getDeletedNoteIds() {
@@ -906,21 +906,29 @@ async function uploadNote(note) {
     synced: false  // 标记为未同步
   }
 
+  // 已持久化或云端/网络路径无需再次落盘，避免重复持久化浪费本地存储
+  function isPersisted(p) {
+    return !p || typeof p !== 'string' ||
+      p.indexOf('cloud://') === 0 ||
+      p.indexOf('http') === 0 ||
+      p.indexOf(wx.env.USER_DATA_PATH) === 0
+  }
+
   var images = note.images || []
   var localImages = []
   for (var i = 0; i < images.length; i++) {
-    if (images[i] && !images[i].startsWith('cloud://')) {
+    if (!isPersisted(images[i])) {
       var util = require('./util.js')
-      localImages.push(await util.saveImageToPersistent(images[i]))
+      localImages.push(await util.saveImageToPersistent(images[i], 'note'))
     } else {
       localImages.push(images[i])
     }
   }
 
   var localVoice = note.voice || ''
-  if (localVoice && !localVoice.startsWith('cloud://')) {
+  if (!isPersisted(localVoice)) {
     var util2 = require('./util.js')
-    localVoice = await util2.saveImageToPersistent(localVoice)
+    localVoice = await util2.saveImageToPersistent(localVoice, 'note')
   }
 
   record.images = localImages
@@ -940,20 +948,21 @@ async function uploadNote(note) {
 
   var uploadImages = []
   for (var j = 0; j < localImages.length; j++) {
-    if (localImages[j] && !localImages[j].startsWith('cloud://')) {
+    if (!isPersisted(localImages[j])) {
       uploadImages.push({
         field: 'images[' + j + ']',
         localPath: localImages[j],
-        cloudPath: 'notes/' + note.id + '_' + j + '.jpg'
+        // 随机路径避免编辑替换时覆盖旧文件（旧文件由 updateRecord 差集清理）
+        cloudPath: 'notes/' + note.id + '_' + Date.now() + '_' + j + '.jpg'
       })
     }
   }
 
-  if (localVoice && !localVoice.startsWith('cloud://')) {
+  if (!isPersisted(localVoice)) {
     uploadImages.push({
       field: 'voice',
       localPath: localVoice,
-      cloudPath: 'notes/' + note.id + '_voice.aac'
+      cloudPath: 'notes/' + note.id + '_voice_' + Date.now() + '.aac'
     })
   }
 
@@ -1904,7 +1913,63 @@ var SINGLETON_MODULE_CONFIGS = {
   }
 }
 
+var notesStorageMigrated = false
+
+// 一次性迁移：P1-1 修复后笔记改为家庭级存储，需把旧的 notes_<childId> / deletedNoteIds_<childId>
+// 合并到全局 key，否则离线未同步到云端的笔记会因 key 变更而不可达（等同丢失）
+function migrateNotesStorage() {
+  if (notesStorageMigrated) return
+  var children = auth.getChildren()
+  if (!children || children.length === 0) return  // 孩子未加载，等下次 fetchNotes 再迁
+  notesStorageMigrated = true
+  try {
+    var globalNotes = wx.getStorageSync('notes') || []
+    var existingIds = {}
+    globalNotes.forEach(function(n) { if (n && n.id) existingIds[n.id] = true })
+    var notesChanged = false
+    var globalTomb = wx.getStorageSync('deletedNoteIds') || []
+    var tombSet = {}
+    globalTomb.forEach(function(t) {
+      var tid = typeof t === 'string' ? t : (t && t.id)
+      if (tid) tombSet[tid] = true
+    })
+    var tombChanged = false
+    children.forEach(function(c) {
+      var cid = c.childId
+      if (!cid) return
+      var oldNotes = wx.getStorageSync('notes_' + cid)
+      if (oldNotes && oldNotes.length > 0) {
+        oldNotes.forEach(function(n) {
+          if (n && n.id && !existingIds[n.id]) {
+            globalNotes.push(n)
+            existingIds[n.id] = true
+            notesChanged = true
+          }
+        })
+        wx.removeStorageSync('notes_' + cid)
+      }
+      var oldTomb = wx.getStorageSync('deletedNoteIds_' + cid)
+      if (oldTomb && oldTomb.length > 0) {
+        oldTomb.forEach(function(t) {
+          var tid = typeof t === 'string' ? t : (t && t.id)
+          if (tid && !tombSet[tid]) {
+            globalTomb.push(t)
+            tombSet[tid] = true
+            tombChanged = true
+          }
+        })
+        wx.removeStorageSync('deletedNoteIds_' + cid)
+      }
+    })
+    if (notesChanged) wx.setStorageSync('notes', globalNotes)
+    if (tombChanged) wx.setStorageSync('deletedNoteIds', globalTomb)
+  } catch (e) {
+    console.warn('笔记本地存储迁移失败:', e)
+  }
+}
+
 async function fetchNotes() {
+  migrateNotesStorage()
   var localNotes = childStorage.get('notes') || []
   var member = auth.getMember()
   if (!member) return localNotes
@@ -1914,38 +1979,41 @@ async function fetchNotes() {
   }
 
   try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: {
-        action: 'list',
-        collection: 'notes',
-        childId: auth.getCurrentChildId(),
-        page: 1,
-        pageSize: 200
-      }
-    })
-
-    if (res.result.code === 0) {
-      var cloudList = res.result.data.list || []
-      
-      var deletedIds = getDeletedNoteIds()
-      var deletedSet = {}
-      deletedIds.forEach(function(id) { deletedSet[id] = true })
-
-      // 构建云端数据映射
-      var cloudMap = {}
-      cloudList.forEach(function(n) {
-        if (n && n.id && !deletedSet[n.id]) {
-          cloudMap[n.id] = n
+    var cloudList = []
+    var page = 1
+    var pageSize = 100
+    // 分页循环拉取全部笔记，避免固定上限导致历史笔记丢失
+    while (page <= 50) {  // 安全上限 5000 篇
+      var res = await wx.cloud.callFunction({
+        name: 'record',
+        data: {
+          action: 'list',
+          collection: 'notes',
+          childId: auth.getCurrentChildId(),
+          page: page,
+          pageSize: pageSize
         }
       })
 
-      var merged = mergeAndHeal('notes', 'notes', localNotes, cloudList, deletedSet)
+      if (!res.result || res.result.code !== 0) {
+        console.warn('fetchNotes: 云函数返回错误:', res.result && res.result.msg)
+        if (page === 1) return localNotes  // 首页失败直接用本地
+        break  // 后续页失败则用已拉取的部分
+      }
 
-      return merged
-    } else {
-      console.warn('fetchNotes: 云函数返回错误:', res.result)
+      var batch = res.result.data.list || []
+      cloudList = cloudList.concat(batch)
+      if (batch.length < pageSize) break  // 没有更多了
+      page++
     }
+
+    var deletedIds = getDeletedNoteIds()
+    var deletedSet = {}
+    deletedIds.forEach(function(id) { deletedSet[id] = true })
+
+    var merged = mergeAndHeal('notes', 'notes', localNotes, cloudList, deletedSet)
+
+    return merged
   } catch (err) {
     console.warn('笔记云端读取失败，使用本地缓存:', err)
   }

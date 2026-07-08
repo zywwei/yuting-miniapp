@@ -163,23 +163,28 @@ var generateId = function() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 9)
 }
 
-var saveImageToPersistent = function(tempFilePath) {
+var saveImageToPersistent = function(tempFilePath, prefix) {
+  prefix = prefix || 'drawing'
   return new Promise(function(resolve, reject) {
     var fs = wx.getFileSystemManager()
-    var drawings = getDrawings()
 
-    if (drawings.length >= 50) {
-      var toRemove = drawings.slice(45)
-      toRemove.forEach(function(d) {
-        try {
-          if (d.imagePath && d.imagePath.startsWith(wx.env.USER_DATA_PATH)) {
-            fs.unlinkSync(d.imagePath)
-          }
-        } catch (e) {}
-      })
+    // 仅画作持久化时执行 drawings LRU 清理，避免笔记图片等误触发其它模块文件清理
+    if (prefix === 'drawing') {
+      var drawings = getDrawings()
+
+      if (drawings.length >= 50) {
+        var toRemove = drawings.slice(45)
+        toRemove.forEach(function(d) {
+          try {
+            if (d.imagePath && d.imagePath.startsWith(wx.env.USER_DATA_PATH)) {
+              fs.unlinkSync(d.imagePath)
+            }
+          } catch (e) {}
+        })
+      }
     }
 
-    var fileName = 'drawing_' + generateId() + '.png'
+    var fileName = prefix + '_' + generateId() + '.png'
     var savedPath = wx.env.USER_DATA_PATH + '/' + fileName
 
     fs.copyFile({

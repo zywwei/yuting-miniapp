@@ -12,7 +12,7 @@ var CHILD_KEYS = [
   'habitRecords',
   'brushingRecords',
   'drawings',
-  'notes',
+  // notes 为家庭级数据（通过 visibility 控制权限，不按孩子隔离），不进 childId 命名空间
   'brushingStory',
   'brushingAvatar',
   'totalBrushPoints',
@@ -62,7 +62,7 @@ var CHILD_KEYS = [
   'stallBusinessHoursUpdatedAt',
   // 墓碑 key（删除标记，按孩子隔离）
   'deletedDrawingIds',
-  'deletedNoteIds',
+  // deletedNoteIds 同 notes 为家庭级，不按孩子隔离
   'deletedBrushingIds',
   'deletedStallProductIds',
   'deletedStallSaleIds',

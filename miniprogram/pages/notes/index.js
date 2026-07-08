@@ -146,9 +146,15 @@ Page({
     var member = auth.getMember()
     var memberId = member ? member._id : ''
     var isAdmin = member && member.permissions && member.permissions.indexOf('admin') >= 0
-    
-    // 为每个笔记添加权限标记和格式化时间
-    this._allNotes = notes.map(function(note) {
+
+    // 本地按 visibility 过滤兜底，防止云端未及时同步时本地缓存残留泄漏
+    this._allNotes = notes.filter(function(note) {
+      if (note.createdBy === memberId || isAdmin) return true
+      var vis = note.visibility || 'family'
+      if (vis === 'family') return true
+      if (vis === 'designated') return (note.visibleTo || []).indexOf(memberId) >= 0
+      return false  // private 仅创建者
+    }).map(function(note) {
       note._isCreator = note.createdBy === memberId
       note._canDelete = note._isCreator || isAdmin
       note._formattedTime = dateUtils.formatDate(note.createTime)

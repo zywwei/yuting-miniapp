@@ -48,7 +48,7 @@
   </view>
 
   <!-- 操作 -->
-  <view class="actions" wx:if="{{isCreator}}">
+  <view class="actions" wx:if="{{canEdit}}">
     <view class="edit-btn" bindtap="editNote">编辑笔记</view>
     <view class="delete-btn" bindtap="deleteNote">删除笔记</view>
   </view>

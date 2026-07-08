@@ -1,0 +1,31 @@
+{
+  "_comment": "数据库安全规则基线。所有集合设为 read:false/write:false，强制数据访问经云函数（云函数以管理员权限调用，不受此规则限制）。需在微信开发者工具「云开发 → 数据库 → 权限设置」按此基线逐集合配置。集合清单对齐 cloudfunctions/record/index.js 的 ALLOWED_COLLECTIONS 及关联集合。",
+  "permissions": {
+    "notes":            { "read": false, "write": false },
+    "drawings":         { "read": false, "write": false },
+    "brushingRecords":  { "read": false, "write": false },
+    "habitRecords":     { "read": false, "write": false },
+    "achievements":     { "read": false, "write": false },
+    "userSettings":     { "read": false, "write": false },
+    "stallProducts":    { "read": false, "write": false },
+    "stallSales":       { "read": false, "write": false },
+    "stallSettings":    { "read": false, "write": false },
+    "stallChallenges":  { "read": false, "write": false },
+    "stallBusinessHours": { "read": false, "write": false },
+    "gameRecords":      { "read": false, "write": false },
+    "comments":         { "read": false, "write": false },
+    "likes":            { "read": false, "write": false },
+    "accountBooks":     { "read": false, "write": false },
+    "bookEntries":      { "read": false, "write": false },
+    "accountSettings":  { "read": false, "write": false },
+    "aiSkills":         { "read": false, "write": false },
+    "familyMembers":    { "read": false, "write": false },
+    "families":         { "read": false, "write": false }
+  },
+  "storage_rules": {
+    "_comment": "云存储规则。notes/ 目录仅允许创建者读写，防止跨账户读取他人笔记图片。其它目录同理。需在「云开发 → 存储 → 权限设置」配置。",
+    "notes/":           "仅创建者可读写（fileID 所有人可读经云函数 getTempFileURL 转换）",
+    "drawings/":        "仅创建者可读写",
+    "images/":          "仅创建者可读写"
+  }
+}

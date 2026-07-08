@@ -239,6 +239,7 @@ Page({
 
         var uploadCount = 0
         var newImages = []
+        var hasUploadFail = false
 
         tempFiles.forEach(function(f, index) {
           var tempPath = f.tempFilePath
@@ -246,12 +247,16 @@ Page({
             newImages[index] = fileID
           }).catch(function() {
             newImages[index] = tempPath
+            hasUploadFail = true
           }).finally(function() {
             uploadCount++
             if (uploadCount === tempFiles.length) {
               var images = that.data.images.concat(newImages)
               that.setData({ images: images })
               wx.hideLoading()
+              if (hasUploadFail) {
+                wx.showToast({ title: '部分图片上传失败，仅保存到本机', icon: 'none' })
+              }
             }
           })
         })
@@ -361,7 +366,7 @@ Page({
             callback(savedImages)
           }
         } else {
-          util.saveImageToPersistent(img).then(function(savedPath) {
+          util.saveImageToPersistent(img, 'note').then(function(savedPath) {
             savedImages[index] = savedPath
             savedCount++
             if (savedCount === images.length) {
@@ -402,8 +407,7 @@ Page({
       } else {
         // 新建模式
         var member = auth.getMember()
-        var newNote = {
-          id: util.generateId(),
+        var noteData = {
           type: type,
           title: title.trim(),
           content: content.trim(),
@@ -413,23 +417,13 @@ Page({
           imagePath: savedImages[0] || '',
           visibility: visibility,
           visibleTo: visibleTo,
-          createTime: new Date().toISOString(),
           createdBy: member ? member._id : '',
           createdByName: member ? member.roleName : ''
         }
 
-        var notes = childStorage.get('notes') || []
-        notes.unshift(newNote)
-        childStorage.set('notes', notes)
-
-        // 同步云端（不阻塞用户操作）
-        cloud.uploadNote(newNote).then(function() {
-          console.log('笔记云端同步成功')
-        }).catch(function(err) {
-          console.warn('笔记云端同步失败:', err)
-          // 同步失败时不提示用户，因为笔记已保存到本地
-          // 下次打开时会自动重试同步
-        })
+        // 统一走 noteManager.addNote：生成 id/createTime、写本地、触发云同步
+        var noteManager = require('../../utils/note-manager.js')
+        noteManager.addNote(noteData)
 
         wx.disableAlertBeforeUnload()
         wx.hideLoading()

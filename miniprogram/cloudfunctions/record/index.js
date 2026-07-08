@@ -103,6 +103,28 @@ function canDelete(member, record, collection) {
   return false
 }
 
+// 提取记录中引用的 cloud:// 文件并批量删除，防止删除/编辑时云存储孤儿文件累积
+async function deleteCloudFiles(record) {
+  if (!record) return
+  var fileIds = []
+  if (Array.isArray(record.images)) {
+    fileIds = fileIds.concat(record.images.filter(function(f) {
+      return typeof f === 'string' && f.indexOf('cloud://') === 0
+    }))
+  }
+  ;['imagePath', 'voice', 'cloudFileID'].forEach(function(k) {
+    if (typeof record[k] === 'string' && record[k].indexOf('cloud://') === 0) {
+      fileIds.push(record[k])
+    }
+  })
+  if (fileIds.length === 0) return
+  try {
+    await cloud.deleteFile({ fileList: fileIds })
+  } catch (e) {
+    console.warn('清理云存储文件失败:', e)
+  }
+}
+
 async function addRecord(member, collection, data) {
   const record = {
     ...data,
@@ -142,7 +164,21 @@ async function addRecord(member, collection, data) {
         }
       }
     }
-    
+
+    // 字段长度/数量校验，防止恶意客户端写入超长内容或超大数组
+    if (record.title !== undefined) {
+      if (typeof record.title !== 'string') return { code: -4, msg: '标题格式无效' }
+      if (record.title.length > 100) return { code: -4, msg: '标题过长' }
+    }
+    if (record.content !== undefined && typeof record.content === 'string' && record.content.length > 5000) {
+      return { code: -4, msg: '内容过长' }
+    }
+    if (Array.isArray(record.images) && record.images.length > 9) {
+      record.images = record.images.slice(0, 9)
+    }
+    if (Array.isArray(record.tags) && record.tags.length > 5) {
+      record.tags = record.tags.slice(0, 5)
+    }
   }
 
   // 如果指定了 _id，则使用指定的 _id（用于设置等单例文档）
@@ -206,8 +242,19 @@ async function updateRecord(member, collection, id, updates) {
       return { code: -3, msg: '记录不存在' }
     }
 
-    if (!canEdit(member, record)) {
+    if (!canEdit(member, record, collection)) {
       return { code: -2, msg: '无权限修改' }
+    }
+
+    // 字段级权限校验：对配置了 FIELD_PERMISSIONS 的集合，逐字段校验受限字段
+    // 防止非创建者通过 update 绕过限制修改 creatorOnly 字段（如 bookEntries.amount/type）
+    var fieldPerms = FIELD_PERMISSIONS[collection]
+    if (fieldPerms) {
+      for (var f in updates) {
+        if (!canEdit(member, record, collection, f)) {
+          return { code: -2, msg: '无权限修改字段: ' + f }
+        }
+      }
     }
 
     // 笔记权限字段校验
@@ -235,12 +282,38 @@ async function updateRecord(member, collection, id, updates) {
           }
         }
       }
+      // 字段长度/数量校验，与 addRecord 保持一致，防止通过 update 绕过限制写入超长内容
+      if (updates.title !== undefined) {
+        if (typeof updates.title !== 'string') return { code: -4, msg: '标题格式无效' }
+        if (updates.title.length > 100) return { code: -4, msg: '标题过长' }
+      }
+      if (updates.content !== undefined && typeof updates.content === 'string' && updates.content.length > 5000) {
+        return { code: -4, msg: '内容过长' }
+      }
+      if (Array.isArray(updates.images) && updates.images.length > 9) {
+        updates.images = updates.images.slice(0, 9)
+      }
+      if (Array.isArray(updates.tags) && updates.tags.length > 5) {
+        updates.tags = updates.tags.slice(0, 5)
+      }
     }
 
     delete updates._id
     delete updates.familyId
     delete updates.createdBy
     delete updates.createTime
+
+    // 编辑图片时清理被移除的旧云文件（差集），避免孤儿文件
+    // 注意：imagePath 仅是指向 images[0] 的指针，其文件清理已由 images 差集覆盖，不单独处理
+    // 否则换封面但旧图仍保留在 images 中时会误删仍在使用的文件
+    if (Array.isArray(updates.images)) {
+      var removed = (record.images || []).filter(function(f) {
+        return typeof f === 'string' && f.indexOf('cloud://') === 0 && updates.images.indexOf(f) < 0
+      })
+      if (removed.length > 0) {
+        try { await cloud.deleteFile({ fileList: removed }) } catch (e) { console.warn('清理旧云文件失败:', e) }
+      }
+    }
 
     await db.collection(collection).doc(docId).update({ data: updates })
     return { code: 0 }
@@ -276,7 +349,10 @@ async function removeRecord(member, collection, id) {
       return { code: -2, msg: '无权限删除' }
     }
 
+    // 先删 DB 记录（使其不可见），再清理云存储文件
+    // 顺序反之：若云文件先删成功而 DB 删除失败，会留下引用失效文件的幽灵记录
     await db.collection(collection).doc(docId).remove()
+    await deleteCloudFiles(record)
     return { code: 0 }
   } catch (err) {
     return { code: -3, msg: '记录不存在' }

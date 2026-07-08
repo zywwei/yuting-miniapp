@@ -36,6 +36,7 @@ var addNote = function(note) {
     mood: note.mood || 'happy',
     tags: note.tags || [],
     images: note.images || [],
+    imagePath: note.imagePath || (note.images && note.images[0]) || '',
     voice: note.voice || '',
     visibility: note.visibility || 'family',
     visibleTo: note.visibleTo || [],
