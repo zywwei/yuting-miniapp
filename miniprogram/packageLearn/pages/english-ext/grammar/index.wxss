@@ -1,0 +1,11 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #4facfe, #00f2fe); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.grammar-list { padding: 30rpx; }
+.grammar-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.grammar-title { font-size: 28rpx; font-weight: bold; margin-bottom: 8rpx; }
+.grammar-desc { font-size: 24rpx; color: #666; margin-bottom: 12rpx; }
+.grammar-examples { background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; margin-bottom: 12rpx; }
+.examples-title, .rules-title { font-size: 22rpx; color: #999; margin-bottom: 8rpx; }
+.example-item, .rule-item { font-size: 24rpx; color: #333; margin-bottom: 4rpx; }

@@ -1,0 +1,69 @@
+<!-- 测验组件 -->
+<view class="quiz-container">
+  <!-- 测验头部 -->
+  <view class="quiz-header" wx:if="{{!isFinished}}">
+    <view class="quiz-progress">
+      {{quiz.currentIndex + 1}} / {{quiz.questions.length}}
+    </view>
+    <view class="quiz-score">
+      得分：{{quiz.score}}
+    </view>
+  </view>
+
+  <!-- 题目 -->
+  <view class="question-area" wx:if="{{!isFinished}}">
+    <view class="question-text">{{currentQuestion.question}}</view>
+  </view>
+
+  <!-- 选项 -->
+  <view class="options-area" wx:if="{{!isFinished}}">
+    <view
+      wx:for="{{currentQuestion.options}}"
+      wx:key="index"
+      class="option-item {{selectedOption === index ? 'selected' : ''}} {{showResult && item === currentQuestion.answer ? 'correct' : ''}} {{showResult && selectedOption === index && !isCorrect ? 'wrong' : ''}}"
+      bindtap="selectOption"
+      data-index="{{index}}"
+    >
+      <view class="option-index">{{['A', 'B', 'C', 'D'][index]}}</view>
+      <view class="option-text">{{item}}</view>
+    </view>
+  </view>
+
+  <!-- 解析 -->
+  <view class="explanation-area" wx:if="{{showExplanation}}">
+    <view class="explanation-title">{{isCorrect ? '✓ 回答正确' : '✗ 回答错误'}}</view>
+    <view class="explanation-text">{{currentQuestion.explanation}}</view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="actions" wx:if="{{!isFinished}}">
+    <view class="action-btn" wx:if="{{!showResult}}" bindtap="submitAnswer">提交答案</view>
+    <view class="action-btn" wx:if="{{showResult}}" bindtap="nextQuestion">
+      {{quiz.currentIndex < quiz.questions.length - 1 ? '下一题' : '查看结果'}}
+    </view>
+  </view>
+
+  <!-- 测验结果 -->
+  <view class="result-area" wx:if="{{isFinished}}">
+    <view class="result-header">
+      <view class="result-grade" style="color: {{result.grade.color}}">{{result.grade.text}}</view>
+      <view class="result-score">{{result.percentage}}分</view>
+    </view>
+
+    <view class="result-details">
+      <view class="result-item">
+        <view class="result-label">答对题数</view>
+        <view class="result-value">{{result.correct}} / {{result.total}}</view>
+      </view>
+      <view class="result-item">
+        <view class="result-label">用时</view>
+        <view class="result-value">{{result.duration}}秒</view>
+      </view>
+    </view>
+
+    <view class="result-actions">
+      <view class="action-btn" bindtap="retry">再试一次</view>
+      <view class="action-btn secondary" bindtap="back">返回</view>
+    </view>
+  </view>
+</view>

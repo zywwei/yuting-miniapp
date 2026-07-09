@@ -1,0 +1,30 @@
+<!-- 社会科学模块主页 -->
+<view class="container">
+  <view class="header">
+    <view class="header-title">社会科学</view>
+    <view class="header-desc">地理、历史、政治</view>
+  </view>
+
+  <view class="module-list">
+    <view
+      wx:for="{{modules}}"
+      wx:key="id"
+      class="module-item"
+      bindtap="goModule"
+      data-id="{{item.id}}"
+    >
+      <view class="module-icon">{{item.icon}}</view>
+      <view class="module-info">
+        <view class="module-name">{{item.name}}</view>
+        <view class="module-desc">{{item.desc}}</view>
+      </view>
+      <view class="module-progress">
+        <view class="progress-text">{{progress[item.id] || 0}}/{{item.count}}</view>
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{item.count > 0 ? (progress[item.id] || 0) / item.count * 100 : 0}}%"></view>
+        </view>
+      </view>
+      <view class="module-arrow">›</view>
+    </view>
+  </view>
+</view>

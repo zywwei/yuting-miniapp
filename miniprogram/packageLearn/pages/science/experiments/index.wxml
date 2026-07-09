@@ -1,0 +1,23 @@
+<view class="container">
+  <view class="header"><view class="header-title">科学实验</view><view class="header-desc">动手做实验</view></view>
+  <view class="experiment-list">
+    <view wx:for="{{experiments}}" wx:key="id" class="experiment-item">
+      <view class="experiment-header">
+        <view class="experiment-title">{{item.title}}</view>
+        <view class="experiment-category">{{item.category === 'physics' ? '物理' : item.category === 'chemistry' ? '化学' : '生物'}}</view>
+      </view>
+      <view class="experiment-materials">
+        <view class="materials-title">材料：</view>
+        <view class="materials-list">{{item.materials}}</view>
+      </view>
+      <view class="experiment-steps">
+        <view class="steps-title">步骤：</view>
+        <view wx:for="{{item.steps}}" wx:for-item="step" wx:key="*this" class="step-item">{{index + 1}}. {{step}}</view>
+      </view>
+      <view class="experiment-principle">
+        <view class="principle-title">原理：</view>
+        <view class="principle-text">{{item.principle}}</view>
+      </view>
+    </view>
+  </view>
+</view>

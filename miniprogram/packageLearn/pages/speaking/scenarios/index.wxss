@@ -1,0 +1,12 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #fa709a, #fee140); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.scenario-list { padding: 30rpx; }
+.scenario-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.scenario-title { font-size: 28rpx; font-weight: bold; margin-bottom: 16rpx; }
+.dialogue-list { background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; }
+.dialogue-item { margin-bottom: 12rpx; }
+.speaker { font-size: 22rpx; color: #999; margin-bottom: 4rpx; }
+.english { font-size: 26rpx; color: #333; margin-bottom: 4rpx; }
+.chinese { font-size: 24rpx; color: #666; }

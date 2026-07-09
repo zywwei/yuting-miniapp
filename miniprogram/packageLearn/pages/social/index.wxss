@@ -1,0 +1,88 @@
+/* 社会科学模块主页样式 */
+.container {
+  min-height: 100vh;
+  background: #F5F7FA;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40rpx;
+  color: white;
+}
+
+.header-title {
+  font-size: 44rpx;
+  font-weight: bold;
+}
+
+.header-desc {
+  font-size: 26rpx;
+  opacity: 0.9;
+  margin-top: 8rpx;
+}
+
+.module-list {
+  padding: 30rpx;
+}
+
+.module-item {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.module-icon {
+  font-size: 48rpx;
+  margin-right: 24rpx;
+}
+
+.module-info {
+  flex: 1;
+}
+
+.module-name {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.module-desc {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.module-progress {
+  margin-right: 20rpx;
+  text-align: right;
+}
+
+.progress-text {
+  font-size: 22rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+
+.progress-bar {
+  width: 120rpx;
+  height: 8rpx;
+  background: #E8EAF6;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 4rpx;
+  transition: width 0.3s;
+}
+
+.module-arrow {
+  font-size: 36rpx;
+  color: #ccc;
+}

@@ -1,0 +1,27 @@
+<view class="container">
+  <view class="header"><view class="header-title">古诗词测验</view></view>
+  <view wx:if="{{!selectedType}}" class="type-list">
+    <view wx:for="{{quizTypes}}" wx:key="id" class="type-item" bindtap="selectType" data-type="{{item}}">
+      <view class="type-name">{{item.name}}</view>
+      <view class="type-desc">{{item.desc}}</view>
+    </view>
+  </view>
+  <view wx:if="{{selectedType && !isFinished}}" class="quiz-area">
+    <view class="quiz-header"><view class="quiz-progress">{{quiz.currentIndex + 1}} / {{quiz.questions.length}}</view><view class="quiz-score">得分：{{quiz.score}}</view></view>
+    <view class="question-area"><view class="question-text">{{currentQuestion.question}}</view></view>
+    <view class="options-area">
+      <view wx:for="{{currentQuestion.options}}" wx:key="index" class="option-item {{selectedOption === index ? 'selected' : ''}} {{showResult && item === currentQuestion.answer ? 'correct' : ''}}" bindtap="selectOption" data-index="{{index}}">
+        <view class="option-index">{{['A','B','C','D'][index]}}</view>
+        <view class="option-text">{{item}}</view>
+      </view>
+    </view>
+    <view class="explanation" wx:if="{{showResult}}"><view class="explanation-title">{{isCorrect ? '✓ 正确' : '✗ 错误'}}</view><view class="explanation-text">{{currentQuestion.explanation}}</view></view>
+    <view class="actions"><view class="action-btn" wx:if="{{!showResult}}" bindtap="submitAnswer">提交</view><view class="action-btn" wx:if="{{showResult}}" bindtap="nextQuestion">{{quiz.currentIndex < quiz.questions.length - 1 ? '下一题' : '查看结果'}}</view></view>
+  </view>
+  <view wx:if="{{isFinished}}" class="result-area">
+    <view class="result-score">{{result.percentage}}分</view>
+    <view class="result-grade" style="color: {{result.grade.color}}">{{result.grade.text}}</view>
+    <view class="result-detail">答对 {{result.correct}} / {{result.total}} 题</view>
+    <view class="result-actions"><view class="action-btn" bindtap="retry">再试一次</view><view class="action-btn secondary" bindtap="back">返回</view></view>
+  </view>
+</view>

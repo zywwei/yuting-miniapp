@@ -1,0 +1,12 @@
+<view class="container">
+  <view class="header"><view class="header-title">运动技巧</view><view class="header-desc">学习运动方法</view></view>
+  <view class="skill-list">
+    <view wx:for="{{skills}}" wx:key="id" class="skill-item">
+      <view class="skill-name">{{item.name}}</view>
+      <view class="skill-desc">{{item.desc}}</view>
+      <view class="skill-steps">
+        <view wx:for="{{item.steps}}" wx:for-item="step" wx:key="*this" class="step-item">{{index + 1}}. {{step}}</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,13 @@
+<view class="container">
+  <view class="header"><view class="header-title">健康常识</view><view class="header-desc">养成健康习惯</view></view>
+  <view class="topic-list">
+    <view wx:for="{{topics}}" wx:key="id" class="topic-item">
+      <view class="topic-title">{{item.title}}</view>
+      <view class="topic-content">{{item.content}}</view>
+      <view class="topic-tips" wx:if="{{item.tips}}">
+        <view class="tips-title">建议：</view>
+        <view wx:for="{{item.tips}}" wx:for-item="tip" wx:key="*this" class="tip-item">• {{tip}}</view>
+      </view>
+    </view>
+  </view>
+</view>

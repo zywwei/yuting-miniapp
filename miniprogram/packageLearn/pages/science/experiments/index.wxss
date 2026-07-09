@@ -1,0 +1,13 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #43e97b, #38f9d7); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.experiment-list { padding: 30rpx; }
+.experiment-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.experiment-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
+.experiment-title { font-size: 28rpx; font-weight: bold; }
+.experiment-category { font-size: 22rpx; color: #43e97b; background: #E8F5E9; padding: 4rpx 12rpx; border-radius: 8rpx; }
+.experiment-materials, .experiment-steps, .experiment-principle { margin-bottom: 12rpx; }
+.materials-title, .steps-title, .principle-title { font-size: 22rpx; color: #999; margin-bottom: 4rpx; }
+.materials-list, .step-item, .principle-text { font-size: 24rpx; color: #333; }
+.step-item { margin-bottom: 4rpx; }

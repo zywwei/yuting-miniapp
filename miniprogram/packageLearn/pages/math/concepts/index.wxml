@@ -1,0 +1,51 @@
+<!-- 数学原理讲解页面 -->
+<view class="container">
+  <view class="header">
+    <view class="header-title">原理讲解</view>
+    <view class="header-desc">理解数学概念，掌握数学思想</view>
+  </view>
+
+  <!-- 分类筛选 -->
+  <scroll-view scroll-x class="category-scroll">
+    <view class="category-list">
+      <view
+        class="category-item {{currentCategory === 'all' ? 'active' : ''}}"
+        bindtap="switchCategory"
+        data-category="all"
+      >
+        全部
+      </view>
+      <view
+        wx:for="{{categories}}"
+        wx:key="id"
+        class="category-item {{currentCategory === item.id ? 'active' : ''}}"
+        bindtap="switchCategory"
+        data-category="{{item.id}}"
+      >
+        {{item.icon}} {{item.name}}
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 概念列表 -->
+  <view class="concept-list">
+    <view
+      wx:for="{{concepts}}"
+      wx:key="id"
+      class="concept-item"
+    >
+      <view class="concept-header">
+        <view class="concept-title">{{item.title}}</view>
+        <view class="concept-grade">{{item.grade}}年级</view>
+      </view>
+      <view class="concept-content">{{item.content}}</view>
+      <view class="concept-example" wx:if="{{item.example}}">
+        <view class="example-label">示例：</view>
+        <view class="example-text">{{item.example}}</view>
+      </view>
+      <view class="concept-footer">
+        <view class="learn-btn" bindtap="markAsLearned" data-id="{{item.id}}">已学会</view>
+      </view>
+    </view>
+  </view>
+</view>

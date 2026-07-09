@@ -1,0 +1,13 @@
+<view class="container">
+  <view class="header"><view class="header-title">历史常识</view><view class="header-desc">了解历史文化</view></view>
+  <view class="topic-list">
+    <view wx:for="{{topics}}" wx:key="id" class="topic-item">
+      <view class="topic-header">
+        <view class="topic-title">{{item.title}}</view>
+        <view class="topic-dynasty">{{item.dynasty}}</view>
+      </view>
+      <view class="topic-content">{{item.content}}</view>
+      <view class="topic-significance">{{item.significance}}</view>
+    </view>
+  </view>
+</view>

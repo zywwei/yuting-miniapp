@@ -1,0 +1,17 @@
+<!-- 筛选栏组件 -->
+<view class="filter-bar">
+  <scroll-view scroll-x class="filter-scroll">
+    <view class="filter-list">
+      <view
+        wx:for="{{filters}}"
+        wx:key="value"
+        class="filter-item {{activeFilter === item.value ? 'active' : ''}}"
+        bindtap="toggleFilter"
+        data-filter="{{item.value}}"
+      >
+        <view class="filter-icon" wx:if="{{item.icon}}">{{item.icon}}</view>
+        <view class="filter-label">{{item.label}}</view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

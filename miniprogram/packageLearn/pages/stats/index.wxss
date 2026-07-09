@@ -1,0 +1,83 @@
+/* 学习统计页面样式 */
+.container {
+  min-height: 100vh;
+  background: #F5F7FA;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40rpx;
+  color: white;
+}
+
+.header-title {
+  font-size: 44rpx;
+  font-weight: bold;
+}
+
+.stats-cards {
+  display: flex;
+  gap: 20rpx;
+  padding: 30rpx;
+}
+
+.stat-card {
+  flex: 1;
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.stat-value {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #667eea;
+  margin-bottom: 8rpx;
+}
+
+.stat-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.module-stats {
+  padding: 30rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.module-list {
+  background: white;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+.module-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 28rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.module-stat-item:last-child {
+  border-bottom: none;
+}
+
+.module-name {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.module-count {
+  font-size: 26rpx;
+  color: #667eea;
+  font-weight: bold;
+}

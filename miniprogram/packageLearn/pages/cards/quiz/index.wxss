@@ -1,0 +1,30 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #42A5F5, #2196F3); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.type-list { padding: 30rpx; }
+.type-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.type-name { font-size: 28rpx; font-weight: bold; margin-bottom: 8rpx; }
+.type-desc { font-size: 24rpx; color: #666; }
+.quiz-area { padding: 30rpx; }
+.quiz-header { display: flex; justify-content: space-between; margin-bottom: 20rpx; }
+.quiz-progress, .quiz-score { font-size: 28rpx; color: #666; }
+.question-area { background: white; border-radius: 24rpx; padding: 40rpx; text-align: center; margin-bottom: 20rpx; }
+.question-text { font-size: 48rpx; font-weight: bold; }
+.options-area { margin-bottom: 20rpx; }
+.option-item { display: flex; align-items: center; background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 12rpx; border: 2rpx solid transparent; }
+.option-item.selected { border-color: #42A5F5; background: #E3F2FD; }
+.option-item.correct { border-color: #4CAF50; background: #E8F5E9; }
+.option-item.wrong { border-color: #F44336; background: #FFEBEE; }
+.option-index { width: 48rpx; height: 48rpx; background: #F5F7FA; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 16rpx; }
+.option-text { font-size: 28rpx; }
+.explanation { background: white; border-radius: 16rpx; padding: 20rpx; margin-bottom: 20rpx; }
+.explanation-title { font-size: 28rpx; font-weight: bold; margin-bottom: 8rpx; }
+.explanation-text { font-size: 24rpx; color: #666; }
+.actions { display: flex; gap: 20rpx; }
+.action-btn { flex: 1; text-align: center; padding: 24rpx; background: #42A5F5; color: white; border-radius: 40rpx; font-size: 28rpx; }
+.action-btn.secondary { background: #F5F7FA; color: #666; }
+.result-area { padding: 60rpx 30rpx; text-align: center; }
+.result-score { font-size: 72rpx; font-weight: bold; color: #333; }
+.result-grade { font-size: 36rpx; font-weight: bold; margin-bottom: 16rpx; }
+.result-detail { font-size: 28rpx; color: #666; margin-bottom: 40rpx; }
+.result-actions { display: flex; gap: 20rpx; }

@@ -1,0 +1,12 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #667eea, #764ba2); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.topic-list { padding: 30rpx; }
+.topic-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.topic-title { font-size: 28rpx; font-weight: bold; margin-bottom: 8rpx; }
+.topic-content { font-size: 26rpx; color: #333; margin-bottom: 12rpx; }
+.topic-example { background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; margin-bottom: 12rpx; }
+.example-title { font-size: 22rpx; color: #999; margin-bottom: 4rpx; }
+.example-text { font-size: 24rpx; color: #667eea; }
+.learn-btn { display: inline-block; padding: 12rpx 32rpx; background: #667eea; color: white; border-radius: 30rpx; font-size: 24rpx; }

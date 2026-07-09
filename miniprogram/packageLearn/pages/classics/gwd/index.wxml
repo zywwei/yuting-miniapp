@@ -1,0 +1,13 @@
+<view class="container">
+  <view class="header"><view class="header-title">古文观止</view><view class="header-desc">经典古文选段</view></view>
+  <view class="article-list">
+    <view wx:for="{{articles}}" wx:key="id" class="article-item">
+      <view class="article-header">
+        <view class="article-title">{{item.title}}</view>
+        <view class="article-source">《{{item.source}}》</view>
+      </view>
+      <view class="article-content">{{item.content}}</view>
+      <view class="article-meaning">{{item.meaning}}</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,11 @@
+<view class="container">
+  <view class="header"><view class="header-title">句型练习</view><view class="header-desc">掌握英语句型</view></view>
+  <view class="sentence-list">
+    <view wx:for="{{sentences}}" wx:key="id" class="sentence-item">
+      <view class="sentence-type">{{item.type}}</view>
+      <view class="sentence-structure">{{item.structure}}</view>
+      <view class="sentence-example">{{item.example}}</view>
+      <view class="sentence-meaning">{{item.meaning}}</view>
+    </view>
+  </view>
+</view>

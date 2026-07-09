@@ -1,0 +1,23 @@
+<view class="container">
+  <view class="header"><view class="header-title">听力训练</view><view class="header-desc">提升英语听力</view></view>
+  <view class="exercise-list" wx:if="{{!currentExercise}}">
+    <view wx:for="{{exercises}}" wx:key="id" class="exercise-item" bindtap="startExercise" data-exercise="{{item}}">
+      <view class="exercise-type">{{item.type}}</view>
+      <view class="exercise-word">{{item.word}}</view>
+    </view>
+  </view>
+  <view class="exercise-area" wx:if="{{currentExercise}}">
+    <view class="exercise-title">{{currentExercise.type}}</view>
+    <view class="audio-btn" bindtap="playAudio">🔊 播放</view>
+    <input class="answer-input" placeholder="输入你听到的单词" value="{{userAnswer}}" bindinput="onInput" />
+    <view class="actions">
+      <view class="action-btn" bindtap="showAnswer">查看答案</view>
+      <view class="action-btn next" bindtap="nextExercise">下一题</view>
+    </view>
+    <view class="answer" wx:if="{{showAnswer}}">
+      <view class="answer-word">{{currentExercise.word}}</view>
+      <view class="answer-phonetic">{{currentExercise.phonetic}}</view>
+      <view class="answer-meaning">{{currentExercise.meaning}}</view>
+    </view>
+  </view>
+</view>

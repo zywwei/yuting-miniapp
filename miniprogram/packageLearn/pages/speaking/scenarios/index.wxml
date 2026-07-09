@@ -1,0 +1,15 @@
+<view class="container">
+  <view class="header"><view class="header-title">情景对话</view><view class="header-desc">学习日常对话</view></view>
+  <view class="scenario-list">
+    <view wx:for="{{scenarios}}" wx:key="id" class="scenario-item">
+      <view class="scenario-title">{{item.title}}</view>
+      <view class="dialogue-list">
+        <view wx:for="{{item.dialogues}}" wx:for-item="d" wx:key="index" class="dialogue-item">
+          <view class="speaker">{{d.speaker}}:</view>
+          <view class="english">{{d.english}}</view>
+          <view class="chinese">{{d.chinese}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

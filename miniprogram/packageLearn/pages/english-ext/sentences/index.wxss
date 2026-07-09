@@ -1,0 +1,10 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #4facfe, #00f2fe); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.sentence-list { padding: 30rpx; }
+.sentence-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.sentence-type { font-size: 28rpx; font-weight: bold; margin-bottom: 8rpx; }
+.sentence-structure { font-size: 24rpx; color: #4facfe; margin-bottom: 8rpx; }
+.sentence-example { font-size: 26rpx; color: #333; font-style: italic; margin-bottom: 8rpx; }
+.sentence-meaning { font-size: 24rpx; color: #666; }

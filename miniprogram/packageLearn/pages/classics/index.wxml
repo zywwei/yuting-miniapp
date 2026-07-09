@@ -1,0 +1,30 @@
+<!-- 国学经典模块主页 -->
+<view class="container">
+  <view class="header">
+    <view class="header-title">国学经典</view>
+    <view class="header-desc">古文、诗词、成语、儒学</view>
+  </view>
+
+  <view class="module-list">
+    <view
+      wx:for="{{modules}}"
+      wx:key="id"
+      class="module-item"
+      bindtap="goModule"
+      data-id="{{item.id}}"
+    >
+      <view class="module-icon">{{item.icon}}</view>
+      <view class="module-info">
+        <view class="module-name">{{item.name}}</view>
+        <view class="module-desc">{{item.desc}}</view>
+      </view>
+      <view class="module-progress">
+        <view class="progress-text">{{progress[item.id] || 0}}/{{item.count}}</view>
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{item.count > 0 ? (progress[item.id] || 0) / item.count * 100 : 0}}%"></view>
+        </view>
+      </view>
+      <view class="module-arrow">›</view>
+    </view>
+  </view>
+</view>

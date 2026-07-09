@@ -1,0 +1,13 @@
+<view class="container">
+  <view class="header"><view class="header-title">诗词格律</view><view class="header-desc">学习诗词创作规则</view></view>
+  <view class="rule-list">
+    <view wx:for="{{rules}}" wx:key="id" class="rule-item">
+      <view class="rule-title">{{item.title}}</view>
+      <view class="rule-structure">{{item.structure}}</view>
+      <view class="rule-example">{{item.example}}</view>
+      <view class="rule-rules">
+        <view wx:for="{{item.rules}}" wx:for-item="r" wx:key="*this" class="rule-text">• {{r}}</view>
+      </view>
+    </view>
+  </view>
+</view>

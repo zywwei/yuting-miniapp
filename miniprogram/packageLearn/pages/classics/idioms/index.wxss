@@ -1,0 +1,14 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #d4fc79, #96e6a1); padding: 40rpx; color: #333; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.8; margin-top: 8rpx; }
+.idiom-list { padding: 30rpx; }
+.idiom-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.idiom-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
+.idiom-name { font-size: 32rpx; font-weight: bold; }
+.idiom-pinyin { font-size: 22rpx; color: #999; }
+.idiom-meaning { font-size: 24rpx; color: #666; margin-bottom: 12rpx; }
+.idiom-story { background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; margin-bottom: 12rpx; }
+.story-title, .example-title { font-size: 22rpx; color: #999; margin-bottom: 4rpx; }
+.story-text, .example-text { font-size: 24rpx; color: #333; }
+.idiom-example { background: #E8F5E9; border-radius: 8rpx; padding: 16rpx; }

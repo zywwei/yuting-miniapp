@@ -1,0 +1,29 @@
+<!-- 古诗背诵 -->
+<view class="container">
+  <!-- 进度 -->
+  <view class="progress-bar">
+    <view class="progress-text">已背诵 {{memorizedCount}}/{{poems.length}}</view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{memorizedCount / poems.length * 100}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 古诗卡片 -->
+  <view class="poem-container" wx:if="{{poems.length > 0}}">
+    <view class="poem-card">
+      <view class="poem-title">{{poems[currentIndex].title}}</view>
+      <view class="poem-author">【{{poems[currentIndex].dynasty}}】{{poems[currentIndex].author}}</view>
+      <view class="poem-content">{{poems[currentIndex].content}}</view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="actions">
+      <view class="action-btn" bindtap="prevPoem">上一首</view>
+      <view class="action-btn speak" bindtap="speakTitle">🔊 跟读</view>
+      <view class="action-btn primary" bindtap="markMemorized">
+        {{poems[currentIndex].memorized ? '已背诵 ✓' : '会背了'}}
+      </view>
+      <view class="action-btn" bindtap="nextPoem">下一首</view>
+    </view>
+  </view>
+</view>

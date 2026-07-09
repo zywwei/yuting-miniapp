@@ -1,0 +1,11 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #d4fc79, #96e6a1); padding: 40rpx; color: #333; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.8; margin-top: 8rpx; }
+.rule-list { padding: 30rpx; }
+.rule-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.rule-title { font-size: 28rpx; font-weight: bold; margin-bottom: 8rpx; }
+.rule-structure { font-size: 24rpx; color: #4CAF50; margin-bottom: 8rpx; }
+.rule-example { font-size: 26rpx; color: #333; font-style: italic; margin-bottom: 12rpx; }
+.rule-rules { background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; }
+.rule-text { font-size: 24rpx; color: #666; margin-bottom: 4rpx; }

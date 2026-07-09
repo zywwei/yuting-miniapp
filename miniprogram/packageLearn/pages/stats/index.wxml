@@ -1,0 +1,31 @@
+<!-- 学习统计页面 -->
+<view class="container">
+  <view class="header">
+    <view class="header-title">学习统计</view>
+  </view>
+
+  <view class="stats-cards">
+    <view class="stat-card">
+      <view class="stat-value">{{stats.totalLearned}}</view>
+      <view class="stat-label">总学习数量</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{stats.streak}}</view>
+      <view class="stat-label">连续学习天数</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{stats.todayLearned}}</view>
+      <view class="stat-label">今日学习</view>
+    </view>
+  </view>
+
+  <view class="module-stats">
+    <view class="section-title">各模块学习进度</view>
+    <view class="module-list">
+      <view wx:for="{{stats.byModule}}" wx:key="index" class="module-stat-item">
+        <view class="module-name">{{index}}</view>
+        <view class="module-count">{{item}} 项</view>
+      </view>
+    </view>
+  </view>
+</view>

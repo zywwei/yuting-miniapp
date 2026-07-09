@@ -1,0 +1,40 @@
+/* 筛选栏组件样式 */
+.filter-bar {
+  background: white;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.filter-scroll {
+  white-space: nowrap;
+}
+
+.filter-list {
+  display: inline-flex;
+  padding: 20rpx;
+  gap: 16rpx;
+}
+
+.filter-item {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: #F5F7FA;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.filter-item.active {
+  background: #667eea;
+  color: white;
+}
+
+.filter-icon {
+  font-size: 24rpx;
+}
+
+.filter-label {
+  font-size: 24rpx;
+}

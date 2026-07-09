@@ -1,0 +1,11 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #d4fc79, #96e6a1); padding: 40rpx; color: #333; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.8; margin-top: 8rpx; }
+.article-list { padding: 30rpx; }
+.article-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.article-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
+.article-title { font-size: 28rpx; font-weight: bold; }
+.article-source { font-size: 22rpx; color: #999; }
+.article-content { font-size: 26rpx; color: #333; line-height: 1.8; margin-bottom: 12rpx; }
+.article-meaning { font-size: 24rpx; color: #666; background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; }

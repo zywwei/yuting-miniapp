@@ -1,0 +1,20 @@
+<view class="formula-card">
+  <view class="card-header" bindtap="toggleDetail">
+    <view class="card-title">{{formula.title}}</view>
+    <view class="card-formula">{{formula.formula}}</view>
+    <view class="card-arrow">{{showDetail ? '▲' : '▼'}}</view>
+  </view>
+  <view class="card-detail" wx:if="{{showDetail}}">
+    <view class="detail-explanation">{{formula.explanation}}</view>
+    <view class="detail-variables" wx:if="{{formula.variables}}">
+      <view class="variables-title">变量说明：</view>
+      <view wx:for="{{formula.variables}}" wx:key="name" class="variable-item">
+        <text class="variable-name">{{item.name}}</text>
+        <text class="variable-meaning">{{item.meaning}}</text>
+      </view>
+    </view>
+    <view class="detail-actions">
+      <view class="learn-btn" bindtap="markAsLearned">已学会</view>
+    </view>
+  </view>
+</view>

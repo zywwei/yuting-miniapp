@@ -1,0 +1,11 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #fa709a, #fee140); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.speech-list { padding: 30rpx; }
+.speech-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.speech-title { font-size: 28rpx; font-weight: bold; margin-bottom: 12rpx; }
+.speech-content { font-size: 26rpx; color: #333; line-height: 1.8; margin-bottom: 12rpx; }
+.speech-tips { background: #FFF0F3; border-radius: 8rpx; padding: 16rpx; }
+.tips-title { font-size: 22rpx; color: #999; margin-bottom: 8rpx; }
+.tip-item { font-size: 24rpx; color: #333; margin-bottom: 4rpx; }

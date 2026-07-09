@@ -1,0 +1,157 @@
+/* 数学计算练习页面样式 */
+.container {
+  min-height: 100vh;
+  background: #F5F7FA;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40rpx;
+  color: white;
+}
+
+.header-title {
+  font-size: 44rpx;
+  font-weight: bold;
+}
+
+.header-desc {
+  font-size: 26rpx;
+  opacity: 0.9;
+  margin-top: 8rpx;
+}
+
+.type-list {
+  padding: 30rpx;
+}
+
+.type-item {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.type-icon {
+  font-size: 48rpx;
+  margin-right: 24rpx;
+}
+
+.type-name {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.type-difficulty {
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 练习界面 */
+.practice-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.practice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 40rpx;
+  color: white;
+}
+
+.practice-title {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.practice-score {
+  font-size: 28rpx;
+}
+
+.exit-btn {
+  font-size: 24rpx;
+  padding: 8rpx 24rpx;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 20rpx;
+}
+
+.question-area {
+  background: white;
+  margin: 40rpx;
+  border-radius: 24rpx;
+  padding: 60rpx;
+  text-align: center;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+}
+
+.question-text {
+  font-size: 56rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.answer-area {
+  display: flex;
+  gap: 20rpx;
+  padding: 0 40rpx;
+}
+
+.answer-input {
+  flex: 1;
+  background: white;
+  border-radius: 40rpx;
+  padding: 24rpx 32rpx;
+  font-size: 32rpx;
+  text-align: center;
+}
+
+.submit-btn {
+  padding: 24rpx 48rpx;
+  background: #4CAF50;
+  color: white;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.result-area {
+  text-align: center;
+  padding: 40rpx;
+  color: white;
+}
+
+.result-text {
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-bottom: 16rpx;
+}
+
+.result-text.correct {
+  color: #4CAF50;
+}
+
+.result-text.wrong {
+  color: #F44336;
+}
+
+.correct-answer {
+  font-size: 28rpx;
+  margin-bottom: 24rpx;
+}
+
+.next-btn {
+  display: inline-block;
+  padding: 20rpx 60rpx;
+  background: white;
+  color: #667eea;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+}

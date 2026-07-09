@@ -1,0 +1,13 @@
+<view class="container">
+  <view class="header"><view class="header-title">体育知识</view><view class="header-desc">了解各项运动</view></view>
+  <view class="sport-list">
+    <view wx:for="{{sports}}" wx:key="id" class="sport-item">
+      <view class="sport-name">{{item.name}}</view>
+      <view class="sport-rules">{{item.rules}}</view>
+      <view class="sport-skills">
+        <view class="skills-title">基本技能：</view>
+        <view wx:for="{{item.skills}}" wx:for-item="skill" wx:key="*this" class="skill-item">{{skill}}</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,14 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #f093fb, #f5576c); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.rhetoric-list { padding: 30rpx; }
+.rhetoric-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.rhetoric-header { display: flex; align-items: center; gap: 12rpx; margin-bottom: 12rpx; }
+.rhetoric-icon { font-size: 32rpx; }
+.rhetoric-name { font-size: 28rpx; font-weight: bold; }
+.rhetoric-desc { font-size: 24rpx; color: #666; margin-bottom: 12rpx; }
+.rhetoric-example { background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; margin-bottom: 12rpx; }
+.example-label { font-size: 22rpx; color: #999; margin-bottom: 4rpx; }
+.example-text { font-size: 24rpx; color: #333; font-style: italic; }
+.rhetoric-meaning { font-size: 22rpx; color: #999; }

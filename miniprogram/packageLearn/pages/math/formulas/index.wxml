@@ -1,0 +1,82 @@
+<!-- 数学公式学习页面 -->
+<view class="container">
+  <view class="header">
+    <view class="header-title">公式学习</view>
+    <view class="header-desc">掌握数学公式，轻松解题</view>
+  </view>
+
+  <!-- 分类筛选 -->
+  <scroll-view scroll-x class="category-scroll">
+    <view class="category-list">
+      <view
+        class="category-item {{currentCategory === 'all' ? 'active' : ''}}"
+        bindtap="switchCategory"
+        data-category="all"
+      >
+        全部
+      </view>
+      <view
+        wx:for="{{categories}}"
+        wx:key="id"
+        class="category-item {{currentCategory === item.id ? 'active' : ''}}"
+        bindtap="switchCategory"
+        data-category="{{item.id}}"
+      >
+        {{item.icon}} {{item.name}}
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 公式列表 -->
+  <view class="formula-list">
+    <view
+      wx:for="{{formulas}}"
+      wx:key="id"
+      class="formula-item"
+      bindtap="showFormulaDetail"
+      data-formula="{{item}}"
+    >
+      <view class="formula-title">{{item.title}}</view>
+      <view class="formula-preview">{{item.formula}}</view>
+      <view class="formula-grade">适用年级：{{item.grade}}年级</view>
+    </view>
+  </view>
+
+  <!-- 公式详情弹窗 -->
+  <view class="modal-mask" wx:if="{{showDetail}}" bindtap="hideDetail">
+    <view class="modal-content" catchtap="">
+      <view class="modal-title">{{currentFormula.title}}</view>
+      <view class="modal-formula">{{currentFormula.formula}}</view>
+      <view class="modal-explanation">{{currentFormula.explanation}}</view>
+
+      <view class="modal-section" wx:if="{{currentFormula.variables}}">
+        <view class="section-title">变量说明</view>
+        <view wx:for="{{currentFormula.variables}}" wx:key="name" class="variable-item">
+          <text class="variable-name">{{item.name}}</text>
+          <text class="variable-meaning">{{item.meaning}}</text>
+          <text class="variable-unit" wx:if="{{item.unit}}">（{{item.unit}}）</text>
+        </view>
+      </view>
+
+      <view class="modal-section" wx:if="{{currentFormula.examples}}">
+        <view class="section-title">应用示例</view>
+        <view wx:for="{{currentFormula.examples}}" wx:key="question" class="example-item">
+          <view class="example-question">{{item.question}}</view>
+          <view class="example-solution">{{item.solution}}</view>
+        </view>
+      </view>
+
+      <view class="modal-section" wx:if="{{currentFormula.tips}}">
+        <view class="section-title">注意事项</view>
+        <view wx:for="{{currentFormula.tips}}" wx:key="*this" class="tip-item">
+          • {{item}}
+        </view>
+      </view>
+
+      <view class="modal-actions">
+        <view class="modal-btn" bindtap="markAsLearned" data-id="{{currentFormula.id}}">标记为已学会</view>
+        <view class="modal-btn close" bindtap="hideDetail">关闭</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -14,9 +14,16 @@
 
 /* 头部 */
 .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   background: linear-gradient(135deg, #42A5F5, #2196F3);
   padding: 40rpx;
   color: white;
+}
+
+.header-left {
+  flex: 1;
 }
 
 .header-title {
@@ -30,83 +37,79 @@
   margin-top: 8rpx;
 }
 
-/* 学习类别列表 */
-.category-list {
-  padding: 30rpx;
-}
-
-.category-card {
-  background: white;
-  border-radius: 20rpx;
-  padding: 32rpx;
-  margin-bottom: 20rpx;
+.header-actions {
   display: flex;
-  align-items: center;
-  gap: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-  transition: all 0.2s;
+  gap: 16rpx;
 }
 
-.category-card:active {
-  transform: scale(0.98);
-}
-
-.category-icon {
-  width: 80rpx;
-  height: 80rpx;
-  background: #E3F2FD;
-  border-radius: 20rpx;
+.action-btn {
+  width: 64rpx;
+  height: 64rpx;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
+  font-size: 28rpx;
 }
 
-.category-info {
-  flex: 1;
+/* 模块分组 */
+.module-groups {
+  padding: 30rpx;
 }
 
-.category-name {
-  font-size: 32rpx;
+.module-group {
+  margin-bottom: 30rpx;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.group-icon {
+  font-size: 28rpx;
+}
+
+.group-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.group-modules {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.module-card {
+  margin-bottom: 16rpx;
+  background: white;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.module-card:active {
+  transform: scale(0.98);
+}
+
+.module-icon {
+  font-size: 36rpx;
+  margin-bottom: 12rpx;
+}
+
+.module-name {
+  font-size: 26rpx;
   font-weight: bold;
   color: #333;
   margin-bottom: 8rpx;
 }
 
-.category-desc {
-  font-size: 24rpx;
+.module-desc {
+  font-size: 20rpx;
   color: #999;
-  margin-bottom: 16rpx;
-}
-
-.category-progress {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.progress-text {
-  font-size: 22rpx;
-  color: #666;
-  min-width: 120rpx;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 12rpx;
-  background: #F0F0F0;
-  border-radius: 6rpx;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #42A5F5, #2196F3);
-  border-radius: 6rpx;
-  transition: width 0.3s;
-}
-
-.category-arrow {
-  font-size: 40rpx;
-  color: #CCC;
 }

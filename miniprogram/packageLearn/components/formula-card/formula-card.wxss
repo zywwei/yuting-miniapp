@@ -1,0 +1,14 @@
+.formula-card { background: white; border-radius: 16rpx; margin-bottom: 16rpx; overflow: hidden; }
+.card-header { padding: 24rpx; display: flex; align-items: center; }
+.card-title { flex: 1; font-size: 28rpx; font-weight: bold; }
+.card-formula { font-size: 32rpx; color: #667eea; font-weight: bold; margin-right: 16rpx; }
+.card-arrow { font-size: 20rpx; color: #999; }
+.card-detail { padding: 0 24rpx 24rpx; border-top: 1rpx solid #f0f0f0; }
+.detail-explanation { font-size: 24rpx; color: #666; margin: 16rpx 0; }
+.detail-variables { background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; margin-bottom: 16rpx; }
+.variables-title { font-size: 22rpx; color: #999; margin-bottom: 8rpx; }
+.variable-item { display: flex; gap: 12rpx; margin-bottom: 4rpx; }
+.variable-name { font-size: 24rpx; font-weight: bold; color: #667eea; }
+.variable-meaning { font-size: 24rpx; color: #666; }
+.detail-actions { text-align: right; }
+.learn-btn { display: inline-block; padding: 12rpx 32rpx; background: #667eea; color: white; border-radius: 30rpx; font-size: 24rpx; }

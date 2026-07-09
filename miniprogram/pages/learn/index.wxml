@@ -7,31 +7,38 @@
 
   <!-- 头部 -->
   <view class="header">
-    <view class="header-title">📚 学习乐园</view>
-    <view class="header-desc">寓教于乐，快乐学习</view>
+    <view class="header-left">
+      <view class="header-title">📚 学习乐园</view>
+      <view class="header-desc">寓教于乐，快乐学习</view>
+    </view>
+    <view class="header-actions">
+      <view class="action-btn" bindtap="goStats">📊</view>
+      <view class="action-btn" bindtap="goHistory">📝</view>
+    </view>
   </view>
 
-  <!-- 学习类别 -->
-  <view class="category-list">
-    <view
-      wx:for="{{categories}}"
-      wx:key="type"
-      class="category-card"
-      bindtap="goLearn"
-      data-type="{{item.type}}"
-    >
-      <view class="category-icon">{{item.icon}}</view>
-      <view class="category-info">
-        <view class="category-name">{{item.name}}</view>
-        <view class="category-desc">{{item.desc}}</view>
-        <view class="category-progress">
-          <view class="progress-text">已学 {{progress[item.type] || 0}}/{{item.count}}</view>
-          <view class="progress-bar">
-            <view class="progress-fill" style="width: {{(progress[item.type] || 0) / item.count * 100}}%;"></view>
-          </view>
+  <!-- 模块分组 -->
+  <view class="module-groups">
+    <view wx:for="{{moduleGroups}}" wx:key="id" class="module-group">
+      <view class="group-header">
+        <view class="group-icon">{{item.icon}}</view>
+        <view class="group-title">{{item.title}}</view>
+      </view>
+      <view class="group-modules">
+        <view
+          wx:for="{{item.modules}}"
+          wx:for-item="module"
+          wx:key="type"
+          class="module-card"
+          style="width: 31.33%; margin-right: {{index % 3 === 2 ? '0' : '3%'}}"
+          bindtap="goLearn"
+          data-type="{{module.type}}"
+        >
+          <view class="module-icon">{{module.icon}}</view>
+          <view class="module-name">{{module.name}}</view>
+          <view class="module-desc">{{module.desc}}</view>
         </view>
       </view>
-      <view class="category-arrow">›</view>
     </view>
   </view>
 </view>

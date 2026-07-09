@@ -1,0 +1,23 @@
+<view class="container">
+  <view class="header"><view class="header-title">应用题</view><view class="header-desc">解决实际问题</view></view>
+  <view class="problem-list" wx:if="{{!currentProblem}}">
+    <view wx:for="{{problems}}" wx:key="id" class="problem-item" bindtap="showProblem" data-problem="{{item}}">
+      <view class="problem-header"><view class="problem-title">{{item.title}}</view><view class="problem-grade">{{item.grade}}</view></view>
+      <view class="problem-question">{{item.question}}</view>
+    </view>
+  </view>
+  <view class="problem-detail" wx:if="{{currentProblem}}">
+    <view class="problem-title">{{currentProblem.title}}</view>
+    <view class="problem-question">{{currentProblem.question}}</view>
+    <view class="problem-steps" wx:if="{{showAnswer}}">
+      <view class="steps-title">解题步骤：</view>
+      <view wx:for="{{currentProblem.steps}}" wx:for-item="step" wx:key="*this" class="step-item">{{index + 1}}. {{step}}</view>
+    </view>
+    <view class="problem-answer" wx:if="{{showAnswer}}">答案：{{currentProblem.answer}}</view>
+    <view class="actions">
+      <view class="action-btn" wx:if="{{!showAnswer}}" bindtap="showAnswer">查看答案</view>
+      <view class="action-btn" bindtap="markAsLearned" data-id="{{currentProblem.id}}">已学会</view>
+      <view class="action-btn secondary" bindtap="hideProblem">返回</view>
+    </view>
+  </view>
+</view>

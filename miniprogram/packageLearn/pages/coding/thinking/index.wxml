@@ -1,0 +1,17 @@
+<view class="container">
+  <view class="header"><view class="header-title">编程思维</view><view class="header-desc">学习计算思维</view></view>
+  <view class="topic-list">
+    <view wx:for="{{topics}}" wx:key="id" class="topic-item">
+      <view class="topic-title">{{item.title}}</view>
+      <view class="topic-desc">{{item.desc}}</view>
+      <view class="topic-example">
+        <view class="example-label">示例：</view>
+        <view class="example-text">{{item.example}}</view>
+      </view>
+      <view class="topic-steps">
+        <view class="steps-title">步骤：</view>
+        <view wx:for="{{item.steps}}" wx:for-item="step" wx:key="*this" class="step-item">{{index + 1}}. {{step}}</view>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,20 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #f093fb, #f5576c); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.article-list { padding: 30rpx; }
+.article-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.article-title { font-size: 28rpx; font-weight: bold; color: #333; margin-bottom: 12rpx; }
+.article-meta { display: flex; gap: 16rpx; }
+.article-type, .article-grade { font-size: 22rpx; color: #999; background: #F5F7FA; padding: 4rpx 12rpx; border-radius: 8rpx; }
+.modal-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 999; }
+.modal-content { width: 85%; max-height: 80vh; background: white; border-radius: 24rpx; padding: 40rpx; }
+.modal-title { font-size: 32rpx; font-weight: bold; text-align: center; margin-bottom: 24rpx; }
+.article-content-scroll { max-height: 400rpx; }
+.article-content { font-size: 26rpx; color: #666; line-height: 1.8; }
+.questions { margin-top: 24rpx; }
+.questions-title { font-size: 28rpx; font-weight: bold; margin-bottom: 12rpx; }
+.question-item { font-size: 24rpx; color: #666; margin-bottom: 8rpx; }
+.modal-actions { display: flex; gap: 20rpx; margin-top: 24rpx; }
+.modal-btn { flex: 1; text-align: center; padding: 20rpx; border-radius: 40rpx; font-size: 28rpx; background: #f093fb; color: white; }
+.modal-btn.close { background: #F5F7FA; color: #666; }

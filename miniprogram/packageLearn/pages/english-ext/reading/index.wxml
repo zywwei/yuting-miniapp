@@ -1,0 +1,16 @@
+<view class="container">
+  <view class="header"><view class="header-title">阅读理解</view><view class="header-desc">提升英语阅读</view></view>
+  <view class="article-list">
+    <view wx:for="{{articles}}" wx:key="id" class="article-item">
+      <view class="article-header">
+        <view class="article-title">{{item.title}}</view>
+        <view class="article-level">{{item.level}}</view>
+      </view>
+      <view class="article-content">{{item.content}}</view>
+      <view class="article-questions" wx:if="{{item.questions}}">
+        <view class="questions-title">Questions:</view>
+        <view wx:for="{{item.questions}}" wx:for-item="q" wx:key="*this" class="question-item">{{index + 1}}. {{q}}</view>
+      </view>
+    </view>
+  </view>
+</view>

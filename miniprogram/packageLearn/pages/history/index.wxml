@@ -1,0 +1,53 @@
+<!-- 学习历史页面 -->
+<view class="container">
+  <view class="header">
+    <view class="header-title">学习历史</view>
+    <view class="clear-btn" bindtap="clearLogs">清空</view>
+  </view>
+
+  <view class="filter-bar">
+    <view
+      class="filter-item {{filterType === 'all' ? 'active' : ''}}"
+      bindtap="filterLogs"
+      data-type="all"
+    >
+      全部
+    </view>
+    <view
+      class="filter-item {{filterType === 'cards' ? 'active' : ''}}"
+      bindtap="filterLogs"
+      data-type="cards"
+    >
+      识字
+    </view>
+    <view
+      class="filter-item {{filterType === 'poems' ? 'active' : ''}}"
+      bindtap="filterLogs"
+      data-type="poems"
+    >
+      古诗
+    </view>
+    <view
+      class="filter-item {{filterType === 'english' ? 'active' : ''}}"
+      bindtap="filterLogs"
+      data-type="english"
+    >
+      英语
+    </view>
+  </view>
+
+  <view class="log-list">
+    <view wx:for="{{logs}}" wx:key="index" class="log-item">
+      <view class="log-icon">{{item.icon || '📚'}}</view>
+      <view class="log-info">
+        <view class="log-title">{{item.title || '学习了新内容'}}</view>
+        <view class="log-time">{{item.time}}</view>
+      </view>
+    </view>
+
+    <view wx:if="{{logs.length === 0}}" class="empty">
+      <view class="empty-icon">📝</view>
+      <view class="empty-text">暂无学习记录</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,17 @@
+<view class="container">
+  <view class="header"><view class="header-title">语法学习</view><view class="header-desc">掌握英语语法</view></view>
+  <view class="grammar-list">
+    <view wx:for="{{grammar}}" wx:key="id" class="grammar-item">
+      <view class="grammar-title">{{item.title}}</view>
+      <view class="grammar-desc">{{item.desc}}</view>
+      <view class="grammar-examples">
+        <view class="examples-title">示例：</view>
+        <view wx:for="{{item.examples}}" wx:for-item="ex" wx:key="*this" class="example-item">{{ex}}</view>
+      </view>
+      <view class="grammar-rules">
+        <view class="rules-title">规则：</view>
+        <view wx:for="{{item.rules}}" wx:for-item="rule" wx:key="*this" class="rule-item">• {{rule}}</view>
+      </view>
+    </view>
+  </view>
+</view>

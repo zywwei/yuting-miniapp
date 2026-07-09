@@ -1,0 +1,59 @@
+<!-- 数学计算练习页面 -->
+<view class="container">
+  <!-- 练习类型选择 -->
+  <view wx:if="{{!showPractice}}">
+    <view class="header">
+      <view class="header-title">计算练习</view>
+      <view class="header-desc">选择练习类型</view>
+    </view>
+
+    <view class="type-list">
+      <view
+        wx:for="{{practiceTypes}}"
+        wx:key="id"
+        class="type-item"
+        bindtap="selectType"
+        data-type="{{item}}"
+      >
+        <view class="type-icon">{{item.icon}}</view>
+        <view class="type-name">{{item.name}}</view>
+        <view class="type-difficulty">难度：{{item.difficulty}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 练习界面 -->
+  <view wx:if="{{showPractice}}" class="practice-container">
+    <view class="practice-header">
+      <view class="practice-title">{{currentType.name}}</view>
+      <view class="practice-score">得分：{{score}}/{{totalQuestions}}</view>
+      <view class="exit-btn" bindtap="exitPractice">退出</view>
+    </view>
+
+    <view class="question-area">
+      <view class="question-text">{{currentQuestion.question}}</view>
+    </view>
+
+    <view class="answer-area">
+      <input
+        class="answer-input"
+        type="number"
+        placeholder="输入答案"
+        value="{{userAnswer}}"
+        bindinput="onAnswerInput"
+        focus="{{!showResult}}"
+      />
+      <view class="submit-btn" bindtap="submitAnswer" wx:if="{{!showResult}}">提交</view>
+    </view>
+
+    <view class="result-area" wx:if="{{showResult}}">
+      <view class="result-text {{isCorrect ? 'correct' : 'wrong'}}">
+        {{isCorrect ? '✓ 回答正确！' : '✗ 回答错误'}}
+      </view>
+      <view class="correct-answer" wx:if="{{!isCorrect}}">
+        正确答案：{{currentQuestion.answer}}
+      </view>
+      <view class="next-btn" bindtap="nextQuestion">下一题</view>
+    </view>
+  </view>
+</view>

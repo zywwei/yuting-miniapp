@@ -1,0 +1,13 @@
+<view class="container">
+  <view class="header"><view class="header-title">英语演讲</view><view class="header-desc">提升演讲能力</view></view>
+  <view class="speech-list">
+    <view wx:for="{{speeches}}" wx:key="id" class="speech-item">
+      <view class="speech-title">{{item.title}}</view>
+      <view class="speech-content">{{item.content}}</view>
+      <view class="speech-tips" wx:if="{{item.tips}}">
+        <view class="tips-title">技巧：</view>
+        <view wx:for="{{item.tips}}" wx:for-item="tip" wx:key="*this" class="tip-item">• {{tip}}</view>
+      </view>
+    </view>
+  </view>
+</view>

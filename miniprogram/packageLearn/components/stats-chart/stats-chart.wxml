@@ -1,0 +1,10 @@
+<view class="chart-container">
+  <view class="chart-title" wx:if="{{title}}">{{title}}</view>
+  <canvas canvas-id="chartCanvas" id="chartCanvas" class="chart-canvas"></canvas>
+  <view class="chart-legend" wx:if="{{labels.length > 0}}">
+    <view wx:for="{{labels}}" wx:key="index" class="legend-item">
+      <view class="legend-color" style="background: {{item.color}}"></view>
+      <view class="legend-label">{{item.label}}</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,14 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #a18cd1, #fbc2eb); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.topic-list { padding: 30rpx; }
+.topic-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.topic-title { font-size: 28rpx; font-weight: bold; margin-bottom: 8rpx; }
+.topic-desc { font-size: 24rpx; color: #666; margin-bottom: 12rpx; }
+.topic-example { background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; margin-bottom: 12rpx; }
+.example-label { font-size: 22rpx; color: #999; margin-bottom: 4rpx; }
+.example-text { font-size: 24rpx; color: #333; }
+.topic-steps { background: #F3E5F5; border-radius: 8rpx; padding: 16rpx; }
+.steps-title { font-size: 22rpx; color: #999; margin-bottom: 8rpx; }
+.step-item { font-size: 24rpx; color: #333; margin-bottom: 4rpx; }

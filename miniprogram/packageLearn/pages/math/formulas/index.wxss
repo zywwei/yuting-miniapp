@@ -1,0 +1,207 @@
+/* 数学公式学习页面样式 */
+.container {
+  min-height: 100vh;
+  background: #F5F7FA;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40rpx;
+  color: white;
+}
+
+.header-title {
+  font-size: 44rpx;
+  font-weight: bold;
+}
+
+.header-desc {
+  font-size: 26rpx;
+  opacity: 0.9;
+  margin-top: 8rpx;
+}
+
+.category-scroll {
+  background: white;
+  border-bottom: 1rpx solid #f0f0f0;
+  white-space: nowrap;
+}
+
+.category-list {
+  display: inline-flex;
+  padding: 20rpx;
+  gap: 16rpx;
+}
+
+.category-item {
+  flex-shrink: 0;
+  padding: 12rpx 24rpx;
+  background: #F5F7FA;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.category-item.active {
+  background: #667eea;
+  color: white;
+}
+
+.formula-list {
+  padding: 30rpx;
+}
+
+.formula-item {
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.formula-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.formula-preview {
+  font-size: 36rpx;
+  color: #667eea;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+}
+
+.formula-grade {
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 弹窗样式 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-content {
+  width: 85%;
+  max-height: 80vh;
+  background: white;
+  border-radius: 24rpx;
+  padding: 40rpx;
+  overflow-y: auto;
+}
+
+.modal-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+.modal-formula {
+  font-size: 48rpx;
+  color: #667eea;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 24rpx;
+  padding: 20rpx;
+  background: #F5F7FA;
+  border-radius: 12rpx;
+}
+
+.modal-explanation {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.8;
+  margin-bottom: 24rpx;
+}
+
+.modal-section {
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.variable-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.variable-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #667eea;
+  margin-right: 16rpx;
+}
+
+.variable-meaning {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.variable-unit {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+.example-item {
+  background: #F5F7FA;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 12rpx;
+}
+
+.example-question {
+  font-size: 26rpx;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.example-solution {
+  font-size: 24rpx;
+  color: #667eea;
+}
+
+.tip-item {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 30rpx;
+}
+
+.modal-btn {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  background: #667eea;
+  color: white;
+}
+
+.modal-btn.close {
+  background: #F5F7FA;
+  color: #666;
+}

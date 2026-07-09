@@ -1,0 +1,120 @@
+/* 数学原理讲解页面样式 */
+.container {
+  min-height: 100vh;
+  background: #F5F7FA;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40rpx;
+  color: white;
+}
+
+.header-title {
+  font-size: 44rpx;
+  font-weight: bold;
+}
+
+.header-desc {
+  font-size: 26rpx;
+  opacity: 0.9;
+  margin-top: 8rpx;
+}
+
+.category-scroll {
+  background: white;
+  border-bottom: 1rpx solid #f0f0f0;
+  white-space: nowrap;
+}
+
+.category-list {
+  display: inline-flex;
+  padding: 20rpx;
+  gap: 16rpx;
+}
+
+.category-item {
+  flex-shrink: 0;
+  padding: 12rpx 24rpx;
+  background: #F5F7FA;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.category-item.active {
+  background: #667eea;
+  color: white;
+}
+
+.concept-list {
+  padding: 30rpx;
+}
+
+.concept-item {
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.concept-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.concept-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.concept-grade {
+  font-size: 22rpx;
+  color: #999;
+  background: #F5F7FA;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.concept-content {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.8;
+  margin-bottom: 16rpx;
+}
+
+.concept-example {
+  background: #F5F7FA;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.example-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+}
+
+.example-text {
+  font-size: 26rpx;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.concept-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.learn-btn {
+  padding: 12rpx 32rpx;
+  background: #667eea;
+  color: white;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+}

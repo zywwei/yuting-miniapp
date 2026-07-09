@@ -1,0 +1,13 @@
+.container { min-height: 100vh; background: #F5F7FA; }
+.header { background: linear-gradient(135deg, #4facfe, #00f2fe); padding: 40rpx; color: white; }
+.header-title { font-size: 44rpx; font-weight: bold; }
+.header-desc { font-size: 26rpx; opacity: 0.9; margin-top: 8rpx; }
+.article-list { padding: 30rpx; }
+.article-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
+.article-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
+.article-title { font-size: 28rpx; font-weight: bold; }
+.article-level { font-size: 22rpx; color: #4facfe; background: #E3F2FD; padding: 4rpx 12rpx; border-radius: 8rpx; }
+.article-content { font-size: 26rpx; color: #333; line-height: 1.8; margin-bottom: 16rpx; }
+.article-questions { background: #F5F7FA; border-radius: 8rpx; padding: 16rpx; }
+.questions-title { font-size: 22rpx; color: #999; margin-bottom: 8rpx; }
+.question-item { font-size: 24rpx; color: #666; margin-bottom: 4rpx; }
