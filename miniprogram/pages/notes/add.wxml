@@ -1,11 +1,12 @@
 <!-- 添加/编辑笔记 -->
 <view class="container">
   <!-- 标题 -->
-  <view class="section">
-    <input
-      class="title-input"
+  <view class="section title-section">
+    <editor
+      id="titleEditor"
+      class="title-editor"
       placeholder="给笔记起个标题..."
-      value="{{title}}"
+      bindready="onTitleEditorReady"
       bindinput="onTitleInput"
       maxlength="30"
     />
@@ -13,13 +14,13 @@
 
   <!-- 内容 -->
   <view class="section">
-    <textarea
-      class="content-input"
+    <editor
+      id="contentEditor"
+      class="content-editor"
       placeholder="记录今天的成长故事..."
-      value="{{content}}"
+      bindready="onContentEditorReady"
       bindinput="onContentInput"
       maxlength="500"
-      auto-height
     />
   </view>
 

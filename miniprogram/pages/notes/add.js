@@ -37,6 +37,9 @@ Page({
     moodCollapsed: true
   },
 
+  titleEditorCtx: null,
+  contentEditorCtx: null,
+
   onLoad: function(options) {
     if (options.id) {
       this.setData({ isEdit: true, editId: options.id })
@@ -81,6 +84,22 @@ Page({
       visibility: note.visibility || 'family',
       visibleTo: note.visibleTo || []
     })
+
+    // 设置编辑器内容
+    this._setEditorContent(note.title || '', note.content || '')
+  },
+
+  // 设置编辑器内容
+  _setEditorContent: function(title, content) {
+    var that = this
+    setTimeout(function() {
+      if (that.titleEditorCtx && title) {
+        that.titleEditorCtx.setContents({ html: title })
+      }
+      if (that.contentEditorCtx && content) {
+        that.contentEditorCtx.setContents({ html: content })
+      }
+    }, 300)
   },
 
   // 角色图标映射
@@ -129,8 +148,13 @@ Page({
 
   // 检查是否有未保存内容，启用返回确认
   checkUnsaved: function() {
-    var hasChanges = (this.data.title && this.data.title.trim().length > 0) ||
-                     (this.data.content && this.data.content.trim().length > 0) ||
+    // 去除 HTML 标签后检查是否为空
+    var stripHtml = function(html) {
+      return html ? html.replace(/<[^>]+>/g, '').trim() : ''
+    }
+
+    var hasChanges = stripHtml(this.data.title).length > 0 ||
+                     stripHtml(this.data.content).length > 0 ||
                      this.data.images.length > 0 ||
                      this.data.tags.length > 0
     // 新建模式有内容时启用保护，编辑模式下暂不启用（后续可添加变更检测）
@@ -266,14 +290,44 @@ Page({
     })
   },
 
+  // 标题编辑器就绪
+  onTitleEditorReady: function() {
+    var that = this
+    this.createSelectorQuery().select('#titleEditor').context(function(res) {
+      that.titleEditorCtx = res.context
+      // 如果是编辑模式，设置内容
+      if (that.data.isEdit && that.data.title) {
+        setTimeout(function() {
+          that.titleEditorCtx.setContents({ html: that.data.title })
+        }, 100)
+      }
+    }).exec()
+  },
+
+  // 内容编辑器就绪
+  onContentEditorReady: function() {
+    var that = this
+    this.createSelectorQuery().select('#contentEditor').context(function(res) {
+      that.contentEditorCtx = res.context
+      // 如果是编辑模式，设置内容
+      if (that.data.isEdit && that.data.content) {
+        setTimeout(function() {
+          that.contentEditorCtx.setContents({ html: that.data.content })
+        }, 100)
+      }
+    }).exec()
+  },
+
   // 输入标题
   onTitleInput: function(e) {
-    this.setData({ title: e.detail.value })
+    this.setData({ title: e.detail.html || e.detail.text || '' })
+    this.checkUnsaved()
   },
 
   // 输入内容
   onContentInput: function(e) {
-    this.setData({ content: e.detail.value })
+    this.setData({ content: e.detail.html || e.detail.text || '' })
+    this.checkUnsaved()
   },
 
   // 选择心情
@@ -429,7 +483,12 @@ Page({
     var visibility = this.data.visibility
     var visibleTo = this.data.visibleTo
 
-    if (!title.trim()) {
+    // 去除 HTML 标签后检查是否为空
+    var stripHtml = function(html) {
+      return html ? html.replace(/<[^>]+>/g, '').trim() : ''
+    }
+
+    if (!stripHtml(title)) {
       wx.showToast({ title: '请输入标题', icon: 'none' })
       return
     }
@@ -477,13 +536,17 @@ Page({
     }
 
     saveImages(function(savedImages) {
+      // 保存富文本内容，保留HTML格式
+      var saveTitle = title
+      var saveContent = content
+
       if (that.data.isEdit) {
         // 更新模式
         var noteManager = require('../../utils/note-manager.js')
         noteManager.updateNote(that.data.editId, {
           type: type,
-          title: title.trim(),
-          content: content.trim(),
+          title: saveTitle,
+          content: saveContent,
           mood: mood,
           tags: tags,
           images: savedImages,
@@ -502,8 +565,8 @@ Page({
         var member = auth.getMember()
         var noteData = {
           type: type,
-          title: title.trim(),
-          content: content.trim(),
+          title: saveTitle,
+          content: saveContent,
           mood: mood,
           tags: tags,
           images: savedImages,

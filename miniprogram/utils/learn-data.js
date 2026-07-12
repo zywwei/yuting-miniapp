@@ -242,7 +242,7 @@ var getRecommendations = function() {
       type: 'learn',
       icon: '🔤',
       text: '学一个汉字: ' + card.word + ' (' + card.meaning + ')',
-      target: '/pages/learn/cards'
+      target: '/packageLearn/pages/cards/index'
     })
   }
 
@@ -254,7 +254,7 @@ var getRecommendations = function() {
       type: 'learn',
       icon: '📜',
       text: '学一首古诗《' + poem.title + '》',
-      target: '/pages/learn/poems'
+      target: '/packageLearn/pages/poems/index'
     })
   }
 
@@ -265,7 +265,7 @@ var getRecommendations = function() {
       type: 'learn',
       icon: '🔢',
       text: '继续学习数字 (' + numbersLearned + '/100)',
-      target: '/pages/learn/numbers'
+      target: '/packageLearn/pages/numbers/index'
     })
   }
 
@@ -276,7 +276,7 @@ var getRecommendations = function() {
       type: 'learn',
       icon: '🔤',
       text: '继续学习英语 (' + englishLearned + '/56)',
-      target: '/pages/learn/english'
+      target: '/packageLearn/pages/english/index'
     })
   }
 

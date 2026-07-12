@@ -107,8 +107,8 @@
         </view>
         <view class="note-body">
           <view class="note-text">
-            <view class="note-title">{{item.title}}</view>
-            <view class="note-content">{{item.content}}</view>
+            <view class="note-title">{{item._titlePreview}}</view>
+            <view class="note-content">{{item._contentPreview}}</view>
           </view>
           <view class="note-thumbnail" wx:if="{{item.images && item.images.length > 0}}">
             <image src="{{item.images[0]}}" mode="aspectFill" class="thumbnail-img" />
@@ -122,7 +122,7 @@
           </view>
         </view>
       </view>
-      <view class="note-delete" wx:if="{{item._canDelete}}" catchtap="deleteNote" data-id="{{item.id}}" data-title="{{item.title}}">
+      <view class="note-delete" wx:if="{{item._canDelete}}" catchtap="deleteNote" data-id="{{item.id}}" data-title="{{item._titlePreview}}">
         <text class="delete-icon">删除</text>
       </view>
     </view>

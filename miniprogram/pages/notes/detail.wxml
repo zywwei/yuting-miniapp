@@ -14,10 +14,14 @@
   </view>
 
   <!-- 标题 -->
-  <view class="title">{{note.title}}</view>
+  <view class="title">
+    <rich-text nodes="{{note.title}}"></rich-text>
+  </view>
 
   <!-- 内容 -->
-  <view class="content" wx:if="{{note.content}}">{{note.content}}</view>
+  <view class="content" wx:if="{{note.content}}">
+    <rich-text nodes="{{note.content}}"></rich-text>
+  </view>
 
   <!-- 图片展示 -->
   <view class="images-section" wx:if="{{note.images && note.images.length > 0}}">

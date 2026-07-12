@@ -162,6 +162,12 @@ Page({
       note._typeColor = typeInfo.color
       note._typeTextColor = typeInfo.textColor
       note._moodIcon = moodInfo.icon
+      // 生成预览文本（去除HTML标签）
+      var stripHtml = function(html) {
+        return html ? html.replace(/<[^>]+>/g, '').trim() : ''
+      }
+      note._titlePreview = stripHtml(note.title) || '无标题'
+      note._contentPreview = stripHtml(note.content) || ''
       return note
     }).sort(function(a, b) {
       return new Date(b.createTime) - new Date(a.createTime)

@@ -5,6 +5,16 @@
   padding: 30rpx;
 }
 
+/* 覆盖 editor 默认样式 */
+.title-editor .ql-container {
+  min-height: 50rpx !important;
+}
+
+.title-editor .ql-editor {
+  min-height: 50rpx !important;
+  padding: 10rpx 0 !important;
+}
+
 .section {
   background: white;
   border-radius: 20rpx;
@@ -95,15 +105,21 @@
   font-weight: bold;
 }
 
-.title-input {
+.title-editor {
   font-size: 36rpx;
   font-weight: bold;
   color: #333;
+  height: 50rpx !important;
+  min-height: 50rpx !important;
 }
 
-.content-input {
+.title-section {
+  padding: 16rpx 32rpx !important;
+}
+
+.content-editor {
   width: 100%;
-  min-height: 200rpx;
+  min-height: 300rpx;
   font-size: 28rpx;
   color: #333;
   line-height: 1.8;
