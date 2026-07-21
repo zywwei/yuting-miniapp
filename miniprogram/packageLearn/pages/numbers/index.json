@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "数字启蒙"
+  "navigationBarTitleText": "数字启蒙",
+  "usingComponents": {
+    "learn-ai-panel": "/packageLearn/components/learn-ai-panel/learn-ai-panel"
+  }
 }

@@ -582,7 +582,7 @@ page.dark-mode {
 }
 
 .msg-content {
-  max-width: 70%;
+  max-width: 90%;
 }
 
 .ai-msg .msg-content {
@@ -654,50 +654,86 @@ page.dark-mode {
   color: #ff4444;
 }
 
-/* 思考过程 */
-.thinking-section {
-  margin-bottom: 12rpx;
-  background: #f8f8f8;
-  border-radius: 16rpx;
-  overflow: hidden;
+/* 思考过程（和学习模块完全一致） */
+.thinking-box {
+  max-width: 85%;
+  margin-bottom: 16rpx;
+  padding: 16rpx;
+  background: #fff8e1;
+  border-radius: 12rpx;
+  border: 1rpx solid #ffe082;
+  box-sizing: border-box;
 }
 
 .thinking-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 16rpx 20rpx;
-  cursor: pointer;
 }
 
-.thinking-icon {
-  font-size: 28rpx;
-  margin-right: 8rpx;
-}
-
-.thinking-title {
+.thinking-label {
   font-size: 24rpx;
-  color: #666;
-  flex: 1;
+  color: #f57f17;
 }
 
 .thinking-arrow {
-  font-size: 28rpx;
-  color: #999;
-  transition: transform 0.2s;
+  font-size: 20rpx;
+  color: #f57f17;
+  transition: transform 0.3s ease;
 }
 
-.thinking-arrow.open {
-  transform: rotate(90deg);
+.thinking-arrow.expanded {
+  transform: rotate(180deg);
 }
 
 .thinking-content {
-  padding: 16rpx 20rpx;
   font-size: 24rpx;
   color: #666;
-  line-height: 1.6;
-  border-top: 1rpx solid #eee;
-  max-height: 400rpx;
-  overflow-y: auto;
+  line-height: 1.5;
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #ffe082;
+}
+
+/* 加载动画 */
+.loading-dots {
+  display: inline-flex;
+  gap: 8rpx;
+  padding: 16rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 20rpx;
+  border-bottom-left-radius: 8rpx;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  background: #999;
+  border-radius: 50%;
+  animation: dot-bounce 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes dot-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* 加载中的思考过程（和识字模块完全一致） */
+.message-item.ai-msg .thinking-box {
+  max-width: 85%;
+  margin-bottom: 0;
 }
 
 /* 打字指示器 */
@@ -735,6 +771,17 @@ page.dark-mode {
   font-size: 24rpx;
   color: #999;
   margin-left: 12rpx;
+}
+
+/* 打字指示器动画 */
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.is-typing .typing-dot {
+  background: #007AFF;
+  animation: pulse 1s infinite ease-in-out;
 }
 
 @keyframes typing {

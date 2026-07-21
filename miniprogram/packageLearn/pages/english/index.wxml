@@ -49,6 +49,11 @@
           <view class="letter-word-meaning">{{letters[currentLetterIndex].wordMeaning}}</view>
           <view class="letter-word-phonetic" wx:if="{{showLetterPhonetic}}">{{letters[currentLetterIndex].wordPhonetic}}</view>
         </view>
+        
+        <!-- AI按钮（嵌入卡片右上角） -->
+        <view class="ai-inline-btn" bindtap="openAIPanel">
+          <text class="ai-inline-icon">🤖</text>
+        </view>
       </view>
 
       <!-- 操作按钮 -->
@@ -90,6 +95,11 @@
         <view class="word-phonetic" wx:if="{{showWordPhonetic}}">{{words[currentWordIndex].phonetic}}</view>
         <view class="word-chinese">{{words[currentWordIndex].meaning}}</view>
         <view class="word-category">{{words[currentWordIndex].category}}</view>
+        
+        <!-- AI按钮（嵌入卡片右上角） -->
+        <view class="ai-inline-btn" bindtap="openAIPanel">
+          <text class="ai-inline-icon">🤖</text>
+        </view>
       </view>
 
       <!-- 操作按钮 -->
@@ -111,3 +121,12 @@
     </view>
   </view>
 </view>
+
+<!-- AI面板组件 -->
+<learn-ai-panel
+  show="{{showAIPanel}}"
+  module="english"
+  contextData="{{mode === 'letters' ? letters[currentLetterIndex] : words[currentWordIndex]}}"
+  quickQuestions="{{aiQuickQuestions}}"
+  bind:close="closeAIPanel"
+/>

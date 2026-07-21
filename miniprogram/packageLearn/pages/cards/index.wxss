@@ -40,14 +40,60 @@
   align-items: center;
 }
 
+.card-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 40rpx;
+}
+
 .card {
+  position: relative;
   background: white;
   border-radius: 30rpx;
   width: 100%;
-  padding: 80rpx 40rpx;
+  padding: 60rpx 50rpx 80rpx 50rpx;
   text-align: center;
   box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
-  margin-bottom: 40rpx;
+  box-sizing: border-box;
+}
+
+/* AI按钮（嵌入卡片右上角） */
+.ai-inline-btn {
+  position: absolute;
+  right: 12rpx;
+  top: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50%;
+  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.4);
+}
+
+.ai-inline-icon {
+  font-size: 32rpx;
+}
+
+.ai-inline-btn:active {
+  opacity: 0.9;
+  transform: scale(0.9);
+}
+
+.ai-side-icon {
+  font-size: 36rpx;
+}
+
+.ai-side-text {
+  font-size: 18rpx;
+  color: #fff;
+  margin-top: 4rpx;
+}
+
+.ai-side-btn:active {
+  opacity: 0.9;
+  transform: translateY(-50%) scale(0.95);
 }
 
 .card-word {

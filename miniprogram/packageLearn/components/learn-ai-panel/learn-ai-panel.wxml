@@ -1,0 +1,88 @@
+<!-- 学习AI助手面板 -->
+<view class="ai-panel-mask {{show ? 'show' : ''}}" catchtap="onClose">
+  <view class="ai-panel {{show ? 'show' : ''}}" style="height: {{panelHeight}}vh;" catchtap="preventBubble">
+    <!-- 拖拽区域 -->
+    <view class="drag-area" 
+      bindtouchstart="onTouchStart" 
+      bindtouchmove="onTouchMove" 
+      bindtouchend="onTouchEnd"
+      bindtap="toggleFullScreen">
+      <view class="drag-bar"></view>
+    </view>
+    
+    <!-- 头部 -->
+    <view class="panel-header">
+      <view class="panel-title">🤖 AI学习助手</view>
+      <view class="panel-actions">
+        <view class="clear-btn" bindtap="onClear">清空</view>
+        <view class="close-btn" bindtap="onClose">✕</view>
+      </view>
+    </view>
+
+    <!-- 快捷问题 -->
+    <scroll-view class="quick-questions" scroll-x="{{true}}" wx:if="{{quickQuestions.length > 0}}">
+      <view
+        wx:for="{{quickQuestions}}"
+        wx:key="text"
+        class="quick-btn"
+        bindtap="onTapQuickQuestion"
+        data-question="{{item.question}}"
+      >
+        {{item.text}}
+      </view>
+    </scroll-view>
+
+    <!-- 消息列表 -->
+    <scroll-view class="message-list" scroll-y="{{true}}" scroll-top="{{scrollTop}}">
+      <view wx:for="{{messages}}" wx:key="id" class="message-item {{item.role}}">
+        <!-- 思考过程（可折叠） -->
+        <view class="thinking-box" wx:if="{{item.thinking && item.role === 'assistant'}}" bindtap="toggleThinking" data-id="{{item.id}}">
+          <view class="thinking-header">
+            <view class="thinking-label">💭 {{item.showThinking ? '收起思考' : '查看思考过程'}}</view>
+            <view class="thinking-arrow {{item.showThinking ? 'expanded' : ''}}">▼</view>
+          </view>
+          <view class="thinking-content" wx:if="{{item.showThinking}}">{{item.thinking}}</view>
+        </view>
+        
+        <!-- 消息内容 -->
+        <view class="message-bubble" wx:if="{{item.content}}">
+          <text>{{item.content}}</text>
+        </view>
+        
+        <!-- 用户图片 -->
+        <view class="user-images" wx:if="{{item.images && item.images.length > 0}}">
+          <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" src="{{img}}" mode="aspectFill" class="user-image"/>
+        </view>
+        
+        <!-- AI朗读按钮（放在消息下方） -->
+        <view class="speak-row" wx:if="{{item.role === 'assistant' && item.content}}">
+          <view class="speak-btn {{item.isSpeaking ? 'speaking' : ''}}" bindtap="speakContent" data-id="{{item.id}}" data-content="{{item.content}}">
+            <text>{{item.isSpeaking ? '🔊' : '🔈'}}</text>
+          </view>
+        </view>
+        
+        <!-- 加载动画 -->
+        <view class="loading-dots" wx:if="{{item.isStreaming && !item.content && !item.thinking}}">
+          <view class="dot"></view>
+          <view class="dot"></view>
+          <view class="dot"></view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 输入区域 -->
+    <view class="input-area">
+      <input
+        class="msg-input"
+        placeholder="问我任何问题..."
+        value="{{inputValue}}"
+        bindinput="onInputChange"
+        bindconfirm="onSend"
+        disabled="{{isLoading}}"
+      />
+      <view class="send-btn {{inputValue ? 'active' : ''}}" bindtap="onSend">
+        发送
+      </view>
+    </view>
+  </view>
+</view>

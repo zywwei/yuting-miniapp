@@ -3,6 +3,7 @@ var childStorage = require('../../../utils/child-storage.js')
 var cloud = require('../../../utils/cloud.js')
 var achievements = require('../../../utils/achievements.js')
 var learnData = require('../../utils/learn-data.js')
+var learnAIHelper = require('../../utils/learn-ai-helper.js')
 
 // 内置古诗数据（25首经典古诗）
 var BUILTIN_POEMS = [
@@ -37,7 +38,9 @@ Page({
   data: {
     poems: [],
     currentIndex: 0,
-    memorizedCount: 0
+    memorizedCount: 0,
+    showAIPanel: false,
+    aiQuickQuestions: []
   },
 
   onLoad: function() {
@@ -72,6 +75,7 @@ Page({
     var currentIndex = this.data.currentIndex
     if (currentIndex > 0) {
       this.setData({ currentIndex: currentIndex - 1 })
+      this.updateAIPanelIfOpen()
     }
   },
 
@@ -80,6 +84,31 @@ Page({
     var poems = this.data.poems
     if (currentIndex < poems.length - 1) {
       this.setData({ currentIndex: currentIndex + 1 })
+      this.updateAIPanelIfOpen()
+    }
+  },
+
+  openAIPanel: function() {
+    var poem = this.data.poems[this.data.currentIndex]
+    if (!poem) return
+    this.setData({
+      showAIPanel: true,
+      aiQuickQuestions: learnAIHelper.getQuickQuestions('poems', poem)
+    })
+  },
+
+  closeAIPanel: function() {
+    this.setData({ showAIPanel: false })
+  },
+
+  updateAIPanelIfOpen: function() {
+    if (this.data.showAIPanel) {
+      var poem = this.data.poems[this.data.currentIndex]
+      if (poem) {
+        this.setData({
+          aiQuickQuestions: learnAIHelper.getQuickQuestions('poems', poem)
+        })
+      }
     }
   },
 

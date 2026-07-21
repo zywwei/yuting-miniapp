@@ -642,7 +642,14 @@ async function uploadBrushingRecord(record) {
   fullRecord.imagePath = localImages[0] || record.imagePath
 
   var localRecords = childStorage.get('brushingRecords') || []
-  localRecords.unshift(fullRecord)
+  // 检查是否已存在相同 ID 的记录，避免重复添加
+  var existingIndex = localRecords.findIndex(function(r) { return r.id === record.id })
+  if (existingIndex === -1) {
+    localRecords.unshift(fullRecord)
+  } else {
+    // 更新已存在的记录
+    localRecords[existingIndex] = fullRecord
+  }
   childStorage.set('brushingRecords', localRecords)
 
   var uploadImages = []

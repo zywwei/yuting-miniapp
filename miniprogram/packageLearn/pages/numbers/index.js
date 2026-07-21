@@ -3,6 +3,7 @@ var childStorage = require('../../../utils/child-storage.js')
 var cloud = require('../../../utils/cloud.js')
 var achievements = require('../../../utils/achievements.js')
 var learnData = require('../../utils/learn-data.js')
+var learnAIHelper = require('../../utils/learn-ai-helper.js')
 
 Page({
   data: {
@@ -16,7 +17,9 @@ Page({
     score: 0,
     options: [],
     selectedOption: -1,
-    showResult: false
+    showResult: false,
+    showAIPanel: false,
+    aiQuickQuestions: []
   },
 
   onLoad: function() {
@@ -70,6 +73,7 @@ Page({
     var currentIndex = this.data.currentIndex
     if (currentIndex > 0) {
       this.setData({ currentIndex: currentIndex - 1 })
+      this.updateAIPanelIfOpen()
     }
   },
 
@@ -78,6 +82,39 @@ Page({
     var numbers = this.data.numbers
     if (currentIndex < numbers.length - 1) {
       this.setData({ currentIndex: currentIndex + 1 })
+      this.updateAIPanelIfOpen()
+    }
+  },
+
+  openAIPanel: function() {
+    var number = this.data.numbers[this.data.currentIndex]
+    if (!number) return
+    this.setData({
+      showAIPanel: true,
+      aiQuickQuestions: learnAIHelper.getQuickQuestions('math', {
+        title: number.chinese,
+        content: '数字' + number.number + '，中文读作' + number.chinese,
+        type: '数字'
+      })
+    })
+  },
+
+  closeAIPanel: function() {
+    this.setData({ showAIPanel: false })
+  },
+
+  updateAIPanelIfOpen: function() {
+    if (this.data.showAIPanel) {
+      var number = this.data.numbers[this.data.currentIndex]
+      if (number) {
+        this.setData({
+          aiQuickQuestions: learnAIHelper.getQuickQuestions('math', {
+            title: number.chinese,
+            content: '数字' + number.number + '，中文读作' + number.chinese,
+            type: '数字'
+          })
+        })
+      }
     }
   },
 

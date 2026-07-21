@@ -187,16 +187,13 @@
           {{modelInfo.icon}}
         </view>
         <view class="msg-content">
-          <!-- 思考过程（可折叠） -->
-          <view class="thinking-section" wx:if="{{item.thinking}}">
-            <view class="thinking-header" bindtap="toggleThinking" data-id="{{item.id}}">
-              <text class="thinking-icon">🧠</text>
-              <text class="thinking-title">思考过程</text>
-              <text class="thinking-arrow {{item.showThinking ? 'open' : ''}}">›</text>
+          <!-- 思考过程（可折叠，和学习模块一致） -->
+          <view class="thinking-box" wx:if="{{item.thinking && item.role === 'assistant'}}" bindtap="toggleThinking" data-id="{{item.id}}">
+            <view class="thinking-header">
+              <view class="thinking-label">💭 {{item.showThinking ? '收起思考' : '查看思考过程'}}</view>
+              <view class="thinking-arrow {{item.showThinking ? 'expanded' : ''}}">▼</view>
             </view>
-            <view class="thinking-content" wx:if="{{item.showThinking}}">
-              {{item.thinking}}
-            </view>
+            <view class="thinking-content" wx:if="{{item.showThinking}}">{{item.thinking}}</view>
           </view>
           <!-- 图片消息（支持多图） -->
           <view class="msg-image-list" wx:if="{{item.images && item.images.length > 0}}">
@@ -239,11 +236,19 @@
       <view class="message-item ai-msg" wx:if="{{loading}}">
         <view class="msg-avatar">{{modelInfo.icon}}</view>
         <view class="msg-content">
-          <view class="thinking-indicator">
-            <view class="thinking-dot"></view>
-            <view class="thinking-dot"></view>
-            <view class="thinking-dot"></view>
-            <text class="thinking-text">{{loadingText}}</text>
+          <!-- 思考过程（实时流式展示，和识字模块一致） -->
+          <view class="thinking-box" wx:if="{{currentThinkingContent}}" bindtap="toggleThinkingLoading">
+            <view class="thinking-header">
+              <view class="thinking-label">💭 收起思考</view>
+              <view class="thinking-arrow expanded">▼</view>
+            </view>
+            <view class="thinking-content">{{currentThinkingContent}}</view>
+          </view>
+          <!-- 加载动画 -->
+          <view class="loading-dots" wx:if="{{!currentThinkingContent}}">
+            <view class="dot"></view>
+            <view class="dot"></view>
+            <view class="dot"></view>
           </view>
         </view>
       </view>

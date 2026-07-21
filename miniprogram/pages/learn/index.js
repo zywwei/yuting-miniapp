@@ -33,7 +33,8 @@ Page({
         title: '理科思维',
         icon: '🔬',
         modules: [
-          { type: 'math', name: '数学学习', icon: '🔢', desc: '公式、原理、练习', count: 875 },
+          { type: 'numbers', name: '数字启蒙', icon: '🔢', desc: '1-100数字学习', count: 100 },
+          { type: 'math', name: '数学学习', icon: '📐', desc: '公式、原理、练习', count: 875 },
           { type: 'science', name: '科学探索', icon: '🧪', desc: '实验、物理、化学', count: 200 },
           { type: 'coding', name: '编程学习', icon: '💻', desc: '思维、逻辑、算法', count: 180 }
         ]

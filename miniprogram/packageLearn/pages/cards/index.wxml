@@ -15,6 +15,11 @@
       <view class="card-pinyin" wx:if="{{showPinyin}}">{{cards[currentIndex].pinyin}}</view>
       <view class="card-meaning">{{cards[currentIndex].meaning}}</view>
       <view class="card-category">{{cards[currentIndex].category}}</view>
+      
+      <!-- AI按钮（嵌入卡片右上角） -->
+      <view class="ai-inline-btn" bindtap="openAIPanel">
+        <text class="ai-inline-icon">🤖</text>
+      </view>
     </view>
 
     <!-- 操作按钮 -->
@@ -35,3 +40,12 @@
     </view>
   </view>
 </view>
+
+<!-- AI面板组件 -->
+<learn-ai-panel
+  show="{{showAIPanel}}"
+  module="cards"
+  contextData="{{cards[currentIndex]}}"
+  quickQuestions="{{aiQuickQuestions}}"
+  bind:close="closeAIPanel"
+/>

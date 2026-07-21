@@ -280,10 +280,13 @@ Page({
     var todayHabits = allHabits.map(function(habit) {
       var done
       if (habit.type === 'brushing') {
-        // 刷牙从独立的 brushingRecords 读取
-        done = brushingRecords.filter(function(r) {
+        // 刷牙从独立的 brushingRecords 读取，区分早上和晚上
+        var todayRecords = brushingRecords.filter(function(r) {
           return r.date === today
-        }).length
+        })
+        var hasMorning = todayRecords.some(function(r) { return r.timeOfDay === 'morning' })
+        var hasEvening = todayRecords.some(function(r) { return r.timeOfDay === 'evening' })
+        done = (hasMorning ? 1 : 0) + (hasEvening ? 1 : 0)
       } else {
         var todayRecords = records.filter(function(r) {
           return r.date === today && r.type === habit.type

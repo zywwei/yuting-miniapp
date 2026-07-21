@@ -3,6 +3,7 @@ var childStorage = require('../../../utils/child-storage.js')
 var cloud = require('../../../utils/cloud.js')
 var achievements = require('../../../utils/achievements.js')
 var learnData = require('../../utils/learn-data.js')
+var learnAIHelper = require('../../utils/learn-ai-helper.js')
 
 // 内置英语字母数据
 var BUILTIN_LETTERS = [
@@ -78,7 +79,9 @@ Page({
     words: [],
     currentWordIndex: 0,
     learnedWordCount: 0,
-    showWordPhonetic: true
+    showWordPhonetic: true,
+    showAIPanel: false,
+    aiQuickQuestions: []
   },
 
   onLoad: function() {
@@ -131,6 +134,7 @@ Page({
     var currentIndex = this.data.currentLetterIndex
     if (currentIndex > 0) {
       this.setData({ currentLetterIndex: currentIndex - 1 })
+      this.updateAIPanelIfOpen()
     }
   },
 
@@ -139,6 +143,41 @@ Page({
     var letters = this.data.letters
     if (currentIndex < letters.length - 1) {
       this.setData({ currentLetterIndex: currentIndex + 1 })
+      this.updateAIPanelIfOpen()
+    }
+  },
+
+  openAIPanel: function() {
+    var item = null
+    if (this.data.mode === 'letters') {
+      item = this.data.letters[this.data.currentLetterIndex]
+    } else if (this.data.mode === 'words') {
+      item = this.data.words[this.data.currentWordIndex]
+    }
+    if (!item) return
+    this.setData({
+      showAIPanel: true,
+      aiQuickQuestions: learnAIHelper.getQuickQuestions('english', item)
+    })
+  },
+
+  closeAIPanel: function() {
+    this.setData({ showAIPanel: false })
+  },
+
+  updateAIPanelIfOpen: function() {
+    if (this.data.showAIPanel) {
+      var item = null
+      if (this.data.mode === 'letters') {
+        item = this.data.letters[this.data.currentLetterIndex]
+      } else if (this.data.mode === 'words') {
+        item = this.data.words[this.data.currentWordIndex]
+      }
+      if (item) {
+        this.setData({
+          aiQuickQuestions: learnAIHelper.getQuickQuestions('english', item)
+        })
+      }
     }
   },
 
@@ -222,6 +261,7 @@ Page({
     var currentIndex = this.data.currentWordIndex
     if (currentIndex > 0) {
       this.setData({ currentWordIndex: currentIndex - 1 })
+      this.updateAIPanelIfOpen()
     }
   },
 
@@ -230,6 +270,7 @@ Page({
     var words = this.data.words
     if (currentIndex < words.length - 1) {
       this.setData({ currentWordIndex: currentIndex + 1 })
+      this.updateAIPanelIfOpen()
     }
   },
 

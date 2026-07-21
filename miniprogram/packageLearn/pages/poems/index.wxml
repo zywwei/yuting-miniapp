@@ -14,6 +14,11 @@
       <view class="poem-title">{{poems[currentIndex].title}}</view>
       <view class="poem-author">【{{poems[currentIndex].dynasty}}】{{poems[currentIndex].author}}</view>
       <view class="poem-content">{{poems[currentIndex].content}}</view>
+      
+      <!-- AI按钮（嵌入卡片右上角） -->
+      <view class="ai-inline-btn" bindtap="openAIPanel">
+        <text class="ai-inline-icon">🤖</text>
+      </view>
     </view>
 
     <!-- 操作按钮 -->
@@ -27,3 +32,12 @@
     </view>
   </view>
 </view>
+
+<!-- AI面板组件 -->
+<learn-ai-panel
+  show="{{showAIPanel}}"
+  module="poems"
+  contextData="{{poems[currentIndex]}}"
+  quickQuestions="{{aiQuickQuestions}}"
+  bind:close="closeAIPanel"
+/>

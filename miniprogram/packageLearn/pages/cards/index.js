@@ -3,6 +3,7 @@ var childStorage = require('../../../utils/child-storage.js')
 var cloud = require('../../../utils/cloud.js')
 var achievements = require('../../../utils/achievements.js')
 var learnData = require('../../utils/learn-data.js')
+var learnAIHelper = require('../../utils/learn-ai-helper.js')
 
 // 内置识字卡片数据（120个常用汉字）
 var BUILTIN_CARDS = [
@@ -133,7 +134,9 @@ Page({
     cards: [],
     currentIndex: 0,
     showPinyin: true,
-    learnedCount: 0
+    learnedCount: 0,
+    showAIPanel: false,
+    aiQuickQuestions: []
   },
 
   onLoad: function() {
@@ -172,6 +175,7 @@ Page({
     var currentIndex = this.data.currentIndex
     if (currentIndex > 0) {
       this.setData({ currentIndex: currentIndex - 1 })
+      this.updateAIPanelIfOpen()
     }
   },
 
@@ -180,6 +184,31 @@ Page({
     var cards = this.data.cards
     if (currentIndex < cards.length - 1) {
       this.setData({ currentIndex: currentIndex + 1 })
+      this.updateAIPanelIfOpen()
+    }
+  },
+
+  openAIPanel: function() {
+    var card = this.data.cards[this.data.currentIndex]
+    if (!card) return
+    this.setData({
+      showAIPanel: true,
+      aiQuickQuestions: learnAIHelper.getQuickQuestions('cards', card)
+    })
+  },
+
+  closeAIPanel: function() {
+    this.setData({ showAIPanel: false })
+  },
+
+  updateAIPanelIfOpen: function() {
+    if (this.data.showAIPanel) {
+      var card = this.data.cards[this.data.currentIndex]
+      if (card) {
+        this.setData({
+          aiQuickQuestions: learnAIHelper.getQuickQuestions('cards', card)
+        })
+      }
     }
   },
 

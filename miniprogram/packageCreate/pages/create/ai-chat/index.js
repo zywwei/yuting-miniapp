@@ -223,7 +223,7 @@ Page({
 
   onUnload: function() {
     // 标记页面已卸载
-    this.setData({ isPageUnloaded: true })
+    this._isPageUnloaded = true
     
     // 移除键盘高度监听
     if (this._onKeyboardHeightChange) {
@@ -1372,18 +1372,20 @@ Page({
     }
     
     var displayContent = aiContent || finalContent || '（无内容）'
+    var msgId = 'msg_' + messageIdCounter
+
+    // 添加AI回复消息（思考过程始终默认折叠，和识字模块一致）
     var aiMsg = {
-      id: 'msg_' + messageIdCounter,
+      id: msgId,
       role: 'assistant',
-      content: displayContent,
-      richText: markdown.parseMarkdown(displayContent),
+      content: '',
+      richText: '',
       image: aiImage,
       thinking: thinkingContent || null,
-      showThinking: !!thinkingContent,
+      showThinking: false,  // 思考结束后始终默认折叠
+      isTyping: true,
       timeStr: that.formatTime(new Date())
     }
-    
-    console.log('aiMsg:', { content: aiMsg.content ? aiMsg.content.substring(0, 50) : 'empty', hasRichText: !!aiMsg.richText })
     
     that.setData({
       messages: that.data.messages.concat(aiMsg),
@@ -1392,7 +1394,65 @@ Page({
     
     that.scrollToBottom()
     
+    // 开始打字机效果
+    that.typeWriterContent(msgId, displayContent, 0)
+    
     aiManager.saveToLocal(null, 'assistant', finalContent, thinkingContent)
+  },
+
+  typeWriterContent: function(msgId, fullContent, index) {
+    var that = this
+    
+    // 检查页面是否已卸载
+    if (that._isPageUnloaded) return
+    
+    if (!fullContent || index > fullContent.length) {
+      // 打字完成
+      var messages = that.data.messages.map(function(msg) {
+        if (msg.id === msgId) {
+          return Object.assign({}, msg, {
+            content: fullContent,
+            richText: markdown.parseMarkdown(fullContent),
+            isTyping: false
+          })
+        }
+        return msg
+      })
+      that.setData({ messages: messages })
+      that.scrollToBottom()
+      return
+    }
+    
+    var currentContent = fullContent.substring(0, index)
+    var messages = that.data.messages.map(function(msg) {
+      if (msg.id === msgId) {
+        return Object.assign({}, msg, {
+          content: currentContent,
+          richText: markdown.parseMarkdown(currentContent)
+        })
+      }
+      return msg
+    })
+    that.setData({ messages: messages })
+    
+    // 动态调整延迟
+    var delay = 20
+    if (index > 0 && index < fullContent.length) {
+      var lastChar = fullContent[index - 1]
+      if ('。！？'.indexOf(lastChar) !== -1) {
+        delay = 100
+      } else if ('，、；：'.indexOf(lastChar) !== -1) {
+        delay = 50
+      }
+    }
+    
+    if (index % 15 === 0) {
+      that.scrollToBottom()
+    }
+    
+    setTimeout(function() {
+      that.typeWriterContent(msgId, fullContent, index + 1)
+    }, delay)
   },
 
   // 累计token用量
@@ -1549,20 +1609,14 @@ Page({
       }
       
       aiManager.getThinkingProgress(taskId).then(function(progress) {
-        // 更新思考内容
+        // 实时更新思考内容到消息气泡
         if (progress.thinkingContent !== undefined && progress.thinkingContent !== that.data.currentThinkingContent) {
           that.setData({ currentThinkingContent: progress.thinkingContent })
-          
-          // 根据内容决定显示文本（过滤掉默认的"正在思考中..."）
-          var content = progress.thinkingContent
-          if (content && content !== '正在思考中...') {
-            var shortContent = content.length > 50 ? content.substring(0, 50) + '...' : content
-            that.setData({ loadingText: '思考中: ' + shortContent })
-          } else {
-            that.setData({ loadingText: '思考中...' })
-          }
+
+          // 实时更新最后一条消息的thinking字段
+          that.updateLastMessageThinking(progress.thinkingContent)
         }
-        
+
         // 检查是否完成
         if (progress.status === 'completed') {
           clearInterval(timer)
@@ -1575,10 +1629,11 @@ Page({
 
           // 累计token用量
           that.updateTokenUsage(progress.usage)
-          
-          // 添加AI回复消息
+
+          // 折叠思考过程，然后添加AI回复消息
+          that.collapseLastMessageThinking()
           that.handleAIResponse(progress.finalContent, progress.thinkingContent)
-          
+
         } else if (progress.status === 'error') {
           clearInterval(timer)
           failCount = 0
@@ -1617,13 +1672,38 @@ Page({
     })
   },
 
+  // 更新最后一条AI消息的思考内容
+  updateLastMessageThinking: function(thinking) {
+    var messages = this.data.messages.slice()
+    if (messages.length > 0) {
+      var lastMsg = messages[messages.length - 1]
+      if (lastMsg.role === 'assistant') {
+        messages[messages.length - 1] = Object.assign({}, lastMsg, { thinking: thinking })
+        this.setData({ messages: messages })
+        this.scrollToBottom()
+      }
+    }
+  },
+
+  // 折叠最后一条消息的思考过程（思考结束后自动折叠，和识字模块一致）
+  collapseLastMessageThinking: function() {
+    var messages = this.data.messages.slice()
+    if (messages.length > 0) {
+      var lastMsg = messages[messages.length - 1]
+      if (lastMsg.role === 'assistant' && lastMsg.thinking) {
+        messages[messages.length - 1] = Object.assign({}, lastMsg, { showThinking: false })
+        this.setData({ messages: messages })
+      }
+    }
+  },
+
   // 切换流式思考开关
   toggleStreamThinking: function() {
     var newValue = !this.data.streamThinkingEnabled
     this.setData({
       streamThinkingEnabled: newValue
     })
-    
+
     // 保存开关状态到本地存储
     childStorage.set('streamThinkingEnabled', newValue)
     
@@ -1689,6 +1769,28 @@ Page({
 
   // 新建会话
   newSession: function() {
+    var that = this
+    
+    // 如果当前有对话内容，显示确认弹窗
+    if (this.data.messages.length > 0) {
+      wx.showModal({
+        title: '新建对话',
+        content: '当前对话内容将被清空，是否开启新对话？',
+        confirmText: '新建',
+        cancelText: '取消',
+        success: function(res) {
+          if (res.confirm) {
+            that.doNewSession()
+          }
+        }
+      })
+    } else {
+      this.doNewSession()
+    }
+  },
+
+  // 执行新建会话
+  doNewSession: function() {
     var sessionId = aiManager.createSession()
     aiManager.setCurrentSessionId(sessionId)
     
