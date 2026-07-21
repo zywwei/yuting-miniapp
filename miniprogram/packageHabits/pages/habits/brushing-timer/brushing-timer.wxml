@@ -272,9 +272,9 @@
               <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
               <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
             </view>
-            <view wx:if="{{photos.length < 6}}" class="photo-add" bindtap="takePhoto">
+            <view class="photo-add {{photos.length >= 6 ? 'photo-add-disabled' : ''}}" bindtap="takePhoto">
               <text class="add-icon">📷</text>
-              <text class="add-text">拍照</text>
+              <text class="add-text">{{photos.length >= 6 ? '已满6张' : '拍照'}}</text>
             </view>
           </view>
         </view>

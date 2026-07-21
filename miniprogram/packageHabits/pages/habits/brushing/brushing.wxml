@@ -87,14 +87,16 @@
           <view class="card-desc">{{morningRecord ? '已完成，牙齿亮晶晶~' : '早上刷一刷，口气清新'}}</view>
 
           <view wx:if="{{!morningRecord}}" class="card-action">
-            <view class="check-btn timer-btn" bindtap="goTimer" data-time="morning">
-              <text>⏱ 计时刷牙</text>
+            <view class="check-btn-primary" bindtap="goTimer" data-time="morning">
+              <text>⏱ 开始计时刷牙</text>
             </view>
-            <view class="check-btn" bindtap="checkIn" data-time="morning">
-              <text>📷 拍照打卡</text>
-            </view>
-            <view class="check-btn direct-btn" bindtap="directCheckIn" data-time="morning">
-              <text>✅ 直接打卡</text>
+            <view class="card-action-secondary">
+              <view class="check-btn-secondary" bindtap="checkIn" data-time="morning">
+                <text>📷 拍照打卡</text>
+              </view>
+              <view class="check-btn-secondary" bindtap="directCheckIn" data-time="morning">
+                <text>✅ 直接打卡</text>
+              </view>
             </view>
           </view>
 
@@ -161,14 +163,16 @@
           <view class="card-desc">{{eveningRecord ? '已完成，可以安心睡觉啦~' : '睡前刷一刷，保护小牙齿'}}</view>
 
           <view wx:if="{{!eveningRecord}}" class="card-action">
-            <view class="check-btn timer-btn" bindtap="goTimer" data-time="evening">
-              <text>⏱ 计时刷牙</text>
+            <view class="check-btn-primary" bindtap="goTimer" data-time="evening">
+              <text>⏱ 开始计时刷牙</text>
             </view>
-            <view class="check-btn" bindtap="checkIn" data-time="evening">
-              <text>📷 拍照打卡</text>
-            </view>
-            <view class="check-btn direct-btn" bindtap="directCheckIn" data-time="evening">
-              <text>✅ 直接打卡</text>
+            <view class="card-action-secondary">
+              <view class="check-btn-secondary" bindtap="checkIn" data-time="evening">
+                <text>📷 拍照打卡</text>
+              </view>
+              <view class="check-btn-secondary" bindtap="directCheckIn" data-time="evening">
+                <text>✅ 直接打卡</text>
+              </view>
             </view>
           </view>
 

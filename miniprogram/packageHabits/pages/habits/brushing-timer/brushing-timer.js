@@ -1231,10 +1231,40 @@ Page({
       wx.showToast({ title: '至少刷一个区域吧~', icon: 'none' })
       return
     }
-    this.completeTimer()
+    wx.showModal({
+      title: '提前结束战斗？',
+      content: '将按当前进度结算积分',
+      confirmText: '结束',
+      cancelText: '继续战斗',
+      success: (res) => {
+        if (res.confirm) {
+          this.completeTimer()
+        }
+      }
+    })
   },
 
   resetTimer() {
+    // 已有进度时，重新开始属于破坏性操作，需二次确认
+    const hasProgress = this.data.isPaused || this.data.completedAreas.length > 0 || this._areaElapsed > 0
+    if (hasProgress) {
+      wx.showModal({
+        title: '重新开始？',
+        content: '将清空本轮刷牙进度',
+        confirmText: '重新开始',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            this._doReset()
+          }
+        }
+      })
+      return
+    }
+    this._doReset()
+  },
+
+  _doReset() {
     this.clearTimers()
     // 清除彩虹动画
     if (this._ringColorTimer) {
