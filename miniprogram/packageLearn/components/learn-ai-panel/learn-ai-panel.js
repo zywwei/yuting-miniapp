@@ -42,7 +42,10 @@ Component({
     emojiList: EMOJI_LIST,
     currentEmojiCategory: 0,
     // 图片相关
-    selectedImages: []
+    selectedImages: [],
+    // 消息操作菜单
+    showActionModal: false,
+    actionMessage: {}
   },
 
   lifetimes: {
@@ -517,6 +520,113 @@ Component({
         messages: messages,
         currentSpeakingId: isSpeaking ? id : null
       })
+    },
+
+    // ===== 消息操作菜单 =====
+    showMessageActions: function(e) {
+      var id = e.currentTarget.dataset.id
+      var role = e.currentTarget.dataset.role
+      var content = e.currentTarget.dataset.content
+
+      var message = this.data.messages.find(function(msg) {
+        return msg.id === id
+      })
+
+      this.setData({
+        showActionModal: true,
+        actionMessage: {
+          id: id,
+          role: role,
+          content: content
+        }
+      })
+    },
+
+    hideMessageActions: function() {
+      this.setData({
+        showActionModal: false,
+        actionMessage: {}
+      })
+    },
+
+    copyMessage: function(e) {
+      var content = e.currentTarget.dataset.content
+      if (!content) {
+        wx.showToast({ title: '没有可复制的内容', icon: 'none' })
+        return
+      }
+      wx.setClipboardData({
+        data: content,
+        success: function() {
+          wx.showToast({ title: '已复制到剪贴板', icon: 'success' })
+        }
+      })
+      this.hideMessageActions()
+    },
+
+    forwardMessage: function(e) {
+      var content = e.currentTarget.dataset.content
+      if (!content) {
+        wx.showToast({ title: '没有可转发的内容', icon: 'none' })
+        return
+      }
+      // 复制到剪贴板，用户可以粘贴发送
+      wx.setClipboardData({
+        data: content,
+        success: function() {
+          wx.showToast({ title: '已复制，可粘贴转发', icon: 'success' })
+        }
+      })
+      this.hideMessageActions()
+    },
+
+    collectMessage: function(e) {
+      var that = this
+      var content = e.currentTarget.dataset.content
+      if (!content) {
+        wx.showToast({ title: '没有可收藏的内容', icon: 'none' })
+        return
+      }
+
+      // 保存到本地收藏
+      var childStorage = require('../../../utils/child-storage.js')
+      var collects = childStorage.get('aiCollects') || []
+      collects.unshift({
+        id: 'collect_' + Date.now(),
+        content: content,
+        module: that.data.module,
+        collectTime: new Date().toISOString()
+      })
+      // 最多保存100条
+      if (collects.length > 100) {
+        collects = collects.slice(0, 100)
+      }
+      childStorage.set('aiCollects', collects)
+
+      wx.showToast({ title: '已收藏', icon: 'success' })
+      this.hideMessageActions()
+    },
+
+    deleteMessage: function(e) {
+      var that = this
+      var id = e.currentTarget.dataset.id
+
+      wx.showModal({
+        title: '删除消息',
+        content: '确定要删除这条消息吗？',
+        confirmText: '删除',
+        confirmColor: '#FF4444',
+        success: function(res) {
+          if (res.confirm) {
+            var messages = that.data.messages.filter(function(msg) {
+              return msg.id !== id
+            })
+            that.setData({ messages: messages })
+            wx.showToast({ title: '已删除', icon: 'success' })
+          }
+        }
+      })
+      this.hideMessageActions()
     },
 
     preventBubble: function() {}

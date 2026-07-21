@@ -34,7 +34,7 @@
 
     <!-- 消息列表 -->
     <scroll-view class="message-list" scroll-y="{{true}}" scroll-top="{{scrollTop}}">
-      <view wx:for="{{messages}}" wx:key="id" class="message-item {{item.role}}">
+      <view wx:for="{{messages}}" wx:key="id" class="message-item {{item.role}}" bindlongpress="showMessageActions" data-id="{{item.id}}" data-role="{{item.role}}" data-content="{{item.content}}">
         <!-- 思考过程（可折叠） -->
         <view class="thinking-box" wx:if="{{item.thinking && item.role === 'assistant'}}" bindtap="toggleThinking" data-id="{{item.id}}">
           <view class="thinking-header">
@@ -83,6 +83,35 @@
       <view class="send-btn {{inputValue ? 'active' : ''}}" bindtap="onSend">
         发送
       </view>
+    </view>
+  </view>
+
+  <!-- 消息操作菜单弹窗 -->
+  <view class="action-modal" wx:if="{{showActionModal}}" bindtap="hideMessageActions">
+    <view class="action-modal-content" catchtap="preventBubble">
+      <view class="action-list">
+        <view class="action-item" bindtap="copyMessage" data-content="{{actionMessage.content}}">
+          <text class="action-icon">📋</text>
+          <text class="action-text">复制</text>
+        </view>
+        <view class="action-item" bindtap="forwardMessage" data-content="{{actionMessage.content}}">
+          <text class="action-icon">📤</text>
+          <text class="action-text">转发</text>
+        </view>
+        <view class="action-item" bindtap="collectMessage" data-id="{{actionMessage.id}}" data-content="{{actionMessage.content}}">
+          <text class="action-icon">⭐</text>
+          <text class="action-text">收藏</text>
+        </view>
+        <view class="action-item" wx:if="{{actionMessage.role === 'assistant'}}" bindtap="speakContent" data-id="{{actionMessage.id}}" data-content="{{actionMessage.content}}">
+          <text class="action-icon">🔊</text>
+          <text class="action-text">朗读</text>
+        </view>
+        <view class="action-item delete" bindtap="deleteMessage" data-id="{{actionMessage.id}}">
+          <text class="action-icon">🗑️</text>
+          <text class="action-text">删除</text>
+        </view>
+      </view>
+      <view class="action-cancel" bindtap="hideMessageActions">取消</view>
     </view>
   </view>
 </view>

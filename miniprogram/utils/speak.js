@@ -321,9 +321,20 @@ function speak(text, callback) {
 function playAudio(base64Audio, callback) {
   try {
     var fs = wx.getFileSystemManager()
+
+    // 先清理旧的TTS临时文件
+    try {
+      var files = fs.readdirSync(wx.env.USER_DATA_PATH)
+      files.forEach(function(file) {
+        if (file.indexOf('tts_audio_') === 0) {
+          try { fs.unlinkSync(wx.env.USER_DATA_PATH + '/' + file) } catch (e) {}
+        }
+      })
+    } catch (e) {}
+
     // 使用随机文件名避免缓存
     var tempPath = wx.env.USER_DATA_PATH + '/tts_audio_' + Date.now() + '.mp3'
-    
+
     fs.writeFile({
       filePath: tempPath,
       data: wx.base64ToArrayBuffer(base64Audio),
@@ -334,14 +345,14 @@ function playAudio(base64Audio, callback) {
           currentAudioContext.stop()
           currentAudioContext = null
         }
-        
+
         currentAudioContext = wx.createInnerAudioContext()
         currentAudioContext.src = tempPath
-        
+
         currentAudioContext.onPlay(function() {
           console.log('TTS开始播放')
         })
-        
+
         currentAudioContext.onEnded(function() {
           console.log('TTS播放结束')
           isSpeaking = false
@@ -350,7 +361,7 @@ function playAudio(base64Audio, callback) {
           try { fs.unlinkSync(tempPath) } catch (e) {}
           if (callback) callback(true)
         })
-        
+
         currentAudioContext.onError(function(err) {
           console.error('TTS播放失败:', err)
           isSpeaking = false
@@ -359,11 +370,20 @@ function playAudio(base64Audio, callback) {
           try { fs.unlinkSync(tempPath) } catch (e) {}
           if (callback) callback(false)
         })
-        
+
         currentAudioContext.play()
       },
       fail: function(err) {
         console.error('写入音频文件失败:', err)
+        // 清理旧文件后重试一次
+        try {
+          var files2 = fs.readdirSync(wx.env.USER_DATA_PATH)
+          files2.forEach(function(file) {
+            if (file.indexOf('tts_audio_') === 0) {
+              try { fs.unlinkSync(wx.env.USER_DATA_PATH + '/' + file) } catch (e) {}
+            }
+          })
+        } catch (e) {}
         isSpeaking = false
         if (callback) callback(false)
       }
