@@ -527,20 +527,21 @@ async function syncFromCloud() {
   if (!cloud || !cloud.fetchAiSkills) return
   try {
     var cloudSkills = await cloud.fetchAiSkills()
-    if (!cloudSkills || cloudSkills.length === 0) return
-    
+    // 确保 cloudSkills 是数组
+    if (!cloudSkills || !Array.isArray(cloudSkills) || cloudSkills.length === 0) return
+
     var localSkills = childStorage.get(SKILLS_KEY) || []
     var localSkillMap = {}
-    
+
     // 建立本地技能ID索引
     localSkills.forEach(function(skill) {
       localSkillMap[skill.id] = skill
     })
-    
+
     // 合并云端技能：本地已有的保留本地版本，本地没有的添加
     var merged = localSkills.slice()
     var hasNew = false
-    
+
     cloudSkills.forEach(function(cloudSkill) {
       if (!localSkillMap[cloudSkill.id]) {
         merged.push(cloudSkill)
