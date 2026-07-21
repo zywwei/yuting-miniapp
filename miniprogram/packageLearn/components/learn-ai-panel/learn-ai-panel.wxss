@@ -180,7 +180,42 @@
   background: rgba(102, 126, 234, 0.1);
 }
 
-/* 思考过程 */
+/* 加载动画 */
+.loading-dots {
+  display: inline-flex;
+  gap: 8rpx;
+  padding: 16rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 20rpx;
+  border-bottom-left-radius: 8rpx;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  background: #999;
+  border-radius: 50%;
+  animation: dot-bounce 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes dot-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* 思考过程（和学习模块完全一致） */
 .thinking-box {
   max-width: 85%;
   margin-bottom: 16rpx;
@@ -219,41 +254,6 @@
   margin-top: 12rpx;
   padding-top: 12rpx;
   border-top: 1rpx solid #ffe082;
-}
-
-/* 加载动画 */
-.loading-dots {
-  display: flex;
-  gap: 8rpx;
-  padding: 20rpx 28rpx;
-  background: #f5f5f5;
-  border-radius: 20rpx;
-  border-bottom-left-radius: 8rpx;
-}
-
-.dot {
-  width: 12rpx;
-  height: 12rpx;
-  background: #999;
-  border-radius: 50%;
-  animation: dot-bounce 1.4s infinite ease-in-out both;
-}
-
-.dot:nth-child(1) {
-  animation-delay: -0.32s;
-}
-
-.dot:nth-child(2) {
-  animation-delay: -0.16s;
-}
-
-@keyframes dot-bounce {
-  0%, 80%, 100% {
-    transform: scale(0);
-  }
-  40% {
-    transform: scale(1);
-  }
 }
 
 /* 输入区域 */
@@ -364,59 +364,108 @@
   border-top: 1rpx solid #f0f0f0;
 }
 
-/* 消息操作菜单弹窗 */
-.action-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 2000;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.action-modal-content {
+/* rich-text容器 */
+.rich-text-container {
   width: 100%;
-  background: #fff;
-  border-radius: 24rpx 24rpx 0 0;
-  padding: 32rpx;
-  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
 }
 
-.action-list {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 32rpx;
+/* Markdown 样式 */
+.rich-text-container .md-h1,
+.rich-text-container .md-h2,
+.rich-text-container .md-h3,
+.rich-text-container .md-h4,
+.rich-text-container .md-h5,
+.rich-text-container .md-h6 {
+  font-weight: bold;
+  margin: 16rpx 0 8rpx;
+  line-height: 1.4;
 }
 
-.action-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
-  padding: 24rpx;
+.rich-text-container .md-h1 { font-size: 36rpx; }
+.rich-text-container .md-h2 { font-size: 34rpx; }
+.rich-text-container .md-h3 { font-size: 32rpx; }
+.rich-text-container .md-h4 { font-size: 30rpx; }
+.rich-text-container .md-h5,
+.rich-text-container .md-h6 { font-size: 28rpx; }
+
+.rich-text-container .md-p {
+  margin: 8rpx 0;
+  line-height: 1.8;
 }
 
-.action-icon {
-  font-size: 48rpx;
+.rich-text-container .md-bold {
+  font-weight: bold;
 }
 
-.action-text {
+.rich-text-container .md-italic {
+  font-style: italic;
+}
+
+.rich-text-container .md-del {
+  text-decoration: line-through;
+  color: #999;
+}
+
+.rich-text-container .md-inline-code {
+  background: #f5f5f5;
+  color: #e74c3c;
+  padding: 2rpx 8rpx;
+  border-radius: 6rpx;
+  font-size: 26rpx;
+  font-family: monospace;
+}
+
+.rich-text-container .md-code-block {
+  background: #2d2d2d;
+  color: #f8f8f2;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin: 12rpx 0;
+  overflow-x: auto;
   font-size: 24rpx;
-  color: #333;
+  font-family: monospace;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
-.action-item.delete .action-text {
-  color: #FF4444;
+.rich-text-container .md-ul,
+.rich-text-container .md-ol {
+  margin: 8rpx 0;
+  padding-left: 32rpx;
 }
 
-.action-cancel {
-  text-align: center;
-  padding: 24rpx;
+.rich-text-container .md-li {
+  margin: 4rpx 0;
+  line-height: 1.8;
+}
+
+.rich-text-container .md-li::marker {
+  color: #667eea;
+}
+
+.rich-text-container .md-blockquote {
+  border-left: 6rpx solid #667eea;
+  padding: 8rpx 16rpx;
+  margin: 12rpx 0;
+  background: #f0f0ff;
   color: #666;
-  font-size: 30rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-radius: 0 8rpx 8rpx 0;
+}
+
+.rich-text-container .md-hr {
+  border: none;
+  border-top: 1rpx solid #eee;
+  margin: 16rpx 0;
+}
+
+.rich-text-container .md-link {
+  color: #667eea;
+  text-decoration: underline;
+}
+
+.rich-text-container .md-img {
+  max-width: 100%;
+  border-radius: 8rpx;
+  margin: 8rpx 0;
 }

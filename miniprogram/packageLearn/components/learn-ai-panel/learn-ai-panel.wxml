@@ -44,9 +44,12 @@
           <view class="thinking-content" wx:if="{{item.showThinking}}">{{item.thinking}}</view>
         </view>
         
-        <!-- 消息内容 -->
+        <!-- 消息内容（Markdown渲染） -->
         <view class="message-bubble" wx:if="{{item.content}}">
-          <text>{{item.content}}</text>
+          <view class="rich-text-container" wx:if="{{item.richText}}">
+            <rich-text nodes="{{item.richText}}"/>
+          </view>
+          <text wx:else>{{item.content}}</text>
         </view>
         
         <!-- 用户图片 -->

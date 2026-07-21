@@ -6,6 +6,7 @@
 var aiManager = require('../../../utils/ai-manager.js')
 var learnAIHelper = require('../../utils/learn-ai-helper.js')
 var speakTool = require('../../../utils/speak.js')
+var markdown = require('../../utils/markdown.js')
 
 // 常用表情列表
 var EMOJI_LIST = [
@@ -360,14 +361,15 @@ Component({
 
     typeWriter: function(content, index) {
       var that = this
-      
+
       // 如果组件已销毁或内容为空，停止打字
       if (that._isDetached || !content || index > content.length) {
-        // 打字完成，更新最终状态
+        // 打字完成，更新最终状态，解析Markdown
         var messages = this.data.messages.slice()
         if (messages.length > 0) {
           messages[messages.length - 1] = Object.assign({}, messages[messages.length - 1], {
             content: content,
+            richText: markdown.parseMarkdown(content),
             isStreaming: false
           })
           this.setData({ messages: messages })
@@ -375,21 +377,22 @@ Component({
         }
         return
       }
-      
-      // 显示当前字符
+
+      // 显示当前字符，实时解析Markdown
       var currentContent = content.substring(0, index)
       var messages = this.data.messages.slice()
       if (messages.length > 0) {
         messages[messages.length - 1] = Object.assign({}, messages[messages.length - 1], {
           content: currentContent,
+          richText: markdown.parseMarkdown(currentContent),
           isStreaming: true
         })
         this.setData({ messages: messages })
       }
-      
+
       // 每隔一段时间显示下一个字符
-      var delay = 15  // 每个字符的延迟（毫秒），加快打字速度
-      
+      var delay = 15  // 每个字符的延迟（毫秒）
+
       // 如果是标点符号，稍微停顿一下
       if (index > 0) {
         var lastChar = content[index - 1]
@@ -399,12 +402,12 @@ Component({
           delay = 40
         }
       }
-      
+
       // 每隔一段时间滚动到底部
       if (index % 10 === 0) {
         this.scrollToBottom()
       }
-      
+
       setTimeout(function() {
         that.typeWriter(content, index + 1)
       }, delay)
