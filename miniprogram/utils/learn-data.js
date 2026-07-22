@@ -275,7 +275,7 @@ var getRecommendations = function() {
     })
   }
 
-  // 英语学习（用新数据层，取第一个未学字母）
+  // 英语学习（用新数据层，优先推荐未学字母，其次推荐未学单词）
   var lettersResult = englishData.loadLetters()
   var unlearnedLetters = lettersResult.letters.filter(function(l) { return !l.learned })
   if (unlearnedLetters.length > 0) {
@@ -286,6 +286,18 @@ var getRecommendations = function() {
       text: '学字母: ' + letter.letter + ' (' + letter.word + ')',
       target: '/packageLearn/pages/english/index?mode=letters&id=' + letter.id
     })
+  } else {
+    var wordsResult = englishData.loadWords()
+    var unlearnedWords = wordsResult.words.filter(function(w) { return !w.learned })
+    if (unlearnedWords.length > 0) {
+      var w = unlearnedWords[0]
+      recommendations.push({
+        type: 'learn',
+        icon: '🔤',
+        text: '学单词: ' + w.word + ' (' + w.meaning + ')',
+        target: '/packageLearn/pages/english/index?mode=words&id=' + w.id
+      })
+    }
   }
 
   // 创作推荐
