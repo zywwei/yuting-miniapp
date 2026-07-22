@@ -22,7 +22,8 @@ Page({
     aiQuickQuestions: []
   },
 
-  onLoad: function() {
+  onLoad: function(options) {
+    this._initId = options.id || ''
     this.loadNumbers()
   },
 
@@ -42,10 +43,22 @@ Page({
 
     var learnedCount = numbers.filter(function(n) { return n.learned }).length
 
+    var index = 0
+    if (self._initId) {
+      var targetNum = parseInt(self._initId, 10)
+      for (var i = 0; i < numbers.length; i++) {
+        if (numbers[i].number === targetNum) { index = i; break }
+      }
+      self._initId = null
+    } else {
+      for (var j = 0; j < numbers.length; j++) {
+        if (!numbers[j].learned) { index = j; break }
+      }
+    }
     self.setData({
       numbers: numbers,
       learnedCount: learnedCount,
-      currentIndex: 0
+      currentIndex: index
     })
   },
 

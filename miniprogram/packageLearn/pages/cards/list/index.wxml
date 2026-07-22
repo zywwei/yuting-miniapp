@@ -1,0 +1,53 @@
+<!-- 全部字列表页 -->
+<view class="container">
+  <!-- 顶部进度 -->
+  <view class="header">
+    <view class="progress-info">
+      <text class="progress-count">已学 {{learnedCount}}/{{total}}</text>
+      <view class="filter-toggle {{unlearnedOnly ? 'active' : ''}}" bindtap="toggleUnlearnedOnly">
+        {{unlearnedOnly ? '✓ 只看未学' : '只看未学'}}
+      </view>
+    </view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{total > 0 ? learnedCount / total * 100 : 0}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 搜索框 -->
+  <view class="search-box">
+    <text class="search-icon">🔍</text>
+    <input class="search-input" placeholder="搜索汉字 / 拼音" value="{{keyword}}" bindinput="onSearch" confirm-type="search" />
+    <text wx:if="{{keyword}}" class="search-clear" bindtap="clearSearch">✕</text>
+  </view>
+
+  <!-- 难度等级筛选 -->
+  <scroll-view class="category-bar" scroll-x="true" enhanced="true" show-scrollbar="false">
+    <view class="chip {{currentLevel === '全部' ? 'active' : ''}}" bindtap="selectLevel" data-key="全部">全部</view>
+    <view wx:for="{{levels}}" wx:key="key" class="chip {{currentLevel === item.key ? 'active' : ''}}" bindtap="selectLevel" data-key="{{item.key}}">{{item.name}}</view>
+  </scroll-view>
+
+  <!-- 筛选结果数 -->
+  <view class="result-summary" wx:if="{{filteredCards.length > 0}}">
+    共 {{filteredCards.length}} 个字
+  </view>
+
+  <!-- 字格网格 -->
+  <view class="grid" wx:if="{{filteredCards.length > 0}}">
+    <view
+      wx:for="{{filteredCards}}"
+      wx:key="id"
+      class="cell {{item.learned ? 'learned' : ''}}"
+      bindtap="goLearn"
+      data-id="{{item.id}}"
+    >
+      <view class="cell-word">{{item.word}}</view>
+      <view class="cell-pinyin">{{item.pinyin}}</view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:else>
+    <view class="empty-icon">🔍</view>
+    <view class="empty-text">没有找到匹配的字</view>
+  </view>
+</view>

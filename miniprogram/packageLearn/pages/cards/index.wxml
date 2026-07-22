@@ -8,13 +8,25 @@
     </view>
   </view>
 
+  <!-- 全部字入口 -->
+  <view class="all-cards-entry" bindtap="goAllCards">
+    <view class="entry-left">
+      <view class="entry-icon">📑</view>
+      <view class="entry-text">
+        <view class="entry-title">全部字</view>
+        <view class="entry-desc">{{learnedCount}}/{{cards.length}} 已学 · 点击查看所有汉字</view>
+      </view>
+    </view>
+    <view class="entry-arrow">›</view>
+  </view>
+
   <!-- 卡片 -->
   <view class="card-container" wx:if="{{cards.length > 0}}">
     <view class="card">
       <view class="card-word">{{cards[currentIndex].word}}</view>
       <view class="card-pinyin" wx:if="{{showPinyin}}">{{cards[currentIndex].pinyin}}</view>
       <view class="card-meaning">{{cards[currentIndex].meaning}}</view>
-      <view class="card-category">{{cards[currentIndex].category}}</view>
+      <view class="card-category">{{cards[currentIndex].levelName}}</view>
       
       <!-- AI按钮（嵌入卡片右上角） -->
       <view class="ai-inline-btn" bindtap="openAIPanel">

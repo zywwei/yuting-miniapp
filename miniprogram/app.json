@@ -17,6 +17,7 @@
       "pages": [
         "pages/cards/index",
         "pages/cards/quiz/index",
+        "pages/cards/list/index",
         "pages/poems/index",
         "pages/poems/quiz/index",
         "pages/numbers/index",

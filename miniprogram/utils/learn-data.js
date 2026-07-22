@@ -157,6 +157,7 @@ var POEMS = [
 ]
 
 var childStorage = require('./child-storage.js')
+var cardsData = require('./cards-data.js')
 
 // ===== 进度管理 =====
 var getProgress = function() {
@@ -234,15 +235,16 @@ var getRecommendations = function() {
   var recommendations = []
   var progress = getProgress()
 
-  // 未学的识字卡片
-  var unlearnedCards = CARDS.filter(function(c) { return !progress.cards[c.id] })
+  // 未学的识字卡片（用新字表，取最简单的未学字，与识字主页定位一致）
+  var cardsResult = cardsData.loadCards()
+  var unlearnedCards = cardsResult.cards.filter(function(c) { return !c.learned })
   if (unlearnedCards.length > 0) {
     var card = unlearnedCards[0]
     recommendations.push({
       type: 'learn',
       icon: '🔤',
       text: '学一个汉字: ' + card.word + ' (' + card.meaning + ')',
-      target: '/packageLearn/pages/cards/index'
+      target: '/packageLearn/pages/cards/index?id=' + card.id
     })
   }
 
@@ -254,18 +256,21 @@ var getRecommendations = function() {
       type: 'learn',
       icon: '📜',
       text: '学一首古诗《' + poem.title + '》',
-      target: '/packageLearn/pages/poems/index'
+      target: '/packageLearn/pages/poems/index?id=' + poem.id
     })
   }
 
-  // 数字学习
-  var numbersLearned = Object.keys(progress.numbers).length
-  if (numbersLearned < 100) {
+  // 数字学习（取第一个未学，与数字主页定位一致）
+  var unlearnedNumber = 0
+  for (var n = 1; n <= 100; n++) {
+    if (!progress.numbers[n]) { unlearnedNumber = n; break }
+  }
+  if (unlearnedNumber > 0) {
     recommendations.push({
       type: 'learn',
       icon: '🔢',
-      text: '继续学习数字 (' + numbersLearned + '/100)',
-      target: '/packageLearn/pages/numbers/index'
+      text: '学数字: ' + unlearnedNumber,
+      target: '/packageLearn/pages/numbers/index?id=' + unlearnedNumber
     })
   }
 

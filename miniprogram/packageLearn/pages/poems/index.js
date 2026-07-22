@@ -43,7 +43,8 @@ Page({
     aiQuickQuestions: []
   },
 
-  onLoad: function() {
+  onLoad: function(options) {
+    this._initId = options.id || ''
     this.loadPoems()
   },
 
@@ -64,10 +65,21 @@ Page({
 
     var memorizedCount = poems.filter(function(p) { return p.memorized }).length
 
+    var index = 0
+    if (this._initId) {
+      for (var i = 0; i < poems.length; i++) {
+        if (poems[i].id === this._initId) { index = i; break }
+      }
+      this._initId = null
+    } else {
+      for (var j = 0; j < poems.length; j++) {
+        if (!poems[j].memorized) { index = j; break }
+      }
+    }
     this.setData({
       poems: poems,
       memorizedCount: memorizedCount,
-      currentIndex: 0
+      currentIndex: index
     })
   },
 
