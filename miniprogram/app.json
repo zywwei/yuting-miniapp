@@ -19,6 +19,7 @@
         "pages/cards/quiz/index",
         "pages/cards/list/index",
         "pages/poems/index",
+        "pages/poems/list/index",
         "pages/poems/quiz/index",
         "pages/numbers/index",
         "pages/numbers/list/index",

@@ -1,0 +1,59 @@
+<!-- 全部古诗列表页 -->
+<view class="container">
+  <!-- 顶部进度 -->
+  <view class="header">
+    <view class="progress-info">
+      <text class="progress-count">已背诵 {{memorizedCount}}/{{total}}</text>
+      <view class="filter-toggle {{unmemorizedOnly ? 'active' : ''}}" bindtap="toggleUnmemorizedOnly">
+        {{unmemorizedOnly ? '✓ 只看未背' : '只看未背'}}
+      </view>
+    </view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{total > 0 ? memorizedCount / total * 100 : 0}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 搜索框 -->
+  <view class="search-box">
+    <text class="search-icon">🔍</text>
+    <input class="search-input" placeholder="搜索诗题 / 诗人" value="{{keyword}}" bindinput="onSearch" confirm-type="search" />
+    <text wx:if="{{keyword}}" class="search-clear" bindtap="clearSearch">✕</text>
+  </view>
+
+  <!-- 难度等级筛选 -->
+  <scroll-view class="category-bar" scroll-x="true" enhanced="true" show-scrollbar="false">
+    <view class="chip {{currentLevel === '全部' ? 'active' : ''}}" bindtap="selectLevel" data-key="全部">全部</view>
+    <view wx:for="{{levels}}" wx:key="key" class="chip {{currentLevel === item.key ? 'active' : ''}}" bindtap="selectLevel" data-key="{{item.key}}">{{item.name}}</view>
+  </scroll-view>
+
+  <!-- 筛选结果数 -->
+  <view class="result-summary" wx:if="{{filteredPoems.length > 0}}">
+    共 {{filteredPoems.length}} 首
+  </view>
+
+  <!-- 古诗列表 -->
+  <view class="poem-list" wx:if="{{filteredPoems.length > 0}}">
+    <view
+      wx:for="{{filteredPoems}}"
+      wx:key="id"
+      class="poem-item {{item.memorized ? 'memorized' : ''}}"
+      bindtap="goLearn"
+      data-id="{{item.id}}"
+    >
+      <view class="poem-left">
+        <view class="poem-title">{{item.title}}</view>
+        <view class="poem-author">【{{item.dynasty}}】{{item.author}}</view>
+      </view>
+      <view class="poem-right">
+        <view class="poem-level">{{item.levelName}}</view>
+        <view class="poem-status" wx:if="{{item.memorized}}">✓</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:else>
+    <view class="empty-icon">📜</view>
+    <view class="empty-text">没有找到匹配的古诗</view>
+  </view>
+</view>

@@ -160,6 +160,7 @@ var childStorage = require('./child-storage.js')
 var cardsData = require('./cards-data.js')
 var numbersData = require('./numbers-data.js')
 var englishData = require('./english-data.js')
+var poemsData = require('./poems-data.js')
 
 // ===== 进度管理 =====
 var getProgress = function() {
@@ -250,8 +251,9 @@ var getRecommendations = function() {
     })
   }
 
-  // 未背的古诗
-  var unmemorizedPoems = POEMS.filter(function(p) { return !progress.poems[p.id] })
+  // 未背的古诗（用新数据层，取第一首未背，与古诗主页定位一致）
+  var poemsResult = poemsData.loadPoems()
+  var unmemorizedPoems = poemsResult.poems.filter(function(p) { return !p.memorized })
   if (unmemorizedPoems.length > 0) {
     var poem = unmemorizedPoems[0]
     recommendations.push({

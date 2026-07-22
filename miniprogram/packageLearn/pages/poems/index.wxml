@@ -8,6 +8,18 @@
     </view>
   </view>
 
+  <!-- 全部古诗入口 -->
+  <view class="all-poems-entry" bindtap="goAllPoems">
+    <view class="entry-left">
+      <view class="entry-icon">📜</view>
+      <view class="entry-text">
+        <view class="entry-title">全部古诗</view>
+        <view class="entry-desc">{{memorizedCount}}/{{poems.length}} 已背 · 点击查看所有古诗</view>
+      </view>
+    </view>
+    <view class="entry-arrow">›</view>
+  </view>
+
   <!-- 古诗卡片 -->
   <view class="poem-container" wx:if="{{poems.length > 0}}">
     <view class="poem-card">
