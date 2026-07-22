@@ -1,11 +1,17 @@
 /**
  * 英语学习数据层
- * 26 个字母 + 基础单词，按难度分级
+ * 26 个字母 + 400 单词，按学段分 5 级
+ * 数据拆分到 english-level-1 ~ english-level-5 五个文件
  * 供 english 主页 / 全部英语列表页共用
  */
 
 var childStorage = require('./child-storage.js')
 var cloud = require('./cloud.js')
+var level1 = require('./english-level-1.js')
+var level2 = require('./english-level-2.js')
+var level3 = require('./english-level-3.js')
+var level4 = require('./english-level-4.js')
+var level5 = require('./english-level-5.js')
 
 // ===== 字母数据 =====
 var LETTERS = [
@@ -37,59 +43,23 @@ var LETTERS = [
   { id: 'l26', letter: 'Z', phonetic: '/zed/', word: 'Zoo', wordMeaning: '动物园', wordPhonetic: '/zuː/', level: 'L3' }
 ]
 
-// ===== 单词数据 =====
-var WORDS = [
-  // L1 - 问候
-  { id: 'e01', word: 'Hello', phonetic: '/həˈloʊ/', meaning: '你好', category: '问候', level: 'L1' },
-  { id: 'e02', word: 'Hi', phonetic: '/haɪ/', meaning: '嗨', category: '问候', level: 'L1' },
-  { id: 'e03', word: 'Goodbye', phonetic: '/ɡʊdˈbaɪ/', meaning: '再见', category: '问候', level: 'L1' },
-  { id: 'e04', word: 'Please', phonetic: '/pliːz/', meaning: '请', category: '问候', level: 'L1' },
-  { id: 'e05', word: 'Thank you', phonetic: '/θæŋk juː/', meaning: '谢谢', category: '问候', level: 'L1' },
-  { id: 'e06', word: 'Sorry', phonetic: '/ˈsɒri/', meaning: '对不起', category: '问候', level: 'L1' },
-  // L1 - 数字
-  { id: 'e07', word: 'One', phonetic: '/wʌn/', meaning: '一', category: '数字', level: 'L1' },
-  { id: 'e08', word: 'Two', phonetic: '/tuː/', meaning: '二', category: '数字', level: 'L1' },
-  { id: 'e09', word: 'Three', phonetic: '/θriː/', meaning: '三', category: '数字', level: 'L1' },
-  { id: 'e10', word: 'Four', phonetic: '/fɔːr/', meaning: '四', category: '数字', level: 'L1' },
-  { id: 'e11', word: 'Five', phonetic: '/faɪv/', meaning: '五', category: '数字', level: 'L1' },
-  { id: 'e12', word: 'Six', phonetic: '/sɪks/', meaning: '六', category: '数字', level: 'L1' },
-  { id: 'e13', word: 'Seven', phonetic: '/ˈsevn/', meaning: '七', category: '数字', level: 'L1' },
-  { id: 'e14', word: 'Eight', phonetic: '/eɪt/', meaning: '八', category: '数字', level: 'L1' },
-  { id: 'e15', word: 'Nine', phonetic: '/naɪn/', meaning: '九', category: '数字', level: 'L1' },
-  { id: 'e16', word: 'Ten', phonetic: '/ten/', meaning: '十', category: '数字', level: 'L1' },
-  // L2 - 颜色
-  { id: 'e17', word: 'Red', phonetic: '/red/', meaning: '红色', category: '颜色', level: 'L2' },
-  { id: 'e18', word: 'Blue', phonetic: '/bluː/', meaning: '蓝色', category: '颜色', level: 'L2' },
-  { id: 'e19', word: 'Green', phonetic: '/ɡriːn/', meaning: '绿色', category: '颜色', level: 'L2' },
-  { id: 'e20', word: 'Yellow', phonetic: '/ˈjeloʊ/', meaning: '黄色', category: '颜色', level: 'L2' },
-  // L2 - 动物
-  { id: 'e21', word: 'Cat', phonetic: '/kæt/', meaning: '猫', category: '动物', level: 'L2' },
-  { id: 'e22', word: 'Dog', phonetic: '/dɒɡ/', meaning: '狗', category: '动物', level: 'L2' },
-  { id: 'e23', word: 'Bird', phonetic: '/bɜːrd/', meaning: '鸟', category: '动物', level: 'L2' },
-  { id: 'e24', word: 'Fish', phonetic: '/fɪʃ/', meaning: '鱼', category: '动物', level: 'L2' },
-  // L2 - 水果
-  { id: 'e25', word: 'Apple', phonetic: '/ˈæpl/', meaning: '苹果', category: '水果', level: 'L2' },
-  { id: 'e26', word: 'Banana', phonetic: '/bəˈnænə/', meaning: '香蕉', category: '水果', level: 'L2' },
-  // L3 - 家人
-  { id: 'e27', word: 'Mother', phonetic: '/ˈmʌðər/', meaning: '妈妈', category: '家人', level: 'L3' },
-  { id: 'e28', word: 'Father', phonetic: '/ˈfɑːðər/', meaning: '爸爸', category: '家人', level: 'L3' },
-  // L3 - 自然
-  { id: 'e29', word: 'Sun', phonetic: '/sʌn/', meaning: '太阳', category: '自然', level: 'L3' },
-  { id: 'e30', word: 'Moon', phonetic: '/muːn/', meaning: '月亮', category: '自然', level: 'L3' }
-]
+// ===== 单词数据（L1-L5 汇总）=====
+var WORDS = [].concat(level1, level2, level3, level4, level5)
 
 // 字母等级
 var LETTER_LEVELS = [
-  { key: 'L1', name: '入门 (A-J)' },
+  { key: 'L1', name: '启蒙 (A-J)' },
   { key: 'L2', name: '基础 (K-T)' },
   { key: 'L3', name: '进阶 (U-Z)' }
 ]
 
-// 单词等级
+// 单词等级（按学段）
 var WORD_LEVELS = [
-  { key: 'L1', name: '入门 (问候/数字)' },
-  { key: 'L2', name: '基础 (颜色/动物/水果)' },
-  { key: 'L3', name: '进阶 (家人/自然)' }
+  { key: 'L1', name: '幼儿园' },
+  { key: 'L2', name: '小学低年级' },
+  { key: 'L3', name: '小学高年级' },
+  { key: 'L4', name: '初中' },
+  { key: 'L5', name: '高中' }
 ]
 
 var LETTER_LEVEL_NAME_MAP = {}
