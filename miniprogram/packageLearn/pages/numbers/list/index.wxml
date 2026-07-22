@@ -1,0 +1,53 @@
+<!-- 全部数字列表页 -->
+<view class="container">
+  <!-- 顶部进度 -->
+  <view class="header">
+    <view class="progress-info">
+      <text class="progress-count">已学 {{learnedCount}}/{{total}}</text>
+      <view class="filter-toggle {{unlearnedOnly ? 'active' : ''}}" bindtap="toggleUnlearnedOnly">
+        {{unlearnedOnly ? '✓ 只看未学' : '只看未学'}}
+      </view>
+    </view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{total > 0 ? learnedCount / total * 100 : 0}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 搜索框 -->
+  <view class="search-box">
+    <text class="search-icon">🔍</text>
+    <input class="search-input" placeholder="搜索数字 / 中文" value="{{keyword}}" bindinput="onSearch" confirm-type="search" />
+    <text wx:if="{{keyword}}" class="search-clear" bindtap="clearSearch">✕</text>
+  </view>
+
+  <!-- 难度等级筛选 -->
+  <scroll-view class="category-bar" scroll-x="true" enhanced="true" show-scrollbar="false">
+    <view class="chip {{currentLevel === '全部' ? 'active' : ''}}" bindtap="selectLevel" data-key="全部">全部</view>
+    <view wx:for="{{levels}}" wx:key="key" class="chip {{currentLevel === item.key ? 'active' : ''}}" bindtap="selectLevel" data-key="{{item.key}}">{{item.name}}</view>
+  </scroll-view>
+
+  <!-- 筛选结果数 -->
+  <view class="result-summary" wx:if="{{filteredNumbers.length > 0}}">
+    共 {{filteredNumbers.length}} 个数字
+  </view>
+
+  <!-- 数字网格 -->
+  <view class="grid" wx:if="{{filteredNumbers.length > 0}}">
+    <view
+      wx:for="{{filteredNumbers}}"
+      wx:key="id"
+      class="cell {{item.learned ? 'learned' : ''}}"
+      bindtap="goLearn"
+      data-number="{{item.number}}"
+    >
+      <view class="cell-number">{{item.number}}</view>
+      <view class="cell-chinese">{{item.chinese}}</view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:else>
+    <view class="empty-icon">🔍</view>
+    <view class="empty-text">没有找到匹配的数字</view>
+  </view>
+</view>

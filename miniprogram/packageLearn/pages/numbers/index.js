@@ -1,8 +1,6 @@
 var speak = require('../../../utils/speak.js')
-var childStorage = require('../../../utils/child-storage.js')
-var cloud = require('../../../utils/cloud.js')
 var achievements = require('../../../utils/achievements.js')
-var learnData = require('../../utils/learn-data.js')
+var numbersData = require('../../../utils/numbers-data.js')
 var learnAIHelper = require('../../utils/learn-ai-helper.js')
 
 Page({
@@ -29,20 +27,8 @@ Page({
 
   loadNumbers: function() {
     var self = this
-    var learnProgress = childStorage.get('learnProgress') || {}
-    var numberProgress = learnProgress.numbers || {}
-
-    var numbers = []
-    for (var i = 1; i <= 100; i++) {
-      numbers.push({
-        number: i,
-        chinese: self.numberToChinese(i),
-        learned: !!numberProgress[i]
-      })
-    }
-
-    var learnedCount = numbers.filter(function(n) { return n.learned }).length
-
+    var result = numbersData.loadNumbers()
+    var numbers = result.numbers
     var index = 0
     if (self._initId) {
       var targetNum = parseInt(self._initId, 10)
@@ -57,25 +43,14 @@ Page({
     }
     self.setData({
       numbers: numbers,
-      learnedCount: learnedCount,
+      learnedCount: result.learnedCount,
       currentIndex: index
     })
   },
 
-  numberToChinese: function(num) {
-    var chineseNumbers = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九']
-    if (num <= 10) {
-      return num === 10 ? '十' : chineseNumbers[num]
-    }
-    if (num < 20) {
-      return '十' + chineseNumbers[num - 10]
-    }
-    if (num < 100) {
-      var tens = Math.floor(num / 10)
-      var ones = num % 10
-      return chineseNumbers[tens] + '十' + (ones > 0 ? chineseNumbers[ones] : '')
-    }
-    return '一百'
+  // 跳转全部数字列表页
+  goAllNumbers: function() {
+    wx.navigateTo({ url: '/packageLearn/pages/numbers/list/index' })
   },
 
   toggleShow: function() {
@@ -136,20 +111,16 @@ Page({
     var numbers = self.data.numbers
     var currentIndex = self.data.currentIndex
     var number = numbers[currentIndex]
+    if (!number) return
 
-    var learnProgress = childStorage.get('learnProgress') || {}
-    if (!learnProgress.numbers) learnProgress.numbers = {}
-
-    learnProgress.numbers[number.number] = {
-      learnedAt: new Date().toISOString(),
-      number: number.number
-    }
-
-    childStorage.set('learnProgress', learnProgress)
-    cloud.uploadLearnProgress(learnProgress).catch(function(err) { console.warn('学习进度同步失败:', err) })
+    // 写入数据层（本地 + 云端）
+    numbersData.markLearned(number.number)
 
     numbers[currentIndex].learned = true
-    var learnedCount = numbers.filter(function(n) { return n.learned }).length
+    var learnedCount = 0
+    for (var i = 0; i < numbers.length; i++) {
+      if (numbers[i].learned) learnedCount++
+    }
 
     self.setData({ numbers: numbers, learnedCount: learnedCount })
 

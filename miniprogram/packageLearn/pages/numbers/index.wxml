@@ -10,6 +10,18 @@
       </view>
     </view>
 
+    <!-- 全部数字入口 -->
+    <view class="all-cards-entry" bindtap="goAllNumbers">
+      <view class="entry-left">
+        <view class="entry-icon">🔢</view>
+        <view class="entry-text">
+          <view class="entry-title">全部数字</view>
+          <view class="entry-desc">{{learnedCount}}/100 已学 · 点击查看所有数字</view>
+        </view>
+      </view>
+      <view class="entry-arrow">›</view>
+    </view>
+
     <!-- 数字卡片 -->
     <view class="number-container">
       <view class="number-card">

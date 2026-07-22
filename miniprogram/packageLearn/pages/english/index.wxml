@@ -22,6 +22,18 @@
         <view class="mode-progress">已学 {{learnedWordCount}}/{{words.length}}</view>
       </view>
     </view>
+
+    <!-- 全部英语入口 -->
+    <view class="all-english-entry" bindtap="goAllEnglish">
+      <view class="entry-left">
+        <view class="entry-icon">📚</view>
+        <view class="entry-text">
+          <view class="entry-title">全部英语</view>
+          <view class="entry-desc">字母 {{learnedLetterCount}}/26 · 单词 {{learnedWordCount}}/{{words.length}}</view>
+        </view>
+      </view>
+      <view class="entry-arrow">›</view>
+    </view>
   </view>
 
   <!-- 字母学习 -->

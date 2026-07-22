@@ -158,6 +158,8 @@ var POEMS = [
 
 var childStorage = require('./child-storage.js')
 var cardsData = require('./cards-data.js')
+var numbersData = require('./numbers-data.js')
+var englishData = require('./english-data.js')
 
 // ===== 进度管理 =====
 var getProgress = function() {
@@ -260,28 +262,29 @@ var getRecommendations = function() {
     })
   }
 
-  // 数字学习（取第一个未学，与数字主页定位一致）
-  var unlearnedNumber = 0
-  for (var n = 1; n <= 100; n++) {
-    if (!progress.numbers[n]) { unlearnedNumber = n; break }
-  }
-  if (unlearnedNumber > 0) {
+  // 数字学习（用新数据层，取第一个未学，与数字主页定位一致）
+  var numbersResult = numbersData.loadNumbers()
+  var unlearnedNumbers = numbersResult.numbers.filter(function(n) { return !n.learned })
+  if (unlearnedNumbers.length > 0) {
+    var num = unlearnedNumbers[0]
     recommendations.push({
       type: 'learn',
       icon: '🔢',
-      text: '学数字: ' + unlearnedNumber,
-      target: '/packageLearn/pages/numbers/index?id=' + unlearnedNumber
+      text: '学数字: ' + num.number + ' (' + num.chinese + ')',
+      target: '/packageLearn/pages/numbers/index?id=' + num.number
     })
   }
 
-  // 英语学习
-  var englishLearned = Object.keys(progress.english).length
-  if (englishLearned < 56) {
+  // 英语学习（用新数据层，取第一个未学字母）
+  var lettersResult = englishData.loadLetters()
+  var unlearnedLetters = lettersResult.letters.filter(function(l) { return !l.learned })
+  if (unlearnedLetters.length > 0) {
+    var letter = unlearnedLetters[0]
     recommendations.push({
       type: 'learn',
       icon: '🔤',
-      text: '继续学习英语 (' + englishLearned + '/56)',
-      target: '/packageLearn/pages/english/index'
+      text: '学字母: ' + letter.letter + ' (' + letter.word + ')',
+      target: '/packageLearn/pages/english/index?mode=letters&id=' + letter.id
     })
   }
 

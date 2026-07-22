@@ -1,0 +1,146 @@
+<!-- 全部英语列表页 -->
+<view class="container">
+  <!-- 模式选择 -->
+  <view wx:if="{{mode === 'select'}}" class="mode-select">
+    <view class="mode-header">
+      <view class="mode-title">🔤 全部英语</view>
+      <view class="mode-desc">选择查看内容</view>
+    </view>
+
+    <view class="mode-cards">
+      <view class="mode-card" bindtap="enterLetters">
+        <view class="mode-icon">ABC</view>
+        <view class="mode-name">字母表</view>
+        <view class="mode-info">26个英文字母</view>
+        <view class="mode-progress">已学 {{learnedLetterCount}}/{{totalLetters}}</view>
+      </view>
+
+      <view class="mode-card" bindtap="enterWords">
+        <view class="mode-icon">📖</view>
+        <view class="mode-name">单词表</view>
+        <view class="mode-info">基础英语单词</view>
+        <view class="mode-progress">已学 {{learnedWordCount}}/{{totalWords}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 字母列表 -->
+  <view wx:if="{{mode === 'letters'}}">
+    <!-- 返回按钮 -->
+    <view class="back-btn" bindtap="backToSelect">‹ 返回选择</view>
+
+    <!-- 顶部进度 -->
+    <view class="header">
+      <view class="progress-info">
+        <text class="progress-count">已学 {{learnedLetterCount}}/{{totalLetters}}</text>
+        <view class="filter-toggle {{unlearnedOnly ? 'active' : ''}}" bindtap="toggleUnlearnedOnly">
+          {{unlearnedOnly ? '✓ 只看未学' : '只看未学'}}
+        </view>
+      </view>
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{totalLetters > 0 ? learnedLetterCount / totalLetters * 100 : 0}}%;"></view>
+      </view>
+    </view>
+
+    <!-- 搜索框 -->
+    <view class="search-box">
+      <text class="search-icon">🔍</text>
+      <input class="search-input" placeholder="搜索字母 / 单词" value="{{keyword}}" bindinput="onSearch" confirm-type="search" />
+      <text wx:if="{{keyword}}" class="search-clear" bindtap="clearSearch">✕</text>
+    </view>
+
+    <!-- 难度等级筛选 -->
+    <scroll-view class="category-bar" scroll-x="true" enhanced="true" show-scrollbar="false">
+      <view class="chip {{currentLevel === '全部' ? 'active' : ''}}" bindtap="selectLevel" data-key="全部">全部</view>
+      <view wx:for="{{letterLevels}}" wx:key="key" class="chip {{currentLevel === item.key ? 'active' : ''}}" bindtap="selectLevel" data-key="{{item.key}}">{{item.name}}</view>
+    </scroll-view>
+
+    <!-- 筛选结果数 -->
+    <view class="result-summary" wx:if="{{filteredLetters.length > 0}}">
+      共 {{filteredLetters.length}} 个字母
+    </view>
+
+    <!-- 字母网格 -->
+    <view class="grid" wx:if="{{filteredLetters.length > 0}}">
+      <view
+        wx:for="{{filteredLetters}}"
+        wx:key="id"
+        class="cell {{item.learned ? 'learned' : ''}}"
+        bindtap="goLearnLetter"
+        data-id="{{item.id}}"
+      >
+        <view class="cell-letter">{{item.letter}}</view>
+        <view class="cell-word">{{item.word}}</view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty" wx:else>
+      <view class="empty-icon">🔍</view>
+      <view class="empty-text">没有找到匹配的字母</view>
+    </view>
+  </view>
+
+  <!-- 单词列表 -->
+  <view wx:if="{{mode === 'words'}}">
+    <!-- 返回按钮 -->
+    <view class="back-btn" bindtap="backToSelect">‹ 返回选择</view>
+
+    <!-- 顶部进度 -->
+    <view class="header">
+      <view class="progress-info">
+        <text class="progress-count">已学 {{learnedWordCount}}/{{totalWords}}</text>
+        <view class="filter-toggle {{unlearnedOnly ? 'active' : ''}}" bindtap="toggleUnlearnedOnly">
+          {{unlearnedOnly ? '✓ 只看未学' : '只看未学'}}
+        </view>
+      </view>
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{totalWords > 0 ? learnedWordCount / totalWords * 100 : 0}}%;"></view>
+      </view>
+    </view>
+
+    <!-- 搜索框 -->
+    <view class="search-box">
+      <text class="search-icon">🔍</text>
+      <input class="search-input" placeholder="搜索单词 / 中文" value="{{keyword}}" bindinput="onSearch" confirm-type="search" />
+      <text wx:if="{{keyword}}" class="search-clear" bindtap="clearSearch">✕</text>
+    </view>
+
+    <!-- 难度等级筛选 -->
+    <scroll-view class="category-bar" scroll-x="true" enhanced="true" show-scrollbar="false">
+      <view class="chip {{currentLevel === '全部' ? 'active' : ''}}" bindtap="selectLevel" data-key="全部">全部</view>
+      <view wx:for="{{wordLevels}}" wx:key="key" class="chip {{currentLevel === item.key ? 'active' : ''}}" bindtap="selectLevel" data-key="{{item.key}}">{{item.name}}</view>
+    </scroll-view>
+
+    <!-- 筛选结果数 -->
+    <view class="result-summary" wx:if="{{filteredWords.length > 0}}">
+      共 {{filteredWords.length}} 个单词
+    </view>
+
+    <!-- 单词列表 -->
+    <view class="word-list" wx:if="{{filteredWords.length > 0}}">
+      <view
+        wx:for="{{filteredWords}}"
+        wx:key="id"
+        class="word-item {{item.learned ? 'learned' : ''}}"
+        bindtap="goLearnWord"
+        data-id="{{item.id}}"
+      >
+        <view class="word-main">
+          <view class="word-english">{{item.word}}</view>
+          <view class="word-phonetic">{{item.phonetic}}</view>
+        </view>
+        <view class="word-right">
+          <view class="word-meaning">{{item.meaning}}</view>
+          <view class="word-category">{{item.category}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty" wx:else>
+      <view class="empty-icon">🔍</view>
+      <view class="empty-text">没有找到匹配的单词</view>
+    </view>
+  </view>
+</view>
