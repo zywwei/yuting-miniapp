@@ -18,12 +18,18 @@ Page({
     totalWords: 0
   },
 
-  onLoad: function() {
+  onLoad: function(options) {
     this.setData({
       letterLevels: englishData.LETTER_LEVELS,
       wordLevels: englishData.WORD_LEVELS
     })
     this.loadData()
+    // 如果指定了模式，直接进入
+    if (options.mode === 'letters') {
+      this.enterLetters()
+    } else if (options.mode === 'words') {
+      this.enterWords()
+    }
   },
 
   onShow: function() {

@@ -48,6 +48,16 @@ Page({
     wx.navigateTo({ url: '/packageLearn/pages/english/list/index' })
   },
 
+  // 跳转全部字母列表页
+  goAllLetters: function() {
+    wx.navigateTo({ url: '/packageLearn/pages/english/list/index?mode=letters' })
+  },
+
+  // 跳转全部单词列表页
+  goAllWords: function() {
+    wx.navigateTo({ url: '/packageLearn/pages/english/list/index?mode=words' })
+  },
+
   loadLetters: function() {
     var result = englishData.loadLetters()
     var letters = result.letters

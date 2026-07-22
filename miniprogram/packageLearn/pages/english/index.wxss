@@ -87,11 +87,13 @@
 }
 
 /* 全部英语入口 */
-.all-english-entry {
+.all-english-entry,
+.all-entry {
   background: white;
   border-radius: 16rpx;
   padding: 24rpx;
   margin-top: 30rpx;
+  margin-bottom: 24rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;

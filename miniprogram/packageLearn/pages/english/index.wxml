@@ -49,6 +49,18 @@
       </view>
     </view>
 
+    <!-- 全部字母入口 -->
+    <view class="all-entry" bindtap="goAllLetters">
+      <view class="entry-left">
+        <view class="entry-icon">🔤</view>
+        <view class="entry-text">
+          <view class="entry-title">全部字母</view>
+          <view class="entry-desc">{{learnedLetterCount}}/26 已学 · 点击查看所有字母</view>
+        </view>
+      </view>
+      <view class="entry-arrow">›</view>
+    </view>
+
     <!-- 字母卡片 -->
     <view class="letter-container" wx:if="{{letters.length > 0}}">
       <view class="letter-card">
@@ -98,6 +110,18 @@
       <view class="progress-track">
         <view class="progress-fill" style="width: {{learnedWordCount / words.length * 100}}%;"></view>
       </view>
+    </view>
+
+    <!-- 全部单词入口 -->
+    <view class="all-entry" bindtap="goAllWords">
+      <view class="entry-left">
+        <view class="entry-icon">📖</view>
+        <view class="entry-text">
+          <view class="entry-title">全部单词</view>
+          <view class="entry-desc">{{learnedWordCount}}/{{words.length}} 已学 · 点击查看所有单词</view>
+        </view>
+      </view>
+      <view class="entry-arrow">›</view>
     </view>
 
     <!-- 单词卡片 -->
