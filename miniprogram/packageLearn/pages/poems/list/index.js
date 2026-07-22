@@ -43,7 +43,8 @@ Page({
       if (kw) {
         var title = (p.title || '').toLowerCase()
         var author = (p.author || '').toLowerCase()
-        if (title.indexOf(kw) < 0 && author.indexOf(kw) < 0) return false
+        var content = (p.content || '').toLowerCase().replace(/\n/g, '')
+        if (title.indexOf(kw) < 0 && author.indexOf(kw) < 0 && content.indexOf(kw) < 0) return false
       }
       return true
     })

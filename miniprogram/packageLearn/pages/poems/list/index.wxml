@@ -16,7 +16,7 @@
   <!-- 搜索框 -->
   <view class="search-box">
     <text class="search-icon">🔍</text>
-    <input class="search-input" placeholder="搜索诗题 / 诗人" value="{{keyword}}" bindinput="onSearch" confirm-type="search" />
+    <input class="search-input" placeholder="搜索诗题 / 诗人 / 诗句" value="{{keyword}}" bindinput="onSearch" confirm-type="search" />
     <text wx:if="{{keyword}}" class="search-clear" bindtap="clearSearch">✕</text>
   </view>
 
