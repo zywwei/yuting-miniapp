@@ -33,10 +33,17 @@ class BattleManager {
   _nextCritAnim() {
     if (this._critAnimCycle.length === 0) this.initCritAnims()
     if (this._critAnimIndex >= this._critAnimCycle.length) {
+      // 记录上一轮最后一个，避免新一轮第一个与它重复：
+      // 连续两次暴击动画相同时 WXML class 不变，CSS 动画不会重播（敌人看起来没反应）
+      const lastId = this._critAnimCycle[this._critAnimCycle.length - 1].id
       this._critAnimIndex = 0
       for (let i = this._critAnimCycle.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [this._critAnimCycle[i], this._critAnimCycle[j]] = [this._critAnimCycle[j], this._critAnimCycle[i]]
+      }
+      if (this._critAnimCycle.length > 1 && this._critAnimCycle[0].id === lastId) {
+        const swapIdx = 1 + Math.floor(Math.random() * (this._critAnimCycle.length - 1));
+        [this._critAnimCycle[0], this._critAnimCycle[swapIdx]] = [this._critAnimCycle[swapIdx], this._critAnimCycle[0]]
       }
     }
     return this._critAnimCycle[this._critAnimIndex++]
@@ -48,7 +55,11 @@ class BattleManager {
    * @returns {object} 攻击结果
    */
   triggerAttack(damage) {
-    const isCritical = Math.random() < BATTLE_CONFIG.CRIT_RATE
+    // 攻击序号：每次攻击递增，用于暴击全屏特效 nextTick 重建时的竞态防护
+    this._attackSeq = (this._attackSeq || 0) + 1
+
+    // 每次区域完成攻击都强制暴击（原 CRIT_RATE 15% 随机，孩子每刷完一个区域都该有强反馈）
+    const isCritical = true
     const comboCount = this.page.data.comboCount + 1
     const comboBonus = Math.min(comboCount * BATTLE_CONFIG.COMBO_BONUS_PER_HIT, BATTLE_CONFIG.COMBO_MAX_BONUS)
 
@@ -126,8 +137,8 @@ class BattleManager {
       enemyAngry,
       explosionParticles,
       trailAngle,
-      showCriticalEffect: isCritical,
-      critAnim,
+      showCriticalEffect: false,  // 暴击全屏特效统一先关闭，由下方 nextTick 重建（保证动画重播）
+      critAnim: null,
       critEnemyAnim,
       critName,
       // 新增特效
@@ -140,8 +151,21 @@ class BattleManager {
       showAttackCry: true,
       attackCryText: attackCry,
       showScreenShake: true,
-      critFullscreenParticles
+      critFullscreenParticles: []
     })
+
+    // 暴击全屏特效：先销毁再于下一帧重建。
+    // 若直接 setData(true)，当上次特效因故未被清理（连续暴击、重置残留等）时
+    // wx:if 条件不变、节点不重建，已播完的 CSS 动画（forwards 定格 opacity:0）不会重播，
+    // 表现为"有些暴击不触发全屏"。nextTick 强制销毁-重建可覆盖所有时序。
+    if (isCritical) {
+      const seq = this._attackSeq
+      wx.nextTick(() => {
+        // 期间若又发生了新攻击（含最后一击与 completeTimer 的毫秒级双攻击），以最新一次为准
+        if (seq !== this._attackSeq || !this.page.data.isCritical) return
+        this.page.setData({ showCriticalEffect: true, critAnim, critFullscreenParticles })
+      })
+    }
 
     // 暴击时额外扣减敌人HP
     if (isCritical && currentEnemy && this.page.data.enemyCurrentHp > 0) {
@@ -215,7 +239,7 @@ class BattleManager {
     // 1秒后隐藏暴击特效
     if (isCritical) {
       this._attackTimers[4] = setTimeout(() => {
-        this.page.setData({ showCriticalEffect: false, critFullscreenParticles: [] })
+        this.page.setData({ showCriticalEffect: false, critAnim: null, critFullscreenParticles: [] })
       }, 1000)
     }
 

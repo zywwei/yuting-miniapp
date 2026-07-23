@@ -158,25 +158,7 @@ Page({
   _isDestroyed: false,
   _recordSaved: false,
 
-  // 暴击动画轮转：打乱顺序逐个播放，每轮恰好 10 种各出现 1 次
-  _critAnimCycle: [],
-  _critAnimIndex: 0,
-
-  _shuffleCritAnims() {
-    const { BATTLE_CONFIG } = require('./constants.js')
-    const arr = BATTLE_CONFIG.CRIT_ENEMY_ANIMS.slice()
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp
-    }
-    this._critAnimCycle = arr
-    this._critAnimIndex = 0
-  },
-
-  _nextCritAnim() {
-    if (this._critAnimIndex >= this._critAnimCycle.length) this._shuffleCritAnims()
-    return this._critAnimCycle[this._critAnimIndex++]
-  },
+  // 暴击动画轮转逻辑统一在 battle-manager.js（BattleManager._nextCritAnim），页面不重复维护
 
   onLoad(options) {
     // 初始化管理器
@@ -305,6 +287,7 @@ Page({
 
   // 触发攻击动画（支持暴击和连击）
   triggerAttackAnimation(damage) {
+    this._lastAttackTime = Date.now()
     return this.battleManager.triggerAttack(damage)
   },
 
@@ -1394,6 +1377,10 @@ Page({
       toothZones: [],
       companionBubble: '',
       comboCount: 0, showCombo: false, enemyAngry: false,
+      // 暴击状态必须重置：否则上次暴击残留 showCriticalEffect/critAnim，
+      // 下次暴击时 wx:if 条件不变、节点不重建，全屏特效不会重播
+      isCritical: false, isCriticalHit: false, showCriticalEffect: false,
+      critAnim: null, critEnemyAnim: '', critName: '',
       showDefeatFlash: false, showShockwave: false, showKoText: false,
       enemyDebris: [], fireworkParticles: [],
       battlefieldClass: '', showSlash: false, showHitRing: false,
@@ -1428,9 +1415,9 @@ Page({
       const newCleaned = this.data.totalDirtyCleaned + (finishedZone ? finishedZone.germs.length : 0)
       const updatedAreas = [...completedAreas, currentArea.name]
 
-      // 对最后一个区域触发攻击动画
+      // 对最后一个区域触发攻击动画（防双攻击：若本秒区域完成时刚攻击过，跳过，避免毫秒级双攻击导致暴击特效异常）
       const { currentEnemy, isEnemyDefeated, minions, showMinions } = this.data
-      if (currentEnemy && !isEnemyDefeated) {
+      if (currentEnemy && !isEnemyDefeated && Date.now() - (this._lastAttackTime || 0) > 1500) {
         const aliveMinions = minions.filter(m => !m.defeated && !m.defeating)
         if (showMinions && aliveMinions.length > 0) {
           this.attackMinion()

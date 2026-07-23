@@ -162,8 +162,6 @@
           </view>
 
           <!-- 敌人被击败视觉冲击特效 -->
-          <!-- 全屏闪光 -->
-          <view wx:if="{{showDefeatFlash}}" class="defeat-flash-overlay"></view>
           <!-- 冲击波 -->
           <view wx:if="{{showShockwave}}" class="defeat-shockwave"></view>
           <!-- 碎片飞溅 -->
@@ -235,32 +233,6 @@
         <!-- 攻击喝声文字 -->
         <view wx:if="{{showAttackCry}}" class="attack-cry {{isCritical ? 'attack-cry-crit' : ''}}" style="left: {{toothbrushX}}%; top: {{toothbrushY}}%;">
           <text>{{attackCryText}}</text>
-        </view>
-
-        <!-- 暴击专属特效（全屏） -->
-        <view wx:if="{{showCriticalEffect && critAnim}}" class="critical-fx-fullscreen" style="--crit-color: {{critAnim.color}}; --crit-glow: {{currentSkin.glowColor}};">
-          <!-- 全屏闪光 -->
-          <view class="crit-fullscreen-flash" style="background: {{critAnim.color}};"></view>
-          <!-- 屏幕边缘光晕 -->
-          <view class="crit-fullscreen-vignette" style="border-color: {{critAnim.color}};"></view>
-          <!-- 全屏扩散环 -->
-          <view class="crit-fullscreen-ring ring-1" style="border-color: {{critAnim.color}};"></view>
-          <view class="crit-fullscreen-ring ring-2" style="border-color: {{critAnim.color}};"></view>
-          <view class="crit-fullscreen-ring ring-3" style="border-color: {{critAnim.color}};"></view>
-          <!-- 大号暴击emoji -->
-          <text class="crit-fullscreen-emoji" style="color: {{critAnim.color}};">{{critAnim.emoji}}</text>
-          <!-- 暴击名称大字 -->
-          <text class="crit-fullscreen-text" style="color: {{critAnim.color}};">{{critAnim.name}}！</text>
-          <!-- 全屏粒子飞溅 -->
-          <view class="crit-fullscreen-particles">
-            <view wx:for="{{critFullscreenParticles}}" wx:key="id"
-                  class="crit-particle-full"
-                  style="--angle: {{item.angle}}deg; --distance: {{item.distance}}rpx; --delay: {{item.delay}}s; --size: {{item.size}}rpx; color: {{item.color}};">
-              {{item.emoji}}
-            </view>
-          </view>
-          <!-- 速度线背景 -->
-          <view class="crit-fullscreen-speedlines"></view>
         </view>
 
         <!-- 连击计数器 -->
@@ -479,6 +451,36 @@
   </view>
 
   <view class="safe-bottom"></view>
+
+  <!-- ===== 全屏特效层（fixed 定位，必须放在 battle-arena 外，否则屏幕震动的 transform 会让 fixed 失效） ===== -->
+  <!-- 暴击专属特效（全屏） -->
+  <view wx:if="{{showCriticalEffect && critAnim}}" class="critical-fx-fullscreen" style="--crit-color: {{critAnim.color}}; --crit-glow: {{currentSkin.glowColor}};">
+    <!-- 全屏闪光 -->
+    <view class="crit-fullscreen-flash" style="background: {{critAnim.color}};"></view>
+    <!-- 屏幕边缘光晕 -->
+    <view class="crit-fullscreen-vignette" style="border-color: {{critAnim.color}};"></view>
+    <!-- 全屏扩散环 -->
+    <view class="crit-fullscreen-ring ring-1" style="border-color: {{critAnim.color}};"></view>
+    <view class="crit-fullscreen-ring ring-2" style="border-color: {{critAnim.color}};"></view>
+    <view class="crit-fullscreen-ring ring-3" style="border-color: {{critAnim.color}};"></view>
+    <!-- 大号暴击emoji -->
+    <text class="crit-fullscreen-emoji" style="color: {{critAnim.color}};">{{critAnim.emoji}}</text>
+    <!-- 暴击名称大字 -->
+    <text class="crit-fullscreen-text" style="color: {{critAnim.color}};">{{critAnim.name}}！</text>
+    <!-- 全屏粒子飞溅 -->
+    <view class="crit-fullscreen-particles">
+      <view wx:for="{{critFullscreenParticles}}" wx:key="id"
+            class="crit-particle-full"
+            style="--angle: {{item.angle}}deg; --distance: {{item.distance}}rpx; --delay: {{item.delay}}s; --size: {{item.size}}rpx; color: {{item.color}};">
+        {{item.emoji}}
+      </view>
+    </view>
+    <!-- 速度线背景 -->
+    <view class="crit-fullscreen-speedlines"></view>
+  </view>
+
+  <!-- 敌人被击败全屏闪光 -->
+  <view wx:if="{{showDefeatFlash}}" class="defeat-flash-overlay"></view>
 
   <!-- 成就解锁弹窗 -->
   <achievement-popup id="achievementPopup" />
