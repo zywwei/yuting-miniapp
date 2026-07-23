@@ -1,5 +1,5 @@
 <!-- 刷牙计时页 - 战斗场景 -->
-<view class="timer-container" style="background: {{themeBg}};">
+<view class="timer-container {{currentSkin.skinClass || ''}}" style="background: {{themeBg}}; --trail-color: {{currentSkin.trailColor}}; --glow-color: {{currentSkin.glowColor}}; --aura-color: {{currentSkin.bgAura}};">
   <!-- 背景装饰 - 闪烁星星 -->
   <view class="bg-stars">
     <view class="star star-1">⭐</view>
@@ -17,6 +17,10 @@
     <view class="cloud cloud-2">☁️</view>
     <view class="cloud cloud-3">☁️</view>
   </view>
+  <!-- 战斗能量光环背景 -->
+  <view class="battle-aura" wx:if="{{isRunning}}"></view>
+  <!-- 战斗网格地面 -->
+  <view class="battle-grid" wx:if="{{isRunning}}"></view>
 
   <!-- ===== 主线故事组件 ===== -->
   <story-dialog
@@ -37,6 +41,37 @@
 
   <!-- 状态栏占位 -->
   <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+
+  <!-- ===== 怪物出场动画遮罩 ===== -->
+  <view wx:if="{{showEnemyEntrance}}" class="entrance-overlay phase-{{entrancePhase}} {{entranceClass}}">
+    <!-- 暗幕背景 -->
+    <view class="entrance-dark"></view>
+    <!-- 速度线背景 -->
+    <view class="entrance-speed-lines" wx:if="{{entrancePhase >= 2}}"></view>
+    <!-- VS 文字 -->
+    <view class="entrance-vs" wx:if="{{entrancePhase >= 2}}">
+      <text class="vs-text">VS</text>
+    </view>
+    <!-- 怪物登场（多种动画） -->
+    <view class="entrance-monster" wx:if="{{entrancePhase >= 3}}">
+      <text class="entrance-monster-emoji">{{currentEnemy.emoji}}</text>
+      <!-- 落地冲击波 -->
+      <view class="entrance-impact"></view>
+      <!-- 地面裂纹 -->
+    <view class="entrance-crack"></view>
+    </view>
+    <!-- 名字横幅 -->
+    <view class="entrance-name-banner" wx:if="{{entrancePhase >= 4}}">
+      <view class="entrance-name-line"></view>
+      <text class="entrance-name-text">{{currentEnemy.name}}</text>
+      <text class="entrance-name-desc">{{currentEnemy.description}}</text>
+      <view class="entrance-name-line"></view>
+    </view>
+    <!-- 战斗提示 -->
+    <view class="entrance-fight-hint" wx:if="{{entrancePhase >= 4}}">
+      <text>⚔️ 准备战斗！</text>
+    </view>
+  </view>
 
   <!-- 顶部极简工具栏（融入场景） -->
   <view class="top-bar" style="padding-right: {{capsuleRight}}px;">
@@ -69,11 +104,14 @@
     </view>
 
     <!-- 战斗主区域 -->
-    <view class="battle-arena">
+    <view class="battle-arena {{showScreenShake ? 'screen-shake' : ''}}">
       <!-- 战斗中 -->
       <view wx:if="{{currentEnemy && !isCompleted}}" class="battle-fight">
         <!-- 地面/背景 -->
         <view class="battle-ground"></view>
+
+        <!-- 随机战场特效层 -->
+        <view wx:if="{{isRunning && battlefieldClass}}" class="battlefield-fx {{battlefieldClass}}"></view>
 
         <!-- 小怪物 -->
         <view wx:if="{{showMinions}}" class="minions-area">
@@ -144,10 +182,12 @@
           <text class="ko-sub">{{currentEnemy.name}} 被击败</text>
         </view>
 
-        <!-- 牙刷（根据区域动态变化位置和方向） -->
-        <view class="toothbrush-hero {{isRunning ? 'attacking' : ''}} {{isDashing ? 'dashing' : ''}}"
-              style="left: {{toothbrushX}}%; top: {{toothbrushY}}%; --rotation: {{toothbrushRotation}}deg;">
+        <!-- 牙刷（根据区域动态变化位置和方向，带皮肤特效） -->
+        <view class="toothbrush-hero {{isRunning ? 'attacking' : ''}} {{isDashing ? 'dashing' : ''}} {{currentSkin.skinClass || ''}}"
+              style="left: {{toothbrushX}}%; top: {{toothbrushY}}%; --rotation: {{toothbrushRotation}}deg; --skin-glow: {{currentSkin.glowColor}};">
           <view class="toothbrush-wrapper" style="transform: translate(-50%, -50%) rotate({{toothbrushRotation}}deg);">
+            <!-- 牙刷光环 -->
+            <view class="toothbrush-aura" wx:if="{{isRunning}}"></view>
             <text class="toothbrush-emoji {{isCriticalHit ? 'critical-flash' : ''}}">🪥</text>
             <!-- 牙刷残影（暴击时显示） -->
             <view wx:if="{{isCriticalHit}}" class="toothbrush-afterimage"></view>
@@ -157,8 +197,8 @@
             <view class="line line-2"></view>
             <view class="line line-3"></view>
           </view>
-          <!-- 攻击轨迹 -->
-          <view wx:if="{{showTrail}}" class="attack-trail" style="--trail-angle: {{trailAngle}}deg;">
+          <!-- 攻击轨迹（皮肤颜色） -->
+          <view wx:if="{{showTrail}}" class="attack-trail" style="--trail-angle: {{trailAngle}}deg; --trail-color: {{currentSkin.trailColor}};">
             <view class="trail-line trail-1"></view>
             <view class="trail-line trail-2"></view>
             <view class="trail-line trail-3"></view>
@@ -176,11 +216,51 @@
           </view>
         </view>
 
-        <!-- 暴击专属特效（20种随机模式） -->
-        <view wx:if="{{showCriticalEffect && critAnim}}" class="critical-effect">
-          <text class="critical-emoji" style="color: {{critAnim.color}};">{{critAnim.emoji}}</text>
-          <text class="critical-text" style="color: {{critAnim.color}};">{{critAnim.name}}！</text>
-          <view class="critical-flash-overlay" style="background: {{critAnim.color}};"></view>
+        <!-- 斩击特效（随机方向） -->
+        <view wx:if="{{showSlash}}" class="slash-effect {{slashClass}}" style="--slash-color: {{currentSkin.trailColor}};">
+          <view class="slash-line slash-line-1"></view>
+          <view class="slash-line slash-line-2"></view>
+        </view>
+
+        <!-- 命中冲击环 -->
+        <view wx:if="{{showHitRing}}" class="hit-ring" style="left: {{attackEffectX}}%; top: {{attackEffectY}}%; --ring-color: {{hitRingColor}};"></view>
+
+        <!-- 能量波（从牙刷射向敌人） -->
+        <view wx:if="{{showBeam}}" class="energy-beam" style="left: {{toothbrushX}}%; top: {{toothbrushY}}%; --beam-angle: {{trailAngle}}deg; --beam-color: {{currentSkin.trailColor}};">
+          <text class="beam-emoji">{{beamEmoji}}</text>
+          <text class="beam-emoji beam-emoji-2">{{beamEmoji}}</text>
+          <text class="beam-emoji beam-emoji-3">{{beamEmoji}}</text>
+        </view>
+
+        <!-- 攻击喝声文字 -->
+        <view wx:if="{{showAttackCry}}" class="attack-cry {{isCritical ? 'attack-cry-crit' : ''}}" style="left: {{toothbrushX}}%; top: {{toothbrushY}}%;">
+          <text>{{attackCryText}}</text>
+        </view>
+
+        <!-- 暴击专属特效（全屏） -->
+        <view wx:if="{{showCriticalEffect && critAnim}}" class="critical-fx-fullscreen" style="--crit-color: {{critAnim.color}}; --crit-glow: {{currentSkin.glowColor}};">
+          <!-- 全屏闪光 -->
+          <view class="crit-fullscreen-flash" style="background: {{critAnim.color}};"></view>
+          <!-- 屏幕边缘光晕 -->
+          <view class="crit-fullscreen-vignette" style="border-color: {{critAnim.color}};"></view>
+          <!-- 全屏扩散环 -->
+          <view class="crit-fullscreen-ring ring-1" style="border-color: {{critAnim.color}};"></view>
+          <view class="crit-fullscreen-ring ring-2" style="border-color: {{critAnim.color}};"></view>
+          <view class="crit-fullscreen-ring ring-3" style="border-color: {{critAnim.color}};"></view>
+          <!-- 大号暴击emoji -->
+          <text class="crit-fullscreen-emoji" style="color: {{critAnim.color}};">{{critAnim.emoji}}</text>
+          <!-- 暴击名称大字 -->
+          <text class="crit-fullscreen-text" style="color: {{critAnim.color}};">{{critAnim.name}}！</text>
+          <!-- 全屏粒子飞溅 -->
+          <view class="crit-fullscreen-particles">
+            <view wx:for="{{critFullscreenParticles}}" wx:key="id"
+                  class="crit-particle-full"
+                  style="--angle: {{item.angle}}deg; --distance: {{item.distance}}rpx; --delay: {{item.delay}}s; --size: {{item.size}}rpx; color: {{item.color}};">
+              {{item.emoji}}
+            </view>
+          </view>
+          <!-- 速度线背景 -->
+          <view class="crit-fullscreen-speedlines"></view>
         </view>
 
         <!-- 连击计数器 -->
@@ -323,18 +403,44 @@
 
   </view>
 
-  <!-- ===== 时长选择 ===== -->
-  <view wx:if="{{!isRunning && !isPaused && !isCompleted}}" class="duration-picker">
-    <text class="duration-title">⏱ 刷牙时长</text>
-    <view class="duration-options">
-      <view class="duration-opt {{selectedDuration === 60 ? 'active' : ''}}" bindtap="selectDuration" data-sec="60">
-        <text class="duration-num">1</text><text class="duration-unit">分钟</text>
-      </view>
-      <view class="duration-opt {{selectedDuration === 120 ? 'active' : ''}}" bindtap="selectDuration" data-sec="120">
-        <text class="duration-num">2</text><text class="duration-unit">分钟</text>
-      </view>
-      <view class="duration-opt {{selectedDuration === 180 ? 'active' : ''}}" bindtap="selectDuration" data-sec="180">
-        <text class="duration-num">3</text><text class="duration-unit">分钟</text>
+  <!-- ===== 时长选择 + 牙刷皮肤 ===== -->
+  <view wx:if="{{!isRunning && !isPaused && !isCompleted}}" class="pre-battle-panel">
+    <!-- 牙刷皮肤选择 -->
+    <view class="skin-picker">
+      <text class="skin-picker-title">🪥 选择你的牙刷武器</text>
+      <scroll-view class="skin-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="skin-list">
+          <view wx:for="{{toothbrushSkins}}" wx:key="id"
+                class="skin-card {{selectedSkinId === item.id ? 'skin-active' : ''}} {{item.skinClass || ''}}"
+                style="--trail-color: {{item.trailColor}}; --glow-color: {{item.glowColor}};"
+                bindtap="selectSkin" data-id="{{item.id}}">
+            <view class="skin-card-glow"></view>
+            <text class="skin-card-emoji">{{item.emoji}}</text>
+            <text class="skin-card-name">{{item.name}}</text>
+            <text class="skin-card-desc">{{item.desc}}</text>
+            <view class="skin-card-particles">
+              <text class="skin-particle">{{item.particleEmoji}}</text>
+              <text class="skin-particle">{{item.critParticle}}</text>
+            </view>
+            <view wx:if="{{selectedSkinId === item.id}}" class="skin-check">✓</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 时长选择 -->
+    <view class="duration-picker">
+      <text class="duration-title">⏱ 刷牙时长</text>
+      <view class="duration-options">
+        <view class="duration-opt {{selectedDuration === 60 ? 'active' : ''}}" bindtap="selectDuration" data-sec="60">
+          <text class="duration-num">1</text><text class="duration-unit">分钟</text>
+        </view>
+        <view class="duration-opt {{selectedDuration === 120 ? 'active' : ''}}" bindtap="selectDuration" data-sec="120">
+          <text class="duration-num">2</text><text class="duration-unit">分钟</text>
+        </view>
+        <view class="duration-opt {{selectedDuration === 180 ? 'active' : ''}}" bindtap="selectDuration" data-sec="180">
+          <text class="duration-num">3</text><text class="duration-unit">分钟</text>
+        </view>
       </view>
     </view>
   </view>

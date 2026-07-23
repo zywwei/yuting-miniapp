@@ -9,7 +9,8 @@ const {
   BRUSH_AREAS, BRUSHING_TIPS, THEMES, REWARD_TEXTS, getCompletedTexts,
   CHEER_LEFT, CHEER_RIGHT, RING_MODES, BUBBLE_LIST, PRE_GERM_TYPES,
   STICKERS, GIRL_BUBBLES, ZONE_GERM_TYPES, CHAPTERS, BATTLE_CONFIG,
-  PRINCESS_CHEER, getOrSelectTodayChapter
+  PRINCESS_CHEER, getOrSelectTodayChapter, TOOTHBRUSH_SKINS,
+  BATTLEFIELD_EFFECTS, SLASH_EFFECTS, ENTRANCE_ANIMATIONS
 } = require('./constants.js')
 const StoryManager = require('./story-manager.js')
 const BattleManager = require('./battle-manager.js')
@@ -56,6 +57,10 @@ Page({
     lastBrushPoints: 0,
     showPoints: false,
     pointsText: '',
+    // 牙刷皮肤系统
+    toothbrushSkins: TOOTHBRUSH_SKINS,
+    selectedSkinId: 'classic',
+    currentSkin: TOOTHBRUSH_SKINS[0],
     // 牙齿6区可视化（左上/上中/右上/左下/下中/右下）
     toothZones: [],
     // 刷牙小游戏（保留给刷牙前/后使用，刷牙中不再出现）
@@ -126,6 +131,23 @@ Page({
     // 敌人威胁话语
     showEnemyTaunt: false,     // 是否显示威胁话语
     enemyTauntText: '',        // 威胁话语内容
+    // 新增战斗特效
+    showSlash: false,          // 斩击特效
+    slashClass: '',            // 斩击动画类型
+    showHitRing: false,        // 命中冲击环
+    hitRingColor: '#FF6B8A',   // 冲击环颜色
+    showBeam: false,           // 能量波
+    beamEmoji: '💗',           // 能量波emoji
+    showAttackCry: false,      // 攻击喝声
+    attackCryText: '',         // 喝声文字
+    showScreenShake: false,    // 屏幕震动
+    battlefieldClass: '',      // 随机战场特效类名
+    // 怪物出场动画
+    showEnemyEntrance: false,  // 是否显示出场动画
+    entrancePhase: 0,          // 出场动画阶段 0=无 1=暗幕 2=VS 3=怪物碑落 4=名字展示
+    entranceClass: '',        // 出场动画类名（随机）
+    // 暴击全屏特效
+    critFullscreenParticles: [], // 暴击全屏粒子
   },
 
   _timer: null,
@@ -167,6 +189,10 @@ Page({
     // 根据时间设置主题
     const theme = THEMES[timeOfDay] || THEMES.morning
 
+    // 加载已保存的牙刷皮肤
+    const savedSkinId = wx.getStorageSync('brushingSkinId') || 'classic'
+    const savedSkin = TOOTHBRUSH_SKINS.find(s => s.id === savedSkinId) || TOOTHBRUSH_SKINS[0]
+
     // 加载故事进度
     const { chapter, enemy, enemyHp } = this.storyManager.loadProgress(timeOfDay)
 
@@ -176,7 +202,9 @@ Page({
       timeOfDay,
       teethArea: BRUSH_AREAS,
       soundEnabled: audio.enabled,
-      themeBg: theme.bg
+      themeBg: savedSkin.bgGradient || theme.bg,
+      selectedSkinId: savedSkin.id,
+      currentSkin: savedSkin
     })
 
     // 检查是否有未完成的进度
@@ -704,6 +732,11 @@ Page({
     if (this._pointsTipTimer) { clearTimeout(this._pointsTipTimer); this._pointsTipTimer = null }
     if (this._attackPointsTimer) { clearTimeout(this._attackPointsTimer); this._attackPointsTimer = null }
     if (this._victoryDialogTimer) { clearTimeout(this._victoryDialogTimer); this._victoryDialogTimer = null }
+    // 清理出场动画定时器
+    if (this._entranceTimer1) { clearTimeout(this._entranceTimer1); this._entranceTimer1 = null }
+    if (this._entranceTimer2) { clearTimeout(this._entranceTimer2); this._entranceTimer2 = null }
+    if (this._entranceTimer3) { clearTimeout(this._entranceTimer3); this._entranceTimer3 = null }
+    if (this._entranceTimer4) { clearTimeout(this._entranceTimer4); this._entranceTimer4 = null }
   },
 
   // 生成超级炫酷撒花（满屏效果）
@@ -963,6 +996,26 @@ Page({
   },
 
   // ===== 计时器 =====
+  // 选择牙刷皮肤
+  selectSkin(e) {
+    const skinId = e.currentTarget.dataset.id
+    const skin = TOOTHBRUSH_SKINS.find(s => s.id === skinId)
+    if (!skin) return
+
+    // 切皮肤时同步更新整页背景（保留时段主题做兜底）
+    const fallbackBg = (THEMES[this.data.timeOfDay] || THEMES.morning).bg
+
+    this.setData({
+      selectedSkinId: skinId,
+      currentSkin: skin,
+      themeBg: skin.bgGradient || fallbackBg
+    })
+
+    // 保存选择到本地
+    wx.setStorageSync('brushingSkinId', skinId)
+    wx.vibrateShort({ type: 'light' })
+  },
+
   // 选择刷牙时长
   selectDuration(e) {
     const sec = parseInt(e.currentTarget.dataset.sec)
@@ -970,6 +1023,45 @@ Page({
   },
 
   startTimer() {
+    // 随机选择一种出场动画
+    const entranceAnim = ENTRANCE_ANIMATIONS[Math.floor(Math.random() * ENTRANCE_ANIMATIONS.length)]
+    const p = entranceAnim.phases
+
+    // 先播放怪物出场动画，动画结束后再真正开始计时
+    this.setData({ showEnemyEntrance: true, entrancePhase: 1, entranceClass: entranceAnim.className })
+    wx.vibrateShort({ type: 'heavy' })
+
+    // 阶段2: VS 出现
+    this._entranceTimer1 = setTimeout(() => {
+      if (this._isDestroyed) return
+      this.setData({ entrancePhase: 2 })
+      wx.vibrateShort({ type: 'medium' })
+    }, p.phase2)
+
+    // 阶段3: 怪物登场
+    this._entranceTimer2 = setTimeout(() => {
+      if (this._isDestroyed) return
+      this.setData({ entrancePhase: 3 })
+      wx.vibrateLong()
+    }, p.phase3)
+
+    // 阶段4: 名字展示
+    this._entranceTimer3 = setTimeout(() => {
+      if (this._isDestroyed) return
+      this.setData({ entrancePhase: 4 })
+      wx.vibrateShort({ type: 'heavy' })
+    }, p.phase4)
+
+    // 阶段5: 动画结束，正式开始战斗
+    this._entranceTimer4 = setTimeout(() => {
+      if (this._isDestroyed) return
+      this.setData({ showEnemyEntrance: false, entrancePhase: 0, entranceClass: '' })
+      this._doStartBattle()
+    }, p.end)
+  },
+
+  // 真正开始战斗（出场动画结束后调用）
+  _doStartBattle() {
     this._totalTime = this.data.selectedDuration
     const areaDuration = Math.floor(this._totalTime / BRUSH_AREAS.length)
     this._areaDuration = areaDuration
@@ -1003,7 +1095,11 @@ Page({
       ...item,
       emoji: Math.random() > 0.5 ? GIRL_BUBBLES[Math.floor(Math.random() * GIRL_BUBBLES.length)] : item.emoji
     }))
-    this.setData({ bubbles: girlBubbles })
+
+    // 每场战斗随机选择一个战场特效
+    const battlefieldEffect = BATTLEFIELD_EFFECTS[Math.floor(Math.random() * BATTLEFIELD_EFFECTS.length)]
+
+    this.setData({ bubbles: girlBubbles, battlefieldClass: battlefieldEffect.className })
 
     // 重置颜色模式
     this._ringModeIndex = 0
@@ -1299,7 +1395,11 @@ Page({
       companionBubble: '',
       comboCount: 0, showCombo: false, enemyAngry: false,
       showDefeatFlash: false, showShockwave: false, showKoText: false,
-      enemyDebris: [], fireworkParticles: []
+      enemyDebris: [], fireworkParticles: [],
+      battlefieldClass: '', showSlash: false, showHitRing: false,
+      showBeam: false, showAttackCry: false, showScreenShake: false,
+      showEnemyEntrance: false, entrancePhase: 0, entranceClass: '',
+      critFullscreenParticles: []
     })
     this._areaElapsed = 0
     // 重置小怪物

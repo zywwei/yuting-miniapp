@@ -1,4 +1,4 @@
-const { BATTLE_CONFIG, STORY_DIALOGUES } = require('./constants.js')
+const { BATTLE_CONFIG, STORY_DIALOGUES, SLASH_EFFECTS } = require('./constants.js')
 
 /**
  * 战斗系统管理器
@@ -12,6 +12,7 @@ class BattleManager {
     this._comboTimer = null
     this._attackTimers = {}
     this._tauntTimer = null
+    this._slashIndex = 0
   }
 
   /**
@@ -42,7 +43,7 @@ class BattleManager {
   }
 
   /**
-   * 触发攻击动画（支持暴击和连击）
+   * 触发攻击动画（支持暴击、连击、皮肤专属特效、随机斩击）
    * @param {number} damage - 基础伤害
    * @returns {object} 攻击结果
    */
@@ -54,7 +55,8 @@ class BattleManager {
     const x = 30 + Math.random() * 40
     const y = 30 + Math.random() * 40
 
-    const { currentEnemy, enemyCurrentHp } = this.page.data
+    const { currentEnemy, enemyCurrentHp, currentSkin } = this.page.data
+    const skin = currentSkin || {}
     const enemyAngry = currentEnemy && (enemyCurrentHp / currentEnemy.hp) < BATTLE_CONFIG.ENEMY_ANGER_THRESHOLD
 
     const critAnim = isCritical
@@ -65,9 +67,13 @@ class BattleManager {
     const critEnemyAnim = critInfo ? critInfo.id : ''
     const critName = critInfo ? critInfo.name : ''
 
+    // 随机斩击动画（每次攻击随机一种）
+    const slashEffect = SLASH_EFFECTS[Math.floor(Math.random() * SLASH_EFFECTS.length)]
+    const slashClass = slashEffect.id
+
     const explosionParticles = []
     const particleCount = isCritical ? 16 : 8
-    const defaultParticle = { particleEmoji: '💥', color: '#FF6B8A' }
+    const defaultParticle = { particleEmoji: skin.particleEmoji || '💥', color: skin.trailColor || '#FF6B8A' }
     const anim = critAnim || defaultParticle
     for (let i = 0; i < particleCount; i++) {
       explosionParticles.push({
@@ -81,6 +87,28 @@ class BattleManager {
     }
 
     const trailAngle = Math.atan2(50 - this.page.data.toothbrushY, 50 - this.page.data.toothbrushX) * (180 / Math.PI)
+
+    // 攻击喝声（皮肤专属）
+    const attackCry = isCritical ? (skin.critCry || '暴击！') : (skin.attackCry || '嘿！')
+
+    // 暴击全屏粒子（仅暴击时生成，非暴击给空数组）
+    const critFullscreenParticles = []
+    if (isCritical) {
+      const critParticleCount = 24
+      const critEmoji = skin.critParticle || anim.particleEmoji || '✨'
+      const critColor = anim.color || skin.trailColor || '#FFD700'
+      for (let i = 0; i < critParticleCount; i++) {
+        critFullscreenParticles.push({
+          id: 'cf_' + i,
+          angle: (360 / critParticleCount) * i + Math.random() * 15,
+          distance: 200 + Math.random() * 250,
+          delay: Math.random() * 0.3,
+          size: 40 + Math.random() * 40,
+          color: critColor,
+          emoji: critEmoji
+        })
+      }
+    }
 
     this.page.setData({
       enemyShaking: true,
@@ -101,7 +129,18 @@ class BattleManager {
       showCriticalEffect: isCritical,
       critAnim,
       critEnemyAnim,
-      critName
+      critName,
+      // 新增特效
+      showSlash: true,
+      slashClass: slashClass,
+      showHitRing: true,
+      hitRingColor: skin.hitRingColor || '#FF6B8A',
+      showBeam: true,
+      beamEmoji: skin.beamEmoji || '💗',
+      showAttackCry: true,
+      attackCryText: attackCry,
+      showScreenShake: true,
+      critFullscreenParticles
     })
 
     // 暴击时额外扣减敌人HP
@@ -120,18 +159,10 @@ class BattleManager {
       const taunts = hpRatio < 0.3 ? STORY_DIALOGUES.enemy_low_hp_taunt : STORY_DIALOGUES.enemy_crit_taunt
       const taunt = taunts[Math.floor(Math.random() * taunts.length)]
 
-      // 清除之前的 taunt 定时器
       if (this._tauntTimer) clearTimeout(this._tauntTimer)
-
-      // 延迟显示 taunt，避免与攻击动画的 setData 冲突
       setTimeout(() => {
-        this.page.setData({
-          showEnemyTaunt: true,
-          enemyTauntText: taunt
-        })
+        this.page.setData({ showEnemyTaunt: true, enemyTauntText: taunt })
       }, 300)
-
-      // 2.3秒后隐藏 taunt
       this._tauntTimer = setTimeout(() => {
         this.page.setData({ showEnemyTaunt: false })
       }, 2300)
@@ -143,10 +174,25 @@ class BattleManager {
     Object.values(this._attackTimers).forEach(t => clearTimeout(t))
     this._attackTimers = {}
 
+    // 150ms: 斩击特效消失
+    this._attackTimers[0] = setTimeout(() => {
+      this.page.setData({ showSlash: false })
+    }, 400)
+
+    // 200ms: 能量波消失
+    this._attackTimers[0.5] = setTimeout(() => {
+      this.page.setData({ showBeam: false })
+    }, 350)
+
     // 250ms后停止冲刺
     this._attackTimers[1] = setTimeout(() => {
       this.page.setData({ isDashing: false, showTrail: false })
     }, 250)
+
+    // 300ms: 命中环消失 + 屏幕震动停止
+    this._attackTimers[1.5] = setTimeout(() => {
+      this.page.setData({ showHitRing: false, showScreenShake: false })
+    }, 400)
 
     // 300ms后停止敌人震动并添加受击反应
     this._attackTimers[2] = setTimeout(() => {
@@ -161,14 +207,15 @@ class BattleManager {
         isCritical: false,
         isCriticalHit: false,
         critEnemyAnim: '',
-        critName: ''
+        critName: '',
+        showAttackCry: false
       })
-    }, 500)
+    }, 600)
 
     // 1秒后隐藏暴击特效
     if (isCritical) {
       this._attackTimers[4] = setTimeout(() => {
-        this.page.setData({ showCriticalEffect: false })
+        this.page.setData({ showCriticalEffect: false, critFullscreenParticles: [] })
       }, 1000)
     }
 

@@ -211,6 +211,231 @@ const GIRL_BUBBLES = ['👑', '👸', '🦄', '🐷', '🦋', '🌸', '💖', '�
 // 牙齿分区上的细菌类型
 const ZONE_GERM_TYPES = ['🦠', '🍬', '🍭', '🍰', '🐛', '👾']
 
+// ===== 牙刷皮肤系统 =====
+const TOOTHBRUSH_SKINS = [
+  {
+    id: 'classic',
+    name: '粉色经典',
+    emoji: '🪥',
+    desc: '经典粉色牙刷',
+    trailColor: '#FF6B8A',
+    glowColor: 'rgba(255,107,138,0.6)',
+    particleEmoji: '💥',
+    critParticle: '✨',
+    bgAura: 'rgba(255,154,171,0.15)',
+    bgGradient: 'linear-gradient(180deg, #FFE4EC 0%, #FFF0F5 30%, #FFF5F8 60%, #FFEEF2 100%)',
+    unlockPoints: 0,
+    // 攻击特效配置
+    slashClass: 'slash-classic',
+    beamEmoji: '💗',
+    hitRingColor: '#FF6B8A',
+    attackCry: '嘿！',
+    critCry: '爱心暴击！'
+  },
+  {
+    id: 'ice',
+    name: '冰霜之杖',
+    emoji: '🪥',
+    desc: '冰冻一切的魔法牙刷',
+    trailColor: '#00BFFF',
+    glowColor: 'rgba(0,191,255,0.6)',
+    particleEmoji: '❄️',
+    critParticle: '💎',
+    bgAura: 'rgba(0,191,255,0.12)',
+    bgGradient: 'linear-gradient(180deg, #DFF4FF 0%, #ECF9FF 30%, #F5FBFF 60%, #E8F6FE 100%)',
+    skinClass: 'skin-ice',
+    unlockPoints: 0,
+    slashClass: 'slash-ice',
+    beamEmoji: '❄️',
+    hitRingColor: '#00BFFF',
+    attackCry: '冰冻！',
+    critCry: '绝对零度！'
+  },
+  {
+    id: 'flame',
+    name: '烈焰战刷',
+    emoji: '🪥',
+    desc: '燃烧吧！火焰之力',
+    trailColor: '#FF4500',
+    glowColor: 'rgba(255,69,0,0.6)',
+    particleEmoji: '🔥',
+    critParticle: '💥',
+    bgAura: 'rgba(255,69,0,0.12)',
+    bgGradient: 'linear-gradient(180deg, #FFE9DE 0%, #FFF1E8 30%, #FFF6EF 60%, #FFECE2 100%)',
+    skinClass: 'skin-flame',
+    unlockPoints: 0,
+    slashClass: 'slash-flame',
+    beamEmoji: '🔥',
+    hitRingColor: '#FF4500',
+    attackCry: '燃烧！',
+    critCry: '烈焰风暴！'
+  },
+  {
+    id: 'thunder',
+    name: '雷霆之怒',
+    emoji: '🪥',
+    desc: '电光火石般的速度',
+    trailColor: '#FFD700',
+    glowColor: 'rgba(255,215,0,0.7)',
+    particleEmoji: '⚡',
+    critParticle: '🌟',
+    bgAura: 'rgba(255,215,0,0.12)',
+    bgGradient: 'linear-gradient(180deg, #FFF6D9 0%, #FFFAE8 30%, #FFFDF0 60%, #FFF8DC 100%)',
+    skinClass: 'skin-thunder',
+    unlockPoints: 0,
+    slashClass: 'slash-thunder',
+    beamEmoji: '⚡',
+    hitRingColor: '#FFD700',
+    attackCry: '电击！',
+    critCry: '万雷天牢！'
+  },
+  {
+    id: 'nature',
+    name: '森林守护',
+    emoji: '🪥',
+    desc: '大自然的力量加持',
+    trailColor: '#4CAF50',
+    glowColor: 'rgba(76,175,80,0.6)',
+    particleEmoji: '🍃',
+    critParticle: '🌸',
+    bgAura: 'rgba(76,175,80,0.12)',
+    bgGradient: 'linear-gradient(180deg, #E4F5E5 0%, #EFFAF0 30%, #F5FCF5 60%, #E9F6EA 100%)',
+    skinClass: 'skin-nature',
+    unlockPoints: 0,
+    slashClass: 'slash-nature',
+    beamEmoji: '🌿',
+    hitRingColor: '#4CAF50',
+    attackCry: '叶刃！',
+    critCry: '百花缭乱！'
+  },
+  {
+    id: 'galaxy',
+    name: '星河传说',
+    emoji: '🪥',
+    desc: '来自银河的神秘力量',
+    trailColor: '#9C27B0',
+    glowColor: 'rgba(156,39,176,0.6)',
+    particleEmoji: '🌌',
+    critParticle: '⭐',
+    bgAura: 'rgba(156,39,176,0.12)',
+    bgGradient: 'linear-gradient(180deg, #F0E4F7 0%, #F6EFFA 30%, #FAF5FC 60%, #F2E9F8 100%)',
+    skinClass: 'skin-galaxy',
+    unlockPoints: 0,
+    slashClass: 'slash-galaxy',
+    beamEmoji: '🌠',
+    hitRingColor: '#9C27B0',
+    attackCry: '星弹！',
+    critCry: '银河爆裂！'
+  },
+  {
+    id: 'candy',
+    name: '甜蜜暴击',
+    emoji: '🪥',
+    desc: '用甜蜜打败坏细菌',
+    trailColor: '#FF69B4',
+    glowColor: 'rgba(255,105,180,0.6)',
+    particleEmoji: '🍬',
+    critParticle: '💖',
+    bgAura: 'rgba(255,105,180,0.12)',
+    bgGradient: 'linear-gradient(180deg, #FFE0F0 0%, #FFEDF5 30%, #FFF5F9 60%, #FFE9F2 100%)',
+    skinClass: 'skin-candy',
+    unlockPoints: 0,
+    slashClass: 'slash-candy',
+    beamEmoji: '🍭',
+    hitRingColor: '#FF69B4',
+    attackCry: '甜蜜！',
+    critCry: '糖果风暴！'
+  },
+  {
+    id: 'ocean',
+    name: '深海之戟',
+    emoji: '🪥',
+    desc: '海浪般汹涌的攻击',
+    trailColor: '#0097A7',
+    glowColor: 'rgba(0,151,167,0.6)',
+    particleEmoji: '🌊',
+    critParticle: '🐚',
+    bgAura: 'rgba(0,151,167,0.12)',
+    bgGradient: 'linear-gradient(180deg, #DFF3F6 0%, #ECF8FA 30%, #F4FAFB 60%, #E5F5F8 100%)',
+    skinClass: 'skin-ocean',
+    unlockPoints: 0,
+    slashClass: 'slash-ocean',
+    beamEmoji: '🌊',
+    hitRingColor: '#0097A7',
+    attackCry: '浪击！',
+    critCry: '海嘯吞噬！'
+  }
+]
+
+// ===== 随机战场特效（每场战斗随机选择一个） =====
+const BATTLEFIELD_EFFECTS = [
+  { id: 'energy-ring', name: '能量光环', className: 'bf-energy-ring' },
+  { id: 'falling-stars', name: '流星雨', className: 'bf-falling-stars' },
+  { id: 'pulse-wave', name: '脉冲波', className: 'bf-pulse-wave' },
+  { id: 'lightning-field', name: '电场', className: 'bf-lightning-field' },
+  { id: 'bubble-rise', name: '气泡升腾', className: 'bf-bubble-rise' },
+  { id: 'flame-border', name: '火焰边框', className: 'bf-flame-border' },
+  { id: 'snow-fall', name: '雪花飘落', className: 'bf-snow-fall' },
+  { id: 'rainbow-glow', name: '彩虹光晕', className: 'bf-rainbow-glow' }
+]
+
+// ===== 攻击斩击动画类型（随机使用） =====
+const SLASH_EFFECTS = [
+  { id: 'slash-horizontal', name: '横斩' },
+  { id: 'slash-vertical', name: '竖斩' },
+  { id: 'slash-diagonal', name: '斜斩' },
+  { id: 'slash-cross', name: '十字斩' },
+  { id: 'slash-circle', name: '圆月斩' },
+  { id: 'slash-thrust', name: '突刺' }
+]
+
+// ===== 怪物出场动画类型（每次随机选择） =====
+const ENTRANCE_ANIMATIONS = [
+  {
+    id: 'slam',
+    name: '天降砸落',
+    className: 'entrance-slam',
+    // 各阶段时间偏移（ms）
+    phases: { phase2: 600, phase3: 1300, phase4: 2100, end: 3200 },
+    desc: '从天而降'
+  },
+  {
+    id: 'lightning',
+    name: '雷霆降临',
+    className: 'entrance-lightning',
+    phases: { phase2: 500, phase3: 1000, phase4: 1900, end: 3000 },
+    desc: '闪电召唤'
+  },
+  {
+    id: 'portal',
+    name: '传送门召唤',
+    className: 'entrance-portal',
+    phases: { phase2: 700, phase3: 1400, phase4: 2200, end: 3300 },
+    desc: '传送门出现'
+  },
+  {
+    id: 'growth',
+    name: '巨化觉醒',
+    className: 'entrance-growth',
+    phases: { phase2: 600, phase3: 1200, phase4: 2000, end: 3100 },
+    desc: '能量觉醒'
+  },
+  {
+    id: 'shadow',
+    name: '暗影爆发',
+    className: 'entrance-shadow',
+    phases: { phase2: 500, phase3: 1100, phase4: 1900, end: 3000 },
+    desc: '暗影汇聚'
+  },
+  {
+    id: 'tornado',
+    name: '旋风登场',
+    className: 'entrance-tornado',
+    phases: { phase2: 650, phase3: 1350, phase4: 2100, end: 3200 },
+    desc: '龙卷旋风'
+  }
+]
+
 // 战斗系统配置
 const BATTLE_CONFIG = {
   // 暴击系统
@@ -781,6 +1006,10 @@ module.exports = {
   STICKERS,
   GIRL_BUBBLES,
   ZONE_GERM_TYPES,
+  TOOTHBRUSH_SKINS,
+  BATTLEFIELD_EFFECTS,
+  SLASH_EFFECTS,
+  ENTRANCE_ANIMATIONS,
   CHAPTERS,
   HIDDEN_CHAPTERS,
   getRandomHiddenChapter,
