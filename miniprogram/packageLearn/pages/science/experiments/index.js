@@ -15,5 +15,12 @@ Page({
     var id = e.currentTarget.dataset.id
     learnData.markAsLearned('scienceExperiments', id)
     wx.showToast({ title: '已学会', icon: 'success' })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/science/experiments/detail/index?id=' + id
+    })
   }
 })

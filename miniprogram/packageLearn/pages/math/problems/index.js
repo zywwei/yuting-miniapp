@@ -30,5 +30,12 @@ Page({
     var id = e.currentTarget.dataset.id
     learnData.markAsLearned('mathProblems', id)
     wx.showToast({ title: '已学会', icon: 'success' })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/math/problems/detail/index?id=' + id
+    })
   }
 })

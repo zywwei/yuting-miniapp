@@ -36,5 +36,12 @@ Page({
     var conceptId = e.currentTarget.dataset.id
     learnData.markAsLearned('mathConcepts', conceptId)
     wx.showToast({ title: '已学会', icon: 'success' })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/math/concepts/detail/index?id=' + id
+    })
   }
 })

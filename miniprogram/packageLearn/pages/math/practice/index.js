@@ -118,5 +118,12 @@ Page({
       showPractice: false,
       currentType: null
     })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/math/practice/detail/index?id=' + id
+    })
   }
 })

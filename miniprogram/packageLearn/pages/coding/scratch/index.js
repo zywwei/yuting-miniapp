@@ -15,5 +15,12 @@ Page({
     var id = e.currentTarget.dataset.id
     learnData.markAsLearned('codingScratch', id)
     wx.showToast({ title: '已学会', icon: 'success' })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/coding/scratch/detail/index?id=' + id
+    })
   }
 })

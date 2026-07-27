@@ -36,5 +36,12 @@ Page({
     var articleId = e.currentTarget.dataset.id
     learnData.markAsLearned('chineseReading', articleId)
     wx.showToast({ title: '已完成', icon: 'success' })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/chinese/reading/detail/index?id=' + id
+    })
   }
 })

@@ -14,5 +14,12 @@ Page({
     var id = e.currentTarget.dataset.id
     learnData.markAsLearned('codingAlgorithm', id)
     wx.showToast({ title: '已学会', icon: 'success' })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/coding/algorithm/detail/index?id=' + id
+    })
   }
 })

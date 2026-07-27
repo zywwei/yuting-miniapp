@@ -51,5 +51,12 @@ Page({
     var formulaId = e.currentTarget.dataset.id
     learnData.markAsLearned('mathFormulas', formulaId)
     wx.showToast({ title: '已学会', icon: 'success' })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/math/formulas/detail/index?id=' + id
+    })
   }
 })

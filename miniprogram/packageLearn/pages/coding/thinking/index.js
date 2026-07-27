@@ -15,5 +15,12 @@ Page({
     var id = e.currentTarget.dataset.id
     learnData.markAsLearned('codingThinking', id)
     wx.showToast({ title: '已学会', icon: 'success' })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/coding/thinking/detail/index?id=' + id
+    })
   }
 })

@@ -34,5 +34,12 @@ Page({
 
   nextExercise: function() {
     this.setData({ currentExercise: null })
+  },
+
+  goDetail: function(e) {
+    var id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: '/packageLearn/pages/english-ext/listening/detail/index?id=' + id
+    })
   }
 })
