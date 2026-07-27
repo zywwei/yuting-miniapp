@@ -202,7 +202,7 @@ const grammarData = [
   {
     id: 29,
     title: "名词所有格",
-    rule: "表示"...的"，加's或'",
+    rule: '表示"...的"，加\'s或\'',
     example: "Tom's bag, my mother's car, the teachers' office",
     tip: "单数名词加's，以s结尾的复数名词加'"
   },

@@ -133,14 +133,14 @@ module.exports = [
   { id: 'mf128', title: '全概率公式', category: '概率统计', grade: '高三', formula: 'P(A) = ΣP(Bi)P(A|Bi)', explanation: '全概率公式' },
   { id: 'mf129', title: '贝叶斯公式', category: '概率统计', grade: '高三', formula: 'P(Bi|A) = P(Bi)P(A|Bi)/P(A)', explanation: '贝叶斯公式，用于计算后验概率' },
   { id: 'mf130', title: '积分中值定理', category: '微积分', grade: '高三', formula: '∫[a,b]f(x)dx = f(ξ)(b-a)', explanation: '积分中值定理' },
-  { id: 'mf131', title: '拉格朗日中值定理', category: '微积分', grade: '高三', formula: 'f(b)-f(a) = f'(ξ)(b-a)', explanation: '拉格朗日中值定理' },
-  { id: 'mf132', title: '洛必达法则', category: '微积分', grade: '高三', formula: 'lim f(x)/g(x) = lim f'(x)/g'(x)', explanation: '洛必达法则，用于求0/0或∞/∞型极限' },
+  { id: 'mf131', title: '拉格朗日中值定理', category: '微积分', grade: '高三', formula: 'f(b)-f(a) = f\'(ξ)(b-a)', explanation: '拉格朗日中值定理' },
+  { id: 'mf132', title: '洛必达法则', category: '微积分', grade: '高三', formula: 'lim f(x)/g(x) = lim f\'(x)/g\'(x)', explanation: '洛必达法则，用于求0/0或∞/∞型极限' },
   { id: 'mf133', title: '泰勒展开', category: '微积分', grade: '高三', formula: 'f(x) = Σf^(n)(a)/n! · (x-a)^n', explanation: '泰勒展开公式' },
   { id: 'mf134', title: '麦克劳林展开', category: '微积分', grade: '高三', formula: 'f(x) = Σf^(n)(0)/n! · x^n', explanation: '麦克劳林展开公式（a=0的泰勒展开）' },
   { id: 'mf135', title: '定积分几何意义', category: '微积分', grade: '高三', formula: '∫[a,b]f(x)dx = 曲边梯形面积', explanation: '定积分表示曲边梯形的面积' },
   { id: 'mf136', title: '旋转体体积', category: '微积分', grade: '高三', formula: 'V = π∫[a,b]f²(x)dx', explanation: '绕x轴旋转一周形成的旋转体体积' },
-  { id: 'mf137', title: '弧长积分公式', category: '微积分', grade: '高三', formula: 'L = ∫[a,b]√(1+f'(x)²)dx', explanation: '平面曲线弧长的积分公式' },
-  { id: 'mf138', title: '曲率公式', category: '微积分', grade: '高三', formula: 'K = |y''|/(1+y'²)^(3/2)', explanation: '平面曲线在某点的曲率' },
+  { id: 'mf137', title: '弧长积分公式', category: '微积分', grade: '高三', formula: 'L = ∫[a,b]√(1+f\'(x)²)dx', explanation: '平面曲线弧长的积分公式' },
+  { id: 'mf138', title: '曲率公式', category: '微积分', grade: '高三', formula: 'K = |y\'\'|/(1+y\'²)^(3/2)', explanation: '平面曲线在某点的曲率' },
   { id: 'mf139', title: '分部积分法', category: '微积分', grade: '高三', formula: '∫udv = uv - ∫vdu', explanation: '分部积分公式' },
-  { id: 'mf140', title: '换元积分法', category: '微积分', grade: '高三', formula: '∫f(g(x))g'(x)dx = ∫f(u)du', explanation: '第一类换元积分法' }
+  { id: 'mf140', title: '换元积分法', category: '微积分', grade: '高三', formula: '∫f(g(x))g\'(x)dx = ∫f(u)du', explanation: '第一类换元积分法' }
 ]
