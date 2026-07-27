@@ -10,6 +10,9 @@ var cloud = require('../../utils/cloud.js')
 var mathFormulasData = require('./math-formulas-data.js')
 var mathConceptsData = require('./math-concepts-data.js')
 var mathPracticeData = require('./math-practice-data.js')
+var mathProblemsData = require('./math-problems-data.js')
+var mathGeometryData = require('./math-geometry-data.js')
+var mathOlympiadData = require('./math-olympiad-data.js')
 var chineseReadingData = require('./chinese-reading-data.js')
 var chineseWritingData = require('./chinese-writing-data.js')
 var chineseRhetoricData = require('./chinese-rhetoric-data.js')
@@ -48,6 +51,9 @@ var MODULE_MAP = {
   'math-formulas': { data: mathFormulasData, name: '数学公式', storageKey: 'mathFormulas' },
   'math-concepts': { data: mathConceptsData, name: '数学概念', storageKey: 'mathConcepts' },
   'math-practice': { data: mathPracticeData, name: '计算练习', storageKey: 'mathPractice' },
+  'math-problems': { data: mathProblemsData, name: '应用题', storageKey: 'mathProblems' },
+  'math-geometry': { data: mathGeometryData, name: '几何知识', storageKey: 'mathGeometry' },
+  'math-olympiad': { data: mathOlympiadData, name: '奥数竞赛', storageKey: 'mathOlympiad' },
   
   // Chinese 模块
   'chinese-reading': { data: chineseReadingData, name: '阅读理解', storageKey: 'chineseReading' },

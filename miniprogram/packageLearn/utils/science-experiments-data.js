@@ -3,9 +3,9 @@
  * 共25个简单有趣的科学小实验，适合小学生动手操作
  */
 
-const experimentsData = [
+module.exports = [
   {
-    id: 1,
+    id: 'se01',
     title: "彩虹牛奶",
     category: "化学",
     difficulty: 1,
@@ -21,7 +21,7 @@ const experimentsData = [
     tips: "牛奶要选全脂的，效果更好哦！"
   },
   {
-    id: 2,
+    id: 'se02',
     title: "火山爆发",
     category: "化学",
     difficulty: 2,
@@ -37,7 +37,7 @@ const experimentsData = [
     tips: "可以在室外操作，避免弄脏桌面。"
   },
   {
-    id: 3,
+    id: 'se03',
     title: "鸡蛋浮起来",
     category: "物理",
     difficulty: 1,
@@ -53,7 +53,7 @@ const experimentsData = [
     tips: "盐要加够多，大约水的三分之一量。"
   },
   {
-    id: 4,
+    id: 'se04',
     title: "自制彩虹",
     category: "物理",
     difficulty: 1,
@@ -69,7 +69,7 @@ const experimentsData = [
     tips: "晴天效果最好，可以多试几个角度。"
   },
   {
-    id: 5,
+    id: 'se05',
     title: "会跳舞的水",
     category: "物理",
     difficulty: 1,
@@ -85,7 +85,7 @@ const experimentsData = [
     tips: "可以把盐换成撕碎的小纸片，效果也很明显。"
   },
   {
-    id: 6,
+    id: 'se06',
     title: "磁铁探路",
     category: "物理",
     difficulty: 1,
@@ -101,7 +101,7 @@ const experimentsData = [
     tips: "冰箱贴、螺丝钉都可以拿来试试。"
   },
   {
-    id: 7,
+    id: 'se07',
     title: "静电实验",
     category: "物理",
     difficulty: 1,
@@ -117,7 +117,7 @@ const experimentsData = [
     tips: "天气干燥时效果更好，冬天做这个实验最合适。"
   },
   {
-    id: 8,
+    id: 'se08',
     title: "水的表面张力",
     category: "物理",
     difficulty: 1,
@@ -133,7 +133,7 @@ const experimentsData = [
     tips: "放硬币时要非常轻，从杯沿慢慢滑入。"
   },
   {
-    id: 9,
+    id: 'se09',
     title: "自制指南针",
     category: "物理",
     difficulty: 2,
@@ -149,7 +149,7 @@ const experimentsData = [
     tips: "远离手机和电脑，避免干扰。"
   },
   {
-    id: 10,
+    id: 'se10',
     title: "植物喝水",
     category: "生物",
     difficulty: 1,
@@ -165,7 +165,7 @@ const experimentsData = [
     tips: "用浅色的花效果最好，白色的康乃馨或菊花都很好。"
   },
   {
-    id: 11,
+    id: 'se11',
     title: "自制降落伞",
     category: "物理",
     difficulty: 2,
@@ -181,7 +181,7 @@ const experimentsData = [
     tips: "可以试试不同大小的伞面，看哪个落得最慢。"
   },
   {
-    id: 12,
+    id: 'se12',
     title: "神奇的纸桥",
     category: "物理",
     difficulty: 2,
@@ -197,7 +197,7 @@ const experimentsData = [
     tips: "折得越整齐，桥越结实。"
   },
   {
-    id: 13,
+    id: 'se13',
     title: "种子发芽",
     category: "生物",
     difficulty: 1,
@@ -213,7 +213,7 @@ const experimentsData = [
     tips: "3-5天就能看到变化，坚持每天画一画种子的样子。"
   },
   {
-    id: 14,
+    id: 'se14',
     title: "热气球飞天",
     category: "物理",
     difficulty: 2,
@@ -229,7 +229,7 @@ const experimentsData = [
     tips: "一定要在室外空旷的地方，有大人陪同操作！"
   },
   {
-    id: 15,
+    id: 'se15',
     title: "彩虹糖实验",
     category: "化学",
     difficulty: 1,
@@ -245,7 +245,7 @@ const experimentsData = [
     tips: "水温不要太高，糖果之间要留空隙。"
   },
   {
-    id: 16,
+    id: 'se16',
     title: "瓶子吹气球",
     category: "化学",
     difficulty: 2,
@@ -261,7 +261,7 @@ const experimentsData = [
     tips: "气球要选大一点的，套瓶口时要套紧。"
   },
   {
-    id: 17,
+    id: 'se17',
     title: "纸杯电话",
     category: "物理",
     difficulty: 1,
@@ -277,7 +277,7 @@ const experimentsData = [
     tips: "线要拉直，松了就听不清了。"
   },
   {
-    id: 18,
+    id: 'se18',
     title: "自制彩虹雨",
     category: "科学",
     difficulty: 1,
@@ -293,7 +293,7 @@ const experimentsData = [
     tips: "泡沫不要挤太厚，不然等很久。"
   },
   {
-    id: 19,
+    id: 'se19',
     title: "鸡蛋弹力球",
     category: "化学",
     difficulty: 2,
@@ -309,7 +309,7 @@ const experimentsData = [
     tips: "从低处开始试弹，太用力还是会破的。"
   },
   {
-    id: 20,
+    id: 'se20',
     title: "水往高处走",
     category: "物理",
     difficulty: 1,
@@ -325,7 +325,7 @@ const experimentsData = [
     tips: "纸巾要碰到杯底，两个杯子要紧挨着。"
   },
   {
-    id: 21,
+    id: 'se21',
     title: "自制火山湖",
     category: "化学",
     difficulty: 2,
@@ -341,7 +341,7 @@ const experimentsData = [
     tips: "用手电筒从底部照射效果更炫。"
   },
   {
-    id: 22,
+    id: 'se22',
     title: "指纹侦探",
     category: "生物",
     difficulty: 1,
@@ -357,7 +357,7 @@ const experimentsData = [
     tips: "可以比较家人之间的指纹有什么不同。"
   },
   {
-    id: 23,
+    id: 'se23',
     title: "自制潜望镜",
     category: "物理",
     difficulty: 2,
@@ -373,7 +373,7 @@ const experimentsData = [
     tips: "两面镜子的角度要一样，都是45度。"
   },
   {
-    id: 24,
+    id: 'se24',
     title: "声音的传播",
     category: "物理",
     difficulty: 1,
@@ -389,7 +389,7 @@ const experimentsData = [
     tips: "音量调大一点，但注意保护耳朵。"
   },
   {
-    id: 25,
+    id: 'se25',
     title: "自制水钟",
     category: "科学",
     difficulty: 2,
