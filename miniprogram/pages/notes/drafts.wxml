@@ -1,0 +1,76 @@
+<!-- 草稿箱页面 -->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header">
+    <view class="header-left">
+      <view class="header-title">📝 草稿箱</view>
+      <view class="header-desc">{{draftCount}} 篇未发布的草稿</view>
+    </view>
+    <view class="header-actions">
+      <view class="clear-btn" bindtap="clearAllDrafts" wx:if="{{draftCount > 0}}">
+        <text>清空</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分类筛选 -->
+  <view class="filter-tabs" wx:if="{{draftCount > 0}}">
+    <view class="filter-tab {{currentFilter === 'all' ? 'active' : ''}}" bindtap="setFilter" data-filter="all">
+      全部
+    </view>
+    <view class="filter-tab {{currentFilter === 'today' ? 'active' : ''}}" bindtap="setFilter" data-filter="today">
+      今天
+    </view>
+    <view class="filter-tab {{currentFilter === 'week' ? 'active' : ''}}" bindtap="setFilter" data-filter="week">
+      本周
+    </view>
+  </view>
+
+  <!-- 草稿列表 -->
+  <view class="draft-list" wx:if="{{filteredDrafts.length > 0}}">
+    <view class="draft-card" wx:for="{{filteredDrafts}}" wx:key="key">
+      <view class="draft-card-content" bindtap="editDraft" data-key="{{item.key}}">
+        <view class="draft-card-header">
+          <view class="draft-type-tag" style="background:{{item.typeColor}};color:{{item.typeTextColor}}">
+            {{item.typeIcon}} {{item.typeName}}
+          </view>
+          <view class="draft-time">{{item.timeStr}}</view>
+        </view>
+        <view class="draft-title">
+          <rich-text nodes="{{item.title || '无标题'}}"></rich-text>
+        </view>
+        <view class="draft-preview">
+          <rich-text nodes="{{item.contentPreview}}"></rich-text>
+        </view>
+        <view class="draft-meta">
+          <view class="draft-images" wx:if="{{item.imageCount > 0}}">
+            📷 {{item.imageCount}}张图片
+          </view>
+          <view class="draft-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+            <text wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag" class="draft-tag">#{{tag}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="draft-card-actions">
+        <view class="draft-action-btn delete" bindtap="deleteDraft" data-key="{{item.key}}">
+          🗑️
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{draftCount === 0}}">
+    <view class="empty-icon">📝</view>
+    <view class="empty-text">草稿箱是空的</view>
+    <view class="empty-desc">写笔记时选择"存草稿"会保存到这里</view>
+    <view class="empty-btn" bindtap="goWrite">去写笔记</view>
+  </view>
+
+  <!-- 筛选无结果 -->
+  <view class="empty" wx:if="{{draftCount > 0 && filteredDrafts.length === 0}}">
+    <view class="empty-icon">🔍</view>
+    <view class="empty-text">该分类暂无草稿</view>
+    <view class="empty-btn" bindtap="setFilter" data-filter="all">查看全部</view>
+  </view>
+</view>

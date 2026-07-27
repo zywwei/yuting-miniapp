@@ -1,3 +1,7 @@
 {
-  "navigationBarTitleText": "笔记详情"
+  "navigationBarTitleText": "笔记详情",
+  "usingComponents": {
+    "like-bar": "/components/like-bar/like-bar",
+    "comment-section": "/components/comment-section/comment-section"
+  }
 }

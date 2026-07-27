@@ -1,5 +1,11 @@
 <!-- 笔记详情 -->
 <view class="container" wx:if="{{note}}">
+  <!-- Hero图区域 -->
+  <view class="hero-section" wx:if="{{note.images && note.images.length > 0}}">
+    <image src="{{note.images[0]}}" mode="aspectFill" class="hero-img" bindtap="previewImage" data-index="0" />
+    <view class="hero-overlay"></view>
+  </view>
+
   <!-- 头部 -->
   <view class="header">
     <view class="note-type-tag" style="background:{{typeInfo.color}};color:{{typeInfo.textColor}}">
@@ -9,7 +15,6 @@
       <view class="visibility-tag {{note.visibility || 'family'}}">
         {{note.visibility === 'private' ? '🔒 仅自己' : note.visibility === 'designated' ? '👥 指定人' : '👨‍👩‍👧‍👦 家庭'}}
       </view>
-      <view class="mood">{{moodInfo.icon}}</view>
     </view>
   </view>
 
@@ -18,15 +23,28 @@
     <rich-text nodes="{{note.title}}"></rich-text>
   </view>
 
+  <!-- 作者行 -->
+  <view class="author-row">
+    <view class="author-avatar">{{note.createdByName ? note.createdByName[0] : '👤'}}</view>
+    <view class="author-info">
+      <view class="author-name">{{note.createdByName || '匿名'}}</view>
+      <view class="author-date">创建于 {{formattedCreateTime}}</view>
+    </view>
+    <view class="mood-badge" wx:if="{{moodInfo.icon}}">
+      <text class="mood-icon">{{moodInfo.icon}}</text>
+      <text class="mood-text">{{moodInfo.label}}</text>
+    </view>
+  </view>
+
   <!-- 内容 -->
   <view class="content" wx:if="{{note.content}}">
     <rich-text nodes="{{note.content}}"></rich-text>
   </view>
 
-  <!-- 图片展示 -->
-  <view class="images-section" wx:if="{{note.images && note.images.length > 0}}">
-    <view class="images-grid {{note.images.length === 1 ? 'single' : note.images.length === 2 ? 'double' : note.images.length <= 4 ? 'quad' : 'multi'}}">
-      <view wx:for="{{note.images}}" wx:key="*this" class="image-item">
+  <!-- 图片展示（除首图外） -->
+  <view class="images-section" wx:if="{{note.images && note.images.length > 1}}">
+    <view class="images-grid {{note.images.length === 2 ? 'single' : note.images.length === 3 ? 'double' : note.images.length <= 5 ? 'quad' : 'multi'}}">
+      <view wx:for="{{note.images}}" wx:key="*this" class="image-item" wx:if="{{index > 0}}">
         <image 
           src="{{item}}" 
           mode="aspectFill" 
@@ -41,19 +59,67 @@
 
   <!-- 标签 -->
   <view class="tags" wx:if="{{note.tags && note.tags.length > 0}}">
-    <view wx:for="{{note.tags}}" wx:key="*this" class="tag">{{item}}</view>
+    <view wx:for="{{note.tags}}" wx:key="*this" class="tag">#{{item}}</view>
   </view>
 
-  <!-- 日期和作者 -->
-  <view class="date">
-    <text wx:if="{{note.createdByName}}">{{note.createdByName}} · </text>
-    <text>创建于 {{formattedCreateTime}}</text>
-    <text wx:if="{{formattedUpdateTime}}"> · 更新于 {{formattedUpdateTime}}</text>
+  <!-- 语音播放 -->
+  <view class="voice-player" wx:if="{{note.voice}}">
+    <view class="voice-play-btn" bindtap="playVoice">
+      <text>{{isPlayingVoice ? '⏸️' : '▶️'}}</text>
+    </view>
+    <view class="voice-info">
+      <view class="voice-wave">
+        <view class="wave-bar {{isPlayingVoice ? 'playing' : ''}}" wx:for="{{[1,2,3,4,5,6,7,8,9,10]}}" wx:key="*this"></view>
+      </view>
+      <text class="voice-duration">{{voiceDuration}}秒</text>
+    </view>
   </view>
 
-  <!-- 操作 -->
-  <view class="actions" wx:if="{{canEdit}}">
-    <view class="edit-btn" bindtap="editNote">编辑笔记</view>
-    <view class="delete-btn" bindtap="deleteNote">删除笔记</view>
+  <!-- 评论区 -->
+  <view class="comment-section">
+    <view class="section-title">评论</view>
+    <comment-section targetType="note" targetId="{{noteId}}" childId="{{note.childId}}" />
   </view>
+
+  <!-- 上下篇导航 -->
+  <view class="note-navigation">
+    <view class="nav-btn {{prevNote ? '' : 'disabled'}}" bindtap="goToPrevNote">
+      <text class="nav-arrow">◀</text>
+      <view class="nav-info">
+        <text class="nav-label">上一篇</text>
+        <text class="nav-title">{{prevNote.title || '没有了'}}</text>
+      </view>
+    </view>
+    <view class="nav-btn {{nextNote ? '' : 'disabled'}}" bindtap="goToNextNote">
+      <view class="nav-info right">
+        <text class="nav-label">下一篇</text>
+        <text class="nav-title">{{nextNote.title || '没有了'}}</text>
+      </view>
+      <text class="nav-arrow">▶</text>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <like-bar targetType="note" targetId="{{noteId}}" likes="{{note.likes}}" bind:likeChanged="onLikeChanged" />
+    <view class="bar-action" bindtap="scrollToComments">
+      <text class="bar-icon">💬</text>
+      <text class="bar-text">{{commentCount || 0}}</text>
+    </view>
+    <view class="bar-action" bindtap="generateShareImage">
+      <text class="bar-icon">📤</text>
+      <text class="bar-text">分享</text>
+    </view>
+    <view class="bar-action edit" wx:if="{{canEdit}}" bindtap="editNote">
+      <text class="bar-icon">✏️</text>
+      <text class="bar-text">编辑</text>
+    </view>
+    <view class="bar-action delete" wx:if="{{canEdit}}" bindtap="deleteNote">
+      <text class="bar-icon">🗑️</text>
+      <text class="bar-text">删除</text>
+    </view>
+  </view>
+
+  <!-- 分享卡片canvas（隐藏） -->
+  <canvas type="2d" id="shareCanvas" class="share-canvas" />
 </view>

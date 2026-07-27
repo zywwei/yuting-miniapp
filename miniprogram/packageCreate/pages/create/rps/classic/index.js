@@ -23,7 +23,10 @@ Page({
     countdown: 0,
     roundHistory: [],
     maxRounds: 3,
-    winsRequired: 2
+    winsRequired: 2,
+    showShockwave: false,
+    showScreenShake: false,
+    showParticles: false
   },
 
   onLoad: function(options) {
@@ -407,8 +410,21 @@ Page({
       roundHistory: roundHistory,
       phase: nextPhase,
       showConfetti: result === 'win',
-      scoreChanged: true
+      scoreChanged: true,
+      showShockwave: true,
+      showScreenShake: true,
+      showParticles: true
     })
+
+    // 清除动画效果
+    var that = this
+    setTimeout(function() {
+      that.setData({
+        showShockwave: false,
+        showScreenShake: false,
+        showParticles: false
+      })
+    }, 600)
 
     // 振动反馈
     if (result === 'win') {

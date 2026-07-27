@@ -26,6 +26,20 @@
       </view>
     </view>
 
+    <!-- 冒险地图路径 -->
+    <view class="adventure-map">
+      <view class="map-path">
+        <view class="map-node {{index < currentLevel ? 'completed' : index === currentLevel ? 'current' : 'locked'}}" 
+              wx:for="{{[1,2,3,4,5,6,7,8,9,10]}}" wx:key="*this">
+          <view class="node-circle">
+            <text class="node-icon">{{index < currentLevel ? '👑' : index === currentLevel ? '🎯' : '🔒'}}</text>
+            <text class="node-num">{{item}}</text>
+          </view>
+          <view class="node-line" wx:if="{{index < 9}}"></view>
+        </view>
+      </view>
+    </view>
+
     <view class="start-btn" bindtap="startLevel">开始挑战</view>
     <view class="reset-btn" bindtap="resetGame">重置进度</view>
     <view class="back-btn" bindtap="goBack">返回</view>
@@ -55,7 +69,7 @@
     </view>
 
     <!-- 出拳区域 -->
-    <view class="battle-area">
+    <view class="battle-area {{showShockwave ? 'shockwave' : ''}}">
       <view class="player-side">
         <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
           <text class="choice-icon">{{player1Icon}}</text>

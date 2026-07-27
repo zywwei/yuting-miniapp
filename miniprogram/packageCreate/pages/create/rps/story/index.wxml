@@ -48,7 +48,7 @@
     </view>
 
     <!-- 出拳展示区 -->
-    <view class="battle-area">
+    <view class="battle-area {{showShockwave ? 'shockwave' : ''}}">
       <view class="player-side">
         <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
           <text class="choice-icon" wx:if="{{player1Icon}}">{{player1Icon}}</text>

@@ -1,8 +1,29 @@
 <view class="container">
+  <!-- 漂移白云 -->
+  <view class="clouds-container">
+    <view class="cloud cloud-1">☁️</view>
+    <view class="cloud cloud-2">☁️</view>
+    <view class="cloud cloud-3">☁️</view>
+  </view>
+  
   <view class="header">
     <view class="header-bg"></view>
+    <!-- 聚光灯效果 -->
+    <view class="spotlight spotlight-left"></view>
+    <view class="spotlight spotlight-right"></view>
+    <!-- 漂浮星星 -->
+    <view class="floating-stars">
+      <text class="star star-1">✨</text>
+      <text class="star star-2">✨</text>
+      <text class="star star-3">✨</text>
+    </view>
     <view class="header-content">
-      <view class="header-icon">✊</view>
+      <!-- 三拳小图标横排 -->
+      <view class="rps-icons">
+        <text class="rps-icon rock-icon">✊</text>
+        <text class="rps-icon scissors-icon">✌️</text>
+        <text class="rps-icon paper-icon">✋</text>
+      </view>
       <view class="header-title">猜拳大战</view>
       <view class="header-desc">剪刀石头布，智慧与运气的较量</view>
     </view>

@@ -68,7 +68,6 @@ class BattleManager {
 
     const { currentEnemy, enemyCurrentHp, currentSkin } = this.page.data
     const skin = currentSkin || {}
-    const enemyAngry = currentEnemy && (enemyCurrentHp / currentEnemy.hp) < BATTLE_CONFIG.ENEMY_ANGER_THRESHOLD
 
     const critAnim = isCritical
       ? BATTLE_CONFIG.CRIT_ANIMATIONS[Math.floor(Math.random() * BATTLE_CONFIG.CRIT_ANIMATIONS.length)]
@@ -105,7 +104,7 @@ class BattleManager {
     // 暴击全屏粒子（仅暴击时生成，非暴击给空数组）
     const critFullscreenParticles = []
     if (isCritical) {
-      const critParticleCount = 24
+      const critParticleCount = 12
       const critEmoji = skin.critParticle || anim.particleEmoji || '✨'
       const critColor = anim.color || skin.trailColor || '#FFD700'
       for (let i = 0; i < critParticleCount; i++) {
@@ -120,6 +119,19 @@ class BattleManager {
         })
       }
     }
+
+    // 预计算暴击HP变化，合并到同一次setData
+    let newHp = enemyCurrentHp
+    let isEnemyDefeated = false
+    let enemyScale = this.page.data.enemyScale
+    if (isCritical && currentEnemy && enemyCurrentHp > 0) {
+      const critDamage = currentEnemy.hp * 0.08
+      newHp = Math.round(Math.max(0, enemyCurrentHp - critDamage) * 10) / 10
+      const hpRatio = newHp / currentEnemy.hp
+      enemyScale = 0.5 + hpRatio * 0.8
+      isEnemyDefeated = newHp <= 0
+    }
+    const enemyAngry = currentEnemy && (newHp / currentEnemy.hp) < BATTLE_CONFIG.ENEMY_ANGER_THRESHOLD
 
     this.page.setData({
       enemyShaking: true,
@@ -151,7 +163,11 @@ class BattleManager {
       showAttackCry: true,
       attackCryText: attackCry,
       showScreenShake: true,
-      critFullscreenParticles: []
+      critFullscreenParticles: [],
+      // HP更新合并到同一次setData，减少一次渲染
+      enemyCurrentHp: newHp,
+      enemyScale,
+      isEnemyDefeated
     })
 
     // 暴击全屏特效：先销毁再于下一帧重建。
@@ -167,19 +183,9 @@ class BattleManager {
       })
     }
 
-    // 暴击时额外扣减敌人HP
-    if (isCritical && currentEnemy && this.page.data.enemyCurrentHp > 0) {
-      const critDamage = currentEnemy.hp * 0.08
-      const newHp = Math.round(Math.max(0, this.page.data.enemyCurrentHp - critDamage) * 10) / 10
+    // 暴击时怪物说威胁话语
+    if (isCritical && currentEnemy && newHp > 0) {
       const hpRatio = newHp / currentEnemy.hp
-      const enemyScale = 0.5 + hpRatio * 0.8
-      this.page.setData({
-        enemyCurrentHp: newHp,
-        enemyScale,
-        isEnemyDefeated: newHp <= 0
-      })
-
-      // 暴击时怪物说威胁话语
       const taunts = hpRatio < 0.3 ? STORY_DIALOGUES.enemy_low_hp_taunt : STORY_DIALOGUES.enemy_crit_taunt
       const taunt = taunts[Math.floor(Math.random() * taunts.length)]
 
@@ -198,34 +204,29 @@ class BattleManager {
     Object.values(this._attackTimers).forEach(t => clearTimeout(t))
     this._attackTimers = {}
 
-    // 150ms: 斩击特效消失
-    this._attackTimers[0] = setTimeout(() => {
-      this.page.setData({ showSlash: false })
-    }, 400)
-
-    // 200ms: 能量波消失
-    this._attackTimers[0.5] = setTimeout(() => {
-      this.page.setData({ showBeam: false })
-    }, 350)
-
     // 250ms后停止冲刺
-    this._attackTimers[1] = setTimeout(() => {
+    this._attackTimers[0] = setTimeout(() => {
       this.page.setData({ isDashing: false, showTrail: false })
     }, 250)
 
-    // 300ms: 命中环消失 + 屏幕震动停止
-    this._attackTimers[1.5] = setTimeout(() => {
-      this.page.setData({ showHitRing: false, showScreenShake: false })
-    }, 400)
-
     // 300ms后停止敌人震动并添加受击反应
-    this._attackTimers[2] = setTimeout(() => {
+    this._attackTimers[1] = setTimeout(() => {
       this.page.setData({ enemyShaking: false, enemyHitReact: true })
       setTimeout(() => this.page.setData({ enemyHitReact: false }), 300)
     }, 300)
 
-    // 500ms后清除攻击特效
+    // 350ms: 能量波消失
+    this._attackTimers[2] = setTimeout(() => {
+      this.page.setData({ showBeam: false })
+    }, 350)
+
+    // 400ms: 斩击+命中环+屏幕震动一起清理（合并为一次setData）
     this._attackTimers[3] = setTimeout(() => {
+      this.page.setData({ showSlash: false, showHitRing: false, showScreenShake: false })
+    }, 400)
+
+    // 600ms后清除攻击特效
+    this._attackTimers[4] = setTimeout(() => {
       this.page.setData({
         showAttackEffect: false,
         isCritical: false,

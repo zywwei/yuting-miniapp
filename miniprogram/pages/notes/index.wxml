@@ -8,14 +8,51 @@
   <!-- 头部 -->
   <view class="header">
     <view class="header-left">
-      <view class="header-title">📝 成长笔记</view>
-      <view class="header-desc">共 {{totalCount}} 篇笔记</view>
+      <view class="header-title">成长笔记</view>
+      <view class="header-desc">共 {{totalCount}} 篇 · 连续记录 {{streakDays}} 天</view>
     </view>
     <view class="header-actions">
       <view class="action-btn" bindtap="toggleSearch">
         <text>{{showSearch ? '✕' : '🔍'}}</text>
       </view>
-      <view class="add-btn" bindtap="addNote">+ 写笔记</view>
+      <view class="action-btn draft-btn" bindtap="showDraftBox">
+        <text class="draft-badge" wx:if="{{draftCount > 0}}">{{draftCount}}</text>
+        <text>📝</text>
+      </view>
+      <view class="add-note-btn" bindtap="addNote">
+        <text class="add-note-icon">✏️</text>
+        <text class="add-note-text">写笔记</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 视图切换 -->
+  <view class="view-toggle">
+    <view class="toggle-item {{viewMode === 'list' ? 'active' : ''}}" bindtap="switchViewMode" data-mode="list">
+      <text class="toggle-icon">📋</text>
+      <text class="toggle-text">列表</text>
+    </view>
+    <view class="toggle-item {{viewMode === 'calendar' ? 'active' : ''}}" bindtap="switchViewMode" data-mode="calendar">
+      <text class="toggle-icon">📅</text>
+      <text class="toggle-text">日历</text>
+    </view>
+  </view>
+
+  <!-- 统计条 -->
+  <view class="stats-bar" wx:if="{{totalCount > 0}}">
+    <view class="stat-item">
+      <text class="stat-value">{{monthCount}}</text>
+      <text class="stat-label">本月</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-value">{{streakDays}}</text>
+      <text class="stat-label">连续天数</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-value">{{topMood}}</text>
+      <text class="stat-label">最多心情</text>
     </view>
   </view>
 
@@ -23,9 +60,20 @@
   <view class="search-bar" wx:if="{{showSearch}}">
     <view class="search-input-wrap">
       <text class="search-icon">🔍</text>
-      <input class="search-input" placeholder="搜索笔记标题、内容或标签" value="{{searchKeyword}}" bindinput="onSearchInput" focus="{{showSearch}}" />
+      <input class="search-input" placeholder="搜索笔记标题、内容或标签" value="{{searchKeyword}}" bindinput="onSearchInput" focus="{{showSearch}}" bindfocus="onSearchFocus" bindblur="onSearchBlur" />
       <text class="search-clear" wx:if="{{searchKeyword}}" bindtap="clearSearch">✕</text>
     </view>
+    
+    <!-- 搜索历史 -->
+    <view class="search-history" wx:if="{{showSearchHistory && searchHistory.length > 0 && !searchKeyword}}">
+      <view class="history-title">最近搜索</view>
+      <view class="history-list">
+        <view wx:for="{{searchHistory}}" wx:key="*this" class="history-item" bindtap="selectSearchHistory" data-keyword="{{item}}">
+          {{item}}
+        </view>
+      </view>
+    </view>
+    
     <view class="search-options">
       <view class="search-option" bindtap="toggleAdvancedSearch">
         <text>{{showAdvancedSearch ? '收起筛选' : '高级筛选'}}</text>
@@ -66,7 +114,7 @@
   </view>
 
   <!-- 分类Tab -->
-  <scroll-view scroll-x class="category-tabs-scroll">
+  <scroll-view scroll-x class="category-tabs-scroll" wx:if="{{viewMode === 'list'}}">
     <view class="category-tabs">
       <view
         wx:for="{{categories}}"
@@ -81,58 +129,139 @@
     </view>
   </scroll-view>
 
-  <!-- 笔记列表 -->
-  <view class="note-list" wx:if="{{notes.length > 0}}">
-    <view
-      wx:for="{{notes}}"
-      wx:key="id"
-      class="note-card {{item._swiped ? 'swiped' : ''}}"
-      data-id="{{item.id}}"
-      data-index="{{index}}"
-      bindtouchstart="onTouchStart"
-      bindtouchmove="onTouchMove"
-      bindtouchend="onTouchEnd"
-    >
-      <view class="note-content-wrap" bindtap="goDetail" data-id="{{item.id}}">
-        <view class="note-header">
-          <view class="note-type-tag" style="background:{{item._typeColor}};color:{{item._typeTextColor}}">
-            {{item._typeIcon}} {{item._typeLabel}}
-          </view>
-          <view class="note-header-right">
-            <view class="visibility-tag {{item.visibility || 'family'}}">
-              {{item.visibility === 'private' ? '🔒' : item.visibility === 'designated' ? '👥' : '👨‍👩‍👧‍👦'}}
-            </view>
-            <view class="note-mood">{{item._moodIcon}}</view>
-          </view>
-        </view>
-        <view class="note-body">
-          <view class="note-text">
-            <view class="note-title">{{item._titlePreview}}</view>
-            <view class="note-content">{{item._contentPreview}}</view>
-          </view>
-          <view class="note-thumbnail" wx:if="{{item.images && item.images.length > 0}}">
-            <image src="{{item.images[0]}}" mode="aspectFill" class="thumbnail-img" />
-            <view class="image-count" wx:if="{{item.images.length > 1}}">+{{item.images.length - 1}}</view>
-          </view>
-        </view>
-        <view class="note-footer">
-          <view class="note-date">{{item._formattedTime}}</view>
-          <view class="note-tags" wx:if="{{item.tags && item.tags.length > 0}}">
-            <view wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="tag">{{tag}}</view>
-          </view>
+  <!-- 日历视图 -->
+  <view class="calendar-view" wx:if="{{viewMode === 'calendar'}}">
+    <!-- 月份导航 -->
+    <view class="calendar-header">
+      <view class="month-nav" bindtap="prevMonth">
+        <text class="nav-arrow">◀</text>
+      </view>
+      <view class="current-month">{{currentYear}}年{{currentMonth}}月</view>
+      <view class="month-nav" bindtap="nextMonth">
+        <text class="nav-arrow">▶</text>
+      </view>
+    </view>
+    
+    <!-- 星期标题 -->
+    <view class="weekday-header">
+      <view class="weekday-item" wx:for="{{weekdays}}" wx:key="*this">{{item}}</view>
+    </view>
+    
+    <!-- 日历格子 -->
+    <view class="calendar-grid">
+      <view wx:for="{{calendarDays}}" wx:key="date" class="calendar-day {{item.isCurrentMonth ? '' : 'other-month'}} {{item.isToday ? 'today' : ''}} {{item.hasNote ? 'has-note' : ''}} {{item.selected ? 'selected' : ''}}" bindtap="selectCalendarDay" data-date="{{item.date}}">
+        <text class="day-number">{{item.day}}</text>
+        <view class="note-dots" wx:if="{{item.noteCount > 0}}">
+          <view class="dot" wx:for="{{item.noteTypes}}" wx:key="*this" wx:for-item="type" style="background: {{type}}"></view>
         </view>
       </view>
-      <view class="note-delete" wx:if="{{item._canDelete}}" catchtap="deleteNote" data-id="{{item.id}}" data-title="{{item._titlePreview}}">
-        <text class="delete-icon">删除</text>
+    </view>
+    
+    <!-- 选中日期的笔记列表 -->
+    <view class="calendar-notes" wx:if="{{selectedDate}}">
+      <view class="selected-date">{{selectedDateFormatted}}</view>
+      <view class="calendar-note-list" wx:if="{{selectedDateNotes.length > 0}}">
+        <view wx:for="{{selectedDateNotes}}" wx:key="id" class="calendar-note-item" bindtap="goDetail" data-id="{{item.id}}">
+          <view class="note-type-dot" style="background: {{item._typeColor}}"></view>
+          <view class="note-info">
+            <view class="note-title">{{item._titlePreview}}</view>
+            <view class="note-time">{{item._formattedTime}}</view>
+          </view>
+          <view class="note-mood">{{item._moodIcon}}</view>
+        </view>
+      </view>
+      <view class="no-notes-tip" wx:if="{{selectedDateNotes.length === 0}}">
+        <text>这天没有笔记</text>
       </view>
     </view>
   </view>
 
-  <!-- 加载更多提示 -->
-  <view class="load-more" wx:if="{{hasMore && notes.length > 0}}">
+  <!-- 笔记列表 -->
+  <view class="note-list" wx:if="{{notes.length > 0 && viewMode === 'list'}}">
+    <block wx:for="{{notes}}" wx:key="id">
+      <!-- 按月分组标题 -->
+      <view class="month-header" wx:if="{{item._showMonthHeader}}">
+        <view class="month-stamp">{{item._monthLabel}}</view>
+      </view>
+      
+      <!-- 笔记卡片 -->
+      <view
+        class="note-card {{item._swiped ? 'swiped' : ''}} {{item.pinned ? 'pinned' : ''}}"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+        data-pinned="{{item.pinned}}"
+        bindtouchstart="onTouchStart"
+        bindtouchmove="onTouchMove"
+        bindtouchend="onTouchEnd"
+        bindlongpress="onNoteLongPress"
+      >
+        <view class="note-content-wrap" style="transform: translateX({{item._translateX || 0}}rpx)" bindtap="goDetail" data-id="{{item.id}}">
+          <!-- 有图笔记：顶部大图 -->
+          <view class="note-hero-img" wx:if="{{item.images && item.images.length > 0}}">
+            <image src="{{item.images[0]}}" mode="aspectFill" class="hero-img" />
+            <view class="image-count" wx:if="{{item.images.length > 1}}">+{{item.images.length - 1}}</view>
+            <view class="pinned-badge" wx:if="{{item.pinned}}">📌</view>
+          </view>
+          
+          <!-- 无图笔记：类型色竖条 -->
+          <view class="note-type-bar" wx:if="{{!item.images || item.images.length === 0}}" style="background:{{item._typeColor}}"></view>
+          
+          <view class="note-body">
+            <view class="note-text">
+              <view class="note-header">
+                <view class="note-type-tag" style="background:{{item._typeColor}};color:{{item._typeTextColor}}">
+                  {{item._typeIcon}} {{item._typeLabel}}
+                </view>
+                <view class="note-header-right">
+                  <view class="visibility-tag {{item.visibility || 'family'}}">
+                    {{item.visibility === 'private' ? '🔒' : item.visibility === 'designated' ? '👥' : '👨‍👩‍👧‍👦'}}
+                  </view>
+                </view>
+              </view>
+              <view class="note-title">
+                <text wx:if="{{!searchKeyword}}">{{item._titlePreview}}</text>
+                <text wx:else>
+                  <block wx:for="{{item._titleHighlight}}" wx:key="*this" wx:for-item="part">
+                    <text wx:if="{{part.highlight}}" class="highlight">{{part.text}}</text>
+                    <text wx:else>{{part.text}}</text>
+                  </block>
+                </text>
+              </view>
+              <view class="note-content">
+                <text wx:if="{{!searchKeyword}}">{{item._contentPreview}}</text>
+                <text wx:else>
+                  <block wx:for="{{item._contentHighlight}}" wx:key="*this" wx:for-item="part">
+                    <text wx:if="{{part.highlight}}" class="highlight">{{part.text}}</text>
+                    <text wx:else>{{part.text}}</text>
+                  </block>
+                </text>
+              </view>
+            </view>
+          </view>
+          
+          <view class="note-footer">
+            <view class="note-date">{{item._formattedTime}}</view>
+            <view class="note-mood-sticker" wx:if="{{item._moodIcon}}">
+              <view class="mood-sticker">{{item._moodIcon}}</view>
+            </view>
+          </view>
+          
+          <view class="note-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+            <view wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" class="tag">{{tag}}</view>
+          </view>
+        </view>
+        <view class="note-delete" wx:if="{{item._canDelete}}" catchtap="deleteNote" data-id="{{item.id}}" data-title="{{item._titlePreview}}">
+          <text class="delete-icon">删除</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 加载更多提示（仅列表模式显示） -->
+  <view class="load-more" wx:if="{{viewMode === 'list' && hasMore && notes.length > 0}}">
     <text class="load-more-text">上拉加载更多</text>
   </view>
-  <view class="load-more" wx:if="{{!hasMore && notes.length > 0}}">
+  <view class="load-more" wx:if="{{viewMode === 'list' && !hasMore && notes.length > 0}}">
     <text class="load-more-text">已显示全部 {{noteCount}} 篇笔记</text>
   </view>
 
@@ -149,5 +278,16 @@
     <view class="empty-text">未找到匹配的笔记</view>
     <view class="empty-desc">试试调整搜索条件</view>
     <view class="empty-btn" bindtap="clearSearch">清除搜索</view>
+  </view>
+
+  <!-- FAB写笔记按钮 -->
+  <view class="fab-btn" bindtap="addNote">
+    <text class="fab-icon">+</text>
+  </view>
+
+  <!-- 删除撤销条 -->
+  <view class="undo-bar {{showUndoBar ? 'show' : ''}}">
+    <view class="undo-text">已删除"{{undoNoteTitle}}"</view>
+    <view class="undo-btn" bindtap="undoDelete">撤销</view>
   </view>
 </view>

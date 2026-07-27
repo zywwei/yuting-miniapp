@@ -1,4 +1,4 @@
-<view class="container">
+<view class="container {{showScreenShake ? 'shake' : ''}}">
   <!-- 选择模式阶段 -->
   <view class="phase-select" wx:if="{{phase === 'select' && !playMode}}">
     <view class="phase-title">选择对战模式</view>
@@ -72,7 +72,7 @@
     </view>
 
     <!-- 出拳区域 -->
-    <view class="battle-area">
+    <view class="battle-area {{showShockwave ? 'shockwave' : ''}} {{showParticles ? 'particles' : ''}}">
       <view class="player-side">
         <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
           <text class="choice-icon" wx:if="{{player1Icon}}">{{player1Icon}}</text>
@@ -100,16 +100,6 @@
         <view class="result-icon">{{roundResultIcon}}</view>
         <view class="result-text">{{roundResultText}}</view>
       </view>
-    </view>
-
-    <!-- 撒花效果（胜利时） -->
-    <view class="confetti-container" wx:if="{{showConfetti}}">
-      <view class="confetti confetti-1">🎉</view>
-      <view class="confetti confetti-2">🎊</view>
-      <view class="confetti confetti-3">✨</view>
-      <view class="confetti confetti-4">🎉</view>
-      <view class="confetti confetti-5">🎊</view>
-      <view class="confetti confetti-6">✨</view>
     </view>
 
     <!-- 游戏结果 -->
@@ -241,7 +231,7 @@
     </view>
 
     <!-- 出拳展示 -->
-    <view class="battle-area">
+    <view class="battle-area {{showShockwave ? 'shockwave' : ''}}">
       <view class="player-side">
         <view class="player-choice {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
           <text class="choice-icon">{{player1Icon}}</text>
@@ -267,16 +257,6 @@
         <view class="result-icon">{{roundResultIcon}}</view>
         <view class="result-text">{{roundResult === 'win' ? '玩家1胜！' : roundResult === 'lose' ? '玩家2胜！' : '平局！'}}</view>
       </view>
-    </view>
-
-    <!-- 撒花效果（胜利时） -->
-    <view class="confetti-container" wx:if="{{showConfetti}}">
-      <view class="confetti confetti-1">🎉</view>
-      <view class="confetti confetti-2">🎊</view>
-      <view class="confetti confetti-3">✨</view>
-      <view class="confetti confetti-4">🎉</view>
-      <view class="confetti confetti-5">🎊</view>
-      <view class="confetti confetti-6">✨</view>
     </view>
 
     <!-- 游戏结果 -->
@@ -330,7 +310,7 @@
     </view>
 
     <!-- 出拳区域 -->
-    <view class="battle-area">
+    <view class="battle-area {{showShockwave ? 'shockwave' : ''}}">
       <view class="player-side">
         <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
           <text class="choice-icon" wx:if="{{player1Icon}}">{{player1Icon}}</text>
@@ -358,16 +338,6 @@
         <view class="result-icon">{{roundResultIcon}}</view>
         <view class="result-text">{{roundResult === 'win' ? '玩家1胜！' : roundResult === 'lose' ? '玩家2胜！' : '平局！'}}</view>
       </view>
-    </view>
-
-    <!-- 撒花效果 -->
-    <view class="confetti-container" wx:if="{{showConfetti}}">
-      <view class="confetti confetti-1">🎉</view>
-      <view class="confetti confetti-2">🎊</view>
-      <view class="confetti confetti-3">✨</view>
-      <view class="confetti confetti-4">🎉</view>
-      <view class="confetti confetti-5">🎊</view>
-      <view class="confetti confetti-6">✨</view>
     </view>
 
     <!-- 游戏结果 -->
@@ -404,5 +374,15 @@
         <text class="random-battle-text">再玩一次</text>
       </view>
     </view>
+  </view>
+
+  <!-- 撒花效果（提升到页面根级） -->
+  <view class="confetti-container" wx:if="{{showConfetti}}">
+    <view class="confetti confetti-1">🎉</view>
+    <view class="confetti confetti-2">🎊</view>
+    <view class="confetti confetti-3">✨</view>
+    <view class="confetti confetti-4">🎉</view>
+    <view class="confetti confetti-5">🎊</view>
+    <view class="confetti confetti-6">✨</view>
   </view>
 </view>

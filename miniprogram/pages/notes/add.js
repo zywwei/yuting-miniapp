@@ -34,7 +34,32 @@ Page({
     customTypeIcon: '📝',
     customIconOptions: ['📝', '🎨', '🎵', '📷', '🎬', '💻', '🏠', '🌟', '💡', '❤️'],
     typeCollapsed: true,
-    moodCollapsed: true
+    moodCollapsed: true,
+    // 格式工具栏状态
+    showFormatToolbar: false,
+    formatBold: false,
+    formatItalic: false,
+    formatUnderline: false,
+    contentLength: 0,
+    titleLength: 0,
+    // 草稿箱状态
+    showDraftRecovery: false,
+    draftData: null,
+    // 语音录制状态
+    isRecording: false,
+    voicePath: '',
+    voiceDuration: 0,
+    isPlaying: false,
+    // 标签推荐
+    tagSuggestions: [],
+    showTagSuggestions: false,
+    // 照片排序
+    isSorting: false,
+    sortIndex: -1,
+    sortStartX: 0,
+    sortStartY: 0,
+    // 键盘高度
+    keyboardHeight: 0
   },
 
   titleEditorCtx: null,
@@ -47,11 +72,21 @@ Page({
       wx.setNavigationBarTitle({ title: '编辑笔记' })
     }
     this.loadFamilyMembers()
+    this.initDraftDebounce()
+    this.initRecorder()
+    this.checkDraftRecovery()
   },
 
   onShow: function() {
     this.applyEditedPhoto()
     this.checkUnsaved()
+  },
+
+  onUnload: function() {
+    // 页面卸载时保存草稿（如果不是正常保存退出）
+    if (!this._isSaving) {
+      this.saveDraft()
+    }
   },
 
   // 加载笔记数据用于编辑
@@ -81,6 +116,7 @@ Page({
       mood: note.mood || 'happy',
       tags: note.tags || [],
       images: note.images || [],
+      voicePath: note.voice || '',
       visibility: note.visibility || 'family',
       visibleTo: note.visibleTo || []
     })
@@ -165,6 +201,261 @@ Page({
     } else {
       wx.disableAlertBeforeUnload()
     }
+  },
+
+  // 草稿箱功能
+  getDraftKey: function() {
+    return 'note_draft_' + (this.data.isEdit ? this.data.editId : 'new')
+  },
+
+  saveDraft: function() {
+    var draftKey = this.getDraftKey()
+    var draftData = {
+      type: this.data.type,
+      title: this.data.title,
+      content: this.data.content,
+      mood: this.data.mood,
+      tags: this.data.tags,
+      images: this.data.images,
+      visibility: this.data.visibility,
+      visibleTo: this.data.visibleTo,
+      timestamp: Date.now()
+    }
+    wx.setStorageSync(draftKey, draftData)
+  },
+
+  loadDraft: function() {
+    var draftKey = this.getDraftKey()
+    var draftData = wx.getStorageSync(draftKey)
+    if (draftData && draftData.timestamp) {
+      // 检查草稿是否在24小时内
+      var hoursDiff = (Date.now() - draftData.timestamp) / (1000 * 60 * 60)
+      if (hoursDiff < 24) {
+        return draftData
+      } else {
+        // 超过24小时，清除草稿
+        wx.removeStorageSync(draftKey)
+      }
+    }
+    return null
+  },
+
+  clearDraft: function() {
+    var draftKey = this.getDraftKey()
+    wx.removeStorageSync(draftKey)
+  },
+
+  checkDraftRecovery: function() {
+    if (this.data.isEdit) return // 编辑模式不检查草稿
+    
+    // 检查是否从草稿箱进入（draft参数）
+    var pages = getCurrentPages()
+    var currentPage = pages[pages.length - 1]
+    var options = currentPage.options || {}
+    
+    var draftData = this.loadDraft()
+    
+    if (options.draft) {
+      // 从草稿箱进入，直接加载草稿
+      if (draftData) {
+        this.setData({ draftData: draftData })
+        this.recoverDraft()
+      }
+    } else {
+      // 正常进入，检查是否有草稿需要恢复
+      if (draftData) {
+        this.setData({
+          showDraftRecovery: true,
+          draftData: draftData
+        })
+      }
+    }
+  },
+
+  recoverDraft: function() {
+    var draftData = this.data.draftData
+    if (!draftData) return
+
+    this.setData({
+      type: draftData.type || 'diary',
+      title: draftData.title || '',
+      content: draftData.content || '',
+      mood: draftData.mood || 'happy',
+      tags: draftData.tags || [],
+      images: draftData.images || [],
+      visibility: draftData.visibility || 'family',
+      visibleTo: draftData.visibleTo || [],
+      showDraftRecovery: false,
+      draftData: null
+    })
+
+    // 设置编辑器内容
+    this._setEditorContent(draftData.title || '', draftData.content || '')
+    
+    wx.showToast({ title: '草稿已恢复', icon: 'success' })
+  },
+
+  discardDraft: function() {
+    this.clearDraft()
+    this.setData({
+      showDraftRecovery: false,
+      draftData: null
+    })
+  },
+
+  // 保存到草稿箱并返回
+  saveDraftAndBack: function() {
+    // 检查是否有内容
+    var stripHtml = function(html) {
+      return html ? html.replace(/<[^>]+>/g, '').trim() : ''
+    }
+    
+    var hasContent = stripHtml(this.data.title).length > 0 ||
+                     stripHtml(this.data.content).length > 0 ||
+                     this.data.images.length > 0 ||
+                     this.data.tags.length > 0
+    
+    if (!hasContent) {
+      wx.showToast({ title: '请先写点内容', icon: 'none' })
+      return
+    }
+    
+    // 保存草稿
+    this.saveDraft()
+    this._isSaving = true // 设置标志，避免onUnload弹出提示
+    wx.disableAlertBeforeUnload() // 禁用返回确认提示
+    wx.showToast({ title: '已保存到草稿箱', icon: 'success' })
+    
+    setTimeout(function() {
+      wx.navigateBack()
+    }, 1500)
+  },
+
+  // 防抖保存草稿
+  debounceSaveDraft: null,
+
+  initDraftDebounce: function() {
+    var that = this
+    var timer = null
+    this.debounceSaveDraft = function() {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(function() {
+        that.saveDraft()
+      }, 1000)
+    }
+  },
+
+  // 语音录制功能
+  recorderManager: null,
+  innerAudioContext: null,
+
+  initRecorder: function() {
+    var that = this
+    this.recorderManager = wx.getRecorderManager()
+    this.innerAudioContext = wx.createInnerAudioContext()
+    
+    this.recorderManager.onStart(function() {
+      that.setData({ isRecording: true, voiceDuration: 0 })
+      that._recordTimer = setInterval(function() {
+        that.setData({ voiceDuration: that.data.voiceDuration + 1 })
+        if (that.data.voiceDuration >= 60) {
+          that.stopRecord()
+        }
+      }, 1000)
+    })
+    
+    this.recorderManager.onStop(function(res) {
+      that.setData({ isRecording: false })
+      if (that._recordTimer) {
+        clearInterval(that._recordTimer)
+        that._recordTimer = null
+      }
+      
+      if (res.duration < 1000) {
+        wx.showToast({ title: '录音时间太短', icon: 'none' })
+        return
+      }
+      
+      that.setData({
+        voicePath: res.tempFilePath,
+        voiceDuration: Math.floor(res.duration / 1000)
+      })
+    })
+    
+    this.recorderManager.onError(function(err) {
+      that.setData({ isRecording: false })
+      if (that._recordTimer) {
+        clearInterval(that._recordTimer)
+        that._recordTimer = null
+      }
+      wx.showToast({ title: '录音失败', icon: 'none' })
+      console.warn('录音失败:', err)
+    })
+    
+    this.innerAudioContext.onEnded(function() {
+      that.setData({ isPlaying: false })
+    })
+    
+    this.innerAudioContext.onError(function(err) {
+      that.setData({ isPlaying: false })
+      console.warn('播放失败:', err)
+    })
+  },
+
+  startRecord: function() {
+    var that = this
+    wx.authorize({
+      scope: 'scope.record',
+      success: function() {
+        that.recorderManager.start({
+          duration: 60000,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          encodeBitRate: 96000,
+          format: 'mp3'
+        })
+      },
+      fail: function() {
+        wx.showToast({ title: '请授权录音权限', icon: 'none' })
+      }
+    })
+  },
+
+  stopRecord: function() {
+    if (this.data.isRecording) {
+      this.recorderManager.stop()
+    }
+  },
+
+  cancelRecord: function() {
+    if (this.data.isRecording) {
+      this.recorderManager.stop()
+      this.setData({ voicePath: '', voiceDuration: 0 })
+    }
+  },
+
+  playVoice: function() {
+    if (!this.data.voicePath) return
+    
+    if (this.data.isPlaying) {
+      this.innerAudioContext.stop()
+      this.setData({ isPlaying: false })
+    } else {
+      this.innerAudioContext.src = this.data.voicePath
+      this.innerAudioContext.play()
+      this.setData({ isPlaying: true })
+    }
+  },
+
+  deleteVoice: function() {
+    if (this.innerAudioContext) {
+      this.innerAudioContext.stop()
+    }
+    this.setData({ 
+      voicePath: '', 
+      voiceDuration: 0,
+      isPlaying: false 
+    })
   },
 
   // 从画画编辑器返回时，应用编辑后的照片
@@ -320,14 +611,77 @@ Page({
 
   // 输入标题
   onTitleInput: function(e) {
-    this.setData({ title: e.detail.html || e.detail.text || '' })
+    var title = e.detail.html || e.detail.text || ''
+    this.setData({ 
+      title: title,
+      titleLength: title.replace(/<[^>]+>/g, '').length
+    })
     this.checkUnsaved()
+    if (this.debounceSaveDraft) this.debounceSaveDraft()
   },
 
   // 输入内容
   onContentInput: function(e) {
-    this.setData({ content: e.detail.html || e.detail.text || '' })
+    var content = e.detail.html || e.detail.text || ''
+    this.setData({ 
+      content: content,
+      contentLength: content.replace(/<[^>]+>/g, '').length
+    })
     this.checkUnsaved()
+    if (this.debounceSaveDraft) this.debounceSaveDraft()
+  },
+
+  // 编辑器获取焦点
+  onEditorFocus: function() {
+    // 工具栏始终显示，无需处理
+  },
+
+  // 编辑器失去焦点
+  onEditorBlur: function() {
+    // 工具栏始终显示，无需处理
+  },
+
+  // 阻止工具栏点击时编辑器失去焦点
+  preventBlur: function() {
+    // 空函数，仅用于catchtap阻止事件冒泡
+  },
+
+  // 键盘高度变化
+  onKeyboardHeightChange: function(e) {
+    var keyboardHeight = e.detail.height || 0
+    this.setData({ keyboardHeight: keyboardHeight })
+  },
+
+  // 格式化文本
+  formatText: function(e) {
+    var format = e.currentTarget.dataset.format
+    if (!this.contentEditorCtx) return
+
+    var that = this
+    switch(format) {
+      case 'bold':
+        this.contentEditorCtx.format('bold')
+        this.setData({ formatBold: !this.data.formatBold })
+        break
+      case 'italic':
+        this.contentEditorCtx.format('italic')
+        this.setData({ formatItalic: !this.data.formatItalic })
+        break
+      case 'underline':
+        this.contentEditorCtx.format('underline')
+        this.setData({ formatUnderline: !this.data.formatUnderline })
+        break
+      case 'list':
+        this.contentEditorCtx.format('list', 'bullet')
+        break
+      case 'header':
+        this.contentEditorCtx.format('header', 'h2')
+        break
+      case 'clear':
+        this.contentEditorCtx.removeFormat()
+        this.setData({ formatBold: false, formatItalic: false, formatUnderline: false })
+        break
+    }
   },
 
   // 选择心情
@@ -338,7 +692,112 @@ Page({
 
   // 输入标签
   onTagInput: function(e) {
-    this.setData({ tagInput: e.detail.value })
+    var value = e.detail.value
+    this.setData({ tagInput: value })
+    
+    // 标签推荐
+    if (value && value.trim()) {
+      this.getTagSuggestions(value.trim())
+    } else {
+      this.setData({ showTagSuggestions: false, tagSuggestions: [] })
+    }
+  },
+
+  // 标签输入框获取焦点
+  onTagInputFocus: function() {
+    // 显示历史标签推荐
+    if (!this.data.tagInput) {
+      this.getPopularTags()
+    }
+  },
+
+  // 获取热门标签
+  getPopularTags: function() {
+    var notes = childStorage.get('notes') || []
+    var tagCount = {}
+    
+    // 统计所有标签使用次数
+    notes.forEach(function(note) {
+      if (note.tags && note.tags.length > 0) {
+        note.tags.forEach(function(tag) {
+          tagCount[tag] = (tagCount[tag] || 0) + 1
+        })
+      }
+    })
+    
+    // 获取最热门的标签
+    var suggestions = Object.keys(tagCount)
+      .filter(function(tag) {
+        return this.data.tags.indexOf(tag) === -1
+      }.bind(this))
+      .sort(function(a, b) {
+        return tagCount[b] - tagCount[a]
+      })
+      .slice(0, 5)
+    
+    this.setData({
+      tagSuggestions: suggestions,
+      showTagSuggestions: suggestions.length > 0
+    })
+  },
+
+  // 获取标签推荐
+  getTagSuggestions: function(input) {
+    var notes = childStorage.get('notes') || []
+    var tagCount = {}
+    
+    // 统计所有标签使用次数
+    notes.forEach(function(note) {
+      if (note.tags && note.tags.length > 0) {
+        note.tags.forEach(function(tag) {
+          tagCount[tag] = (tagCount[tag] || 0) + 1
+        })
+      }
+    })
+    
+    // 过滤匹配的标签
+    var suggestions = Object.keys(tagCount)
+      .filter(function(tag) {
+        return tag.indexOf(input) > -1 && this.data.tags.indexOf(tag) === -1
+      }.bind(this))
+      .sort(function(a, b) {
+        return tagCount[b] - tagCount[a]
+      })
+      .slice(0, 5)
+    
+    this.setData({
+      tagSuggestions: suggestions,
+      showTagSuggestions: suggestions.length > 0
+    })
+  },
+
+  // 选择推荐标签
+  selectTagSuggestion: function(e) {
+    var tag = e.currentTarget.dataset.tag
+    var tags = this.data.tags
+    
+    if (tags.length >= 5) {
+      wx.showToast({ title: '最多5个标签', icon: 'none' })
+      return
+    }
+    
+    if (tags.indexOf(tag) === -1) {
+      tags.push(tag)
+      this.setData({ 
+        tags: tags, 
+        tagInput: '',
+        showTagSuggestions: false,
+        tagSuggestions: []
+      })
+    }
+  },
+
+  // 隐藏标签推荐
+  hideTagSuggestions: function() {
+    var that = this
+    setTimeout(function() {
+      that.setData({ showTagSuggestions: false })
+    }, 200)
   },
 
   // 添加标签
@@ -417,6 +876,78 @@ Page({
     var images = this.data.images.slice()
     images.splice(index, 1)
     this.setData({ images: images })
+  },
+
+  // 开始排序
+  startSort: function(e) {
+    var index = e.currentTarget.dataset.index
+    wx.vibrateShort()
+    this.setData({ 
+      isSorting: true, 
+      sortIndex: index,
+      sortStartX: 0,
+      sortStartY: 0
+    })
+  },
+
+  // 照片触摸开始
+  onPhotoTouchStart: function(e) {
+    if (!this.data.isSorting) return
+    this.setData({
+      sortStartX: e.touches[0].clientX,
+      sortStartY: e.touches[0].clientY
+    })
+  },
+
+  // 照片触摸移动
+  onPhotoTouchMove: function(e) {
+    if (!this.data.isSorting || this.data.sortIndex < 0) return
+    
+    var deltaX = e.touches[0].clientX - this.data.sortStartX
+    var deltaY = e.touches[0].clientY - this.data.sortStartY
+    
+    // 计算移动距离，判断是否需要交换位置
+    if (Math.abs(deltaX) > 80 || Math.abs(deltaY) > 80) {
+      var images = this.data.images.slice()
+      var currentIndex = this.data.sortIndex
+      var targetIndex = -1
+      
+      if (deltaX > 80 && currentIndex < images.length - 1) {
+        targetIndex = currentIndex + 1
+      } else if (deltaX < -80 && currentIndex > 0) {
+        targetIndex = currentIndex - 1
+      }
+      
+      if (targetIndex >= 0) {
+        // 交换位置
+        var temp = images[currentIndex]
+        images[currentIndex] = images[targetIndex]
+        images[targetIndex] = temp
+        
+        this.setData({ 
+          images: images,
+          sortIndex: targetIndex,
+          sortStartX: e.touches[0].clientX,
+          sortStartY: e.touches[0].clientY
+        })
+        
+        wx.vibrateShort()
+      }
+    }
+  },
+
+  // 照片触摸结束
+  onPhotoTouchEnd: function() {
+    // 不立即结束排序模式，让用户可以继续拖动其他照片
+  },
+
+  // 完成排序
+  finishSort: function() {
+    this.setData({ 
+      isSorting: false, 
+      sortIndex: -1 
+    })
+    wx.showToast({ title: '排序完成', icon: 'success' })
   },
 
   // 编辑照片（跳转画画页）
@@ -500,6 +1031,30 @@ Page({
 
     wx.showLoading({ title: '保存中...' })
 
+    // 上传语音文件
+    var saveVoice = function(callback) {
+      if (!that.data.voicePath) {
+        callback('')
+        return
+      }
+      
+      // 如果是本地临时文件，需要上传到云存储
+      if (that.data.voicePath.startsWith('http://tmp/') || that.data.voicePath.startsWith('wxfile://')) {
+        wx.cloud.uploadFile({
+          cloudPath: 'notes/voice/' + Date.now() + '.mp3',
+          filePath: that.data.voicePath,
+          success: function(res) {
+            callback(res.fileID)
+          },
+          fail: function() {
+            callback(that.data.voicePath)
+          }
+        })
+      } else {
+        callback(that.data.voicePath)
+      }
+    }
+
     // 持久化图片
     var saveImages = function(callback) {
       if (images.length === 0) {
@@ -536,69 +1091,77 @@ Page({
     }
 
     saveImages(function(savedImages) {
-      // 保存富文本内容，保留HTML格式
-      var saveTitle = title
-      var saveContent = content
+      saveVoice(function(voiceFileID) {
+        // 保存富文本内容，保留HTML格式
+        var saveTitle = title
+        var saveContent = content
 
-      if (that.data.isEdit) {
-        // 更新模式
-        var noteManager = require('../../utils/note-manager.js')
-        noteManager.updateNote(that.data.editId, {
-          type: type,
-          title: saveTitle,
-          content: saveContent,
-          mood: mood,
-          tags: tags,
-          images: savedImages,
-          imagePath: savedImages[0] || '',
-          visibility: visibility,
-          visibleTo: visibleTo,
-          updateTime: new Date().toISOString()
-        })
+        if (that.data.isEdit) {
+          // 更新模式
+          var noteManager = require('../../utils/note-manager.js')
+          noteManager.updateNote(that.data.editId, {
+            type: type,
+            title: saveTitle,
+            content: saveContent,
+            mood: mood,
+            tags: tags,
+            images: savedImages,
+            imagePath: savedImages[0] || '',
+            voice: voiceFileID,
+            visibility: visibility,
+            visibleTo: visibleTo,
+            updateTime: new Date().toISOString()
+          })
 
-        wx.disableAlertBeforeUnload()
-        wx.hideLoading()
-        wx.showToast({ title: '更新成功', icon: 'success' })
-        setTimeout(function() { wx.navigateBack() }, 1500)
-      } else {
-        // 新建模式
-        var member = auth.getMember()
-        var noteData = {
-          type: type,
-          title: saveTitle,
-          content: saveContent,
-          mood: mood,
-          tags: tags,
-          images: savedImages,
-          imagePath: savedImages[0] || '',
-          visibility: visibility,
-          visibleTo: visibleTo,
-          createdBy: member ? member._id : '',
-          createdByName: member ? member.roleName : ''
+          wx.disableAlertBeforeUnload()
+          wx.hideLoading()
+          wx.showToast({ title: '更新成功', icon: 'success' })
+          that.clearDraft()
+          that._isSaving = true
+          setTimeout(function() { wx.navigateBack() }, 1500)
+        } else {
+          // 新建模式
+          var member = auth.getMember()
+          var noteData = {
+            type: type,
+            title: saveTitle,
+            content: saveContent,
+            mood: mood,
+            tags: tags,
+            images: savedImages,
+            imagePath: savedImages[0] || '',
+            voice: voiceFileID,
+            visibility: visibility,
+            visibleTo: visibleTo,
+            createdBy: member ? member._id : '',
+            createdByName: member ? member.roleName : ''
+          }
+
+          // 统一走 noteManager.addNote：生成 id/createTime、写本地、触发云同步
+          var noteManager = require('../../utils/note-manager.js')
+          noteManager.addNote(noteData)
+
+          wx.disableAlertBeforeUnload()
+          wx.hideLoading()
+          wx.showToast({ title: '保存成功', icon: 'success' })
+          that.clearDraft()
+          that._isSaving = true
+
+          // 检查成就解锁
+          var newAchievements = achievements.checkAchievements()
+          if (newAchievements.length > 0) {
+            setTimeout(function() {
+              wx.showToast({
+                title: '🎉 解锁: ' + newAchievements[0].title,
+                icon: 'success',
+                duration: 2000
+              })
+            }, 1500)
+          }
+
+          setTimeout(function() { wx.navigateBack() }, 1500)
         }
-
-        // 统一走 noteManager.addNote：生成 id/createTime、写本地、触发云同步
-        var noteManager = require('../../utils/note-manager.js')
-        noteManager.addNote(noteData)
-
-        wx.disableAlertBeforeUnload()
-        wx.hideLoading()
-        wx.showToast({ title: '保存成功', icon: 'success' })
-
-        // 检查成就解锁
-        var newAchievements = achievements.checkAchievements()
-        if (newAchievements.length > 0) {
-          setTimeout(function() {
-            wx.showToast({
-              title: '🎉 解锁: ' + newAchievements[0].title,
-              icon: 'success',
-              duration: 2000
-            })
-          }, 1500)
-        }
-
-        setTimeout(function() { wx.navigateBack() }, 1500)
-      }
+      })
     })
   }
 })

@@ -1,6 +1,46 @@
+/* ===== 设计Token（猜拳竞技场主题） ===== */
+:root {
+  /* 主色板（与全局亲子粉衔接并提亮） */
+  --rps-primary:      #FF6B8A;   /* 主粉：主按钮、标题强调 */
+  --rps-primary-deep: #E8527A;   /* 深粉：渐变末端、按压态 */
+  --rps-gold:         #FFB830;   /* 金色：胜利、奖杯、连胜 */
+  --rps-ink:          #3A2E4D;   /* 主文字：深紫灰（替代纯黑#333，更柔和） */
+  --rps-ink-light:    #8A7FA0;   /* 次要文字 */
+
+  /* 三拳专属色（增强识别，全模块统一） */
+  --rps-rock:     #7C8DB0;  /* 石头：岩蓝灰 */
+  --rps-scissors: #3EC6B8;  /* 剪刀：青碧 */
+  --rps-paper:    #FF9F43;  /* 布：暖橙 */
+
+  /* 结果色 */
+  --rps-win:  #4CAF6D;   /* 胜：青绿 */
+  --rps-lose: #FF5A5A;   /* 负：珊瑚红 */
+  --rps-draw: #FFB830;   /* 平：金 */
+
+  /* 背景（进一步加深以确保白色文字清晰） */
+  --rps-bg: linear-gradient(180deg, #C9A0B8 0%, #B8A0C8 55%, #A8C0E0 100%);
+
+  /* 卡片与阴影（立体糖果感） */
+  --rps-card-bg:    #FFFFFF;
+  --rps-radius-lg:  32rpx;
+  --rps-radius-md:  24rpx;
+  --rps-shadow-1:   0 6rpx 20rpx rgba(58, 46, 77, 0.08);           /* 悬浮卡 */
+  --rps-shadow-2:   0 12rpx 32rpx rgba(58, 46, 77, 0.12);          /* 强调卡 */
+  --rps-border:     3rpx solid rgba(58, 46, 77, 0.06);             /* 柔边 */
+
+  /* 立体按钮（街机感：顶面 + 底部厚度条） */
+  --rps-btn-depth:  8rpx;   /* 按钮底部厚度，按压时压缩为 2rpx */
+
+  /* 字号层级 */
+  --rps-fs-hero:   64rpx;  /* 页面主标题 / 大比分 */
+  --rps-fs-title:  40rpx;  /* 区块标题 */
+  --rps-fs-body:   30rpx;  /* 正文 */
+  --rps-fs-aux:    24rpx;  /* 辅助说明 */
+}
+
 .container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #FFE0E6 0%, #FFF5F5 100%);
+  background: var(--rps-bg);
   padding: 32rpx;
 }
 
@@ -10,10 +50,11 @@
 }
 
 .phase-title {
-  font-size: 40rpx;
+  font-size: var(--rps-fs-title);
   font-weight: bold;
-  color: #E91E63;
+  color: var(--rps-primary);
   margin-bottom: 60rpx;
+  text-shadow: 0 2rpx 4rpx rgba(255, 107, 138, 0.2);
 }
 
 .mode-buttons,
@@ -29,46 +70,108 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: var(--rps-card-bg);
   padding: 40rpx;
-  border-radius: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(233, 30, 99, 0.15);
+  border-radius: var(--rps-radius-lg);
+  box-shadow: var(--rps-shadow-1);
+  border: var(--rps-border);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: modeBtnFadeIn 0.5s ease-out both;
+}
+
+.mode-btn:nth-child(1) { animation-delay: 0.1s; }
+.mode-btn:nth-child(2) { animation-delay: 0.2s; }
+.mode-btn:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes modeBtnFadeIn {
+  0% { transform: translateY(30rpx); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
 .mode-btn:active,
 .difficulty-btn:active {
-  transform: scale(0.98);
+  transform: translateY(6rpx);
+  box-shadow: 0 2rpx 8rpx rgba(58, 46, 77, 0.12);
 }
 
+/* 模式按钮主题色图标底托 */
 .mode-btn-icon,
 .difficulty-icon {
-  font-size: 64rpx;
+  width: 120rpx;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   margin-bottom: 16rpx;
+  font-size: 64rpx;
+  position: relative;
+}
+
+/* 亲子对战按钮 - 粉色 */
+.mode-btn:nth-child(1) .mode-btn-icon {
+  background: rgba(255, 107, 138, 0.15);
+  box-shadow: 0 8rpx 24rpx rgba(255, 107, 138, 0.2);
+}
+
+/* 亲子随机按钮 - 金色 */
+.mode-btn:nth-child(2) .mode-btn-icon {
+  background: rgba(255, 184, 48, 0.15);
+  box-shadow: 0 8rpx 24rpx rgba(255, 184, 48, 0.2);
+}
+
+/* 人机对战按钮 - 青碧 */
+.mode-btn:nth-child(3) .mode-btn-icon {
+  background: rgba(62, 198, 184, 0.15);
+  box-shadow: 0 8rpx 24rpx rgba(62, 198, 184, 0.2);
+}
+
+/* 难度按钮主题色 */
+.easy .difficulty-icon {
+  background: rgba(76, 175, 109, 0.15);
+  box-shadow: 0 8rpx 24rpx rgba(76, 175, 109, 0.2);
+}
+
+.medium .difficulty-icon {
+  background: rgba(255, 184, 48, 0.15);
+  box-shadow: 0 8rpx 24rpx rgba(255, 184, 48, 0.2);
+}
+
+.hard .difficulty-icon {
+  background: rgba(255, 90, 90, 0.15);
+  box-shadow: 0 8rpx 24rpx rgba(255, 90, 90, 0.2);
 }
 
 .mode-btn-text,
 .difficulty-text {
-  font-size: 36rpx;
+  font-size: var(--rps-fs-body);
   font-weight: bold;
-  color: #333;
+  color: var(--rps-ink);
+  margin-bottom: 8rpx;
 }
 
-.mode-desc {
-  font-size: 24rpx;
-  color: #999;
-  margin-top: 8rpx;
+.mode-desc,
+.difficulty-desc {
+  font-size: var(--rps-fs-aux);
+  color: var(--rps-ink-light);
 }
 
+/* 难度按钮语义色 */
 .easy {
-  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  background: linear-gradient(135deg, rgba(76, 175, 109, 0.08) 0%, rgba(76, 175, 109, 0.04) 100%);
+  border-left: 8rpx solid var(--rps-win);
 }
 
 .medium {
-  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  background: linear-gradient(135deg, rgba(255, 184, 48, 0.08) 0%, rgba(255, 184, 48, 0.04) 100%);
+  border-left: 8rpx solid var(--rps-draw);
 }
 
 .hard {
-  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+  background: linear-gradient(135deg, rgba(255, 90, 90, 0.08) 0%, rgba(255, 90, 90, 0.04) 100%);
+  border-left: 8rpx solid var(--rps-lose);
 }
 
 .back-btn {
@@ -87,47 +190,137 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: linear-gradient(135deg, #E8708A 0%, #D85878 100%);
   padding: 32rpx;
-  border-radius: 20rpx;
+  border-radius: var(--rps-radius-lg);
   margin-bottom: 40rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8rpx 32rpx rgba(232, 112, 138, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes scoreboardSlideIn {
+  0% { transform: translateY(-30rpx); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* 记分牌光泽效果 */
+.scoreboard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: scoreboardShine 3s ease-in-out infinite;
+}
+
+@keyframes scoreboardShine {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: 100%; }
 }
 
 .score-side {
   flex: 1;
   text-align: center;
+  padding: 16rpx;
+  border-radius: var(--rps-radius-md);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .score-label {
-  font-size: 28rpx;
-  color: #666;
+  font-size: var(--rps-fs-aux);
+  color: rgba(255, 255, 255, 0.9);
   margin-bottom: 8rpx;
+  font-weight: 500;
 }
 
 .score-value {
-  font-size: 56rpx;
+  font-size: var(--rps-fs-hero);
   font-weight: bold;
-  color: #E91E63;
+  color: #fff;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
 }
 
 .score-divider {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #ccc;
-  padding: 0 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24rpx;
+  gap: 8rpx;
 }
 
-.countdown {
-  text-align: center;
-  margin-bottom: 40rpx;
+.divider-line {
+  width: 2rpx;
+  height: 32rpx;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.divider-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: var(--rps-gold);
+  background: rgba(255, 184, 48, 0.2);
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 3rpx solid rgba(255, 184, 48, 0.4);
+}
+
+.countdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.countdown-container {
+  position: relative;
+  width: 240rpx;
+  height: 240rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.countdown-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 8rpx solid rgba(255, 255, 255, 0.3);
+  animation: countdownRingPulse 1s ease-in-out infinite;
+}
+
+@keyframes countdownRingPulse {
+  0%, 100% { transform: scale(1); border-color: rgba(255, 255, 255, 0.3); }
+  50% { transform: scale(1.05); border-color: rgba(255, 107, 138, 0.6); }
 }
 
 .countdown-num {
-  font-size: 120rpx;
+  font-size: 160rpx;
   font-weight: bold;
-  color: #E91E63;
+  color: #fff;
+  text-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.3);
   animation: countdownPulse 0.8s ease-in-out;
+  z-index: 1;
 }
 
 @keyframes countdownPulse {
@@ -141,10 +334,12 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 40rpx;
+  position: relative;
 }
 
 .player-side {
   text-align: center;
+  position: relative;
 }
 
 .player-choice {
@@ -153,21 +348,69 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fff 0%, #f8f8f8 100%);
+  background: linear-gradient(135deg, var(--rps-card-bg) 0%, #f8f8f8 100%);
   border-radius: 50%;
-  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.15);
+  box-shadow: var(--rps-shadow-2);
   margin-bottom: 20rpx;
-  border: 4rpx solid #f0f0f0;
+  border: 4rpx solid rgba(58, 46, 77, 0.06);
+  position: relative;
+  z-index: 2;
 }
 
-.player-choice.animating {
-  animation: shake 0.3s ease-in-out infinite;
+/* 我方玩家光环 */
+.player-side:first-child .player-choice {
+  box-shadow: 0 0 0 8rpx rgba(255, 107, 138, 0.3), var(--rps-shadow-2);
 }
 
-@keyframes shake {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(15deg); }
-  75% { transform: rotate(-15deg); }
+/* 对方玩家光环 */
+.player-side:last-child .player-choice {
+  box-shadow: 0 0 0 8rpx rgba(62, 198, 184, 0.3), var(--rps-shadow-2);
+}
+
+/* 对撞动画 - 我方从左侧冲向中央 */
+.player-side:first-child .player-choice.animating {
+  animation: player1Collide 0.6s ease-out;
+}
+
+@keyframes player1Collide {
+  0% { transform: translateX(-40vw); }
+  40% { transform: translateX(0); }
+  60% { transform: translateX(-8rpx); }
+  80% { transform: translateX(4rpx); }
+  100% { transform: translateX(0); }
+}
+
+/* 对撞动画 - 对方从右侧冲向中央 */
+.player-side:last-child .player-choice.animating {
+  animation: player2Collide 0.6s ease-out;
+}
+
+@keyframes player2Collide {
+  0% { transform: translateX(40vw); }
+  40% { transform: translateX(0); }
+  60% { transform: translateX(8rpx); }
+  80% { transform: translateX(-4rpx); }
+  100% { transform: translateX(0); }
+}
+
+/* 胜方金环脉冲 */
+.player-choice.winner {
+  border-color: var(--rps-win);
+  box-shadow: 0 0 0 8rpx rgba(76, 175, 109, 0.4), 0 0 40rpx rgba(255, 184, 48, 0.6);
+  animation: winnerGlow 0.5s ease-in-out;
+}
+
+@keyframes winnerGlow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* 负方灰化下沉 */
+.player-choice.loser {
+  border-color: var(--rps-lose);
+  opacity: 0.6;
+  transform: scale(0.95);
+  filter: grayscale(0.3);
 }
 
 .choice-icon {
@@ -176,31 +419,86 @@
 
 .choice-placeholder {
   font-size: 100rpx;
-  color: #ddd;
+  color: #C9C2D9;
   font-weight: bold;
+  opacity: 0.6;
 }
 
 .player-name {
-  font-size: 32rpx;
-  color: #666;
+  font-size: var(--rps-fs-body);
+  color: var(--rps-ink);
   font-weight: bold;
+}
+
+.vs-icon-container {
+  position: relative;
+  z-index: 3;
 }
 
 .vs-icon {
   font-size: 56rpx;
   margin: 0 48rpx;
-  color: #FF9800;
+  color: var(--rps-gold);
+  position: relative;
+}
+
+/* VS图标动画 */
+.vs-icon.vs-animate {
+  animation: vsPulse 0.6s ease-out;
+}
+
+@keyframes vsPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+
+/* 冲击波效果 */
+.battle-area::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.battle-area.shockwave::after {
+  animation: shockwave 0.5s ease-out;
+}
+
+@keyframes shockwave {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+}
+
+/* 屏幕微震效果 */
+.container.shake {
+  animation: screenShake 0.3s ease-out;
+}
+
+@keyframes screenShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8rpx); }
+  50% { transform: translateX(8rpx); }
+  75% { transform: translateX(-4rpx); }
 }
 
 .round-result {
   text-align: center;
   margin-bottom: 48rpx;
-  animation: fadeInUp 0.5s ease-out;
+  animation: bounceIn 0.4s ease-out;
 }
 
-@keyframes fadeInUp {
-  from { transform: translateY(20rpx); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+@keyframes bounceIn {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .result-badge {
@@ -208,42 +506,88 @@
   align-items: center;
   gap: 16rpx;
   padding: 24rpx 48rpx;
-  border-radius: 48rpx;
-  background: #fff;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
+  border-radius: 16rpx;
+  background: var(--rps-card-bg);
+  box-shadow: var(--rps-shadow-2);
+  position: relative;
+  overflow: hidden;
 }
 
+/* 胜利 - 金色横幅 */
 .result-badge.win {
-  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  background: linear-gradient(135deg, #F0A020 0%, #E89010 100%);
+  color: #fff;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
 }
 
+/* 失败 - 珊瑚红横幅 */
 .result-badge.lose {
-  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+  background: linear-gradient(135deg, #E85050 0%, #D04040 100%);
+  color: #fff;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
 }
 
+/* 平局 - 灰蓝横幅 */
 .result-badge.draw {
-  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  background: linear-gradient(135deg, #607D8B 0%, #546E7A 100%);
+  color: #fff;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
+}
+
+/* 横幅光泽效果 */
+.result-badge::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: badgeShine 0.6s ease-out 0.2s;
+}
+
+@keyframes badgeShine {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
 
 .result-icon {
-  font-size: 72rpx;
-  margin-bottom: 0;
+  font-size: 48rpx;
 }
 
 .result-text {
-  font-size: 40rpx;
+  font-size: var(--rps-fs-title);
   font-weight: bold;
-  color: #333;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
 }
 
 .game-result {
   text-align: center;
-  background: #fff;
+  background: var(--rps-card-bg);
   padding: 56rpx;
-  border-radius: 32rpx;
+  border-radius: var(--rps-radius-lg);
   margin-bottom: 48rpx;
-  box-shadow: 0 12rpx 40rpx rgba(0, 0, 0, 0.12);
+  box-shadow: var(--rps-shadow-2);
   animation: fadeInUp 0.5s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes fadeInUp {
+  from { transform: translateY(30rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* 领奖台效果 */
+.game-result::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 120rpx;
+  background: linear-gradient(180deg, transparent, rgba(255, 184, 48, 0.1));
+  pointer-events: none;
 }
 
 .game-result-badge {
@@ -253,20 +597,47 @@
 .game-result-icon {
   font-size: 96rpx;
   margin-bottom: 16rpx;
+  animation: trophyWobble 1.2s ease-in-out 2;
+}
+
+@keyframes trophyWobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
 }
 
 .game-result-text {
-  font-size: 56rpx;
+  font-size: var(--rps-fs-hero);
   font-weight: bold;
-  color: #E91E63;
+  color: var(--rps-gold);
   margin-bottom: 16rpx;
+  text-shadow: 0 4rpx 8rpx rgba(255, 184, 48, 0.3);
 }
 
 .game-result-score {
-  font-size: 72rpx;
+  font-size: var(--rps-fs-hero);
   font-weight: bold;
-  color: #333;
+  color: var(--rps-ink);
   margin-bottom: 40rpx;
+  position: relative;
+}
+
+/* 比分闪光效果 */
+.game-result-score::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: scoreShine 2s ease-in-out infinite;
+}
+
+@keyframes scoreShine {
+  0% { left: -100%; }
+  50% { left: 100%; }
+  100% { left: 100%; }
 }
 
 .game-result-actions {
@@ -277,30 +648,60 @@
 .result-btn {
   flex: 1;
   padding: 28rpx;
-  border-radius: 20rpx;
+  border-radius: 28rpx;
   text-align: center;
-  font-size: 32rpx;
+  font-size: var(--rps-fs-body);
   font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12rpx;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* 立体按钮效果 - 顶部厚度条 */
+.result-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--rps-btn-depth);
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 28rpx 28rpx 0 0;
+}
+
+.result-btn:active {
+  transform: translateY(6rpx);
+}
+
+.result-btn:active::before {
+  height: 2rpx;
+}
+
+/* 主按钮 - 深粉色立体 */
 .result-btn.primary {
-  background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+  background: linear-gradient(135deg, #E8708A 0%, #D85878 100%);
   color: #fff;
+  box-shadow: 0 8rpx 24rpx rgba(232, 112, 138, 0.5);
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
 }
 
+/* 次要按钮 - 白底灰边立体 */
 .result-btn.secondary {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--rps-card-bg);
+  color: var(--rps-ink);
+  box-shadow: var(--rps-shadow-1);
+  border: var(--rps-border);
 }
 
 .choice-buttons {
   display: flex;
   justify-content: center;
   gap: 40rpx;
+  margin-bottom: 32rpx;
 }
 
 .choice-btn {
@@ -311,32 +712,114 @@
 }
 
 .choice-btn-inner {
-  width: 140rpx;
-  height: 140rpx;
+  width: 168rpx;
+  height: 168rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fff 0%, #f8f8f8 100%);
-  border-radius: 28rpx;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
-  border: 4rpx solid #f0f0f0;
-  transition: all 0.2s ease;
+  border-radius: 40rpx;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* 石头按钮 - 岩蓝灰 */
+.choice-btn:nth-child(1) .choice-btn-inner {
+  background: linear-gradient(135deg, var(--rps-rock) 0%, #6B7DA0 100%);
+  box-shadow: 0 8rpx 24rpx rgba(124, 141, 176, 0.4);
+}
+
+/* 剪刀按钮 - 青碧 */
+.choice-btn:nth-child(2) .choice-btn-inner {
+  background: linear-gradient(135deg, var(--rps-scissors) 0%, #2DB5A7 100%);
+  box-shadow: 0 8rpx 24rpx rgba(62, 198, 184, 0.4);
+}
+
+/* 布按钮 - 暖橙 */
+.choice-btn:nth-child(3) .choice-btn-inner {
+  background: linear-gradient(135deg, var(--rps-paper) 0%, #E88B35 100%);
+  box-shadow: 0 8rpx 24rpx rgba(255, 159, 67, 0.4);
+}
+
+/* 顶部径向高光模拟立体感 */
+.choice-btn-inner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  background: radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* 底部厚度条 */
+.choice-btn-inner::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--rps-btn-depth);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 0 0 40rpx 40rpx;
+}
+
+/* 呼吸浮动动画 */
+.choice-btn:nth-child(1) .choice-btn-inner {
+  animation: btnFloat1 3s ease-in-out infinite;
+}
+
+.choice-btn:nth-child(2) .choice-btn-inner {
+  animation: btnFloat2 3s ease-in-out infinite;
+  animation-delay: 0.4s;
+}
+
+.choice-btn:nth-child(3) .choice-btn-inner {
+  animation: btnFloat3 3s ease-in-out infinite;
+  animation-delay: 0.8s;
+}
+
+@keyframes btnFloat1 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6rpx); }
+}
+
+@keyframes btnFloat2 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6rpx); }
+}
+
+@keyframes btnFloat3 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6rpx); }
+}
+
+/* 按压效果 */
 .choice-btn:active .choice-btn-inner {
-  transform: scale(0.95);
-  background: #FFE0E6;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+  transform: translateY(6rpx);
+  animation: none;
+}
+
+.choice-btn:active .choice-btn-inner::after {
+  height: 2rpx;
 }
 
 .choice-btn-icon {
   font-size: 80rpx;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
 }
 
 .choice-btn-text {
-  font-size: 28rpx;
-  color: #666;
+  font-size: var(--rps-fs-aux);
+  color: var(--rps-card-bg);
   font-weight: bold;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8rpx 24rpx;
+  border-radius: 20rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.3);
 }
 
 .next-round {
@@ -346,23 +829,58 @@
   gap: 12rpx;
   margin-top: 48rpx;
   padding: 24rpx;
-  background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+  background: linear-gradient(135deg, #E8708A 0%, #D85878 100%);
   color: #fff;
-  border-radius: 16rpx;
-  font-size: 32rpx;
+  border-radius: 28rpx;
+  font-size: var(--rps-fs-body);
   font-weight: bold;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8rpx 24rpx rgba(232, 112, 138, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 立体按钮厚度 */
+.next-round::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--rps-btn-depth);
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 28rpx 28rpx 0 0;
+}
+
+.next-round:active {
+  transform: translateY(6rpx);
+  box-shadow: 0 2rpx 8rpx rgba(255, 107, 138, 0.3);
+}
+
+.next-round:active::before {
+  height: 2rpx;
+}
+
+.next-round-icon {
+  font-size: 32rpx;
 }
 
 /* 亲子模式专用样式 */
 .player-prompt {
   text-align: center;
   margin-bottom: 48rpx;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { transform: translateY(30rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .player-done {
-  font-size: 28rpx;
-  color: #4CAF50;
-  background: #E8F5E9;
+  font-size: var(--rps-fs-aux);
+  color: var(--rps-win);
+  background: rgba(76, 175, 109, 0.15);
   padding: 12rpx 24rpx;
   border-radius: 24rpx;
   display: inline-block;
@@ -378,18 +896,25 @@
 .player-avatar {
   font-size: 80rpx;
   margin-bottom: 16rpx;
+  animation: avatarBounce 0.6s ease-out;
+}
+
+@keyframes avatarBounce {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .player-turn {
-  font-size: 40rpx;
+  font-size: var(--rps-fs-title);
   font-weight: bold;
-  color: #E91E63;
+  color: var(--rps-primary);
   margin-bottom: 8rpx;
 }
 
 .player-hint {
-  font-size: 28rpx;
-  color: #999;
+  font-size: var(--rps-fs-aux);
+  color: var(--rps-ink-light);
 }
 
 /* 随机对战模式样式 */
@@ -400,18 +925,24 @@
 .random-header {
   text-align: center;
   margin-bottom: 32rpx;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { transform: translateY(30rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .random-title {
-  font-size: 40rpx;
+  font-size: var(--rps-fs-title);
   font-weight: bold;
-  color: #FF9800;
+  color: var(--rps-gold);
   margin-bottom: 8rpx;
 }
 
 .random-desc {
-  font-size: 28rpx;
-  color: #666;
+  font-size: var(--rps-fs-aux);
+  color: var(--rps-ink-light);
 }
 
 .random-battle-btn {
@@ -423,42 +954,71 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  background: linear-gradient(135deg, var(--rps-gold) 0%, #FFA726 100%);
   padding: 32rpx 64rpx;
-  border-radius: 24rpx;
-  box-shadow: 0 8rpx 24rpx rgba(255, 152, 0, 0.3);
+  border-radius: 28rpx;
+  box-shadow: 0 8rpx 24rpx rgba(255, 184, 48, 0.4);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 立体按钮厚度 */
+.random-battle-btn .random-battle-inner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--rps-btn-depth);
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 28rpx 28rpx 0 0;
 }
 
 .random-battle-btn:active .random-battle-inner {
-  transform: scale(0.98);
+  transform: translateY(6rpx);
+  box-shadow: 0 2rpx 8rpx rgba(255, 184, 48, 0.3);
+}
+
+.random-battle-btn:active .random-battle-inner::before {
+  height: 2rpx;
 }
 
 .random-battle-icon {
   font-size: 64rpx;
   margin-bottom: 12rpx;
+  animation: diceRotate 0.6s ease-in-out;
+}
+
+@keyframes diceRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .random-battle-text {
-  font-size: 32rpx;
+  font-size: var(--rps-fs-body);
   font-weight: bold;
   color: #fff;
 }
 
 /* 再玩一次按钮 */
 .random-battle-inner.replay {
-  background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+  background: linear-gradient(135deg, var(--rps-win) 0%, #388E3C 100%);
+  box-shadow: 0 8rpx 24rpx rgba(76, 175, 109, 0.4);
 }
 
 /* 模式选择按钮 */
 .random-btn {
-  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  background: linear-gradient(135deg, rgba(255, 184, 48, 0.08) 0%, rgba(255, 184, 48, 0.04) 100%);
+  border-left: 8rpx solid var(--rps-gold);
 }
 
 /* 出拳占位符 */
 .choice-placeholder {
   font-size: 72rpx;
-  color: #ddd;
+  color: #C9C2D9;
   font-weight: bold;
+  opacity: 0.6;
 }
 
 /* 亲子模式专用 - 更大的按钮 */
@@ -477,10 +1037,10 @@
 }
 
 .phase-parent .choice-btn-text {
-  font-size: 32rpx;
+  font-size: var(--rps-fs-body);
 }
 
-/* 撒花效果 */
+/* 撒花效果 - 双层彩带 */
 .confetti-container {
   position: fixed;
   top: 0;
@@ -492,10 +1052,11 @@
   overflow: hidden;
 }
 
+/* 前排大彩带 - 快速下落 */
 .confetti {
   position: absolute;
   font-size: 48rpx;
-  animation: confettiFall 1.5s ease-out forwards;
+  animation: confettiFall 1.2s ease-out forwards;
 }
 
 .confetti-1 {
@@ -545,26 +1106,108 @@
   }
 }
 
+/* 后排小彩带 - 慢速下落 */
+.confetti-container::before {
+  content: '✨✨✨✨✨✨';
+  position: absolute;
+  top: -20%;
+  left: 0;
+  right: 0;
+  font-size: 24rpx;
+  letter-spacing: 20rpx;
+  text-align: center;
+  animation: confettiSlow 2s ease-out 0.5s forwards;
+  opacity: 0;
+}
+
+@keyframes confettiSlow {
+  0% {
+    top: -20%;
+    opacity: 0;
+    transform: rotate(0deg);
+  }
+  20% {
+    opacity: 0.8;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+    transform: rotate(180deg);
+  }
+}
+
+/* 顶部中央彩带喷射源点 */
+.confetti-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20rpx;
+  height: 20rpx;
+  background: radial-gradient(circle, rgba(255, 184, 48, 0.8) 0%, transparent 70%);
+  animation: confettiSource 0.3s ease-out;
+}
+
+@keyframes confettiSource {
+  0% { transform: translateX(-50%) scale(0); opacity: 0; }
+  50% { transform: translateX(-50%) scale(3); opacity: 1; }
+  100% { transform: translateX(-50%) scale(1); opacity: 0; }
+}
+
+/* 粒子飞散效果 */
+.battle-area.particles::before {
+  content: '✨';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 32rpx;
+  animation: particle1 0.8s ease-out forwards;
+  z-index: 10;
+}
+
+@keyframes particle1 {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(calc(-50% + 60rpx), calc(-50% - 80rpx)) scale(1); opacity: 0; }
+}
+
+.battle-area.particles::after {
+  content: '✨';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 24rpx;
+  animation: particle2 0.8s ease-out 0.1s forwards;
+  z-index: 10;
+}
+
+@keyframes particle2 {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(calc(-50% - 70rpx), calc(-50% - 60rpx)) scale(1); opacity: 0; }
+}
+
 /* 胜负状态样式 */
 .player-choice.winner {
-  border-color: #4CAF50;
-  box-shadow: 0 0 20rpx rgba(76, 175, 80, 0.5);
-  animation: winnerPulse 0.5s ease-in-out;
+  border-color: var(--rps-win);
+  box-shadow: 0 0 0 8rpx rgba(76, 175, 109, 0.4), 0 0 40rpx rgba(255, 184, 48, 0.6);
+  animation: winnerGlow 0.5s ease-in-out;
 }
 
-.player-choice.loser {
-  border-color: #FF5722;
-  opacity: 0.6;
-}
-
-@keyframes winnerPulse {
+@keyframes winnerGlow {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
 }
 
+.player-choice.loser {
+  border-color: var(--rps-lose);
+  opacity: 0.6;
+  transform: scale(0.95);
+  filter: grayscale(0.3);
+}
+
 /* 比分高亮 */
 .score-side.score-win .score-value {
-  color: #4CAF50;
+  color: var(--rps-gold);
   transform: scale(1.1);
 }
 
@@ -575,4 +1218,14 @@
 @keyframes scoreBounce {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.3); }
+}
+
+/* 比分高亮闪光 */
+.score-side.score-win .score-value::after {
+  animation: scoreShine 0.6s ease-out;
+}
+
+@keyframes scoreShine {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }

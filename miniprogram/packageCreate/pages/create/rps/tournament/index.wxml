@@ -127,7 +127,7 @@
     </view>
 
     <!-- 出拳展示 -->
-    <view class="battle-area">
+    <view class="battle-area {{showShockwave ? 'shockwave' : ''}}">
       <view class="player-side">
         <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
           <text class="choice-icon" wx:if="{{playerIcon}}">{{playerIcon}}</text>
@@ -168,15 +168,21 @@
     <!-- 出拳按钮 -->
     <view class="choice-buttons" wx:if="{{!isAnimating}}">
       <view class="choice-btn" bindtap="playerChoiceAction" data-choice="rock">
-        <text class="choice-btn-icon">✊</text>
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✊</text>
+        </view>
         <text class="choice-btn-text">石头</text>
       </view>
       <view class="choice-btn" bindtap="playerChoiceAction" data-choice="scissors">
-        <text class="choice-btn-icon">✌️</text>
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✌️</text>
+        </view>
         <text class="choice-btn-text">剪刀</text>
       </view>
       <view class="choice-btn" bindtap="playerChoiceAction" data-choice="paper">
-        <text class="choice-btn-icon">✋</text>
+        <view class="choice-btn-inner">
+          <text class="choice-btn-icon">✋</text>
+        </view>
         <text class="choice-btn-text">布</text>
       </view>
     </view>

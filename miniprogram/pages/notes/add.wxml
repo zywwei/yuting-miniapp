@@ -1,5 +1,5 @@
 <!-- 添加/编辑笔记 -->
-<view class="container">
+<view class="container" bindkeyboardheightchange="onKeyboardHeightChange">
   <!-- 标题 -->
   <view class="section title-section">
     <editor
@@ -14,14 +14,45 @@
 
   <!-- 内容 -->
   <view class="section">
+    <!-- 格式工具栏 -->
+    <view class="format-toolbar" catchtap="preventBlur">
+      <view class="toolbar-btn {{formatBold ? 'active' : ''}}" catchtap="formatText" data-format="bold">
+        <text class="toolbar-icon">B</text>
+      </view>
+      <view class="toolbar-btn {{formatItalic ? 'active' : ''}}" catchtap="formatText" data-format="italic">
+        <text class="toolbar-icon">I</text>
+      </view>
+      <view class="toolbar-btn {{formatUnderline ? 'active' : ''}}" catchtap="formatText" data-format="underline">
+        <text class="toolbar-icon">U</text>
+      </view>
+      <view class="toolbar-divider"></view>
+      <view class="toolbar-btn" catchtap="formatText" data-format="list">
+        <text class="toolbar-icon">•</text>
+      </view>
+      <view class="toolbar-btn" catchtap="formatText" data-format="header">
+        <text class="toolbar-icon">H</text>
+      </view>
+      <view class="toolbar-divider"></view>
+      <view class="toolbar-btn" catchtap="formatText" data-format="clear">
+        <text class="toolbar-icon">✕</text>
+      </view>
+    </view>
+    
     <editor
       id="contentEditor"
       class="content-editor"
       placeholder="记录今天的成长故事..."
       bindready="onContentEditorReady"
       bindinput="onContentInput"
+      bindfocus="onEditorFocus"
+      bindblur="onEditorBlur"
       maxlength="500"
     />
+    
+    <!-- 字数提示 -->
+    <view class="char-count {{contentLength > 400 ? (contentLength > 480 ? 'danger' : 'warning') : ''}}">
+      {{contentLength}}/500
+    </view>
   </view>
 
   <!-- 笔记类型（可折叠） -->
@@ -100,9 +131,18 @@
         placeholder="添加标签..."
         value="{{tagInput}}"
         bindinput="onTagInput"
+        bindfocus="onTagInputFocus"
+        bindblur="hideTagSuggestions"
         maxlength="10"
       />
       <view class="tag-add-btn" bindtap="addTag">添加</view>
+    </view>
+    
+    <!-- 标签推荐 -->
+    <view class="tag-suggestions" wx:if="{{showTagSuggestions}}">
+      <view wx:for="{{tagSuggestions}}" wx:key="*this" class="tag-suggestion-item" bindtap="selectTagSuggestion" data-tag="{{item}}">
+        {{item}}
+      </view>
     </view>
     <view class="tag-list" wx:if="{{tags.length > 0}}">
       <view wx:for="{{tags}}" wx:key="*this" class="tag-item">
@@ -116,17 +156,58 @@
   <view class="section">
     <view class="section-title">照片（可选）</view>
     <view class="photo-list">
-      <view wx:for="{{images}}" wx:key="*this" class="photo-item">
+      <view wx:for="{{images}}" wx:key="*this" class="photo-item {{isSorting && sortIndex === index ? 'sorting' : ''}}" 
+            data-index="{{index}}"
+            bindlongpress="startSort"
+            bindtouchstart="onPhotoTouchStart"
+            bindtouchmove="onPhotoTouchMove"
+            bindtouchend="onPhotoTouchEnd">
         <image src="{{item}}" mode="aspectFill" class="photo-img" bindtap="previewImage" data-path="{{item}}" lazy-load />
         <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
         <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
+        <view class="sort-badge" wx:if="{{isSorting && sortIndex === index}}">↕️</view>
       </view>
-      <view wx:if="{{images.length < 9}}" class="photo-add" bindtap="takePhoto">
+      <view wx:if="{{images.length < 9 && !isSorting}}" class="photo-add" bindtap="takePhoto">
         <text class="add-icon">📷</text>
         <text class="add-text">拍照</text>
       </view>
     </view>
+    <view class="sort-hint" wx:if="{{isSorting}}">
+      <text>拖动照片调整顺序，点击空白处完成</text>
+      <view class="sort-done-btn" bindtap="finishSort">完成排序</view>
+    </view>
     <view class="photo-hint">支持拍照或从相册选择，最多9张，可画画编辑</view>
+  </view>
+
+  <!-- 语音笔记 -->
+  <view class="section">
+    <view class="section-title">语音笔记（可选）</view>
+    <view class="voice-record-area">
+      <view class="voice-btn {{isRecording ? 'recording' : ''}}" bindtouchstart="startRecord" bindtouchend="stopRecord" bindtouchcancel="cancelRecord">
+        <text class="voice-icon">{{isRecording ? '🔴' : '🎙️'}}</text>
+        <text class="voice-text">{{isRecording ? '松开结束' : '按住说话'}}</text>
+      </view>
+      <view class="voice-duration" wx:if="{{voiceDuration > 0}}">
+        <text>{{voiceDuration}}秒</text>
+      </view>
+    </view>
+    
+    <!-- 已录制的语音 -->
+    <view class="voice-list" wx:if="{{voicePath}}">
+      <view class="voice-item">
+        <view class="voice-play-btn" bindtap="playVoice">
+          <text>{{isPlaying ? '⏸️' : '▶️'}}</text>
+        </view>
+        <view class="voice-info">
+          <view class="voice-wave">
+            <view class="wave-bar" wx:for="{{[1,2,3,4,5,6,7,8,9,10]}}" wx:key="*this" style="height: {{isPlaying ? (10 + Math.random() * 20) : 10}}rpx;"></view>
+          </view>
+          <text class="voice-duration-text">{{voiceDuration}}秒</text>
+        </view>
+        <view class="voice-delete" bindtap="deleteVoice">✕</view>
+      </view>
+    </view>
+    <view class="voice-hint">最长60秒，记录孩子的童言童语</view>
   </view>
 
   <!-- 可见范围 -->
@@ -173,8 +254,17 @@
     </view>
   </view>
 
-  <!-- 保存按钮 -->
-  <view class="save-btn" bindtap="save">{{isEdit ? '更新笔记' : '保存笔记'}}</view>
+  <!-- 保存按钮区域 -->
+  <view class="save-area">
+    <view class="save-btn draft-btn" bindtap="saveDraftAndBack" wx:if="{{!isEdit}}">
+      <text class="save-btn-icon">📝</text>
+      <text class="save-btn-text">存草稿</text>
+    </view>
+    <view class="save-btn publish-btn" bindtap="save">
+      <text class="save-btn-icon">✅</text>
+      <text class="save-btn-text">{{isEdit ? '更新笔记' : '发布笔记'}}</text>
+    </view>
+  </view>
 </view>
 
 <!-- 自定义类型创建弹窗 -->
@@ -192,6 +282,20 @@
     <view class="modal-actions">
       <view class="modal-btn cancel" bindtap="hideCustomTypeModal">取消</view>
       <view class="modal-btn confirm" bindtap="createCustomType">创建</view>
+    </view>
+  </view>
+</view>
+
+<!-- 草稿恢复提示框 -->
+<view class="modal-mask" wx:if="{{showDraftRecovery}}" bindtap="discardDraft">
+  <view class="modal-content" catchtap="">
+    <view class="modal-title">📝 检测到未完成的草稿</view>
+    <view class="draft-info">
+      <text>发现一份未保存的笔记草稿，是否恢复继续编辑？</text>
+    </view>
+    <view class="modal-actions">
+      <view class="modal-btn cancel" bindtap="discardDraft">丢弃</view>
+      <view class="modal-btn confirm" bindtap="recoverDraft">恢复草稿</view>
     </view>
   </view>
 </view>

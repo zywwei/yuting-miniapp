@@ -1,6 +1,95 @@
+/* ===== 设计Token（猜拳竞技场主题） ===== */
+:root {
+  /* 主色板（与全局亲子粉衔接并提亮） */
+  --rps-primary:      #FF6B8A;   /* 主粉：主按钮、标题强调 */
+  --rps-primary-deep: #E8527A;   /* 深粉：渐变末端、按压态 */
+  --rps-gold:         #FFB830;   /* 金色：胜利、奖杯、连胜 */
+  --rps-ink:          #3A2E4D;   /* 主文字：深紫灰（替代纯黑#333，更柔和） */
+  --rps-ink-light:    #8A7FA0;   /* 次要文字 */
+
+  /* 三拳专属色（增强识别，全模块统一） */
+  --rps-rock:     #7C8DB0;  /* 石头：岩蓝灰 */
+  --rps-scissors: #3EC6B8;  /* 剪刀：青碧 */
+  --rps-paper:    #FF9F43;  /* 布：暖橙 */
+
+  /* 结果色 */
+  --rps-win:  #4CAF6D;   /* 胜：青绿 */
+  --rps-lose: #FF5A5A;   /* 负：珊瑚红 */
+  --rps-draw: #FFB830;   /* 平：金 */
+
+  /* 背景（进一步加深以确保白色文字清晰） */
+  --rps-bg: linear-gradient(180deg, #C9A0B8 0%, #B8A0C8 55%, #A8C0E0 100%);
+
+  /* 卡片与阴影（立体糖果感） */
+  --rps-card-bg:    #FFFFFF;
+  --rps-radius-lg:  32rpx;
+  --rps-radius-md:  24rpx;
+  --rps-shadow-1:   0 6rpx 20rpx rgba(58, 46, 77, 0.08);           /* 悬浮卡 */
+  --rps-shadow-2:   0 12rpx 32rpx rgba(58, 46, 77, 0.12);          /* 强调卡 */
+  --rps-border:     3rpx solid rgba(58, 46, 77, 0.06);             /* 柔边 */
+
+  /* 立体按钮（街机感：顶面 + 底部厚度条） */
+  --rps-btn-depth:  8rpx;   /* 按钮底部厚度，按压时压缩为 2rpx */
+
+  /* 字号层级 */
+  --rps-fs-hero:   64rpx;  /* 页面主标题 / 大比分 */
+  --rps-fs-title:  40rpx;  /* 区块标题 */
+  --rps-fs-body:   30rpx;  /* 正文 */
+  --rps-fs-aux:    24rpx;  /* 辅助说明 */
+}
+
 .container {
   min-height: 100vh;
-  background: #FFF5F5;
+  background: var(--rps-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 漂移白云 */
+.clouds-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cloud {
+  position: absolute;
+  font-size: 80rpx;
+  opacity: 0.3;
+  animation: cloudDrift linear infinite;
+}
+
+.cloud-1 {
+  top: 15%;
+  left: -20%;
+  animation-duration: 60s;
+}
+
+.cloud-2 {
+  top: 40%;
+  left: -30%;
+  animation-duration: 80s;
+  animation-delay: 20s;
+  font-size: 60rpx;
+  opacity: 0.2;
+}
+
+.cloud-3 {
+  top: 65%;
+  left: -25%;
+  animation-duration: 70s;
+  animation-delay: 40s;
+  font-size: 70rpx;
+  opacity: 0.25;
+}
+
+@keyframes cloudDrift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(150vw); }
 }
 
 .header {
@@ -14,8 +103,9 @@
   left: 0;
   right: 0;
   height: 280rpx;
-  background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%);
+  background: linear-gradient(135deg, #D8507A 0%, #B8405A 100%);
   border-radius: 0 0 40rpx 40rpx;
+  box-shadow: 0 8rpx 32rpx rgba(184, 64, 90, 0.3);
 }
 
 .header-content {
@@ -24,14 +114,124 @@
   text-align: center;
 }
 
+/* 聚光灯光锥效果 */
+.header-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 280rpx;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* 聚光灯效果 */
+.spotlight {
+  position: absolute;
+  top: 0;
+  width: 200rpx;
+  height: 280rpx;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.spotlight-left {
+  left: 10%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 100%);
+  transform: rotate(-15deg);
+}
+
+.spotlight-right {
+  right: 10%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 100%);
+  transform: rotate(15deg);
+}
+
+/* 漂浮星星 */
+.floating-stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 280rpx;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.star {
+  position: absolute;
+  font-size: 24rpx;
+  opacity: 0;
+  animation: starFloat 4s ease-in-out infinite;
+}
+
+.star-1 {
+  top: 20%;
+  left: 20%;
+  animation-delay: 0s;
+}
+
+.star-2 {
+  top: 40%;
+  right: 25%;
+  animation-delay: 1.3s;
+}
+
+.star-3 {
+  top: 60%;
+  left: 40%;
+  animation-delay: 2.6s;
+}
+
+@keyframes starFloat {
+  0%, 100% { opacity: 0; transform: translateY(0) scale(0.8); }
+  50% { opacity: 0.6; transform: translateY(-20rpx) scale(1.2); }
+}
+
+/* 三拳小图标横排 */
+.rps-icons {
+  display: flex;
+  justify-content: center;
+  gap: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.rps-icon {
+  font-size: 48rpx;
+  animation: iconBounce 0.6s ease-out both;
+}
+
+.rock-icon { animation-delay: 0s; }
+.scissors-icon { animation-delay: 0.15s; }
+.paper-icon { animation-delay: 0.3s; }
+
+@keyframes iconBounce {
+  0% { transform: scale(0.6) translateY(20rpx); opacity: 0; }
+  60% { transform: scale(1.1) translateY(-5rpx); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
 .sound-toggle {
   position: absolute;
   top: 32rpx;
   right: 32rpx;
   z-index: 10;
-  padding: 12rpx;
-  background: rgba(255, 255, 255, 0.2);
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rps-card-bg);
   border-radius: 50%;
+  box-shadow: var(--rps-shadow-1);
+  border: var(--rps-border);
+  transition: transform 0.2s ease;
+}
+
+.sound-toggle:active {
+  transform: translateY(4rpx);
+  box-shadow: 0 2rpx 8rpx rgba(58, 46, 77, 0.12);
 }
 
 .sound-icon {
@@ -41,18 +241,39 @@
 .header-icon {
   font-size: 80rpx;
   margin-bottom: 16rpx;
+  animation: headerIconBounce 0.6s ease-out;
+}
+
+@keyframes headerIconBounce {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .header-title {
-  font-size: 44rpx;
+  font-size: var(--rps-fs-hero);
   font-weight: bold;
   color: #fff;
   margin-bottom: 8rpx;
+  text-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.4), 0 2rpx 4rpx rgba(0, 0, 0, 0.3);
+  animation: titleSlideIn 0.5s ease-out 0.2s both;
+}
+
+@keyframes titleSlideIn {
+  0% { transform: translateY(20rpx); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
 .header-desc {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--rps-fs-aux);
+  color: #fff;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.4);
+  animation: descFadeIn 0.5s ease-out 0.4s both;
+}
+
+@keyframes descFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 .stats-bar {
@@ -60,11 +281,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: linear-gradient(135deg, #E8708A 0%, #D85878 100%);
   margin: 0 32rpx;
   padding: 24rpx;
-  border-radius: 20rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+  border-radius: var(--rps-radius-lg);
+  box-shadow: 0 8rpx 32rpx rgba(232, 112, 138, 0.35);
 }
 
 .stat-item {
@@ -75,21 +296,24 @@
 }
 
 .stat-value {
-  font-size: 40rpx;
+  font-size: var(--rps-fs-title);
   font-weight: bold;
-  color: #E91E63;
+  color: #fff;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
 }
 
 .stat-label {
-  font-size: 22rpx;
-  color: #999;
-  margin-top: 4rpx;
+  font-size: var(--rps-fs-aux);
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 8rpx;
+  font-weight: 500;
 }
 
 .stat-divider {
   width: 2rpx;
   height: 48rpx;
-  background: #eee;
+  background: rgba(255, 255, 255, 0.4);
+  margin: 0 16rpx;
 }
 
 .mode-grid {
@@ -99,100 +323,178 @@
 .mode-card {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--rps-card-bg);
   padding: 32rpx;
-  border-radius: 20rpx;
+  border-radius: var(--rps-radius-lg);
   margin-bottom: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  box-shadow: var(--rps-shadow-1);
+  border: var(--rps-border);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: modeCardFadeIn 0.5s ease-out both;
+}
+
+.mode-card:nth-child(1) { animation-delay: 0.1s; }
+.mode-card:nth-child(2) { animation-delay: 0.2s; }
+.mode-card:nth-child(3) { animation-delay: 0.3s; }
+.mode-card:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes modeCardFadeIn {
+  0% { transform: translateY(30rpx); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
 }
 
 .mode-card:active {
-  transform: scale(0.98);
+  transform: translateY(4rpx);
+  box-shadow: 0 2rpx 8rpx rgba(58, 46, 77, 0.12);
 }
 
+/* 主题色渐变底 */
+
+/* 主题色渐变底 */
+.classic-card { background: linear-gradient(135deg, rgba(255, 107, 138, 0.05) 0%, rgba(255, 107, 138, 0.02) 100%); }
+.challenge-card { background: linear-gradient(135deg, rgba(255, 184, 48, 0.05) 0%, rgba(255, 184, 48, 0.02) 100%); }
+.story-card { background: linear-gradient(135deg, rgba(62, 198, 184, 0.05) 0%, rgba(62, 198, 184, 0.02) 100%); }
+.tournament-card { background: linear-gradient(135deg, rgba(232, 80, 122, 0.05) 0%, rgba(232, 80, 122, 0.02) 100%); }
+
 .mode-icon {
-  font-size: 56rpx;
+  width: 96rpx;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   margin-right: 24rpx;
+  font-size: 48rpx;
 }
+
+.classic-card .mode-icon { background: rgba(255, 107, 138, 0.15); }
+.challenge-card .mode-icon { background: rgba(255, 184, 48, 0.15); }
+.story-card .mode-icon { background: rgba(62, 198, 184, 0.15); }
+.tournament-card .mode-icon { background: rgba(124, 111, 204, 0.15); }
 
 .mode-info {
   flex: 1;
 }
 
 .mode-title {
-  font-size: 32rpx;
+  font-size: var(--rps-fs-body);
   font-weight: bold;
-  color: #333;
+  color: var(--rps-ink);
   margin-bottom: 8rpx;
 }
 
 .mode-desc {
-  font-size: 24rpx;
-  color: #999;
+  font-size: var(--rps-fs-aux);
+  color: var(--rps-ink-light);
 }
 
 .mode-arrow {
-  font-size: 40rpx;
-  color: #ccc;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 107, 138, 0.1);
+  border-radius: 50%;
+  color: var(--rps-primary);
+  font-size: 32rpx;
   font-weight: bold;
 }
+
+.classic-card .mode-arrow { background: rgba(255, 107, 138, 0.1); color: var(--rps-primary); }
+.challenge-card .mode-arrow { background: rgba(255, 184, 48, 0.1); color: var(--rps-gold); }
+.story-card .mode-arrow { background: rgba(62, 198, 184, 0.1); color: var(--rps-scissors); }
+.tournament-card .mode-arrow { background: rgba(232, 80, 122, 0.1); color: #E8507A; }
 
 .recent-section {
   padding: 0 32rpx 32rpx;
+  animation: recentSectionFadeIn 0.6s ease-out 0.5s both;
+}
+
+@keyframes recentSectionFadeIn {
+  0% { opacity: 0; transform: translateY(20rpx); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 .section-title {
-  font-size: 28rpx;
+  font-size: var(--rps-fs-body);
   font-weight: bold;
-  color: #333;
+  color: var(--rps-ink);
   margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.section-title::before {
+  content: '';
+  width: 8rpx;
+  height: 32rpx;
+  background: var(--rps-primary);
+  border-radius: 4rpx;
 }
 
 .record-list {
-  background: #fff;
-  border-radius: 16rpx;
+  background: var(--rps-card-bg);
+  border-radius: var(--rps-radius-md);
   overflow: hidden;
+  box-shadow: var(--rps-shadow-1);
+  border: var(--rps-border);
 }
 
 .record-item {
   display: flex;
   align-items: center;
-  padding: 20rpx 24rpx;
-  border-bottom: 2rpx solid #f5f5f5;
+  padding: 24rpx;
+  border-bottom: 2rpx solid rgba(58, 46, 77, 0.06);
+  transition: background 0.2s ease;
 }
 
 .record-item:last-child {
   border-bottom: none;
 }
 
+.record-item:active {
+  background: rgba(255, 107, 138, 0.05);
+}
+
 .record-mode {
-  font-size: 24rpx;
-  color: #666;
+  font-size: var(--rps-fs-aux);
+  color: var(--rps-ink-light);
   width: 100rpx;
 }
 
 .record-result {
   flex: 1;
-  font-size: 28rpx;
+  font-size: var(--rps-fs-body);
   font-weight: bold;
   text-align: center;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  min-width: 80rpx;
 }
 
 .record-result.win {
-  color: #4CAF50;
+  background: rgba(76, 175, 109, 0.15);
+  color: var(--rps-win);
 }
 
 .record-result.lose {
-  color: #F44336;
+  background: rgba(255, 90, 90, 0.15);
+  color: var(--rps-lose);
 }
 
 .record-result.draw {
-  color: #FF9800;
+  background: rgba(255, 184, 48, 0.15);
+  color: var(--rps-draw);
 }
 
 .record-score {
-  font-size: 24rpx;
-  color: #999;
+  font-size: var(--rps-fs-aux);
+  color: var(--rps-ink-light);
   width: 100rpx;
   text-align: right;
+  font-weight: 500;
 }

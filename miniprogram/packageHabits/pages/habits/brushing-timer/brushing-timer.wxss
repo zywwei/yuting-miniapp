@@ -436,7 +436,6 @@
   transform: translate(-50%, -50%);
   z-index: 5;
   text-align: center;
-  filter: drop-shadow(0 10rpx 20rpx rgba(0,0,0,0.15));
   transition: opacity 0.3s ease-out;
   animation: enemyEntrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -459,6 +458,7 @@
   display: block;
   --enemy-scale: 1.3;
   transition: transform 0.3s ease-out;
+  text-shadow: 0 4rpx 8rpx rgba(0,0,0,0.15);
 }
 
 .enemy-idle {
@@ -467,7 +467,7 @@
 
 @keyframes enemyIdle {
   0%, 100% { transform: scale(1.3); }
-  50% { transform: scale(1.404); }
+  50% { transform: scale(1.404); text-shadow: 0 0 20rpx rgba(255,255,255,0.6); }
 }
 
 .shake {
@@ -485,11 +485,11 @@
 }
 
 @keyframes defeated {
-  0% { transform: scale(var(--enemy-scale, 1.3)); opacity: 1; filter: brightness(1); }
-  20% { transform: scale(1.6); opacity: 1; filter: brightness(2) blur(2rpx); }
-  45% { transform: scale(0.9) rotate(-10deg); opacity: 0.9; filter: brightness(1.5) blur(0); }
-  70% { transform: scale(0.4) rotate(10deg); opacity: 0.4; filter: brightness(0.8); }
-  100% { transform: scale(0) rotate(0deg); opacity: 0; filter: brightness(0); }
+  0% { transform: scale(var(--enemy-scale, 1.3)); opacity: 1; }
+  20% { transform: scale(1.6); opacity: 1; text-shadow: 0 0 60rpx rgba(255,255,255,0.9), 0 0 120rpx rgba(255,215,0,0.6); }
+  45% { transform: scale(0.9) rotate(-10deg); opacity: 0.9; text-shadow: 0 0 30rpx rgba(255,255,255,0.4); }
+  70% { transform: scale(0.4) rotate(10deg); opacity: 0.4; }
+  100% { transform: scale(0) rotate(0deg); opacity: 0; }
 }
 
 /* 敌人被击败时的屏幕闪光 */
@@ -726,7 +726,7 @@
 /* 敌人愤怒状态 */
 .enemy-hero.angry .enemy-emoji {
   animation: enemyAngry 0.5s ease-in-out infinite;
-  filter: hue-rotate(30deg) brightness(1.1);
+  text-shadow: 0 0 15rpx rgba(255,100,0,0.5);
 }
 
 @keyframes enemyAngry {
@@ -914,9 +914,9 @@
 }
 
 @keyframes critFlashEmoji {
-  0% { filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.2)); }
-  50% { filter: drop-shadow(0 0 20rpx #FFD700) brightness(2); }
-  100% { filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.2)); }
+  0% { }
+  50% { text-shadow: 0 0 30rpx #FFD700, 0 0 60rpx #FFD700; }
+  100% { }
 }
 
 /* 牙刷残影 */
@@ -933,7 +933,7 @@
 .toothbrush-afterimage::after {
   content: '🪥';
   font-size: 100rpx;
-  filter: brightness(2) sepia(1) hue-rotate(10deg);
+  text-shadow: 0 0 30rpx rgba(255,255,255,0.8), 0 0 60rpx rgba(255,215,0,0.5);
 }
 
 @keyframes afterimage {
@@ -1175,7 +1175,7 @@
   0% {
     opacity: 1;
     transform: rotate(var(--angle, 0deg)) translateX(0) scale(2);
-    filter: brightness(2);
+    text-shadow: 0 0 20rpx rgba(255,255,255,0.8);
   }
   30% {
     opacity: 1;
@@ -1220,11 +1220,11 @@
 }
 
 @keyframes enemyHitReact {
-  0% { transform: translateY(0) scale(1.3); filter: brightness(1); }
-  20% { transform: translateY(20rpx) scaleY(0.91); filter: brightness(2); }
-  40% { transform: translateY(0) scaleY(1.43); filter: brightness(1); }
-  60% { transform: translateY(10rpx) scaleY(1.105); filter: brightness(1.2); }
-  100% { transform: translateY(0) scale(1.3); filter: brightness(1); }
+  0% { transform: translateY(0) scale(1.3); }
+  20% { transform: translateY(20rpx) scaleY(0.91); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,255,255,0.5); }
+  40% { transform: translateY(0) scaleY(1.43); }
+  60% { transform: translateY(10rpx) scaleY(1.105); text-shadow: 0 0 15rpx rgba(255,255,255,0.4); }
+  100% { transform: translateY(0) scale(1.3); }
 }
 
 /* 暴击动画类型1：左上角飞旋击飞（大位移+旋转） */
@@ -1234,11 +1234,11 @@
 
 @keyframes critKnockback {
   0% { transform: translate(0, 0) rotate(0deg) scale(1.3); }
-  12% { transform: translate(-20rpx, -15rpx) rotate(30deg) scale(1.56); filter: brightness(2); }
+  12% { transform: translate(-20rpx, -15rpx) rotate(30deg) scale(1.56); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   30% { transform: translate(-100rpx, -80rpx) rotate(180deg) scale(0.91); }
   50% { transform: translate(-60rpx, -40rpx) rotate(270deg) scale(1.3); }
   70% { transform: translate(-20rpx, -10rpx) rotate(330deg) scale(1.3); }
-  100% { transform: translate(0, 0) rotate(360deg) scale(1.3); filter: brightness(1); }
+  100% { transform: translate(0, 0) rotate(360deg) scale(1.3); }
 }
 
 /* 暴击动画类型2：猛烈缩放脉冲（极端大小跳变） */
@@ -1248,7 +1248,7 @@
 
 @keyframes critShrinkBounce {
   0% { transform: scale(1.3); }
-  10% { transform: scale(0.3); filter: brightness(2.5); }
+  10% { transform: scale(0.3); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   25% { transform: scale(2.2); }
   40% { transform: scale(0.5); }
   55% { transform: scale(1.8); }
@@ -1263,13 +1263,13 @@
 }
 
 @keyframes critSpin {
-  0% { transform: rotate(0deg) scale(1.3); filter: brightness(1); }
-  10% { transform: rotate(120deg) scale(1.5); filter: brightness(2); }
+  0% { transform: rotate(0deg) scale(1.3); }
+  10% { transform: rotate(120deg) scale(1.5); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   30% { transform: rotate(360deg) scale(1.8); }
-  50% { transform: rotate(600deg) scale(1.3); filter: brightness(1.5); }
+  50% { transform: rotate(600deg) scale(1.3); text-shadow: 0 0 25rpx rgba(255,255,255,0.5); }
   70% { transform: rotate(840deg) scale(1.6); }
-  90% { transform: rotate(1050deg) scale(1.2); filter: brightness(2); }
-  100% { transform: rotate(1080deg) scale(1.3); filter: brightness(1); }
+  90% { transform: rotate(1050deg) scale(1.2); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
+  100% { transform: rotate(1080deg) scale(1.3); }
 }
 
 /* 暴击动画类型4：重击砸地（向下压扁+地面弹跳感） */
@@ -1279,7 +1279,7 @@
 
 @keyframes critSquash {
   0% { transform: scaleX(1) scaleY(1.3); }
-  10% { transform: scaleX(1) scaleY(1.5); filter: brightness(2); }
+  10% { transform: scaleX(1) scaleY(1.5); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   20% { transform: scaleX(2.2) scaleY(0.45); }
   35% { transform: scaleX(0.7) scaleY(2.0); }
   50% { transform: scaleX(1.7) scaleY(0.7); }
@@ -1295,14 +1295,14 @@
 
 @keyframes critTeleport {
   0% { opacity: 1; transform: scale(1.3); }
-  12% { opacity: 0.3; transform: scale(2.0); filter: brightness(4); }
+  12% { opacity: 0.3; transform: scale(2.0); text-shadow: 0 0 60rpx rgba(255,255,255,1), 0 0 120rpx rgba(255,215,0,0.8); }
   20% { opacity: 0; transform: scale(1.0); }
   35% { opacity: 0; transform: translate(80rpx, 50rpx) scale(1.0); }
-  45% { opacity: 1; transform: translate(80rpx, 50rpx) scale(1.8); filter: brightness(3); }
+  45% { opacity: 1; transform: translate(80rpx, 50rpx) scale(1.8); text-shadow: 0 0 50rpx rgba(255,255,255,0.9), 0 0 100rpx rgba(255,215,0,0.7); }
   55% { opacity: 0.2; transform: translate(80rpx, 50rpx) scale(1.2); }
-  65% { opacity: 1; transform: translate(30rpx, 20rpx) scale(1.5); filter: brightness(1.5); }
+  65% { opacity: 1; transform: translate(30rpx, 20rpx) scale(1.5); text-shadow: 0 0 25rpx rgba(255,255,255,0.5); }
   80% { opacity: 1; transform: translate(-10rpx, -5rpx) scale(1.2); }
-  100% { opacity: 1; transform: translate(0, 0) scale(1.3); filter: brightness(1); }
+  100% { opacity: 1; transform: translate(0, 0) scale(1.3); }
 }
 
 /* 暴击动画类型6：剧烈摇晃（高频左右摇+放大闪烁） */
@@ -1312,13 +1312,13 @@
 
 @keyframes critShakeBig {
   0% { transform: translate(0, 0) scale(1.3); }
-  8% { transform: translate(-25rpx, 0) scale(1.9); filter: brightness(2.5); }
+  8% { transform: translate(-25rpx, 0) scale(1.9); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   16% { transform: translate(25rpx, 0) scale(1.5); }
-  24% { transform: translate(-20rpx, 0) scale(2.0); filter: brightness(1.5); }
+  24% { transform: translate(-20rpx, 0) scale(2.0); text-shadow: 0 0 25rpx rgba(255,255,255,0.5); }
   32% { transform: translate(20rpx, 0) scale(1.6); }
-  40% { transform: translate(-15rpx, 0) scale(1.8); filter: brightness(2.5); }
+  40% { transform: translate(-15rpx, 0) scale(1.8); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   48% { transform: translate(15rpx, 0) scale(1.4); }
-  56% { transform: translate(-8rpx, 0) scale(1.6); filter: brightness(1.5); }
+  56% { transform: translate(-8rpx, 0) scale(1.6); text-shadow: 0 0 25rpx rgba(255,255,255,0.5); }
   64% { transform: translate(8rpx, 0) scale(1.3); }
   80% { transform: translate(0, 0) scale(1.35); }
   100% { transform: translate(0, 0) scale(1.3); }
@@ -1331,11 +1331,11 @@
 
 @keyframes critKnockRight {
   0% { transform: translate(0, 0) rotate(0deg) scale(1.3); }
-  10% { transform: translate(40rpx, -20rpx) rotate(-15deg) scale(1.56); filter: brightness(2); }
+  10% { transform: translate(40rpx, -20rpx) rotate(-15deg) scale(1.56); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   30% { transform: translate(120rpx, -70rpx) rotate(-45deg) scale(1.0); }
   50% { transform: translate(80rpx, -30rpx) rotate(-25deg) scale(1.3); }
   70% { transform: translate(30rpx, -10rpx) rotate(-10deg) scale(1.3); }
-  100% { transform: translate(0, 0) rotate(0deg) scale(1.3); filter: brightness(1); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1.3); }
 }
 
 /* 暴击动画类型8：弹射上升（快速冲高+重力回落） */
@@ -1345,13 +1345,13 @@
 
 @keyframes critBounce {
   0% { transform: translateY(0) scale(1.3); }
-  8% { transform: translateY(10rpx) scaleY(0.7) scaleX(1.4); filter: brightness(2); }
+  8% { transform: translateY(10rpx) scaleY(0.7) scaleX(1.4); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   18% { transform: translateY(-120rpx) scaleY(1.4) scaleX(0.8); }
   35% { transform: translateY(0) scaleY(0.6) scaleX(1.5); }
   50% { transform: translateY(-50rpx) scaleY(1.2) scaleX(0.9); }
   65% { transform: translateY(0) scaleY(0.85) scaleX(1.15); }
   80% { transform: translateY(-10rpx) scale(1.3); }
-  100% { transform: translateY(0) scale(1.3); filter: brightness(1); }
+  100% { transform: translateY(0) scale(1.3); }
 }
 
 /* 暴击动画类型9：扭曲变形（极端比例拉扯+扭绞） */
@@ -1361,13 +1361,13 @@
 
 @keyframes critDistort {
   0% { transform: scale(1.3); }
-  10% { transform: scaleX(0.25) scaleY(3.0) rotate(15deg); filter: brightness(2.5); }
+  10% { transform: scaleX(0.25) scaleY(3.0) rotate(15deg); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   25% { transform: scaleX(3.0) scaleY(0.25) rotate(-15deg); }
-  40% { transform: scaleX(0.4) scaleY(2.2) rotate(10deg); filter: brightness(1.5); }
+  40% { transform: scaleX(0.4) scaleY(2.2) rotate(10deg); text-shadow: 0 0 25rpx rgba(255,255,255,0.5); }
   55% { transform: scaleX(2.2) scaleY(0.4) rotate(-10deg); }
-  70% { transform: scaleX(0.7) scaleY(1.6) rotate(5deg); filter: brightness(2); }
+  70% { transform: scaleX(0.7) scaleY(1.6) rotate(5deg); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
   85% { transform: scaleX(1.5) scaleY(0.7) rotate(-3deg); }
-  100% { transform: scale(1.3) rotate(0deg); filter: brightness(1); }
+  100% { transform: scale(1.3) rotate(0deg); }
 }
 
 /* 暴击动画类型10：高频颤抖（快速微颤+颜色闪烁） */
@@ -1376,18 +1376,18 @@
 }
 
 @keyframes critTremble {
-  0% { transform: translate(0, 0) scale(1.3); filter: brightness(1); }
-  8% { transform: translate(-12rpx, -8rpx) scale(1.15); filter: brightness(2.5); }
-  16% { transform: translate(12rpx, 8rpx) scale(1.25); filter: brightness(1); }
-  24% { transform: translate(-10rpx, 6rpx) scale(1.1); filter: brightness(2.5); }
-  32% { transform: translate(10rpx, -6rpx) scale(1.3); filter: brightness(1); }
-  40% { transform: translate(-8rpx, -10rpx) scale(1.05); filter: brightness(2.5); }
-  48% { transform: translate(8rpx, 10rpx) scale(1.35); filter: brightness(1); }
-  56% { transform: translate(-6rpx, 4rpx) scale(1.1); filter: brightness(2.5); }
-  64% { transform: translate(6rpx, -4rpx) scale(1.25); filter: brightness(1); }
-  72% { transform: translate(-4rpx, -6rpx) scale(1.15); filter: brightness(2.5); }
-  80% { transform: translate(4rpx, 6rpx) scale(1.3); filter: brightness(1); }
-  100% { transform: translate(0, 0) scale(1.3); filter: brightness(1); }
+  0% { transform: translate(0, 0) scale(1.3); }
+  8% { transform: translate(-12rpx, -8rpx) scale(1.15); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
+  16% { transform: translate(12rpx, 8rpx) scale(1.25); }
+  24% { transform: translate(-10rpx, 6rpx) scale(1.1); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
+  32% { transform: translate(10rpx, -6rpx) scale(1.3); }
+  40% { transform: translate(-8rpx, -10rpx) scale(1.05); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
+  48% { transform: translate(8rpx, 10rpx) scale(1.35); }
+  56% { transform: translate(-6rpx, 4rpx) scale(1.1); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
+  64% { transform: translate(6rpx, -4rpx) scale(1.25); }
+  72% { transform: translate(-4rpx, -6rpx) scale(1.15); text-shadow: 0 0 40rpx rgba(255,255,255,0.9), 0 0 80rpx rgba(255,215,0,0.6); }
+  80% { transform: translate(4rpx, 6rpx) scale(1.3); }
+  100% { transform: translate(0, 0) scale(1.3); }
 }
 
 /* 暴击名字文字 */
@@ -2427,12 +2427,12 @@
   0% {
     opacity: 1;
     transform: rotate(var(--fw-angle, 0deg)) translateX(0) scale(1.8);
-    filter: brightness(2.5);
+    text-shadow: 0 0 30rpx rgba(255,255,255,0.9), 0 0 60rpx currentColor;
   }
   20% {
     opacity: 1;
     transform: rotate(var(--fw-angle, 0deg)) translateX(var(--fw-distance, 100rpx)) scale(1.4);
-    filter: brightness(2);
+    text-shadow: 0 0 20rpx rgba(255,255,255,0.6);
   }
   50% {
     opacity: 0.9;
@@ -3302,17 +3302,17 @@
 
 .entrance-lightning .entrance-monster-emoji {
   animation: monsterLightning 0.7s ease-out both;
-  filter: drop-shadow(0 0 30rpx rgba(255,215,0,0.9)) brightness(1.5);
+  text-shadow: 0 0 40rpx rgba(255,215,0,0.9), 0 0 80rpx rgba(255,215,0,0.5);
 }
 
 @keyframes monsterLightning {
-  0% { opacity: 0; transform: scale(0.3); filter: brightness(4) blur(10rpx); }
-  15% { opacity: 1; transform: scale(1.5); filter: brightness(3) blur(0); }
+  0% { opacity: 0; transform: scale(0.3); text-shadow: 0 0 80rpx rgba(255,255,255,1), 0 0 160rpx rgba(255,215,0,0.8); }
+  15% { opacity: 1; transform: scale(1.5); text-shadow: 0 0 60rpx rgba(255,255,255,0.9), 0 0 120rpx rgba(255,215,0,0.7); }
   30% { opacity: 0.3; transform: scale(1.2); }
-  45% { opacity: 1; transform: scale(1.3); filter: brightness(2); }
+  45% { opacity: 1; transform: scale(1.3); text-shadow: 0 0 40rpx rgba(255,255,255,0.8); }
   60% { opacity: 0.6; transform: scale(1.1); }
-  75% { opacity: 1; transform: scale(1.15); filter: brightness(1.5); }
-  100% { opacity: 1; transform: scale(1) rotate(0deg); filter: brightness(1.2); }
+  75% { opacity: 1; transform: scale(1.15); text-shadow: 0 0 25rpx rgba(255,255,255,0.5); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
 .entrance-lightning .entrance-impact {
@@ -3374,9 +3374,9 @@
 }
 
 @keyframes monsterPortal {
-  0% { opacity: 0; transform: scale(0.2) rotate(-180deg); filter: blur(20rpx) hue-rotate(180deg); }
-  40% { opacity: 0.5; transform: scale(0.5) rotate(-90deg); filter: blur(10rpx) hue-rotate(90deg); }
-  70% { opacity: 1; transform: scale(1.1) rotate(10deg); filter: blur(0) hue-rotate(0deg); }
+  0% { opacity: 0; transform: scale(0.2) rotate(-180deg); }
+  40% { opacity: 0.5; transform: scale(0.5) rotate(-90deg); }
+  70% { opacity: 1; transform: scale(1.1) rotate(10deg); }
   85% { transform: scale(0.95) rotate(-3deg); }
   100% { opacity: 1; transform: scale(1) rotate(0deg); }
 }
@@ -3392,14 +3392,14 @@
 }
 
 @keyframes monsterGrowth {
-  0% { opacity: 0; transform: scale(0.01); filter: brightness(3) blur(8rpx); }
-  20% { opacity: 0.6; transform: scale(0.1); filter: brightness(2.5); }
-  40% { opacity: 1; transform: scale(0.5); filter: brightness(2); }
-  55% { transform: scale(1.4); filter: brightness(1.8) blur(2rpx); }
-  70% { transform: scale(0.9); filter: brightness(1.4); }
+  0% { opacity: 0; transform: scale(0.01); text-shadow: 0 0 60rpx rgba(255,255,255,0.9), 0 0 120rpx rgba(255,215,0,0.7); }
+  20% { opacity: 0.6; transform: scale(0.1); text-shadow: 0 0 40rpx rgba(255,255,255,0.7); }
+  40% { opacity: 1; transform: scale(0.5); text-shadow: 0 0 25rpx rgba(255,255,255,0.5); }
+  55% { transform: scale(1.4); text-shadow: 0 0 20rpx rgba(255,255,255,0.4); }
+  70% { transform: scale(0.9); }
   82% { transform: scale(1.1); }
   90% { transform: scale(0.98); }
-  100% { opacity: 1; transform: scale(1); filter: brightness(1.2); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 .entrance-growth .entrance-monster::before {
@@ -3461,13 +3461,13 @@
 }
 
 @keyframes monsterShadow {
-  0% { opacity: 0; transform: scale(0.3); filter: brightness(0) blur(15rpx); }
-  15% { opacity: 0.3; transform: scale(0.5); filter: brightness(0.2); }
-  30% { opacity: 0.8; transform: scale(1.8); filter: brightness(3) blur(5rpx); }
-  50% { opacity: 1; transform: scale(1.2); filter: brightness(2); }
+  0% { opacity: 0; transform: scale(0.3); }
+  15% { opacity: 0.3; transform: scale(0.5); }
+  30% { opacity: 0.8; transform: scale(1.8); text-shadow: 0 0 60rpx rgba(255,255,255,0.9), 0 0 120rpx rgba(255,215,0,0.7); }
+  50% { opacity: 1; transform: scale(1.2); text-shadow: 0 0 40rpx rgba(255,255,255,0.8); }
   65% { transform: scale(0.9); }
-  80% { transform: scale(1.08); filter: brightness(1.5); }
-  100% { opacity: 1; transform: scale(1); filter: brightness(1.2); }
+  80% { transform: scale(1.08); text-shadow: 0 0 25rpx rgba(255,255,255,0.5); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 .entrance-shadow .entrance-monster::after {
@@ -3501,8 +3501,8 @@
 
 @keyframes monsterTornado {
   0% { opacity: 0; transform: translateY(-500rpx) scale(0.3) rotate(0deg); }
-  20% { opacity: 0.5; transform: translateY(-300rpx) scale(0.6) rotate(180deg); filter: blur(3rpx); }
-  40% { opacity: 0.8; transform: translateY(-100rpx) scale(0.9) rotate(360deg); filter: blur(1rpx); }
+  20% { opacity: 0.5; transform: translateY(-300rpx) scale(0.6) rotate(180deg); }
+  40% { opacity: 0.8; transform: translateY(-100rpx) scale(0.9) rotate(360deg); }
   55% { opacity: 1; transform: translateY(0) scale(1.3) rotate(540deg); }
   70% { transform: translateY(-20rpx) scale(0.95) rotate(630deg); }
   85% { transform: translateY(5rpx) scale(1.05) rotate(720deg); }

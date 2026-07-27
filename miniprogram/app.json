@@ -6,6 +6,7 @@
     "pages/notes/index",
     "pages/notes/add",
     "pages/notes/detail",
+    "pages/notes/drafts",
     "pages/create/index",
     "pages/achievement/index",
     "pages/parent/index"
