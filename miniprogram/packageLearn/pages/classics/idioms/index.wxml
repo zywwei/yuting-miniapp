@@ -1,19 +1,23 @@
+<!-- 成语故事列表页 -->
 <view class="container">
-  <view class="header"><view class="header-title">成语故事</view><view class="header-desc">学习经典成语</view></view>
-  <view class="idiom-list">
-    <view wx:for="{{idioms}}" wx:key="id" class="idiom-item">
-      <view class="idiom-header">
-        <view class="idiom-name">{{item.idiom}}</view>
-        <view class="idiom-pinyin">{{item.pinyin}}</view>
+  <!-- 进度条 -->
+  <view class="progress-bar">
+    <view class="progress-text">已学 {{learnedCount}}/{{totalCount}}</view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{learnedCount / totalCount * 100}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 成语列表 -->
+  <view class="list">
+    <view class="list-item" wx:for="{{items}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="item-index">{{index + 1}}</view>
+      <view class="item-info">
+        <view class="item-title">{{item.idiom}}</view>
+        <view class="item-pinyin">{{item.pinyin}}</view>
       </view>
-      <view class="idiom-meaning">{{item.meaning}}</view>
-      <view class="idiom-story">
-        <view class="story-title">典故：</view>
-        <view class="story-text">{{item.story}}</view>
-      </view>
-      <view class="idiom-example">
-        <view class="example-title">造句：</view>
-        <view class="example-text">{{item.example}}</view>
+      <view class="item-status {{item.learned ? 'learned' : ''}}">
+        {{item.learned ? '✓' : ''}}
       </view>
     </view>
   </view>

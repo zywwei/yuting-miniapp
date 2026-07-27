@@ -16,7 +16,11 @@ var getProgress = function() {
     cards: learnProgress.cards || {},
     poems: learnProgress.poems || {},
     numbers: learnProgress.numbers || {},
-    english: learnProgress.english || {}
+    english: learnProgress.english || {},
+    classicsGwd: learnProgress.classicsGwd || {},
+    classicsPoetryRules: learnProgress.classicsPoetryRules || {},
+    classicsIdioms: learnProgress.classicsIdioms || {},
+    classicsConfucius: learnProgress.classicsConfucius || {}
   }
 }
 
@@ -34,6 +38,22 @@ var getNumbersLearnedCount = function() {
 
 var getEnglishLearnedCount = function() {
   return Object.keys(getProgress().english).length
+}
+
+var getClassicsGwdLearnedCount = function() {
+  return Object.keys(getProgress().classicsGwd).length
+}
+
+var getClassicsPoetryRulesLearnedCount = function() {
+  return Object.keys(getProgress().classicsPoetryRules).length
+}
+
+var getClassicsIdiomsLearnedCount = function() {
+  return Object.keys(getProgress().classicsIdioms).length
+}
+
+var getClassicsConfuciusLearnedCount = function() {
+  return Object.keys(getProgress().classicsConfucius).length
 }
 
 // 获取推荐内容（基于学习进度）
@@ -136,5 +156,9 @@ module.exports = {
   getPoemsMemorizedCount: getPoemsMemorizedCount,
   getNumbersLearnedCount: getNumbersLearnedCount,
   getEnglishLearnedCount: getEnglishLearnedCount,
+  getClassicsGwdLearnedCount: getClassicsGwdLearnedCount,
+  getClassicsPoetryRulesLearnedCount: getClassicsPoetryRulesLearnedCount,
+  getClassicsIdiomsLearnedCount: getClassicsIdiomsLearnedCount,
+  getClassicsConfuciusLearnedCount: getClassicsConfuciusLearnedCount,
   getRecommendations: getRecommendations
 }

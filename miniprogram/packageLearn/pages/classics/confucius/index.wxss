@@ -1,11 +1,106 @@
-.container { min-height: 100vh; background: #F5F7FA; }
-.header { background: linear-gradient(135deg, #d4fc79, #96e6a1); padding: 40rpx; color: #333; }
-.header-title { font-size: 44rpx; font-weight: bold; }
-.header-desc { font-size: 26rpx; opacity: 0.8; margin-top: 8rpx; }
-.quote-list { padding: 30rpx; }
-.quote-item { background: white; border-radius: 16rpx; padding: 24rpx; margin-bottom: 16rpx; }
-.quote-header { margin-bottom: 12rpx; }
-.quote-source { font-size: 22rpx; color: #999; }
-.quote-text { font-size: 32rpx; font-weight: bold; color: #333; margin-bottom: 12rpx; }
-.quote-meaning { font-size: 24rpx; color: #666; margin-bottom: 8rpx; }
-.quote-lesson { font-size: 22rpx; color: #4CAF50; }
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20rpx;
+}
+
+/* 进度条 */
+.progress-bar {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20rpx;
+  padding: 20rpx 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 15rpx rgba(0, 0, 0, 0.05);
+}
+
+.progress-text {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+}
+
+.progress-track {
+  height: 16rpx;
+  background: #e0e0e0;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d4fc79 0%, #96e6a1 100%);
+  border-radius: 8rpx;
+  transition: width 0.3s ease;
+}
+
+/* 列表 */
+.list {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.08);
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  transition: background 0.2s ease;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item:active {
+  background: #f5f5f5;
+}
+
+.item-source-badge {
+  font-size: 22rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+  margin-right: 25rpx;
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.item-quote {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-lesson {
+  font-size: 24rpx;
+  color: #667eea;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-status {
+  width: 50rpx;
+  height: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #ccc;
+}
+
+.item-status.learned {
+  color: #96e6a1;
+  font-weight: bold;
+}

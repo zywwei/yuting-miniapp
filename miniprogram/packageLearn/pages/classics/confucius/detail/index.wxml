@@ -1,0 +1,64 @@
+<!-- 论语孟子详情页 -->
+<view class="container">
+  <!-- 进度条 -->
+  <view class="progress-bar">
+    <view class="progress-text">已学 {{learnedCount}}/{{totalCount}}</view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{learnedCount / totalCount * 100}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 名句卡片 -->
+  <view class="card" wx:if="{{item}}">
+    <view class="card-header">
+      <view class="card-source-badge">{{item.source}}</view>
+      <!-- AI按钮 -->
+      <view class="ai-btn" bindtap="openAIPanel">
+        <text class="ai-icon">🤖</text>
+      </view>
+    </view>
+
+    <!-- 原文 -->
+    <view class="section">
+      <view class="section-title">原文</view>
+      <view class="section-content quote">{{item.quote}}</view>
+    </view>
+
+    <!-- 释义 -->
+    <view class="section">
+      <view class="section-title">释义</view>
+      <view class="section-content meaning">{{item.meaning}}</view>
+    </view>
+
+    <!-- 启示 -->
+    <view class="section">
+      <view class="section-title">启示</view>
+      <view class="section-content lesson">{{item.lesson}}</view>
+    </view>
+
+    <!-- 学习状态 -->
+    <view class="learned-status" wx:if="{{item.learned}}">
+      <text class="learned-icon">✓</text>
+      <text class="learned-text">已学会</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="actions">
+    <view class="action-btn {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="prevItem">上一条</view>
+    <view class="action-btn speak" bindtap="speakContent">🔊 朗读</view>
+    <view class="action-btn {{item.learned ? 'learned' : 'primary'}}" bindtap="markAsLearned">
+      {{item.learned ? '已学会 ✓' : '标记学会'}}
+    </view>
+    <view class="action-btn {{currentIndex >= totalCount - 1 ? 'disabled' : ''}}" bindtap="nextItem">下一条</view>
+  </view>
+</view>
+
+<!-- AI面板组件 -->
+<learn-ai-panel
+  show="{{showAIPanel}}"
+  module="classics-confucius"
+  contextData="{{item}}"
+  quickQuestions="{{aiQuickQuestions}}"
+  bind:close="closeAIPanel"
+/>

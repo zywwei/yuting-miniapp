@@ -1,13 +1,24 @@
+<!-- 论语孟子列表页 -->
 <view class="container">
-  <view class="header"><view class="header-title">论语孟子</view><view class="header-desc">学习儒家经典</view></view>
-  <view class="quote-list">
-    <view wx:for="{{quotes}}" wx:key="id" class="quote-item">
-      <view class="quote-header">
-        <view class="quote-source">《{{item.source}}》</view>
+  <!-- 进度条 -->
+  <view class="progress-bar">
+    <view class="progress-text">已学 {{learnedCount}}/{{totalCount}}</view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{learnedCount / totalCount * 100}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 名句列表 -->
+  <view class="list">
+    <view class="list-item" wx:for="{{items}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="item-source-badge">{{item.source}}</view>
+      <view class="item-info">
+        <view class="item-quote">{{item.quote}}</view>
+        <view class="item-lesson">{{item.lesson}}</view>
       </view>
-      <view class="quote-text">{{item.quote}}</view>
-      <view class="quote-meaning">{{item.meaning}}</view>
-      <view class="quote-lesson">{{item.lesson}}</view>
+      <view class="item-status {{item.learned ? 'learned' : ''}}">
+        {{item.learned ? '✓' : ''}}
+      </view>
     </view>
   </view>
 </view>

@@ -56,6 +56,40 @@ function buildContext(module, item) {
         '类型：' + (item.type || '练习')
       break
     
+    case 'classics-gwd':
+      context = '【学习内容】古文观止\n' +
+        '篇名：' + (item.title || '') + '\n' +
+        '作者：' + (item.author || '') + '\n' +
+        '原文：' + (item.content || '').substring(0, 200) + '\n' +
+        '译文：' + (item.translation || '').substring(0, 200)
+      break
+    
+    case 'classics-idioms':
+      context = '【学习内容】成语故事\n' +
+        '成语：' + (item.idiom || '') + '\n' +
+        '拼音：' + (item.pinyin || '') + '\n' +
+        '释义：' + (item.meaning || '') + '\n' +
+        '典故：' + (item.story || '').substring(0, 150) + '\n' +
+        '造句：' + (item.example || '')
+      break
+    
+    case 'classics-confucius':
+      context = '【学习内容】论语孟子\n' +
+        '出处：' + (item.source || '') + '\n' +
+        '原文：' + (item.original || '') + '\n' +
+        '释义：' + (item.meaning || '') + '\n' +
+        '启示：' + (item.inspiration || '')
+      break
+    
+    case 'classics-poetry-rules':
+      context = '【学习内容】诗词格律\n' +
+        '标题：' + (item.title || '') + '\n' +
+        '类型：' + (item.type || '') + '\n' +
+        '格律：' + (item.structure || '') + '\n' +
+        '规则：' + (item.rules || '') + '\n' +
+        '示例：' + (item.example || '')
+      break
+    
     default:
       context = ''
   }
@@ -109,7 +143,40 @@ function getSystemPrompt(module) {
       '3. 鼓励孩子自己思考，不要直接给答案\n' +
       '4. 可以画简单的示意图（用文字描述）\n' +
       '5. 每次回答控制在120字以内\n' +
-      '6. 用正面的语言鼓励孩子'
+      '6. 用正面的语言鼓励孩子',
+      
+    'classics-gwd': '你是一位博学的古文老师，正在带小朋友读古文。请用生动有趣的方式讲解古文，让孩子感受到古文的魅力。' +
+      '回答规则：\n' +
+      '1. 先用白话文解释古文的意思\n' +
+      '2. 讲解重点字词的含义\n' +
+      '3. 用讲故事的方式介绍背景\n' +
+      '4. 每次回答控制在150字以内\n' +
+      '5. 可以适当使用emoji增加趣味性',
+      
+    'classics-idioms': '你是一位会讲故事的成语老师，正在教小朋友学成语。请用有趣的故事和例子帮助孩子理解成语。' +
+      '回答规则：\n' +
+      '1. 用简单的话解释成语意思\n' +
+      '2. 讲述成语的由来故事\n' +
+      '3. 给出贴近孩子生活的造句\n' +
+      '4. 可以介绍相关的成语\n' +
+      '5. 每次回答控制在120字以内\n' +
+      '6. 可以用比喻帮助记忆',
+      
+    'classics-confucius': '你是一位智慧的国学老师，正在带小朋友学习儒家经典。请用通俗易懂的方式讲解名言，让孩子理解其中的道理。' +
+      '回答规则：\n' +
+      '1. 用简单的话解释名言的意思\n' +
+      '2. 讲述名言背后的故事\n' +
+      '3. 联系实际生活说明道理\n' +
+      '4. 每次回答控制在120字以内\n' +
+      '5. 可以用生活中的例子帮助理解',
+      
+    'classics-poetry-rules': '你是一位有趣的诗词老师，正在教小朋友学习诗词格律。请用简单的方式讲解格律知识，让孩子轻松掌握。' +
+      '回答规则：\n' +
+      '1. 用简单的语言解释格律规则\n' +
+      '2. 举具体的例子说明\n' +
+      '3. 可以用口诀帮助记忆\n' +
+      '4. 每次回答控制在100字以内\n' +
+      '5. 鼓励孩子尝试创作'
   }
   
   var prompt = prompts[module] || prompts.cards
@@ -159,6 +226,34 @@ function getQuickQuestions(module, item) {
       { text: '📝 类似题目', question: '能再出一道类似的题目让我练习吗？' },
       { text: '❌ 常见错误', question: '做这类题容易犯什么错？怎么避免？' },
       { text: '🎯 速算技巧', question: '有没有更快的计算方法？' }
+    ],
+    'classics-gwd': [
+      { text: '📖 白话翻译', question: '这篇古文是什么意思？帮我翻译成白话文' },
+      { text: '📝 重点字词', question: '这篇文章里有哪些重要的字词需要掌握？' },
+      { text: '📚 背景故事', question: '这篇文章是在什么背景下写的？有什么故事？' },
+      { text: '✍️ 写作手法', question: '这篇文章用了什么写作手法？好在哪里？' },
+      { text: '🎯 现代意义', question: '这篇文章在今天有什么意义？' }
+    ],
+    'classics-idioms': [
+      { text: '📖 成语意思', question: '这个成语是什么意思？用简单的话解释一下' },
+      { text: '📜 典故故事', question: '这个成语是怎么来的？有什么故事？' },
+      { text: '📝 近义反义', question: '这个成语的近义词和反义词有哪些？' },
+      { text: '✏️ 造句应用', question: '用这个成语造一个句子，要贴近生活的' },
+      { text: '🧩 记忆技巧', question: '有什么好办法记住这个成语？' }
+    ],
+    'classics-confucius': [
+      { text: '📖 名言释义', question: '这句话是什么意思？用简单的话解释一下' },
+      { text: '📚 背景故事', question: '这句话是在什么情况下说的？有什么故事？' },
+      { text: '💡 现实意义', question: '这句话在今天有什么意义？怎么理解？' },
+      { text: '📝 相关名言', question: '还有哪些和这句话意思相近的名言？' },
+      { text: '🏠 生活应用', question: '这句话在生活中怎么应用？举个例子' }
+    ],
+    'classics-poetry-rules': [
+      { text: '📖 格律解释', question: '这个格律规则是什么意思？帮我解释一下' },
+      { text: '📝 示例分析', question: '用一首诗来举例说明这个格律' },
+      { text: '✍️ 创作指导', question: '按照这个格律，怎么创作一首诗？' },
+      { text: '🎵 押韵技巧', question: '写诗怎么押韵？有什么技巧？' },
+      { text: '📚 相关诗词', question: '有哪些符合这个格律的著名诗词？' }
     ]
   }
   
@@ -190,6 +285,18 @@ function buildMessage(question, module, item) {
       break
     case 'math':
       itemName = item.title || item.name || ''
+      break
+    case 'classics-gwd':
+      itemName = item.title || ''
+      break
+    case 'classics-idioms':
+      itemName = item.idiom || ''
+      break
+    case 'classics-confucius':
+      itemName = item.source || ''
+      break
+    case 'classics-poetry-rules':
+      itemName = item.title || ''
       break
   }
   

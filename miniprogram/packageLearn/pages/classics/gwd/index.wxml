@@ -1,13 +1,24 @@
+<!-- 古文观止列表页 -->
 <view class="container">
-  <view class="header"><view class="header-title">古文观止</view><view class="header-desc">经典古文选段</view></view>
-  <view class="article-list">
-    <view wx:for="{{articles}}" wx:key="id" class="article-item">
-      <view class="article-header">
-        <view class="article-title">{{item.title}}</view>
-        <view class="article-source">《{{item.source}}》</view>
+  <!-- 进度条 -->
+  <view class="progress-bar">
+    <view class="progress-text">已学 {{learnedCount}}/{{totalCount}}</view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{learnedCount / totalCount * 100}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 文章列表 -->
+  <view class="list">
+    <view class="list-item" wx:for="{{items}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="item-index">{{index + 1}}</view>
+      <view class="item-info">
+        <view class="item-title">{{item.title}}</view>
+        <view class="item-source">《{{item.source}}》</view>
       </view>
-      <view class="article-content">{{item.content}}</view>
-      <view class="article-meaning">{{item.meaning}}</view>
+      <view class="item-status {{item.learned ? 'learned' : ''}}">
+        {{item.learned ? '✓' : ''}}
+      </view>
     </view>
   </view>
 </view>

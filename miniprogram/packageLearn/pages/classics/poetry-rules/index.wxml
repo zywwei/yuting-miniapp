@@ -1,12 +1,23 @@
+<!-- 诗词格律列表页 -->
 <view class="container">
-  <view class="header"><view class="header-title">诗词格律</view><view class="header-desc">学习诗词创作规则</view></view>
-  <view class="rule-list">
-    <view wx:for="{{rules}}" wx:key="id" class="rule-item">
-      <view class="rule-title">{{item.title}}</view>
-      <view class="rule-structure">{{item.structure}}</view>
-      <view class="rule-example">{{item.example}}</view>
-      <view class="rule-rules">
-        <view wx:for="{{item.rules}}" wx:for-item="r" wx:key="*this" class="rule-text">• {{r}}</view>
+  <!-- 进度条 -->
+  <view class="progress-bar">
+    <view class="progress-text">已学 {{learnedCount}}/{{totalCount}}</view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{learnedCount / totalCount * 100}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 格律列表 -->
+  <view class="list">
+    <view class="list-item" wx:for="{{items}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="item-index">{{index + 1}}</view>
+      <view class="item-info">
+        <view class="item-title">{{item.title}}</view>
+        <view class="item-structure">{{item.structure}}</view>
+      </view>
+      <view class="item-status {{item.learned ? 'learned' : ''}}">
+        {{item.learned ? '✓' : ''}}
       </view>
     </view>
   </view>
