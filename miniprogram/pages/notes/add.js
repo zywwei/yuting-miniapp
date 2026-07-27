@@ -205,11 +205,22 @@ Page({
 
   // 草稿箱功能
   getDraftKey: function() {
-    return 'note_draft_' + (this.data.isEdit ? this.data.editId : 'new')
+    // 如果是编辑模式，使用笔记ID作为key
+    // 如果是新建模式，使用当前草稿ID（如果有）或生成新的ID
+    if (this.data.isEdit) {
+      return 'note_draft_' + this.data.editId
+    }
+    // 如果已经加载了草稿，使用草稿的key
+    if (this._currentDraftKey) {
+      return this._currentDraftKey
+    }
+    // 生成新的草稿key
+    return 'note_draft_new_' + Date.now()
   },
 
   saveDraft: function() {
     var draftKey = this.getDraftKey()
+    this._currentDraftKey = draftKey
     var draftData = {
       type: this.data.type,
       title: this.data.title,
@@ -225,17 +236,35 @@ Page({
   },
 
   loadDraft: function() {
-    var draftKey = this.getDraftKey()
-    var draftData = wx.getStorageSync(draftKey)
-    if (draftData && draftData.timestamp) {
-      // 检查草稿是否在24小时内
-      var hoursDiff = (Date.now() - draftData.timestamp) / (1000 * 60 * 60)
-      if (hoursDiff < 24) {
+    // 如果是从草稿箱进入，加载指定的草稿
+    if (this._currentDraftKey) {
+      var draftData = wx.getStorageSync(this._currentDraftKey)
+      if (draftData) {
         return draftData
-      } else {
-        // 超过24小时，清除草稿
-        wx.removeStorageSync(draftKey)
       }
+    }
+    
+    // 否则查找最新的草稿
+    var storageInfo = wx.getStorageInfoSync()
+    var latestDraft = null
+    var latestKey = null
+    
+    for (var i = 0; i < storageInfo.keys.length; i++) {
+      var key = storageInfo.keys[i]
+      if (key.startsWith('note_draft_')) {
+        var draftData = wx.getStorageSync(key)
+        if (draftData && draftData.timestamp) {
+          if (!latestDraft || draftData.timestamp > latestDraft.timestamp) {
+            latestDraft = draftData
+            latestKey = key
+          }
+        }
+      }
+    }
+    
+    if (latestDraft) {
+      this._currentDraftKey = latestKey
+      return latestDraft
     }
     return null
   },
@@ -248,21 +277,23 @@ Page({
   checkDraftRecovery: function() {
     if (this.data.isEdit) return // 编辑模式不检查草稿
     
-    // 检查是否从草稿箱进入（draft参数）
+    // 检查是否从草稿箱进入（draftKey参数）
     var pages = getCurrentPages()
     var currentPage = pages[pages.length - 1]
     var options = currentPage.options || {}
     
-    var draftData = this.loadDraft()
-    
-    if (options.draft) {
-      // 从草稿箱进入，直接加载草稿
+    if (options.draftKey) {
+      // 从草稿箱进入，加载指定的草稿
+      var draftKey = decodeURIComponent(options.draftKey)
+      var draftData = wx.getStorageSync(draftKey)
       if (draftData) {
+        this._currentDraftKey = draftKey
         this.setData({ draftData: draftData })
         this.recoverDraft()
       }
     } else {
       // 正常进入，检查是否有草稿需要恢复
+      var draftData = this.loadDraft()
       if (draftData) {
         this.setData({
           showDraftRecovery: true,

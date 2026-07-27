@@ -15,8 +15,7 @@
       <view class="action-btn" bindtap="toggleSearch">
         <text>{{showSearch ? '✕' : '🔍'}}</text>
       </view>
-      <view class="action-btn draft-btn" bindtap="showDraftBox">
-        <text class="draft-badge" wx:if="{{draftCount > 0}}">{{draftCount}}</text>
+      <view class="action-btn" bindtap="showDraftBox">
         <text>📝</text>
       </view>
       <view class="add-note-btn" bindtap="addNote">

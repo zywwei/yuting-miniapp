@@ -294,7 +294,7 @@
       <text>发现一份未保存的笔记草稿，是否恢复继续编辑？</text>
     </view>
     <view class="modal-actions">
-      <view class="modal-btn cancel" bindtap="discardDraft">丢弃</view>
+      <view class="modal-btn cancel" bindtap="discardDraft">新建笔记</view>
       <view class="modal-btn confirm" bindtap="recoverDraft">恢复草稿</view>
     </view>
   </view>

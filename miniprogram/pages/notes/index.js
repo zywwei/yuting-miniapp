@@ -51,9 +51,7 @@ Page({
     calendarDays: [],
     selectedDate: '',
     selectedDateFormatted: '',
-    selectedDateNotes: [],
-    // 草稿箱
-    draftCount: 0
+    selectedDateNotes: []
   },
 
   _allNotes: [],
@@ -68,7 +66,6 @@ Page({
     })
     this.loadNotes()
     this.loadSearchHistory()
-    this.loadDraftCount()
   },
 
   onShow: function() {
@@ -80,7 +77,6 @@ Page({
 
     // 总是先加载本地数据（确保新建/编辑的笔记立即显示）
     this.loadNotes()
-    this.loadDraftCount()
 
     // 如果是日历模式，重新生成日历（保留当前月份）
     if (this.data.viewMode === 'calendar') {
@@ -756,30 +752,6 @@ Page({
   },
 
   // 草稿箱功能
-  loadDraftCount: function() {
-    var count = 0
-    
-    // 检查所有可能的草稿key
-    var storageInfo = wx.getStorageInfoSync()
-    for (var i = 0; i < storageInfo.keys.length; i++) {
-      var key = storageInfo.keys[i]
-      if (key.startsWith('note_draft_')) {
-        var draftData = wx.getStorageSync(key)
-        if (draftData && draftData.timestamp) {
-          var hoursDiff = (Date.now() - draftData.timestamp) / (1000 * 60 * 60)
-          if (hoursDiff < 72) { // 草稿保留72小时
-            count++
-          } else {
-            // 超过72小时，清除草稿
-            wx.removeStorageSync(key)
-          }
-        }
-      }
-    }
-    
-    this.setData({ draftCount: count })
-  },
-
   showDraftBox: function() {
     wx.navigateTo({ url: '/pages/notes/drafts' })
   },

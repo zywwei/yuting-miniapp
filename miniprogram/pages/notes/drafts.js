@@ -26,45 +26,39 @@ Page({
       if (key.startsWith('note_draft_')) {
         var draftData = wx.getStorageSync(key)
         if (draftData && draftData.timestamp) {
-          var hoursDiff = (Date.now() - draftData.timestamp) / (1000 * 60 * 60)
-          if (hoursDiff < 72) { // 草稿保留72小时
-            // 获取类型信息
-            var typeInfo = noteTypes.getTypeInfo(draftData.type)
-            
-            // 内容预览
-            var content = draftData.content || ''
-            var contentPreview = content.replace(/<[^>]+>/g, '').trim()
-            if (contentPreview.length > 50) {
-              contentPreview = contentPreview.substring(0, 50) + '...'
-            }
-            
-            // 时间格式化
-            var date = new Date(draftData.timestamp)
-            var timeStr = this.formatTime(date)
-            
-            draftList.push({
-              key: key,
-              draftId: key.replace('note_draft_', ''),
-              title: draftData.title || '',
-              content: draftData.content || '',
-              contentPreview: contentPreview || '暂无内容',
-              type: draftData.type || 'diary',
-              typeName: typeInfo.label,
-              typeIcon: typeInfo.icon,
-              typeColor: typeInfo.color,
-              typeTextColor: typeInfo.textColor,
-              mood: draftData.mood || '',
-              tags: draftData.tags || [],
-              images: draftData.images || [],
-              imageCount: (draftData.images || []).length,
-              timestamp: draftData.timestamp,
-              timeStr: timeStr,
-              date: date
-            })
-          } else {
-            // 超过72小时，清除草稿
-            wx.removeStorageSync(key)
+          // 获取类型信息
+          var typeInfo = noteTypes.getTypeInfo(draftData.type)
+          
+          // 内容预览
+          var content = draftData.content || ''
+          var contentPreview = content.replace(/<[^>]+>/g, '').trim()
+          if (contentPreview.length > 50) {
+            contentPreview = contentPreview.substring(0, 50) + '...'
           }
+          
+          // 时间格式化
+          var date = new Date(draftData.timestamp)
+          var timeStr = this.formatTime(date)
+          
+          draftList.push({
+            key: key,
+            draftId: key.replace('note_draft_', ''),
+            title: draftData.title || '',
+            content: draftData.content || '',
+            contentPreview: contentPreview || '暂无内容',
+            type: draftData.type || 'diary',
+            typeName: typeInfo.label,
+            typeIcon: typeInfo.icon,
+            typeColor: typeInfo.color,
+            typeTextColor: typeInfo.textColor,
+            mood: draftData.mood || '',
+            tags: draftData.tags || [],
+            images: draftData.images || [],
+            imageCount: (draftData.images || []).length,
+            timestamp: draftData.timestamp,
+            timeStr: timeStr,
+            date: date
+          })
         }
       }
     }
@@ -136,13 +130,9 @@ Page({
   // 编辑草稿
   editDraft: function(e) {
     var key = e.currentTarget.dataset.key
-    var draftId = key.replace('note_draft_', '')
     
-    if (draftId === 'new') {
-      wx.navigateTo({ url: '/pages/notes/add?draft=new' })
-    } else {
-      wx.navigateTo({ url: '/pages/notes/add?id=' + draftId + '&draft=true' })
-    }
+    // 传递草稿key给编辑页面
+    wx.navigateTo({ url: '/pages/notes/add?draftKey=' + encodeURIComponent(key) })
   },
 
   // 删除草稿
