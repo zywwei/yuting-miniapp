@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "计算练习",
+  "navigationBarBackgroundColor": "#d4fc79",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "learn-ai-panel": "/packageLearn/components/learn-ai-panel/learn-ai-panel"
+  }
+}

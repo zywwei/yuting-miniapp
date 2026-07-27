@@ -1,0 +1,87 @@
+<!-- science-chemistry 详情页 -->
+<view class="container">
+  <!-- 进度条 -->
+  <view class="progress-bar">
+    <view class="progress-text">已学 {{learnedCount}}/{{totalCount}}</view>
+    <view class="progress-track">
+      <view class="progress-fill" style="width: {{learnedCount / totalCount * 100}}%;"></view>
+    </view>
+  </view>
+
+  <!-- 内容卡片 -->
+  <view class="card" wx:if="{{item}}">
+    <view class="card-header">
+      <view class="card-title">{{item.title || item.idiom || item.word || item.letter}}</view>
+      <!-- AI按钮 -->
+      <view class="ai-btn" bindtap="openAIPanel">
+        <text class="ai-icon">🤖</text>
+      </view>
+    </view>
+
+    <!-- 内容区域 -->
+    <view class="section" wx:if="{{item.content}}">
+      <view class="section-title">内容</view>
+      <view class="section-content">{{item.content}}</view>
+    </view>
+
+    <view class="section" wx:if="{{item.formula}}">
+      <view class="section-title">公式</view>
+      <view class="section-content formula">{{item.formula}}</view>
+    </view>
+
+    <view class="section" wx:if="{{item.explanation}}">
+      <view class="section-title">解释</view>
+      <view class="section-content">{{item.explanation}}</view>
+    </view>
+
+    <view class="section" wx:if="{{item.example}}">
+      <view class="section-title">示例</view>
+      <view class="section-content example">{{item.example}}</view>
+    </view>
+
+    <view class="section" wx:if="{{item.meaning}}">
+      <view class="section-title">释义</view>
+      <view class="section-content">{{item.meaning}}</view>
+    </view>
+
+    <view class="section" wx:if="{{item.story}}">
+      <view class="section-title">故事</view>
+      <view class="section-content story">{{item.story}}</view>
+    </view>
+
+    <view class="section" wx:if="{{item.tips}}">
+      <view class="section-title">提示</view>
+      <view class="tips-list">
+        <view class="tip-item" wx:for="{{item.tips}}" wx:key="index">
+          <view class="tip-index">{{index + 1}}</view>
+          <view class="tip-text">{{item}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 学习状态 -->
+    <view class="learned-status" wx:if="{{item.learned}}">
+      <text class="learned-icon">✓</text>
+      <text class="learned-text">已学会</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="actions">
+    <view class="action-btn {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="prevItem">上一个</view>
+    <view class="action-btn speak" bindtap="speakContent">🔊 朗读</view>
+    <view class="action-btn {{item.learned ? 'learned' : 'primary'}}" bindtap="markAsLearned">
+      {{item.learned ? '已学会 ✓' : '标记学会'}}
+    </view>
+    <view class="action-btn {{currentIndex >= totalCount - 1 ? 'disabled' : ''}}" bindtap="nextItem">下一个</view>
+  </view>
+</view>
+
+<!-- AI面板组件 -->
+<learn-ai-panel
+  show="{{showAIPanel}}"
+  module="science-chemistry"
+  contextData="{{item}}"
+  quickQuestions="{{aiQuickQuestions}}"
+  bind:close="closeAIPanel"
+/>
