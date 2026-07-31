@@ -140,6 +140,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   margin-bottom: 40rpx;
 }
 
@@ -480,16 +481,24 @@
   font-size: 32rpx;
 }
 
-/* 撒花效果 */
+/* 撒花效果：只在赢家一侧 */
 .confetti-container {
-  position: fixed;
+  position: absolute;
   top: 0;
-  left: 0;
-  width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 100;
-  overflow: hidden;
+  z-index: 50;
+  overflow: visible;
+}
+
+.confetti-container.confetti-left {
+  left: 0;
+  width: 50%;
+}
+
+.confetti-container.confetti-right {
+  left: 50%;
+  width: 50%;
 }
 
 .confetti {

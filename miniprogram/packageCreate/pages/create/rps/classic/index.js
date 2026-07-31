@@ -163,7 +163,7 @@ Page({
       roundHistory: roundHistory,
       phase: 'result',
       isAnimating: true,
-      showConfetti: result === 'win',
+      showConfetti: result !== 'draw',
       scoreChanged: true
     })
 
@@ -291,7 +291,7 @@ Page({
       roundHistory: roundHistory,
       roundFinished: true,
       isAnimating: true,
-      showConfetti: result === 'win'
+      showConfetti: result !== 'draw'
     })
 
     // 如果游戏结束，保存记录
@@ -406,7 +406,7 @@ Page({
       gameResultText: gameResultText,
       roundHistory: roundHistory,
       phase: nextPhase,
-      showConfetti: result === 'win',
+      showConfetti: result !== 'draw',
       scoreChanged: true
     })
 
