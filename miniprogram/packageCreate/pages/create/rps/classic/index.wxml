@@ -92,6 +92,16 @@
         </view>
         <view class="player-name">AI</view>
       </view>
+
+      <!-- 撒花效果（只在赢家一侧） -->
+      <view class="confetti-container {{roundResult === 'win' ? 'confetti-left' : roundResult === 'lose' ? 'confetti-right' : ''}}" wx:if="{{showConfetti}}">
+        <view class="confetti confetti-1">🎉</view>
+        <view class="confetti confetti-2">🎊</view>
+        <view class="confetti confetti-3">✨</view>
+        <view class="confetti confetti-4">🎉</view>
+        <view class="confetti confetti-5">🎊</view>
+        <view class="confetti confetti-6">✨</view>
+      </view>
     </view>
 
     <!-- 回合结果 -->
@@ -249,6 +259,16 @@
         </view>
         <view class="player-name">玩家2</view>
       </view>
+
+      <!-- 撒花效果（只在赢家一侧） -->
+      <view class="confetti-container {{roundResult === 'win' ? 'confetti-left' : roundResult === 'lose' ? 'confetti-right' : ''}}" wx:if="{{showConfetti}}">
+        <view class="confetti confetti-1">🎉</view>
+        <view class="confetti confetti-2">🎊</view>
+        <view class="confetti confetti-3">✨</view>
+        <view class="confetti confetti-4">🎉</view>
+        <view class="confetti confetti-5">🎊</view>
+        <view class="confetti confetti-6">✨</view>
+      </view>
     </view>
 
     <!-- 回合结果 -->
@@ -330,6 +350,16 @@
         </view>
         <view class="player-name">玩家2</view>
       </view>
+
+      <!-- 撒花效果（只在赢家一侧） -->
+      <view class="confetti-container {{roundResult === 'win' ? 'confetti-left' : roundResult === 'lose' ? 'confetti-right' : ''}}" wx:if="{{showConfetti}}">
+        <view class="confetti confetti-1">🎉</view>
+        <view class="confetti confetti-2">🎊</view>
+        <view class="confetti confetti-3">✨</view>
+        <view class="confetti confetti-4">🎉</view>
+        <view class="confetti confetti-5">🎊</view>
+        <view class="confetti confetti-6">✨</view>
+      </view>
     </view>
 
     <!-- 回合结果 -->
@@ -374,15 +404,5 @@
         <text class="random-battle-text">再玩一次</text>
       </view>
     </view>
-  </view>
-
-  <!-- 撒花效果（提升到页面根级） -->
-  <view class="confetti-container" wx:if="{{showConfetti}}">
-    <view class="confetti confetti-1">🎉</view>
-    <view class="confetti confetti-2">🎊</view>
-    <view class="confetti confetti-3">✨</view>
-    <view class="confetti confetti-4">🎉</view>
-    <view class="confetti confetti-5">🎊</view>
-    <view class="confetti confetti-6">✨</view>
   </view>
 </view>
