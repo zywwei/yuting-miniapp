@@ -1,4 +1,5 @@
 const util = getApp().globalData.util
+const childStorage = getApp().globalData.childStorage
 const audio = getApp().globalData.audio
 const beep = getApp().globalData.beep
 const cloud = getApp().globalData.cloud
@@ -177,6 +178,10 @@ Page({
 
     // 加载故事进度
     const { chapter, enemy, enemyHp } = this.storyManager.loadProgress(timeOfDay)
+
+    // 恢复音效开关设置
+    const soundSettings = childStorage.get('gameSettings') || {}
+    audio.enabled = !!soundSettings.soundEnabled
 
     this.setData({
       statusBarHeight: navInfo.statusBarHeight,
@@ -1622,6 +1627,10 @@ Page({
 
   toggleSound() {
     const enabled = audio.toggle()
+    // 持久化音效开关，下次进入时恢复
+    const settings = childStorage.get('gameSettings') || {}
+    settings.soundEnabled = enabled
+    childStorage.set('gameSettings', settings)
     this.setData({ soundEnabled: enabled })
     wx.showToast({
       title: enabled ? '🔊 音效已开启' : '🔇 音效已关闭',
