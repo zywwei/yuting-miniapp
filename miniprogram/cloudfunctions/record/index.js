@@ -125,6 +125,22 @@ async function deleteCloudFiles(record) {
   }
 }
 
+// 过滤媒体字段，只允许 cloud:// 路径入库，防止客户端本地路径（wxfile:// 等）污染云端数据
+function sanitizeMediaFields(record) {
+  if (!record) return record
+  if (Array.isArray(record.images)) {
+    record.images = record.images.filter(function(f) {
+      return typeof f === 'string' && f.indexOf('cloud://') === 0
+    })
+  }
+  ;['imagePath', 'voice', 'cloudFileID'].forEach(function(k) {
+    if (record[k] !== undefined && (typeof record[k] !== 'string' || record[k].indexOf('cloud://') !== 0)) {
+      delete record[k]
+    }
+  })
+  return record
+}
+
 async function addRecord(member, collection, data) {
   const record = {
     ...data,
@@ -135,6 +151,9 @@ async function addRecord(member, collection, data) {
     likes: [],
     createTime: data.createTime || new Date().toISOString()
   }
+
+  // 媒体字段防御：只允许 cloud:// 路径入库（拦截客户端本地路径 wxfile:// 等）
+  sanitizeMediaFields(record)
 
   // 笔记权限字段校验
   if (collection === 'notes') {
@@ -315,6 +334,9 @@ async function updateRecord(member, collection, id, updates) {
       }
     }
 
+    // 媒体字段防御：只允许 cloud:// 路径入库（拦截客户端本地路径 wxfile:// 等）
+    sanitizeMediaFields(updates)
+
     await db.collection(collection).doc(docId).update({ data: updates })
     return { code: 0 }
   } catch (err) {
@@ -459,9 +481,15 @@ async function resolveCloudFileIDs(records) {
     for (var n = 0; n < records.length; n++) {
       var rec = records[n]
       if (rec.images && Array.isArray(rec.images)) {
+        // 构建 https→cloud:// 查找表（imageFileIDMap），客户端编辑/更新时按值查找，不依赖位置索引，避免删图后错位
+        rec.imageFileIDMap = {}
+        rec.images.forEach(function(img) {
+          if (urlMap[img]) rec.imageFileIDMap[urlMap[img]] = img
+        })
         rec.images = rec.images.map(function(img) { return urlMap[img] || img })
       }
       if (typeof rec.imagePath === 'string' && urlMap[rec.imagePath]) {
+        rec.imagePathFileID = rec.imagePath
         rec.imagePath = urlMap[rec.imagePath]
       }
       if (typeof rec.cloudFileID === 'string' && urlMap[rec.cloudFileID]) {

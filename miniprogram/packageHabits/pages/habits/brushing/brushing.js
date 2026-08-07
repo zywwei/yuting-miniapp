@@ -178,14 +178,32 @@ Page({
       if (cloud.isCloudReady && cloud.isCloudReady()) {
         const cloudPath = `brushing/${record.id}_edit_${Date.now()}.jpg`
         const uploadRes = await wx.cloud.uploadFile({ cloudPath, filePath: editedPath })
-        const cloudImageIDs = images.map(img => img === editedPath ? uploadRes.fileID : img)
+        const cloudImageIDs = images.map(function(img) {
+          if (img === editedPath) return uploadRes.fileID
+          if (typeof img === 'string' && img.startsWith('cloud://')) return img
+          // https 临时链接（云函数转换后缓存的）：用查找表（imageFileIDMap）按值找回原始 cloud://，找不到则丢弃避免被后端过滤后留空值
+          if (typeof img === 'string' && img.startsWith('http')) {
+            var originalFileID = record.imageFileIDMap ? record.imageFileIDMap[img] : null
+            return originalFileID || null
+          }
+          return img
+        }).filter(function(x) { return x != null })
         records[index] = { ...record, images: cloudImageIDs, imagePath: cloudImageIDs[0] }
         childStorage.set('brushingRecords', records)
         try {
-          await wx.cloud.database().collection('brushingRecords').doc(record.id).update({
-            data: { images: cloudImageIDs, cloudFileID: cloudImageIDs[0] }
+          // 走 record 云函数更新（支持客户端业务 id 兜底查找，doc(id) 直写会因 _id 不匹配而静默失败）
+          await wx.cloud.callFunction({
+            name: 'record',
+            data: {
+              action: 'update',
+              collection: 'brushingRecords',
+              id: record.id,
+              data: { images: cloudImageIDs, imagePath: cloudImageIDs[0], cloudFileID: cloudImageIDs[0] }
+            }
           })
-        } catch (e) {}
+        } catch (e) {
+          console.warn('编辑照片云端更新失败:', e)
+        }
       } else {
         records[index] = { ...record, images, imagePath: images[0] }
         childStorage.set('brushingRecords', records)

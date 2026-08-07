@@ -613,6 +613,52 @@ async function updateDrawingName(id, newName) {
   }
 }
 
+// 把 images 里的 https 临时链接还原为 cloud://（用记录的 imageFileIDs 找回）
+// 本地路径（http://tmp/、USER_DATA_PATH 等）如果文件存在则上传到云存储
+// 不存在的本地路径（历史脏路径）跳过
+async function resolveImagesForUpdate(target, images, cloudPathPrefix) {
+  if (!Array.isArray(images)) return { images: images, uploadFailed: false, failedUploads: [] }
+  var result = []
+  var uploadFailed = false
+  var failedUploads = []
+  var util = require('./util.js')
+  for (var j = 0; j < images.length; j++) {
+    var img = images[j]
+    if (!img) continue
+    if (img.startsWith('cloud://')) {
+      result.push(img)
+    } else if (img.startsWith('http')) {
+      // 云函数转换的 https 临时链接 → 用查找表（imageFileIDMap）按值找回原始 cloud://，不依赖位置索引，避免删图后错位
+      var originalFileID = target && target.imageFileIDMap ? target.imageFileIDMap[img] : null
+      if (originalFileID && originalFileID.startsWith('cloud://')) {
+        result.push(originalFileID)
+      }
+      // 找不到原始 fileID 的 https 链接：跳过（不传到云端，避免被 sanitize 过滤后留空值）
+    } else {
+      // 本地路径：检查文件存在性
+      var fs = wx.getFileSystemManager()
+      var fileExists = true
+      try { fs.accessSync(img) } catch (e) { fileExists = false }
+      if (fileExists) {
+        try {
+          var savedPath = await util.saveImageToPersistent(img)
+          var cloudPath = (cloudPathPrefix || 'images') + '/' + (target && target.id || 'img') + '_update_' + j + '_' + Date.now() + '.jpg'
+          var uploadRes = await wx.cloud.uploadFile({ cloudPath: cloudPath, filePath: savedPath })
+          result.push(uploadRes.fileID)
+        } catch (imgErr) {
+          console.warn('[resolveImagesForUpdate] 图片上传失败:', img, imgErr)
+          uploadFailed = true
+          failedUploads.push({ index: j, localPath: savedPath || img })
+          result.push(img)
+        }
+      } else {
+        console.warn('[resolveImagesForUpdate] 本地图片文件已不存在，跳过:', img)
+      }
+    }
+  }
+  return { images: result, uploadFailed: uploadFailed, failedUploads: failedUploads }
+}
+
 // ===== 刷牙打卡 =====
 
 async function uploadBrushingRecord(record) {
@@ -826,26 +872,57 @@ async function updateBrushingRecord(timeOfDay, updates) {
 
   // 上传图片到云存储
   var cloudUpdates = { ...updates }
+  var uploadFailed = false
+  var failedUploads = []  // 上传失败的图片（index + 持久化路径），稍后整单入队重试
   if (updates.images && Array.isArray(updates.images)) {
     var cloudImages = []
     for (var j = 0; j < updates.images.length; j++) {
       var img = updates.images[j]
       if (img && !img.startsWith('cloud://')) {
-        try {
-          var savedPath = await util.saveImageToPersistent(img)
-          var cloudPath = 'brushing/' + target.id + '_update_' + j + '_' + Date.now() + '.jpg'
-          var uploadRes = await wx.cloud.uploadFile({ cloudPath: cloudPath, filePath: savedPath })
-          cloudImages.push(uploadRes.fileID)
-        } catch (imgErr) {
-          console.warn('[updateBrushingRecord] 图片上传失败:', img, imgErr)
-          cloudImages.push(img)  // 上传失败保留原路径
+        // 先检查本地文件是否存在，区分 chooseMedia 的 http://tmp/ 本地临时文件 vs 云函数返回的 https 临时链接
+        var fs = wx.getFileSystemManager()
+        var fileExists = true
+        try { fs.accessSync(img) } catch (e) { fileExists = false }
+
+        if (fileExists) {
+          // 本地文件（chooseMedia 的 http://tmp/、wxfile://、USER_DATA_PATH 等）：上传到云存储
+          try {
+            var savedPath = await util.saveImageToPersistent(img)
+            var cloudPath = 'brushing/' + target.id + '_update_' + j + '_' + Date.now() + '.jpg'
+            var uploadRes = await wx.cloud.uploadFile({ cloudPath: cloudPath, filePath: savedPath })
+            cloudImages.push(uploadRes.fileID)
+          } catch (imgErr) {
+            console.warn('[updateBrushingRecord] 图片上传失败，云端暂不更新，稍后自动重试:', img, imgErr)
+            uploadFailed = true
+            failedUploads.push({ index: j, localPath: savedPath || img })
+            cloudImages.push(img)  // 本地缓存保留原图（不写入云端）
+          }
+        } else if (img.startsWith('http')) {
+          // 文件不存在 + http 开头：云函数转换的 https 临时链接 → 用查找表按值找回原始 cloud://
+          var originalFileID = target && target.imageFileIDMap ? target.imageFileIDMap[img] : null
+          if (originalFileID && originalFileID.startsWith('cloud://')) {
+            cloudImages.push(originalFileID)
+          }
+        } else {
+          // 本地路径但文件不存在（历史脏路径/已清理的临时文件）：跳过
+          console.warn('[updateBrushingRecord] 本地图片文件已不存在，跳过该图:', img)
         }
       } else {
         cloudImages.push(img)
       }
     }
-    cloudUpdates.images = cloudImages
-    cloudUpdates.imagePath = cloudImages[0] || ''
+    if (cloudImages.length > 0) {
+      cloudUpdates.images = cloudImages
+      cloudUpdates.imagePath = cloudImages[0] || ''
+    } else if (updates.images.length === 0) {
+      // 用户主动清空图片列表：同步为空
+      cloudUpdates.images = []
+      cloudUpdates.imagePath = ''
+    } else {
+      // 图片非空但全部无效：不更新 images，保留云端原值，避免误清空用户已有图片
+      delete cloudUpdates.images
+      delete cloudUpdates.imagePath
+    }
   }
 
   var updatedRecords = localRecords.map(function(r) {
@@ -856,12 +933,31 @@ async function updateBrushingRecord(timeOfDay, updates) {
   })
   childStorage.set('brushingRecords', updatedRecords)
 
-  if (isCloudReady()) {
+  if (uploadFailed) {
+    // 有图片上传失败：云端暂不更新（避免本地路径污染云端数据），整单入队重试，重试成功后再更新云端
+    syncQueue.enqueue({
+      id: 'update_brushing_' + target.id + '_' + Date.now(),
+      action: 'update',
+      collection: 'brushingRecords',
+      data: cloudUpdates,
+      uploadImages: failedUploads.map(function(f) {
+        return {
+          field: 'images[' + f.index + ']',
+          localPath: f.localPath,
+          cloudPath: 'brushing/' + target.id + '_update_' + f.index + '_' + Date.now() + '.jpg'
+        }
+      }),
+      extra: { id: target.id }
+    })
+  } else if (isCloudReady()) {
     try {
-      await wx.cloud.callFunction({
+      var updateRes = await wx.cloud.callFunction({
         name: 'record',
         data: { action: 'update', collection: 'brushingRecords', id: target.id, data: cloudUpdates }
       })
+      if (!updateRes.result || updateRes.result.code !== 0) {
+        console.warn('[updateBrushingRecord] 云端更新业务失败:', target.id, updateRes.result)
+      }
     } catch (err) {
       console.warn('云端更新失败，已入队重试:', err)
       syncQueue.enqueue({
@@ -877,6 +973,21 @@ async function updateBrushingRecord(timeOfDay, updates) {
 
 async function updateBrushingRecordById(id, updates) {
   var localRecords = childStorage.get('brushingRecords') || []
+  var target = localRecords.find(function(r) { return r.id === id })
+
+  // 处理 images 里的 https 临时链接/本地路径：还原为 cloud:// 或上传到云存储，避免被后端 sanitize 过滤丢图
+  if (Array.isArray(updates.images)) {
+    var resolved = await resolveImagesForUpdate(target, updates.images, 'brushing')
+    if (resolved.images.length > 0 || updates.images.length === 0) {
+      updates.images = resolved.images
+      updates.imagePath = resolved.images[0] || ''
+    } else {
+      // 图片非空但全部无效：不更新 images，保留云端原值
+      delete updates.images
+      delete updates.imagePath
+    }
+  }
+
   var updatedRecords = localRecords.map(function(r) {
     if (r.id === id) return { ...r, ...updates }
     return r
@@ -981,6 +1092,7 @@ async function uploadNote(note) {
     uploadImages: uploadImages
   })
 
+  var failedMedia = []  // 上传失败的媒体字段（images[n] / voice），不随记录入库，避免本地路径污染云端
   try {
     // 逐个上传媒体（图片/语音），每个成功后立即回写本地与 record，避免部分失败时丢失已传 fileID
     for (var k = 0; k < uploadImages.length; k++) {
@@ -1002,12 +1114,12 @@ async function uploadNote(note) {
         }
         childStorage.set('notes', tmpNotes)
       } catch (imgErr) {
-        console.warn('笔记媒体上传失败:', img.localPath, imgErr)
-        // 图片上传失败不阻塞笔记记录上传，继续处理
+        console.warn('笔记媒体上传失败，该媒体不随记录入库，稍后自动重试:', img.localPath, imgErr)
+        failedMedia.push(img.field)
       }
     }
     
-    // 准备上传的数据（移除本地临时字段）
+    // 准备上传的数据（移除本地临时字段；上传失败的媒体不随记录入库）
     var uploadData = {
       id: record.id,
       type: record.type,
@@ -1015,8 +1127,10 @@ async function uploadNote(note) {
       content: record.content,
       mood: record.mood,
       tags: record.tags,
-      images: record.images,
-      voice: record.voice,
+      images: (record.images || []).filter(function(im, idx) {
+        return failedMedia.indexOf('images[' + idx + ']') < 0
+      }),
+      voice: failedMedia.indexOf('voice') >= 0 ? '' : record.voice,
       visibility: record.visibility,
       visibleTo: record.visibleTo,
       createTime: record.createTime,
@@ -2030,6 +2144,20 @@ async function fetchNotes() {
 
 async function updateNoteInCloud(id, updates) {
   var localNotes = childStorage.get('notes') || []
+  var target = localNotes.find(function(n) { return n.id === id || n._id === id })
+
+  // 处理 images 里的 https 临时链接/本地路径：还原为 cloud:// 或上传到云存储，避免被后端 sanitize 过滤丢图
+  if (Array.isArray(updates.images)) {
+    var resolved = await resolveImagesForUpdate(target, updates.images, 'notes')
+    if (resolved.images.length > 0 || updates.images.length === 0) {
+      updates.images = resolved.images
+      updates.imagePath = resolved.images[0] || ''
+    } else {
+      delete updates.images
+      delete updates.imagePath
+    }
+  }
+
   var updatedNotes = localNotes.map(function(n) {
     if (n.id === id || n._id === id) return { ...n, ...updates }
     return n
