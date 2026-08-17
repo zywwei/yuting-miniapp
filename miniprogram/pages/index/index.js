@@ -60,18 +60,18 @@ Page({
       }).catch(function() {})
     }
 
-    // 同步云端业务数据（习惯、打卡、刷牙等）
+    // 先用本地缓存立即渲染，云端同步作为后台静默刷新
     this.setGreeting()
+    this.loadTodayHabits()
+    this.loadAchievements()
+    this.loadRecommendations()
     this.syncCloudData().then(function() {
-      // 同步完成后再加载数据，确保显示最新状态
+      // 同步完成后刷新为最新数据
       that.loadTodayHabits()
       that.loadAchievements()
       that.loadRecommendations()
     }).catch(function() {
-      // 同步失败也加载本地数据
-      that.loadTodayHabits()
-      that.loadAchievements()
-      that.loadRecommendations()
+      // 同步失败保持本地数据展示
     })
 
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -89,25 +89,39 @@ Page({
   waitForAppData: function() {
     var that = this
     var checkCount = 0
+    var rendered = false
     this.waitForDataTimer = setInterval(function() {
       checkCount++
-      if (app.globalData.children.length > 0 || checkCount > 30) {
+      var ready = app.globalData.children.length > 0
+      // children 就绪或 3 秒超时：先渲染（就绪前用本地缓存，避免白屏等待）
+      if (ready || checkCount > 10) {
+        if (!rendered) {
+          rendered = true
+          that.updateFromApp()
+          that.setGreeting()
+          that.loadTodayHabits()
+          that.loadAchievements()
+          that.loadRecommendations()
+        }
+        // children 就绪后：后台同步云端并刷新，然后停止轮询
+        if (ready) {
+          clearInterval(that.waitForDataTimer)
+          that.waitForDataTimer = null
+          that.syncCloudData(true).then(function() {
+            that.updateFromApp()
+            that.loadTodayHabits()
+            that.loadAchievements()
+            that.loadRecommendations()
+          }).catch(function() {
+            // 同步失败保持本地数据展示
+          })
+          return
+        }
+      }
+      // 兜底：15 秒后停止轮询，避免永久空转
+      if (checkCount > 50) {
         clearInterval(that.waitForDataTimer)
         that.waitForDataTimer = null
-        that.updateFromApp()
-        that.setGreeting()
-        
-        // 首次加载强制同步云端数据
-        that.syncCloudData(true).then(function() {
-          that.loadTodayHabits()
-          that.loadAchievements()
-          that.loadRecommendations()
-        }).catch(function() {
-          // 同步失败也加载本地数据
-          that.loadTodayHabits()
-          that.loadAchievements()
-          that.loadRecommendations()
-        })
       }
     }, 300)
   },
@@ -238,14 +252,12 @@ Page({
 
   // 同步云端业务数据（习惯、打卡、刷牙等）
   async syncCloudData(force) {
-    // 节流：30秒内不重复同步（首次加载强制同步）
-    if (!force) {
-      var now = Date.now()
-      if (this._lastSyncCloudData && now - this._lastSyncCloudData < 30000) {
-        return
-      }
-      this._lastSyncCloudData = now
+    // 节流：30秒内不重复同步（force 同样计入节流，避免首次进入时 onShow 与 waitForAppData 重复拉取）
+    var now = Date.now()
+    if (this._lastSyncCloudData && now - this._lastSyncCloudData < 30000) {
+      return
     }
+    this._lastSyncCloudData = now
     
     try {
       // 并行拉取数据，首页只拉取今日的刷牙记录
