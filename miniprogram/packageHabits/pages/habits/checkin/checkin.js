@@ -50,6 +50,8 @@ Page({
     })
 
     this.loadTodayRecords()
+    // 记录初始表单基线，返回时按"与基线是否一致"判断是否有未保存修改
+    this._baseline = this.captureFormState()
   },
 
   // 初始化表单数据
@@ -282,6 +284,8 @@ Page({
         scoreLabel: '超级棒！',
         formData: that.initFormData(that.data.habitConfig)
       })
+      // 打卡已保存，更新基线避免返回时误报未保存
+      that._baseline = that.captureFormState()
       that.loadTodayRecords()
       that.showSuccessToast()
 
@@ -310,22 +314,20 @@ Page({
     }.bind(this), 2000)
   },
 
+  // 捕获当前表单状态快照（用于判断是否有未保存修改）
+  captureFormState: function() {
+    return JSON.stringify({
+      images: this.data.images || [],
+      note: (this.data.note || '').trim(),
+      score: this.data.score,
+      formData: this.data.formData || {}
+    })
+  },
+
   // 返回
   goBack: function() {
-    var hasChanges = this.data.images.length > 0 ||
-                     (this.data.note && this.data.note.trim().length > 0) ||
-                     this.data.score !== 5
-
-    if (!hasChanges && this.data.formData) {
-      var keys = Object.keys(this.data.formData)
-      for (var i = 0; i < keys.length; i++) {
-        var val = this.data.formData[keys[i]]
-        if (val && val !== '' && val !== 0 && !(Array.isArray(val) && val.length === 0)) {
-          hasChanges = true
-          break
-        }
-      }
-    }
+    // 与初始基线比较：没有实际修改（含打卡完成后已重置）则不提示
+    var hasChanges = this._baseline === undefined || this.captureFormState() !== this._baseline
 
     if (hasChanges) {
       wx.showModal({
