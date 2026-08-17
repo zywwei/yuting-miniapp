@@ -264,9 +264,15 @@ Page({
       }
     }
 
-    // 今日记录
-    const morningRecord = formatRecord(records.find(r => r.date === today && r.timeOfDay === 'morning'))
-    const eveningRecord = formatRecord(records.find(r => r.date === today && r.timeOfDay === 'evening'))
+    // 今日记录（"重新刷牙"可能产生同日同时段多条，取 createTime 最新的一条）
+    const pickLatest = (list, timeOfDay) => {
+      const matched = list.filter(r => r.date === today && r.timeOfDay === timeOfDay)
+      if (matched.length === 0) return null
+      matched.sort((a, b) => new Date(b.createTime || 0) - new Date(a.createTime || 0))
+      return matched[0]
+    }
+    const morningRecord = formatRecord(pickLatest(records, 'morning'))
+    const eveningRecord = formatRecord(pickLatest(records, 'evening'))
 
     // 昨日记录
     const yesterdayMorning = formatRecord(records.find(r => r.date === yesterday && r.timeOfDay === 'morning'))

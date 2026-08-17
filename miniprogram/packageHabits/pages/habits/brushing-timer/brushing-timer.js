@@ -1501,9 +1501,9 @@ Page({
   },
 
   // 完成刷牙（用户点击完成按钮）
-  onDoneBrushing() {
+  async onDoneBrushing() {
     if (!this._recordSaved) {
-      this.saveBrushingRecord()
+      await this.saveBrushingRecord()
       this._recordSaved = true
     }
     // 跳转到统计页（用 redirectTo 替换当前页，返回时直接回主页）
@@ -1513,7 +1513,19 @@ Page({
   },
 
   // 保存刷牙记录到本地和云端
-  saveBrushingRecord() {
+  async saveBrushingRecord() {
+    // 用同步方式持久化照片到本地存储，避免临时路径失效后再次进入不显示；
+    // 同步复制保证 onUnload 调用时本地记录也立即保存完成，首页刷新一定能读到
+    const persistentPhotos = []
+    for (const p of this.data.photos) {
+      try {
+        persistentPhotos.push(util.saveImageToPersistentSync(p, 'brushing'))
+      } catch (e) {
+        console.warn('照片持久化失败，保留原路径:', p, e)
+        persistentPhotos.push(p)
+      }
+    }
+
     // 根据完成区域数计算评分（1-5分制）
     const areaCount = this.data.completedAreas.length
     const score = areaCount >= 6 ? 5 : areaCount >= 4 ? 4 : areaCount >= 2 ? 3 : areaCount >= 1 ? 2 : 1
@@ -1549,8 +1561,8 @@ Page({
       id: util.generateId(),
       date: util.getTodayStr(),
       timeOfDay: this.data.timeOfDay,
-      imagePath: this.data.photos[0] || null,
-      images: this.data.photos || [],
+      imagePath: persistentPhotos[0] || null,
+      images: persistentPhotos || [],
       score: score,
       note: areaCount >= 6 ? '完成全部6区刷牙' : `完成${areaCount}区刷牙`,
       points: this.data.brushPoints,

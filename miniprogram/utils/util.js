@@ -196,6 +196,16 @@ var saveImageToPersistent = function(tempFilePath, prefix) {
   })
 }
 
+// 同步版照片持久化：用 copyFileSync 立即复制，保证调用方（如 onUnload）无需等待即可拿到持久化路径
+var saveImageToPersistentSync = function(tempFilePath, prefix) {
+  prefix = prefix || 'drawing'
+  var fs = wx.getFileSystemManager()
+  var fileName = prefix + '_' + generateId() + '.png'
+  var savedPath = wx.env.USER_DATA_PATH + '/' + fileName
+  fs.copyFileSync(tempFilePath, savedPath)
+  return savedPath
+}
+
 var saveDrawing = function(drawing) {
   var drawings = childStorage.get('drawings') || []
   drawings.unshift(drawing)
@@ -229,6 +239,7 @@ module.exports = {
   getTodayStr: getTodayStr,
   getYesterdayStr: getYesterdayStr,
   saveImageToPersistent: saveImageToPersistent,
+  saveImageToPersistentSync: saveImageToPersistentSync,
   saveDrawing: saveDrawing,
   getDrawings: getDrawings,
   deleteDrawing: deleteDrawing,
