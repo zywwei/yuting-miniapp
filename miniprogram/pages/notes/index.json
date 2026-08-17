@@ -1,6 +1,7 @@
 {
   "navigationBarTitleText": "成长笔记",
-  "navigationBarBackgroundColor": "#43A047",
+  "navigationBarBackgroundColor": "#FF9AAB",
+  "navigationBarTextStyle": "white",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
   "usingComponents": {

@@ -43,6 +43,11 @@ Page({
     monthCount: 0,
     streakDays: 0,
     topMood: '😊',
+    // 成长档案卡
+    childInfo: { name: '宝宝', avatar: '👧', avatarUrl: '', age: '', streakText: '' },
+    draftCount: 0,
+    headGradient: 'linear-gradient(135deg, #FFB6C9 0%, #FF9AAB 55%, #E8708A 100%)',
+    navColor: '#FF9AAB',
     // 日历视图
     viewMode: 'list',
     currentYear: new Date().getFullYear(),
@@ -62,18 +67,25 @@ Page({
   onLoad: function() {
     this.setData({
       children: app.globalData.children || [],
-      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId()
+      currentChildId: app.globalData.currentChildId || auth.getCurrentChildId(),
+      categories: this.enrichCategories()
     })
+    this.updateChildInfo()
+    this.setNavColor()
     this.loadNotes()
     this.loadSearchHistory()
+    this.loadDraftCount()
   },
 
   onShow: function() {
     this.setData({
       children: app.globalData.children || [],
       currentChildId: app.globalData.currentChildId || auth.getCurrentChildId(),
-      categories: noteTypes.getCategoryTabs()
+      categories: this.enrichCategories()
     })
+    this.updateChildInfo()
+    this.setNavColor()
+    this.loadDraftCount()
 
     // 总是先加载本地数据（确保新建/编辑的笔记立即显示）
     this.loadNotes()
@@ -128,6 +140,8 @@ Page({
       showSearch: false,
       showAdvancedSearch: false
     })
+    this.updateChildInfo()
+    this.setNavColor()
     this.loadNotes()
   },
 
@@ -955,5 +969,118 @@ Page({
   goDetail: function(e) {
     var id = e.currentTarget.dataset.id
     wx.navigateTo({ url: '/pages/notes/detail?id=' + id })
+  },
+
+  // ===== 新版界面辅助方法 =====
+
+  // 分类 Tab 补充类型色（_bg 浅底 / _fg 深字）
+  enrichCategories: function() {
+    var tabs = noteTypes.getCategoryTabs()
+    tabs.forEach(function(tab) {
+      if (tab.value === 'all') {
+        tab._bg = '#FFE3EA'
+        tab._fg = '#F05A80'
+      } else {
+        var info = noteTypes.getTypeInfo(tab.value)
+        tab._bg = info.color
+        tab._fg = info.textColor
+      }
+    })
+    return tabs
+  },
+
+  // 更新成长档案卡（当前孩子信息）
+  updateChildInfo: function() {
+    var children = app.globalData.children || []
+    var childId = this.data.currentChildId || auth.getCurrentChildId()
+    var child = null
+    for (var i = 0; i < children.length; i++) {
+      if (children[i].childId === childId) { child = children[i]; break }
+    }
+    if (!child && children.length > 0) child = children[0]
+
+    // 昵称优先，其次名字，最后兜底
+    var name = child && (child.nickname || child.name) ? (child.nickname || child.name) : '宝宝'
+    // 无头像时的 emoji 兜底
+    var avatar = '👧'
+    if (child && child.gender === 'boy') avatar = '👦'
+    var age = this._calcAge(child && child.birthday)
+    // 上传的头像（可能是 cloud:// fileID）
+    var avatarUrl = child && child.avatar ? child.avatar : ''
+
+    // 孩子主题色（头部渐变跟随主题）
+    var themes = { pink: '#FF9AAB', blue: '#4A90D9', purple: '#9B59B6', green: '#27AE60', orange: '#F39C12', mint: '#1ABC9C' }
+    var themeKey = (child && child.theme) || (child && child.gender === 'boy' ? 'blue' : 'pink')
+    var color = themes[themeKey] || '#FF9AAB'
+    var gradient = 'linear-gradient(135deg, ' + this._adjustColor(color, 0.15) + ' 0%, ' + color + ' 55%, ' + this._adjustColor(color, -0.22) + ' 100%)'
+
+    this.setData({
+      childInfo: { name: name, avatar: avatar, avatarUrl: avatarUrl, age: age },
+      headGradient: gradient,
+      navColor: color
+    })
+
+    // cloud:// 头像转临时 URL（异步）
+    if (avatarUrl && avatarUrl.indexOf('cloud://') === 0) {
+      var that = this
+      wx.cloud.getTempFileURL({
+        fileList: [avatarUrl],
+        success: function(res) {
+          if (res.fileList && res.fileList[0] && res.fileList[0].tempFileURL) {
+            that.setData({ 'childInfo.avatarUrl': res.fileList[0].tempFileURL })
+          }
+        },
+        fail: function() {}
+      })
+    }
+  },
+
+  // 动态设置导航栏颜色（跟随孩子主题）
+  setNavColor: function() {
+    try {
+      wx.setNavigationBarColor({
+        frontColor: '#ffffff',
+        backgroundColor: this.data.navColor || '#FF9AAB',
+        fail: function() {}
+      })
+    } catch (err) {}
+  },
+
+  // 草稿角标数
+  loadDraftCount: function() {
+    try {
+      var keys = wx.getStorageInfoSync().keys
+      var count = 0
+      keys.forEach(function(k) { if (k.indexOf('note_draft_') === 0) count++ })
+      this.setData({ draftCount: count })
+    } catch (err) {}
+  },
+
+  // 计算孩子年龄文案
+  _calcAge: function(birthday) {
+    if (!birthday) return '小宝贝'
+    var birth = new Date(birthday)
+    var now = new Date()
+    var years = now.getFullYear() - birth.getFullYear()
+    var months = now.getMonth() - birth.getMonth()
+    if (months < 0) { years--; months += 12 }
+    if (years > 0) return years + '岁' + months + '个月'
+    if (months > 0) return months + '个月'
+    var days = Math.floor((now - birth) / 86400000)
+    return days > 0 ? days + '天' : '小宝贝'
+  },
+
+  // 颜色变亮/变暗（amount: 0~1 变亮，负数变暗）
+  _adjustColor: function(hex, amount) {
+    var c = (hex || '#FF9AAB').replace('#', '')
+    if (c.length === 3) c = c.split('').map(function(x) { return x + x }).join('')
+    var num = parseInt(c, 16)
+    var r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255
+    var t = amount < 0 ? 0 : 255
+    var p = Math.abs(amount)
+    r = Math.round((t - r) * p + r)
+    g = Math.round((t - g) * p + g)
+    b = Math.round((t - b) * p + b)
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
   }
 })
