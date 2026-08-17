@@ -53,3 +53,7 @@ project.private.config.json
 miniprogram/.mimocode/
 nul
 miniprogram/nul
+### 工具/本地配置 ###
+.codegraph/
+miniprogram/.claude/
+miniprogram/.mcp.json
