@@ -20,6 +20,10 @@ Page({
     calendarDays: [],
     allRecords: [],
     records: [],
+    // 历史列表分批展示（默认最近10条，避免一次性渲染全部记录导致卡顿）
+    displayCount: 10,
+    displayRecords: [],
+    hasMore: false,
     selectedDate: null,
     daySummary: null,
     // 详情弹窗
@@ -80,9 +84,13 @@ Page({
       ? formattedRecords.filter(r => r.date === this.data.selectedDate)
       : formattedRecords
 
-    // 加载积分和贴纸
-    const totalPoints = childStorage.get('totalBrushPoints') || 0
-    const decorations = childStorage.get('toothDecorations') || []
+    // 总积分：从刷牙记录实时汇总（历史单例存储无累加来源，直接统计最可靠；取较大值兼容云端旧数据）
+    const totalPoints = Math.max(
+      records.reduce((sum, r) => sum + (r.points || 0), 0),
+      childStorage.get('totalBrushPoints') || 0
+    )
+    // 贴纸册：从刷牙记录中收集含贴纸的记录（日期+时段去重），兼容旧单例数据
+    const decorations = this.buildDecorations(records)
 
     // 本周趋势数据
     const weekTrend = this.buildWeekTrend(records)
@@ -91,6 +99,8 @@ Page({
       stats,
       allRecords: formattedRecords,
       records: filteredRecords,
+      displayRecords: filteredRecords.slice(0, this.data.displayCount),
+      hasMore: filteredRecords.length > this.data.displayCount,
       calendarDays: this.buildCalendar(records),
       totalPoints,
       decorations,
@@ -129,10 +139,25 @@ Page({
     // 构建当日摘要
     const daySummary = newSelected ? this.buildDaySummary(filteredRecords, newSelected) : null
 
+    // 选中某天记录少直接全显；取消筛选回到全部记录时重置为最近10条
+    const displayCount = newSelected ? filteredRecords.length : 10
     this.setData({
       selectedDate: newSelected,
       records: filteredRecords,
+      displayCount,
+      displayRecords: filteredRecords.slice(0, displayCount),
+      hasMore: filteredRecords.length > displayCount,
       daySummary
+    })
+  },
+
+  // 加载更多历史记录（每次+10条）
+  loadMore() {
+    const count = this.data.displayCount + 10
+    this.setData({
+      displayCount: count,
+      displayRecords: this.data.records.slice(0, count),
+      hasMore: this.data.records.length > count
     })
   },
 
@@ -167,11 +192,43 @@ Page({
     }
   },
 
-  // 构建本周趋势
+  // 从刷牙记录构建贴纸册（含贴纸的记录，按日期+时段去重，同一时段多次记录只保留最新一条）
+  buildDecorations(records) {
+    const decorations = []
+    const seen = {}
+    const sorted = records.slice().sort((a, b) => String(b.createTime || '').localeCompare(String(a.createTime || '')))
+    sorted.forEach(r => {
+      if (r.stickers && r.stickers.length) {
+        const key = r.date + '_' + r.timeOfDay
+        if (!seen[key]) {
+          seen[key] = true
+          decorations.push({
+            date: r.date,
+            timeOfDay: r.timeOfDay,
+            stickers: r.stickers,
+            points: r.points || 0
+          })
+        }
+      }
+    })
+    // 兼容历史单例数据（云端同步的旧贴纸记录）
+    const legacy = childStorage.get('toothDecorations') || []
+    legacy.forEach(d => {
+      if (!d || !d.date) return
+      const key = d.date + '_' + (d.timeOfDay || '')
+      if (!seen[key]) {
+        seen[key] = true
+        decorations.push(d)
+      }
+    })
+    return decorations
+  },
+
+  // 构建本周趋势（周一为一周起始，按早晚时段计算完成度）
   buildWeekTrend(records) {
-    const weekdayNames = ['日', '一', '二', '三', '四', '五', '六']
+    const weekdayNames = ['一', '二', '三', '四', '五', '六', '日']
     const now = new Date()
-    const dayOfWeek = now.getDay()
+    const dayOfWeek = (now.getDay() + 6) % 7 // 0=周一，6=周日
     const trend = []
 
     for (let i = 0; i < 7; i++) {
@@ -179,14 +236,17 @@ Page({
       d.setDate(now.getDate() - dayOfWeek + i)
       const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
       const dayRecords = records.filter(r => r.date === dateStr)
-      const count = dayRecords.length
+      const morningDone = dayRecords.some(r => r.timeOfDay === 'morning')
+      const eveningDone = dayRecords.some(r => r.timeOfDay === 'evening')
+      // 按已刷时段数计算，避免同时段多次记录导致提前满格
+      const doneCount = (morningDone ? 1 : 0) + (eveningDone ? 1 : 0)
       trend.push({
         date: dateStr,
         weekday: weekdayNames[i],
-        morning: dayRecords.some(r => r.timeOfDay === 'morning'),
-        evening: dayRecords.some(r => r.timeOfDay === 'evening'),
-        count,
-        percent: Math.min(count / 2 * 100, 100)
+        morning: morningDone,
+        evening: eveningDone,
+        count: dayRecords.length,
+        percent: Math.min(doneCount / 2 * 100, 100)
       })
     }
     return trend

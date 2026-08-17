@@ -46,16 +46,6 @@
         <view class="calendar-title">{{currentYear}}年{{currentMonth}}月</view>
         <view class="calendar-arrow" bindtap="nextMonth">▶</view>
       </view>
-      <view class="calendar-legend">
-        <view class="legend-item">
-          <view class="legend-dot morning-dot"></view>
-          <text>早上</text>
-        </view>
-        <view class="legend-item">
-          <view class="legend-dot evening-dot"></view>
-          <text>晚上</text>
-        </view>
-      </view>
     </view>
 
     <view class="weekdays">
@@ -81,7 +71,19 @@
 
   <!-- 本周趋势 -->
   <view class="trend-card">
-    <view class="trend-title">📊 本周趋势</view>
+    <view class="trend-header">
+      <view class="trend-title">📊 本周趋势</view>
+      <view class="trend-legend">
+        <view class="legend-item">
+          <view class="legend-dot morning-dot"></view>
+          <text>早上</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot evening-dot"></view>
+          <text>晚上</text>
+        </view>
+      </view>
+    </view>
     <view class="trend-chart">
       <view wx:for="{{weekTrend}}" wx:key="date" class="trend-bar-wrap">
         <view class="trend-bar-bg">
@@ -180,7 +182,7 @@
 
     <view wx:if="{{records.length > 0}}" class="history-list">
       <view
-        wx:for="{{records}}"
+        wx:for="{{displayRecords}}"
         wx:key="id"
         class="history-item"
         bindtap="viewDetail"
@@ -209,6 +211,11 @@
           <text>🗑️</text>
         </view>
       </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view wx:if="{{hasMore}}" class="load-more-btn" bindtap="loadMore">
+      <text>加载更多（已显示 {{displayRecords.length}} / 共 {{records.length}} 条）</text>
     </view>
 
     <view wx:else class="empty-history">

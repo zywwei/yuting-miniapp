@@ -72,11 +72,12 @@ var calcBrushingStreak = function(records) {
   return streak
 }
 
-// 计算本周完成率
+// 计算本周完成率（周一为一周起始，早晚都刷才算完成一天）
 var calcWeekRate = function(records) {
   var now = new Date()
   var startOfWeek = new Date(now)
-  startOfWeek.setDate(now.getDate() - now.getDay())
+  // 周一为一周起始
+  startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7))
   startOfWeek.setHours(0, 0, 0, 0)
 
   var weekRecords = records.filter(function(r) {
@@ -91,7 +92,10 @@ var calcWeekRate = function(records) {
     var dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
     weekDates.push(dateStr)
     var dayRecords = weekRecords.filter(function(r) { return r.date === dateStr })
-    if (dayRecords.length >= 2) completedDays++
+    // 早晚都刷才算完成，避免同一时段多次记录虚增
+    var morningDone = dayRecords.some(function(r) { return r.timeOfDay === 'morning' })
+    var eveningDone = dayRecords.some(function(r) { return r.timeOfDay === 'evening' })
+    if (morningDone && eveningDone) completedDays++
   }
 
   return Math.round((completedDays / 7) * 100)
