@@ -57,3 +57,7 @@ miniprogram/nul
 .codegraph/
 miniprogram/.claude/
 miniprogram/.mcp.json
+
+### 设计稿与工具配置 ###
+design/
+project.config.json

@@ -87,9 +87,6 @@ Page({
     storyDialogues: [],        // 故事对话内容
     showEnemyCard: false,      // 是否显示敌人卡片
     isEnemyDefeated: false,    // 敌人是否被击败
-    showVictoryDialog: false,  // 是否显示胜利对话
-    victoryDialogues: [],      // 胜利对话内容
-    storyExpGained: 0,         // 故事获得的经验
     // 战斗动画相关
     enemyShaking: false,       // 敌人是否在震动
     enemyHitReact: false,      // 敌人受击反应
@@ -152,8 +149,8 @@ Page({
   },
 
   _timer: null,
-  _areaTimer: null,
-  _areaElapsed: 0,
+  _elapsed: 0,
+  _chapterAdvanced: false,
   _cheerIndex: 0,
   _totalTime: 120,
   _isDestroyed: false,
@@ -259,12 +256,28 @@ Page({
     const { currentChapter, currentEnemy, enemyCurrentHp } = this.data
     if (!currentChapter || !currentEnemy) return
 
+    // 消费上次战斗留下的场景变化提示（新章节解锁/新一轮），拼进开场对话首行
+    const notice = childStorage.get('brushingSceneNotice')
+    if (notice) childStorage.remove('brushingSceneNotice')
+
     // 构建开场对话
     const dialogues = [
       { emoji: currentChapter.emoji, text: `${currentChapter.name}！`, delay: 0 },
       { emoji: currentEnemy.emoji, text: `${currentEnemy.name}出现了！`, delay: 600 },
       { emoji: '⚔️', text: `快拿起牙刷战斗吧！`, delay: 600 }
     ]
+
+    if (notice) {
+      // 上次战斗的胜利战报：先播"敌人被打败"，再播场景变化
+      if (notice.enemyName) {
+        dialogues.unshift({ emoji: notice.enemyEmoji || '🏆', text: `${notice.enemyName}被打败啦！`, delay: 0 })
+      }
+      if (notice.type === 'round') {
+        dialogues.unshift({ emoji: '🎉', text: `第${notice.round}轮冒险开始！敌人变得更强了！`, delay: 0 })
+      } else {
+        dialogues[0].text = `新章节解锁：${currentChapter.name}！`
+      }
+    }
 
     // 如果敌人已受伤，显示额外提示
     if (enemyCurrentHp < currentEnemy.hp && enemyCurrentHp > 0) {
@@ -314,14 +327,12 @@ Page({
       })
     }
     this.setData({ fireworkParticles: particles })
-    this._fireworkTimer = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._fireworkTimer = this.trackTimeout(() => {
       this.setData({ fireworkParticles: [] })
     }, 1400)
 
     // 第二波：更密集的近距离爆发
-    this._fireworkTimer2 = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._fireworkTimer2 = this.trackTimeout(() => {
       const wave2 = []
       for (let i = 0; i < 32; i++) {
         wave2.push({
@@ -371,29 +382,25 @@ Page({
 
     // 强烈震动反馈
     wx.vibrateLong()
-    setTimeout(() => wx.vibrateShort({ type: 'heavy' }), 100)
+    this.trackTimeout(() => wx.vibrateShort({ type: 'heavy' }), 100)
 
     // 闪光 120ms 后消失
-    this._defeatFlashTimer = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._defeatFlashTimer = this.trackTimeout(() => {
       this.setData({ showDefeatFlash: false })
     }, 120)
 
     // 冲击波 900ms 后消失
-    this._shockwaveTimer = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._shockwaveTimer = this.trackTimeout(() => {
       this.setData({ showShockwave: false })
     }, 900)
 
     // KO 大字 1.5s 后消失
-    this._koTextTimer = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._koTextTimer = this.trackTimeout(() => {
       this.setData({ showKoText: false })
     }, 1500)
 
     // 碎片 1.2s 后消失
-    this._debrisTimer = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._debrisTimer = this.trackTimeout(() => {
       this.setData({ enemyDebris: [] })
     }, 1200)
 
@@ -473,8 +480,7 @@ Page({
     wx.vibrateShort({ type: 'light' })
 
     // 500ms后完全消灭
-    this._minionDefeatTimer = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._minionDefeatTimer = this.trackTimeout(() => {
       const finalMinions = this.data.minions.map(m => {
         if (m.id === target.id) {
           return { ...m, defeated: true, defeating: false }
@@ -510,8 +516,7 @@ Page({
     })
 
     // 1.5秒后隐藏提示
-    this._minionEffectTimer = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._minionEffectTimer = this.trackTimeout(() => {
       this.setData({
         minionDefeatEffect: null
       })
@@ -529,69 +534,20 @@ Page({
     })
   },
 
-  // 显示胜利对话
-  showVictoryDialog() {
+  // 记录"下一次刷牙开场"要展示的胜利+场景变化提示
+  // 不在战斗结束当场弹对话/弹窗，避免打断完成页交互；由下次 showStoryStartDialog 消费
+  _queueSceneNotice() {
     const { currentChapter, currentEnemy } = this.data
-    if (!currentChapter || !currentEnemy) return
-
-    const dialogues = this.storyManager.getVictoryDialogues()
-
-    this.setData({
-      showVictoryDialog: true,
-      victoryDialogues: dialogues
-    })
-
-    // 播放胜利音效
-    beep.playBeep('complete')
-    wx.vibrateShort({ type: 'heavy' })
-  },
-
-  // 胜利对话完成
-  onVictoryDialogComplete() {
-    this.setData({
-      showVictoryDialog: false,
-      victoryDialogues: []
-    })
-
-    // 解锁下一章节
-    const { currentChapter, currentEnemy, round } = this.data
-    if (currentChapter && currentEnemy) {
-      util.defeatEnemy(currentEnemy.id, currentChapter.id)
-
-      // 读取最新进度
-      const progress = util.getStoryProgress()
-      const newRound = progress.round || 1
-
-      // 更新显示
-      this.setData({
-        isEnemyDefeated: true,
-        enemyCurrentHp: 0,
-        round: newRound
-      })
-
-      // 击败烟花
-      this.triggerDefeatFirework()
-
-      // 检查是否进入新一轮
-      if (newRound > round) {
-        wx.showModal({
-          title: '🎉 新的一轮！',
-          content: `第${newRound}轮冒险开始！敌人变得更强了！`,
-          showCancel: false,
-          confirmText: '继续战斗！'
+    const base = { enemyName: currentEnemy.name, enemyEmoji: currentEnemy.emoji }
+    const progress = util.getStoryProgress()
+    if ((progress.round || 1) > this.data.round) {
+      childStorage.set('brushingSceneNotice', { ...base, type: 'round', round: progress.round || 1 })
+    } else {
+      const nextChapter = CHAPTERS.find(c => c.id === progress.currentChapter)
+      if (nextChapter && nextChapter.id > currentChapter.id) {
+        childStorage.set('brushingSceneNotice', {
+          ...base, type: 'chapter', id: nextChapter.id, name: nextChapter.name, emoji: nextChapter.emoji
         })
-      } else {
-        // 解锁下一章节
-        const nextChapterId = currentChapter.id + 1
-        const nextChapter = CHAPTERS.find(c => c.id === nextChapterId)
-        if (nextChapter) {
-          wx.showModal({
-            title: '新章节解锁！',
-            content: `${nextChapter.emoji} ${nextChapter.name}即将开启！`,
-            showCancel: false,
-            confirmText: '继续冒险'
-          })
-        }
       }
     }
   },
@@ -599,10 +555,23 @@ Page({
   // 恢复中途退出的进度
   restoreProgress(progress) {
     this._totalTime = progress.totalTime || 120
-    this._areaElapsed = progress.areaElapsed || 0
+    // 区域计时已并入主计时器：已用秒数由剩余时间推导，保证两者一致
+    this._elapsed = Math.max(0, this._totalTime - (progress.remainingTime || this._totalTime))
     this._cheerIndex = 0
 
     this._areaDuration = Math.floor(this._totalTime / BRUSH_AREAS.length)
+
+    // 区域索引以主计时器推导值为准：旧版双计时器存档可能漂移，
+    // 推导值领先存档时按推导值校正，避免恢复后首个 tick 跳过中间区域的完成结算
+    const derivedIndex = Math.min(Math.floor(this._elapsed / this._areaDuration), BRUSH_AREAS.length - 1)
+    const savedIndex = Math.min(Math.max(progress.currentAreaIndex || 0, 0), BRUSH_AREAS.length - 1)
+    const restoredIndex = Math.max(derivedIndex, savedIndex)
+    let completedAreas = progress.completedAreas || []
+    if (derivedIndex > savedIndex) {
+      const derivedNames = BRUSH_AREAS.slice(0, derivedIndex).map(a => a.name)
+      const extraNames = completedAreas.filter(n => !derivedNames.includes(n))
+      completedAreas = [...derivedNames, ...extraNames]
+    }
 
     // 恢复牙刷位置（使用与 updateToothbrushPosition 相同的坐标）
     const toothbrushPositions = [
@@ -613,9 +582,9 @@ Page({
       { x: 50, y: 85, rotation: 0 },     // 下中
       { x: 15, y: 75, rotation: 45 }     // 左下
     ]
-    const toothbrushPos = toothbrushPositions[progress.currentAreaIndex] || toothbrushPositions[0]
+    const toothbrushPos = toothbrushPositions[restoredIndex] || toothbrushPositions[0]
 
-    const currentArea = BRUSH_AREAS[progress.currentAreaIndex]
+    const currentArea = BRUSH_AREAS[restoredIndex] || BRUSH_AREAS[0]
 
     this.setData({
       isRunning: false,
@@ -626,11 +595,11 @@ Page({
       minutes: Math.floor(progress.remainingTime / 60).toString().padStart(2, '0'),
       seconds: (progress.remainingTime % 60).toString().padStart(2, '0'),
       overallProgress: Math.round(((this._totalTime - progress.remainingTime) / this._totalTime) * 100),
-      currentAreaIndex: progress.currentAreaIndex,
+      currentAreaIndex: restoredIndex,
       currentArea: currentArea,
       areaColor: currentArea.color,
       areaRemaining: progress.areaRemaining || this._areaDuration,
-      completedAreas: progress.completedAreas,
+      completedAreas: completedAreas,
       brushPoints: progress.brushPoints || 0,
       stage: 'brushing',
       toothZones: progress.toothZones || [],
@@ -674,7 +643,6 @@ Page({
         currentAreaIndex: this.data.currentAreaIndex,
         areaRemaining: this.data.areaRemaining,
         completedAreas: this.data.completedAreas,
-        areaElapsed: this._areaElapsed,
         brushPoints: this.data.brushPoints,
         toothZones: this.data.toothZones,
         // 牙刷位置
@@ -696,35 +664,10 @@ Page({
       wx.setStorageSync('brushingProgress', progress)
     }
 
-    // 清理所有定时器
+    // 统一清理：主计时器 + 所有登记定时器 + 战斗管理器内部定时器
     this.clearTimers()
-    if (this._ringColorTimer) { clearInterval(this._ringColorTimer); this._ringColorTimer = null }
-    if (this._cleanEffectTimer) { clearTimeout(this._cleanEffectTimer); this._cleanEffectTimer = null }
-    if (this._comboTimer) { clearTimeout(this._comboTimer); this._comboTimer = null }
-    if (this._princessTimer) { clearTimeout(this._princessTimer); this._princessTimer = null }
-    // 清理攻击动画定时器
-    const attackTimers = ['_attackTimer1', '_attackTimer2', '_attackTimer3', '_attackTimer4', '_attackTimer5', '_attackTimer6']
-    attackTimers.forEach(key => {
-      if (this[key]) { clearTimeout(this[key]); this[key] = null }
-    })
-    // 清理区域清洁定时器
-    if (this._zoneCleanTimers) { this._zoneCleanTimers.forEach(t => clearTimeout(t)); this._zoneCleanTimers = null }
-    // 清理击败特效定时器
-    if (this._fireworkTimer) { clearTimeout(this._fireworkTimer); this._fireworkTimer = null }
-    if (this._fireworkTimer2) { clearTimeout(this._fireworkTimer2); this._fireworkTimer2 = null }
-    if (this._defeatFlashTimer) { clearTimeout(this._defeatFlashTimer); this._defeatFlashTimer = null }
-    if (this._shockwaveTimer) { clearTimeout(this._shockwaveTimer); this._shockwaveTimer = null }
-    if (this._koTextTimer) { clearTimeout(this._koTextTimer); this._koTextTimer = null }
-    if (this._debrisTimer) { clearTimeout(this._debrisTimer); this._debrisTimer = null }
-    if (this._minionEffectTimer) { clearTimeout(this._minionEffectTimer); this._minionEffectTimer = null }
-    if (this._pointsTipTimer) { clearTimeout(this._pointsTipTimer); this._pointsTipTimer = null }
-    if (this._attackPointsTimer) { clearTimeout(this._attackPointsTimer); this._attackPointsTimer = null }
-    if (this._victoryDialogTimer) { clearTimeout(this._victoryDialogTimer); this._victoryDialogTimer = null }
-    // 清理出场动画定时器
-    if (this._entranceTimer1) { clearTimeout(this._entranceTimer1); this._entranceTimer1 = null }
-    if (this._entranceTimer2) { clearTimeout(this._entranceTimer2); this._entranceTimer2 = null }
-    if (this._entranceTimer3) { clearTimeout(this._entranceTimer3); this._entranceTimer3 = null }
-    if (this._entranceTimer4) { clearTimeout(this._entranceTimer4); this._entranceTimer4 = null }
+    this.clearTrackedTimers()
+    this.battleManager.destroy()
   },
 
   // 生成超级炫酷撒花（满屏效果）
@@ -783,7 +726,7 @@ Page({
     this.setData({ confetti })
 
     // 第二波撒花（延迟1秒）
-    setTimeout(() => {
+    this.trackTimeout(() => {
       const wave2 = []
       for (let i = 0; i < 40; i++) {
         wave2.push({
@@ -927,12 +870,11 @@ Page({
 
     // 逃跑动画结束后清除细菌
     if (!this._zoneCleanTimers) this._zoneCleanTimers = []
-    this._zoneCleanTimers.forEach(t => clearTimeout(t))
+    this._zoneCleanTimers.forEach(t => this.untrack(t))
     this._zoneCleanTimers = []
     zones.forEach((zone, index) => {
       if (zone.state === 'clean' && zone.germs.length > 0) {
-        const timer = setTimeout(() => {
-          if (this._isDestroyed) return
+        const timer = this.trackTimeout(() => {
           const fresh = this.data.toothZones.map((z, i) =>
             i === index ? { ...z, germs: [] } : z
           )
@@ -1020,29 +962,25 @@ Page({
     wx.vibrateShort({ type: 'heavy' })
 
     // 阶段2: VS 出现
-    this._entranceTimer1 = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._entranceTimer1 = this.trackTimeout(() => {
       this.setData({ entrancePhase: 2 })
       wx.vibrateShort({ type: 'medium' })
     }, p.phase2)
 
     // 阶段3: 怪物登场
-    this._entranceTimer2 = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._entranceTimer2 = this.trackTimeout(() => {
       this.setData({ entrancePhase: 3 })
       wx.vibrateLong()
     }, p.phase3)
 
     // 阶段4: 名字展示
-    this._entranceTimer3 = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._entranceTimer3 = this.trackTimeout(() => {
       this.setData({ entrancePhase: 4 })
       wx.vibrateShort({ type: 'heavy' })
     }, p.phase4)
 
     // 阶段5: 动画结束，正式开始战斗
-    this._entranceTimer4 = setTimeout(() => {
-      if (this._isDestroyed) return
+    this._entranceTimer4 = this.trackTimeout(() => {
       this.setData({ showEnemyEntrance: false, entrancePhase: 0, entranceClass: '' })
       this._doStartBattle()
     }, p.end)
@@ -1051,6 +989,8 @@ Page({
   // 真正开始战斗（出场动画结束后调用）
   _doStartBattle() {
     this._totalTime = this.data.selectedDuration
+    this._usedDuration = null
+    this._chapterAdvanced = false
     const areaDuration = Math.floor(this._totalTime / BRUSH_AREAS.length)
     this._areaDuration = areaDuration
     this._cheerIndex = 0
@@ -1075,7 +1015,7 @@ Page({
       lastBrushPoints: 0
     })
 
-    this._areaElapsed = 0
+    this._elapsed = 0
     beep.playBeep('start')
 
     // 随机生成女孩风格泡泡
@@ -1104,18 +1044,21 @@ Page({
     this.generateMinions()
 
     this.startMainTimer()
-    this.startAreaTimer()
   },
 
   startMainTimer() {
+    // 单一计时器 + 单一 _elapsed 计数：剩余时间、总进度、敌人HP、区域推进全部由它推导，
+    // 消除原先主/区域双 interval 各自计数导致的漂移
     this._timer = setInterval(() => {
-      if (this.data.remainingTime <= 0) {
+      this._elapsed = (this._elapsed || 0) + 1
+      const remaining = this._totalTime - this._elapsed
+
+      if (remaining <= 0) {
         this.completeTimer()
         return
       }
 
-      const remaining = this.data.remainingTime - 1
-      const overallProgress = Math.round(((this._totalTime - remaining) / this._totalTime) * 100)
+      const overallProgress = Math.round((this._elapsed / this._totalTime) * 100)
 
       // 颜色变化（根据当前模式）
       let ringColor = '#FF9AAB' // 默认粉色
@@ -1148,19 +1091,19 @@ Page({
       if (currentIndex === 0 && Math.random() > 0.5) {
         const princess = PRINCESS_CHEER[Math.floor(Math.random() * PRINCESS_CHEER.length)]
         leftCheer = princess.text
-        if (this._princessTimer) clearTimeout(this._princessTimer)
-        this._princessTimer = setTimeout(() => {
+        if (this._princessTimer) this.untrack(this._princessTimer)
+        this._princessTimer = this.trackTimeout(() => {
           this.setData({ leftCheer: CHEER_LEFT[currentIndex] })
         }, 2000)
       }
 
       beep.playBeep('tick')
-      if (remaining <= 10 && remaining > 0) beep.playBeep('countdown')
+      if (remaining <= 10) beep.playBeep('countdown')
 
       const min = Math.floor(remaining / 60).toString().padStart(2, '0')
       const sec = (remaining % 60).toString().padStart(2, '0')
 
-      // 持续扣减敌人血量（基于已用时间，避免浮点精度问题）
+      // 持续扣减敌人血量（HP 唯一数据源：按已用时间计算）
       const { currentEnemy } = this.data
       const updateData = {
         remainingTime: remaining, minutes: min, seconds: sec,
@@ -1170,8 +1113,7 @@ Page({
       }
 
       if (currentEnemy && this.data.enemyCurrentHp > 0) {
-        const elapsed = this._totalTime - remaining
-        const newHp = Math.round(Math.max(0, currentEnemy.hp * (1 - elapsed / this._totalTime)) * 10) / 10
+        const newHp = Math.round(Math.max(0, currentEnemy.hp * (1 - this._elapsed / this._totalTime)) * 10) / 10
         const hpRatio = newHp / currentEnemy.hp
         const enemyScale = 0.5 + hpRatio * 0.8
         const enemyAngry = hpRatio < BATTLE_CONFIG.ENEMY_ANGER_THRESHOLD
@@ -1187,117 +1129,105 @@ Page({
       if (updateData.isEnemyDefeated && !this.data.isEnemyDefeated) {
         this.triggerEnemyDefeatEffects()
       }
-    }, 1000)
-  },
 
-  startAreaTimer() {
-    const areaDuration = this._areaDuration || Math.floor(this._totalTime / BRUSH_AREAS.length)
-    this._areaTimer = setInterval(() => {
-      this._areaElapsed++
-      const areaRemaining = areaDuration - this._areaElapsed
-
-      if (this._areaElapsed >= areaDuration) {
-        const completedAreas = [...this.data.completedAreas, this.data.currentArea.name]
-        const nextIndex = this.data.currentAreaIndex + 1
-        this._areaElapsed = 0
-
-        // 增加积分：区域完成 + 基础分，该区域内所有细菌每个 + 额外分
-        const finishedZone = this.data.toothZones.find(z => z.index === this.data.currentAreaIndex)
-        const germBonus = finishedZone ? finishedZone.germs.length * BATTLE_CONFIG.GERM_BONUS_POINTS : 0
-        const areaPoints = BATTLE_CONFIG.AREA_COMPLETE_POINTS + germBonus
-        const newPoints = this.data.brushPoints + areaPoints
-        const newCleaned = this.data.totalDirtyCleaned + (finishedZone ? finishedZone.germs.length : 0)
-        const pointsText = germBonus > 0 ? `+${areaPoints} 积分！` : `+${BATTLE_CONFIG.AREA_COMPLETE_POINTS} 积分！`
-
-        // 显示刷牙小知识
-        const tipIndex = completedAreas.length - 1
-        let tip = BRUSHING_TIPS[tipIndex % BRUSHING_TIPS.length]
-        // 替换时长提示为实际选择的时长
-        const min = Math.floor(this._totalTime / 60)
-        tip = tip.replace('2分钟', `${min}分钟`)
-
-        this.setData({
-          brushPoints: newPoints,
-          totalDirtyCleaned: newCleaned,
-          showPoints: true,
-          pointsText: pointsText,
-          currentTip: tip,
-          showTip: true
-        })
-
-        // 2秒后隐藏积分和提示
-        this._pointsTipTimer = setTimeout(() => {
-          if (this._isDestroyed) return
-          this.setData({ showPoints: false, showTip: false })
-        }, 2500)
-
-        // ===== 主线故事：对敌人造成伤害 =====
-        const { currentEnemy, isEnemyDefeated, minions, showMinions } = this.data
-        if (currentEnemy && !isEnemyDefeated) {
-          // 检查是否还有小怪物
-          const aliveMinions = minions.filter(m => !m.defeated && !m.defeating)
-
-          // 攻击小怪物（如果有的话）
-          if (showMinions && aliveMinions.length > 0) {
-            this.attackMinion()
-          }
-
-          // 触发攻击动画（视觉效果，实际HP由主计时器按时间扣减）
-          const attackResult = this.triggerAttackAnimation(1)
-
-          // 根据暴击和连击计算积分奖励
-          let bonusPoints = BATTLE_CONFIG.ATTACK_BASE_POINTS
-          if (attackResult.isCritical) bonusPoints = BATTLE_CONFIG.CRIT_ATTACK_POINTS
-          bonusPoints = Math.floor(bonusPoints * (1 + attackResult.comboBonus)) // 连击加成
-
-          // 更新积分并显示（累加攻击奖励到区域完成积分之上）
-          const attackPoints = newPoints + bonusPoints
-          const bonusText = attackResult.isCritical
-            ? `暴击！+${bonusPoints}积分！`
-            : attackResult.comboCount > 1
-              ? `${attackResult.comboCount}连击！+${bonusPoints}积分！`
-              : `+${bonusPoints}积分！`
-
-          this.setData({
-            brushPoints: attackPoints,
-            showPoints: true,
-            pointsText: bonusText
-          })
-
-          // 2秒后隐藏积分
-          this._attackPointsTimer = setTimeout(() => {
-            if (this._isDestroyed) return
-            this.setData({ showPoints: false })
-          }, 2000)
-        }
-
-        if (nextIndex < BRUSH_AREAS.length) {
-          beep.playBeep('areaChange')
-          this.setData({
-            completedAreas, currentAreaIndex: nextIndex,
-            currentArea: BRUSH_AREAS[nextIndex], areaColor: BRUSH_AREAS[nextIndex].color,
-            areaRemaining: this._areaDuration || Math.floor(this._totalTime / BRUSH_AREAS.length)
-          }, () => {
-            this.updateZoneStates()
-            this.updateCompanion()
-            this.updateToothbrushPosition()
-          })
-        } else {
-          this.setData({ completedAreas, areaRemaining: 0 }, () => {
-            this.updateZoneStates()
-            this.updateCompanion()
-          })
-          clearInterval(this._areaTimer)
-        }
+      // 区域推进：由 _elapsed 推导当前区域，跨过边界时结算上一区域
+      const nextIndex = Math.min(Math.floor(this._elapsed / this._areaDuration), BRUSH_AREAS.length - 1)
+      if (nextIndex > this.data.currentAreaIndex) {
+        this.onAreaComplete(nextIndex)
       } else {
-        this.setData({ areaRemaining })
+        this.setData({ areaRemaining: this._areaDuration - (this._elapsed % this._areaDuration) })
       }
     }, 1000)
   },
 
+  // 一个刷牙区域完成：结算积分/提示，并推进到下一区域（由主计时器按 _elapsed 推导触发）
+  onAreaComplete(nextIndex) {
+    const completedAreas = [...this.data.completedAreas, this.data.currentArea.name]
+
+    // 增加积分：区域完成 + 基础分，该区域内所有细菌每个 + 额外分
+    const finishedZone = this.data.toothZones.find(z => z.index === this.data.currentAreaIndex)
+    const germBonus = finishedZone ? finishedZone.germs.length * BATTLE_CONFIG.GERM_BONUS_POINTS : 0
+    const areaPoints = BATTLE_CONFIG.AREA_COMPLETE_POINTS + germBonus
+    const newPoints = this.data.brushPoints + areaPoints
+    const newCleaned = this.data.totalDirtyCleaned + (finishedZone ? finishedZone.germs.length : 0)
+    const pointsText = germBonus > 0 ? `+${areaPoints} 积分！` : `+${BATTLE_CONFIG.AREA_COMPLETE_POINTS} 积分！`
+
+    // 显示刷牙小知识
+    const tipIndex = completedAreas.length - 1
+    let tip = BRUSHING_TIPS[tipIndex % BRUSHING_TIPS.length]
+    // 替换时长提示为实际选择的时长
+    const min = Math.floor(this._totalTime / 60)
+    tip = tip.replace('2分钟', `${min}分钟`)
+
+    this.setData({
+      brushPoints: newPoints,
+      totalDirtyCleaned: newCleaned,
+      showPoints: true,
+      pointsText: pointsText,
+      currentTip: tip,
+      showTip: true
+    })
+
+    // 2秒后隐藏积分和提示
+    this._pointsTipTimer = this.trackTimeout(() => {
+      this.setData({ showPoints: false, showTip: false })
+    }, 2500)
+
+    // ===== 主线故事：触发攻击（视觉表现，HP 由主计时器统一扣减）=====
+    const { currentEnemy, isEnemyDefeated, minions, showMinions } = this.data
+    if (currentEnemy && !isEnemyDefeated) {
+      // 检查是否还有小怪物
+      const aliveMinions = minions.filter(m => !m.defeated && !m.defeating)
+
+      // 攻击小怪物（如果有的话）
+      if (showMinions && aliveMinions.length > 0) {
+        this.attackMinion()
+      }
+
+      // 伤害数字按该区域实际时长对应的时间扣血量显示，与 HP 条一致
+      const areaDamage = Math.round(currentEnemy.hp * (this._areaDuration / this._totalTime) * 10) / 10
+      const attackResult = this.triggerAttackAnimation(areaDamage)
+
+      // 根据暴击和连击计算积分奖励
+      let bonusPoints = BATTLE_CONFIG.ATTACK_BASE_POINTS
+      if (attackResult.isCritical) bonusPoints = BATTLE_CONFIG.CRIT_ATTACK_POINTS
+      bonusPoints = Math.floor(bonusPoints * (1 + attackResult.comboBonus)) // 连击加成
+
+      // 更新积分并显示（累加攻击奖励到区域完成积分之上）
+      const attackPoints = newPoints + bonusPoints
+      const bonusText = attackResult.isCritical
+        ? `暴击！+${bonusPoints}积分！`
+        : attackResult.comboCount > 1
+          ? `${attackResult.comboCount}连击！+${bonusPoints}积分！`
+          : `+${bonusPoints}积分！`
+
+      this.setData({
+        brushPoints: attackPoints,
+        showPoints: true,
+        pointsText: bonusText
+      })
+
+      // 2秒后隐藏积分
+      this._attackPointsTimer = this.trackTimeout(() => {
+        this.setData({ showPoints: false })
+      }, 2000)
+    }
+
+    beep.playBeep('areaChange')
+    this.setData({
+      completedAreas, currentAreaIndex: nextIndex,
+      currentArea: BRUSH_AREAS[nextIndex], areaColor: BRUSH_AREAS[nextIndex].color,
+      areaRemaining: this._areaDuration
+    }, () => {
+      this.updateZoneStates()
+      this.updateCompanion()
+      this.updateToothbrushPosition()
+    })
+  },
+
   pauseTimer() {
     clearInterval(this._timer)
-    clearInterval(this._areaTimer)
+    this._timer = null
     this.setData({ isRunning: false, isPaused: true })
   },
 
@@ -1305,7 +1235,6 @@ Page({
     this.setData({ isRunning: true, isPaused: false })
     this.updateCompanion()
     this.startMainTimer()
-    this.startAreaTimer()
   },
 
   // 提前完成（按已刷区域数计算评分）
@@ -1321,7 +1250,7 @@ Page({
       confirmText: '结束',
       cancelText: '继续战斗',
       success: (res) => {
-        if (res.confirm) {
+        if (res.confirm && !this.data.isCompleted) {
           this.completeTimer()
         }
       }
@@ -1330,7 +1259,7 @@ Page({
 
   resetTimer() {
     // 已有进度时，重新开始属于破坏性操作，需二次确认
-    const hasProgress = this.data.isPaused || this.data.completedAreas.length > 0 || this._areaElapsed > 0
+    const hasProgress = this.data.isPaused || this.data.completedAreas.length > 0 || (this._elapsed || 0) > 0
     if (hasProgress) {
       wx.showModal({
         title: '重新开始？',
@@ -1349,25 +1278,11 @@ Page({
   },
 
   _doReset() {
+    // 统一清理：主计时器 + 所有登记的特效/动画定时器（含彩虹模式 interval）
     this.clearTimers()
-    // 清除彩虹动画
-    if (this._ringColorTimer) {
-      clearInterval(this._ringColorTimer)
-      this._ringColorTimer = null
-    }
-    // 清除特效定时器
-    if (this._cleanEffectTimer) {
-      clearTimeout(this._cleanEffectTimer)
-      this._cleanEffectTimer = null
-    }
-    // 清除击败特效定时器
-    if (this._fireworkTimer) { clearTimeout(this._fireworkTimer); this._fireworkTimer = null }
-    if (this._fireworkTimer2) { clearTimeout(this._fireworkTimer2); this._fireworkTimer2 = null }
-    if (this._defeatFlashTimer) { clearTimeout(this._defeatFlashTimer); this._defeatFlashTimer = null }
-    if (this._shockwaveTimer) { clearTimeout(this._shockwaveTimer); this._shockwaveTimer = null }
-    if (this._koTextTimer) { clearTimeout(this._koTextTimer); this._koTextTimer = null }
-    if (this._debrisTimer) { clearTimeout(this._debrisTimer); this._debrisTimer = null }
+    this.clearTrackedTimers()
     this._ringModeIndex = 0
+    this._usedDuration = null
     this.setData({
       isRunning: false, isPaused: false, isCompleted: false,
       remainingTime: this._totalTime, minutes: '02', seconds: '00',
@@ -1382,6 +1297,9 @@ Page({
       toothZones: [],
       companionBubble: '',
       comboCount: 0, showCombo: false, enemyAngry: false,
+      // 重置故事战斗状态：否则胜利后重开会带着 HP=0 开局（全程无攻击特效）并重复推进章节
+      enemyCurrentHp: this.data.currentEnemy ? this.data.currentEnemy.hp : 0,
+      isEnemyDefeated: false, enemyScale: 1.3,
       // 暴击状态必须重置：否则上次暴击残留 showCriticalEffect/critAnim，
       // 下次暴击时 wx:if 条件不变、节点不重建，全屏特效不会重播
       isCritical: false, isCriticalHit: false, showCriticalEffect: false,
@@ -1393,7 +1311,7 @@ Page({
       showEnemyEntrance: false, entrancePhase: 0, entranceClass: '',
       critFullscreenParticles: []
     })
-    this._areaElapsed = 0
+    this._elapsed = 0
     // 重置小怪物
     this.resetMinions()
     // 重置牙齿区域
@@ -1401,12 +1319,16 @@ Page({
   },
 
   completeTimer() {
+    // 防重入："提前结束"弹窗未关闭时倒计时归零，会先后触发两次
+    if (this.data.isCompleted) return
+    // 统一清理：主计时器 + 所有登记的特效/动画定时器
     this.clearTimers()
-    // 清除彩虹动画
-    if (this._ringColorTimer) {
-      clearInterval(this._ringColorTimer)
-      this._ringColorTimer = null
-    }
+    this.clearTrackedTimers()
+    // 先捕获实际刷牙时长（下方会把 remainingTime 归零用于显示，之后无法再推算）
+    // 自然结束（剩余≤1s）按满时长计；提前结束按时长-剩余计
+    this._usedDuration = this.data.remainingTime <= 1
+      ? this._totalTime
+      : this._totalTime - this.data.remainingTime
     beep.playBeep('complete')
     this.generateConfetti()
 
@@ -1427,7 +1349,8 @@ Page({
         if (showMinions && aliveMinions.length > 0) {
           this.attackMinion()
         }
-        this.triggerAttackAnimation(1)
+        const areaDamage = Math.round(currentEnemy.hp * (this._areaDuration / this._totalTime) * 10) / 10
+        this.triggerAttackAnimation(areaDamage)
       }
 
       this.setData({
@@ -1437,7 +1360,6 @@ Page({
         areaRemaining: 0
       })
       this.updateZoneStates()
-      this._areaElapsed = 0
     }
 
     // 时间到，确保敌人被击败
@@ -1463,7 +1385,7 @@ Page({
       : ''
 
     // 故事相关文本
-    const { currentEnemy, storyExpGained } = this.data
+    const { currentEnemy } = this.data
     let storyText = ''
     if (currentEnemy) {
       storyText = `打败了${currentEnemy.name}！`
@@ -1490,6 +1412,7 @@ Page({
     // 清除所有脏东西
     this.setData({
       isRunning: false, isPaused: false, isCompleted: true, overallProgress: 100,
+      remainingTime: 0, minutes: '00', seconds: '00',
       ringColor: '#81C784',
       completedStarsArr: Array(stars).fill(0),
       completedText: completedText,
@@ -1498,6 +1421,25 @@ Page({
       showStickerPicker: true,
       lastBrushPoints: this.data.brushPoints
     })
+
+    // ===== 主线故事：章节推进 =====
+    // 推进（defeatEnemy）在完成时立即持久化；胜利对话/解锁弹窗均不在当场弹出
+    // （避免打断完成页贴贴纸/拍照交互），改为记录通知由下次开场对话展示
+    const { currentChapter } = this.data
+    if (currentChapter && currentEnemy && !this._chapterAdvanced) {
+      util.defeatEnemy(currentEnemy.id, currentChapter.id)
+      this._chapterAdvanced = true
+      this._queueSceneNotice()
+
+      const progress = util.getStoryProgress()
+      this.setData({
+        isEnemyDefeated: true,
+        enemyCurrentHp: 0,
+        round: progress.round || 1
+      })
+      // 击败烟花庆祝
+      this.triggerDefeatFirework()
+    }
   },
 
   // 完成刷牙（用户点击完成按钮）
@@ -1530,8 +1472,10 @@ Page({
     const areaCount = this.data.completedAreas.length
     const score = areaCount >= 6 ? 5 : areaCount >= 4 ? 4 : areaCount >= 2 ? 3 : areaCount >= 1 ? 2 : 1
 
-    // 计算经验值
-    const duration = this._totalTime - this.data.remainingTime
+    // 计算经验值（完成时已捕获实际时长，避免 remainingTime 归零后无法推算）
+    const duration = this._usedDuration != null
+      ? this._usedDuration
+      : this._totalTime - this.data.remainingTime
     const expGained = util.calcExpGain({
       completedAreas: this.data.completedAreas,
       duration: duration
@@ -1540,14 +1484,9 @@ Page({
     // 添加角色经验并检查升级
     const avatarResult = util.addAvatarExp(expGained)
 
-    // 更新经验值显示
-    this.setData({
-      storyExpGained: expGained
-    })
-
     // 如果升级了，显示升级提示
     if (avatarResult.levelUp) {
-      setTimeout(() => {
+      this.trackTimeout(() => {
         wx.showModal({
           title: '🎉 角色升级！',
           content: `小卫士升到${avatarResult.newLevel}级啦！`,
@@ -1589,7 +1528,7 @@ Page({
     // 检查成就解锁（异步版本，确保读取最新数据）
     achievements.checkAchievementsAsync().then(newAchievements => {
       if (newAchievements && newAchievements.length > 0) {
-        setTimeout(() => {
+        this.trackTimeout(() => {
           var popup = this.selectComponent('#achievementPopup')
           if (popup) {
             popup.showAchievements(newAchievements)
@@ -1603,7 +1542,53 @@ Page({
 
   clearTimers() {
     if (this._timer) { clearInterval(this._timer); this._timer = null }
-    if (this._areaTimer) { clearInterval(this._areaTimer); this._areaTimer = null }
+  },
+
+  // ===== 统一定时器管理 =====
+  // 页面内所有 setTimeout/setInterval（主计时器 _timer 除外）统一登记，
+  // onUnload/_doReset/completeTimer 时 clearTrackedTimers() 一次性清理，
+  // 避免定时器泄漏和页面销毁后 setData
+  trackTimeout(fn, ms) {
+    if (!this._trackedTimeouts) this._trackedTimeouts = new Set()
+    const id = setTimeout(() => {
+      this._trackedTimeouts.delete(id)
+      if (this._isDestroyed) return
+      fn()
+    }, ms)
+    this._trackedTimeouts.add(id)
+    return id
+  },
+
+  trackInterval(fn, ms) {
+    if (!this._trackedIntervals) this._trackedIntervals = new Set()
+    const id = setInterval(() => {
+      if (this._isDestroyed) {
+        clearInterval(id)
+        this._trackedIntervals.delete(id)
+        return
+      }
+      fn()
+    }, ms)
+    this._trackedIntervals.add(id)
+    return id
+  },
+
+  untrack(id) {
+    clearTimeout(id)
+    clearInterval(id)
+    if (this._trackedTimeouts) this._trackedTimeouts.delete(id)
+    if (this._trackedIntervals) this._trackedIntervals.delete(id)
+  },
+
+  clearTrackedTimers() {
+    if (this._trackedTimeouts) {
+      this._trackedTimeouts.forEach(t => clearTimeout(t))
+      this._trackedTimeouts.clear()
+    }
+    if (this._trackedIntervals) {
+      this._trackedIntervals.forEach(t => clearInterval(t))
+      this._trackedIntervals.clear()
+    }
   },
 
   // 关闭庆祝画面，保留积分展示
@@ -1663,7 +1648,7 @@ Page({
 
     // 停止之前的彩虹动画
     if (this._ringColorTimer) {
-      clearInterval(this._ringColorTimer)
+      this.untrack(this._ringColorTimer)
       this._ringColorTimer = null
     }
 
@@ -1676,7 +1661,7 @@ Page({
     // 如果是彩虹模式，启动动画
     if (mode.name === '彩虹') {
       let colorIndex = 0
-      this._ringColorTimer = setInterval(() => {
+      this._ringColorTimer = this.trackInterval(() => {
         this.setData({
           ringColor: mode.colors[colorIndex % mode.colors.length]
         })

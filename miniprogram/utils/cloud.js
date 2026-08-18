@@ -661,6 +661,10 @@ async function resolveImagesForUpdate(target, images, cloudPathPrefix) {
 
 // ===== 刷牙打卡 =====
 
+// 上传中的记录 id 集合：防止 fetchBrushingRecords 的自愈补传与正在进行的
+// uploadBrushingRecord 并发发出两个 add，绕过云函数非原子的幂等检查产生云端重复记录
+var _uploadingRecordIds = {}
+
 async function uploadBrushingRecord(record) {
   var meta = getRecordMeta()
   var fullRecord = {
@@ -669,7 +673,9 @@ async function uploadBrushingRecord(record) {
     likes: [],
     synced: false  // 标记为未同步
   }
+  _uploadingRecordIds[record.id] = true
 
+  try {
   var images = record.images || (record.imagePath ? [record.imagePath] : [])
   var localImages = []
 
@@ -768,6 +774,11 @@ async function uploadBrushingRecord(record) {
       data: fullRecord,
       uploadImages: []
     })
+  }
+  } finally {
+    // 任何退出路径（含图片持久化/本地存储异常、早退 return）都释放标记，
+    // 防止泄漏后该记录本会话内永远无法被自愈补传
+    delete _uploadingRecordIds[record.id]
   }
 
   return fullRecord.imagePath
@@ -1186,9 +1197,39 @@ function setMediaField(obj, field, value) {
 }
 
 // 通用自愈：本地存在但云端缺失的"未同步"记录补传到云端，防止创建后同步失败导致数据丢失。
-// 依赖 record 云函数 addRecord 按客户端 id 幂等去重，补传不会产生重复记录。
+// 依赖 record 云函数 addRecord 按客户端 id 幂等去重，但该幂等为 check-then-act 非原子，
+// 并发补传仍可能穿透（见 dedupeCloudListById 兜底），故补传前需跳过上传中的记录。
 // 注意：synced=true 但云端缺失的记录不补传（可能被其他设备合法删除），由删除逻辑处理。
 var SELF_HEAL_MAX = 5
+
+// 云端列表按业务 id 去重：历史上并发 add（自愈补传与正常上传撞车）可能让云端
+// 同一 id 存在多条文档，云函数幂等是 check-then-act 无法完全避免，此处兜底合并展示。
+// 同 id 多条时保留"有图片优先，其次 createTime 新"的一条。
+function dedupeCloudListById(cloudList) {
+  var best = {}
+  var order = []
+  cloudList.forEach(function(item) {
+    if (!item || !item.id) return
+    var cur = best[item.id]
+    if (!cur) {
+      best[item.id] = item
+      order.push(item.id)
+      return
+    }
+    var curHasImg = !!(cur.imagePath && String(cur.imagePath).indexOf('cloud://') === 0)
+      || (typeof cur.cloudFileID === 'string' && cur.cloudFileID.indexOf('cloud://') === 0)
+      || (Array.isArray(cur.images) && cur.images.some(function(i) { return String(i).indexOf('cloud://') === 0 }))
+    var newHasImg = !!(item.imagePath && String(item.imagePath).indexOf('cloud://') === 0)
+      || (typeof item.cloudFileID === 'string' && item.cloudFileID.indexOf('cloud://') === 0)
+      || (Array.isArray(item.images) && item.images.some(function(i) { return String(i).indexOf('cloud://') === 0 }))
+    if (newHasImg !== curHasImg) {
+      if (newHasImg) best[item.id] = item
+      return
+    }
+    if (new Date(item.createTime || 0) > new Date(cur.createTime || 0)) best[item.id] = item
+  })
+  return order.map(function(id) { return best[id] })
+}
 
 function selfHealRecords(collection, localList, cloudIdSet, deletedSet) {
   if (!isCloudReady()) return
@@ -1197,7 +1238,8 @@ function selfHealRecords(collection, localList, cloudIdSet, deletedSet) {
     if (count >= SELF_HEAL_MAX) return
     // 只补传从未成功同步过的记录（lastSyncAt 为空）
     // 如果 lastSyncAt 有值，说明曾经同步成功，后来被其他设备删除，不应补传
-    if (r && r.id && !r.synced && !cloudIdSet[r.id] && !deletedSet[r.id] && !r.lastSyncAt) {
+    // 正在 uploadBrushingRecord 上传中的记录跳过：并发 add 会绕过云函数幂等检查产生云端重复
+    if (r && r.id && !r.synced && !cloudIdSet[r.id] && !deletedSet[r.id] && !r.lastSyncAt && !_uploadingRecordIds[r.id]) {
       wx.cloud.callFunction({
         name: 'record',
         data: { action: 'add', collection: collection, data: r }
@@ -1212,8 +1254,8 @@ function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, 
   var merged = []
   var mergedIds = {}
 
-  // 先添加云端数据（标记为已同步，防止自愈误判）
-  cloudList.forEach(function(item) {
+  // 先添加云端数据（标记为已同步，防止自愈误判），同 id 重复文档先去重
+  dedupeCloudListById(cloudList).forEach(function(item) {
     if (item && item.id && !deletedSet[item.id] && !deletedSet[item._id]) {
       var transformed = transformCloudItem ? transformCloudItem(item) : item
       transformed.synced = true
@@ -1272,8 +1314,8 @@ function mergeAndHealV2(collection, storageKey, localList, cloudList, deletedSet
   var merged = []
   var mergedIds = {}
 
-  // 1. 先添加云端数据（标记为已同步，防止自愈误判）
-  cloudList.forEach(function(item) {
+  // 1. 先添加云端数据（标记为已同步，防止自愈误判），同 id 重复文档先去重
+  dedupeCloudListById(cloudList).forEach(function(item) {
     if (item && item.id && !deletedSet[item.id] && !deletedSet[item._id]) {
       var transformed = transformCloudItem ? transformCloudItem(item) : item
       transformed.synced = true
@@ -1336,7 +1378,8 @@ function selfHealWithImages(collection, storageKey, localList, cloudIdSet, delet
   var count = 0
   localList.forEach(function(r) {
     if (count >= SELF_HEAL_MAX) return
-    if (r && r.id && !r.synced && !cloudIdSet[r.id] && !deletedSet[r.id] && !r.lastSyncAt) {
+    // 上传中的记录跳过，避免与 uploadBrushingRecord 并发 add 产生云端重复
+    if (r && r.id && !r.synced && !cloudIdSet[r.id] && !deletedSet[r.id] && !r.lastSyncAt && !_uploadingRecordIds[r.id]) {
       var imageData = r[imageField]
       
       if (imageData && typeof imageData === 'string' && !imageData.startsWith('cloud://')) {

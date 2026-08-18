@@ -120,18 +120,9 @@ class BattleManager {
       }
     }
 
-    // 预计算暴击HP变化，合并到同一次setData
-    let newHp = enemyCurrentHp
-    let isEnemyDefeated = false
-    let enemyScale = this.page.data.enemyScale
-    if (isCritical && currentEnemy && enemyCurrentHp > 0) {
-      const critDamage = currentEnemy.hp * 0.08
-      newHp = Math.round(Math.max(0, enemyCurrentHp - critDamage) * 10) / 10
-      const hpRatio = newHp / currentEnemy.hp
-      enemyScale = 0.5 + hpRatio * 0.8
-      isEnemyDefeated = newHp <= 0
-    }
-    const enemyAngry = currentEnemy && (newHp / currentEnemy.hp) < BATTLE_CONFIG.ENEMY_ANGER_THRESHOLD
+    // HP 只由主计时器按时间公式扣减（单一数据源），攻击仅做视觉表现；
+    // 此处再扣血会被下一秒的时间公式覆盖，表现为 HP 条"回血"
+    const enemyAngry = currentEnemy && (enemyCurrentHp / currentEnemy.hp) < BATTLE_CONFIG.ENEMY_ANGER_THRESHOLD
 
     this.page.setData({
       enemyShaking: true,
@@ -164,10 +155,7 @@ class BattleManager {
       attackCryText: attackCry,
       showScreenShake: true,
       critFullscreenParticles: [],
-      // HP更新合并到同一次setData，减少一次渲染
-      enemyCurrentHp: newHp,
-      enemyScale,
-      isEnemyDefeated
+      // HP/enemyScale/isEnemyDefeated 不在此更新，统一由主计时器维护
     })
 
     // 暴击全屏特效：先销毁再于下一帧重建。
@@ -184,18 +172,19 @@ class BattleManager {
     }
 
     // 暴击时怪物说威胁话语
-    if (isCritical && currentEnemy && newHp > 0) {
-      const hpRatio = newHp / currentEnemy.hp
+    if (isCritical && currentEnemy && enemyCurrentHp > 0) {
+      const hpRatio = enemyCurrentHp / currentEnemy.hp
       const taunts = hpRatio < 0.3 ? STORY_DIALOGUES.enemy_low_hp_taunt : STORY_DIALOGUES.enemy_crit_taunt
       const taunt = taunts[Math.floor(Math.random() * taunts.length)]
 
+      // 显示和隐藏都登记到 _tauntTimer，destroy() 可统一清理，避免页面销毁后 setData
       if (this._tauntTimer) clearTimeout(this._tauntTimer)
-      setTimeout(() => {
-        this.page.setData({ showEnemyTaunt: true, enemyTauntText: taunt })
-      }, 300)
       this._tauntTimer = setTimeout(() => {
-        this.page.setData({ showEnemyTaunt: false })
-      }, 2300)
+        this.page.setData({ showEnemyTaunt: true, enemyTauntText: taunt })
+        this._tauntTimer = setTimeout(() => {
+          this.page.setData({ showEnemyTaunt: false })
+        }, 2000)
+      }, 300)
     }
 
     wx.vibrateShort({ type: isCritical ? 'heavy' : 'medium' })
@@ -212,7 +201,8 @@ class BattleManager {
     // 300ms后停止敌人震动并添加受击反应
     this._attackTimers[1] = setTimeout(() => {
       this.page.setData({ enemyShaking: false, enemyHitReact: true })
-      setTimeout(() => this.page.setData({ enemyHitReact: false }), 300)
+      // 受击反应复位也登记到 _attackTimers，destroy() 时可一并清理
+      this._attackTimers.hitReact = setTimeout(() => this.page.setData({ enemyHitReact: false }), 300)
     }, 300)
 
     // 350ms: 能量波消失
@@ -255,45 +245,6 @@ class BattleManager {
       comboCount,
       comboBonus,
       critName
-    }
-  }
-
-  /**
-   * 触发敌人击败特效
-   */
-  triggerDefeatEffects() {
-    this.page.setData({
-      showDefeatFlash: true,
-      showShockwave: true,
-      showKoText: true
-    })
-
-    setTimeout(() => {
-      this.page.setData({ showDefeatFlash: false })
-    }, 300)
-
-    setTimeout(() => {
-      this.page.setData({ showShockwave: false })
-    }, 500)
-
-    setTimeout(() => {
-      this.page.setData({ showKoText: false })
-    }, 1500)
-
-    // 生成碎片
-    const { currentEnemy } = this.page.data
-    if (currentEnemy) {
-      const debris = []
-      for (let i = 0; i < 8; i++) {
-        debris.push({
-          id: 'debris_' + i,
-          emoji: currentEnemy.emoji,
-          angle: (360 / 8) * i,
-          delay: Math.random() * 0.2
-        })
-      }
-      this.page.setData({ enemyDebris: debris })
-      setTimeout(() => this.page.setData({ enemyDebris: [] }), 1000)
     }
   }
 

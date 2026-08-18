@@ -14,6 +14,7 @@ var CHILD_KEYS = [
   'drawings',
   // notes 为家庭级数据（通过 visibility 控制权限，不按孩子隔离），不进 childId 命名空间
   'brushingStory',
+  'brushingSceneNotice',
   'brushingAvatar',
   'totalBrushPoints',
   'toothDecorations',

@@ -31,14 +31,6 @@
     bind:complete="onStoryDialogComplete"
   />
 
-  <story-dialog
-    show="{{showVictoryDialog}}"
-    dialogues="{{victoryDialogues}}"
-    chapter="{{currentChapter}}"
-    type="victory"
-    bind:complete="onVictoryDialogComplete"
-  />
-
   <!-- 状态栏占位 -->
   <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
 
