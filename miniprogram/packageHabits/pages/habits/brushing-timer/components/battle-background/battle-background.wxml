@@ -1,0 +1,21 @@
+<!-- 背景装饰 - 闪烁星星 -->
+<view class="bg-stars">
+  <view class="star star-1">⭐</view>
+  <view class="star star-2">✨</view>
+  <view class="star star-3">💫</view>
+  <view class="star star-4">⭐</view>
+  <view class="star star-5">✨</view>
+  <view class="star star-6">💫</view>
+  <view class="star star-7">⭐</view>
+  <view class="star star-8">✨</view>
+</view>
+<!-- 背景装饰 - 飘动云朵 -->
+<view class="bg-clouds">
+  <view class="cloud cloud-1">☁️</view>
+  <view class="cloud cloud-2">☁️</view>
+  <view class="cloud cloud-3">☁️</view>
+</view>
+<!-- 战斗能量光环背景 -->
+<view class="battle-aura" wx:if="{{isRunning}}"></view>
+<!-- 战斗网格地面 -->
+<view class="battle-grid" wx:if="{{isRunning}}"></view>

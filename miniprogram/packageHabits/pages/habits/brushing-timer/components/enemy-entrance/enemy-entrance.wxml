@@ -1,0 +1,30 @@
+<!-- 怪物出场动画遮罩 -->
+<view class="entrance-overlay phase-{{phase}} {{animClass}}">
+  <!-- 暗幕背景 -->
+  <view class="entrance-dark"></view>
+  <!-- 速度线背景 -->
+  <view class="entrance-speed-lines" wx:if="{{phase >= 2}}"></view>
+  <!-- VS 文字 -->
+  <view class="entrance-vs" wx:if="{{phase >= 2}}">
+    <text class="vs-text">VS</text>
+  </view>
+  <!-- 怪物登场（多种动画） -->
+  <view class="entrance-monster" wx:if="{{phase >= 3}}">
+    <text class="entrance-monster-emoji">{{enemy.emoji}}</text>
+    <!-- 落地冲击波 -->
+    <view class="entrance-impact"></view>
+    <!-- 地面裂纹 -->
+    <view class="entrance-crack"></view>
+  </view>
+  <!-- 名字横幅 -->
+  <view class="entrance-name-banner" wx:if="{{phase >= 4}}">
+    <view class="entrance-name-line"></view>
+    <text class="entrance-name-text">{{enemy.name}}</text>
+    <text class="entrance-name-desc">{{enemy.description}}</text>
+    <view class="entrance-name-line"></view>
+  </view>
+  <!-- 战斗提示 -->
+  <view class="entrance-fight-hint" wx:if="{{phase >= 4}}">
+    <text>⚔️ 准备战斗！</text>
+  </view>
+</view>

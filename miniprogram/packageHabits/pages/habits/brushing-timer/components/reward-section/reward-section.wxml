@@ -1,0 +1,9 @@
+<!-- ===== 奖励星星 ===== -->
+<view class="reward-section">
+  <view class="star-row">
+    <view wx:for="{{stars}}" wx:key="index" class="star-item {{item ? 'earned' : ''}}">
+      <text class="star-emoji">{{item ? '⭐' : '☆'}}</text>
+    </view>
+  </view>
+  <text class="reward-text">{{text}}</text>
+</view>

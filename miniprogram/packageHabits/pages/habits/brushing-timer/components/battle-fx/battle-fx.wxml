@@ -1,0 +1,37 @@
+<!-- ===== 攻击特效集合 ===== -->
+<!-- 攻击特效 -->
+<view hidden="{{!showAttackEffect}}" class="hit-effect {{isCritical ? 'critical' : ''}}" style="left: {{attackEffectX}}%; top: {{attackEffectY}}%;">
+  <text class="hit-text">-{{attackDamage}}</text>
+  <text wx:if="{{isCritical}}" class="crit-text">暴击！</text>
+  <text class="hit-icon">{{isCritical ? '⚡' : '💥'}}</text>
+  <!-- 命中爆炸粒子（常驻DOM，用hidden避免反复创建销毁） -->
+  <view class="explosion-particles">
+    <view wx:for="{{explosionParticles}}" wx:key="id" class="particle {{item.type}}" style="--angle: {{item.angle}}deg; --delay: {{item.delay}}s;">{{item.emoji}}</view>
+  </view>
+</view>
+
+<!-- 斩击特效 -->
+<view wx:if="{{showSlash}}" class="slash-effect {{slashClass}}" style="--slash-color: {{skinTrailColor}};">
+  <view class="slash-line slash-line-1"></view>
+  <view class="slash-line slash-line-2"></view>
+</view>
+
+<!-- 命中冲击环 -->
+<view wx:if="{{showHitRing}}" class="hit-ring" style="left: {{attackEffectX}}%; top: {{attackEffectY}}%; --ring-color: {{hitRingColor}};"></view>
+
+<!-- 能量波 -->
+<view wx:if="{{showBeam}}" class="energy-beam" style="left: {{toothbrushX}}%; top: {{toothbrushY}}%; --beam-angle: {{trailAngle}}deg; --beam-color: {{skinTrailColor}};">
+  <text class="beam-emoji">{{beamEmoji}}</text>
+  <text class="beam-emoji beam-emoji-2">{{beamEmoji}}</text>
+  <text class="beam-emoji beam-emoji-3">{{beamEmoji}}</text>
+</view>
+
+<!-- 攻击喝声文字 -->
+<view wx:if="{{showAttackCry}}" class="attack-cry {{isCritical ? 'attack-cry-crit' : ''}}" style="left: {{toothbrushX}}%; top: {{toothbrushY}}%;">
+  <text>{{attackCryText}}</text>
+</view>
+
+<!-- 连击计数器 -->
+<view wx:if="{{showCombo}}" class="combo-counter">
+  <text class="combo-text">{{comboText}}</text>
+</view>

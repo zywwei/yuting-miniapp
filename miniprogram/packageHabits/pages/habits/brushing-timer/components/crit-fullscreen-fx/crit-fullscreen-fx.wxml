@@ -1,0 +1,25 @@
+<!-- 暴击专属特效（全屏） -->
+<view wx:if="{{show && anim}}" class="critical-fx-fullscreen" style="--crit-color: {{anim.color}}; --crit-glow: {{glowColor}};">
+  <!-- 全屏闪光 -->
+  <view class="crit-fullscreen-flash" style="background: {{anim.color}};"></view>
+  <!-- 屏幕边缘光晕 -->
+  <view class="crit-fullscreen-vignette" style="border-color: {{anim.color}};"></view>
+  <!-- 全屏扩散环 -->
+  <view class="crit-fullscreen-ring ring-1" style="border-color: {{anim.color}};"></view>
+  <view class="crit-fullscreen-ring ring-2" style="border-color: {{anim.color}};"></view>
+  <view class="crit-fullscreen-ring ring-3" style="border-color: {{anim.color}};"></view>
+  <!-- 大号暴击emoji -->
+  <text class="crit-fullscreen-emoji" style="color: {{anim.color}};">{{anim.emoji}}</text>
+  <!-- 暴击名称大字 -->
+  <text class="crit-fullscreen-text" style="color: {{anim.color}};">{{anim.name}}！</text>
+  <!-- 全屏粒子飞溅 -->
+  <view class="crit-fullscreen-particles">
+    <view wx:for="{{particles}}" wx:key="id"
+          class="crit-particle-full"
+          style="--angle: {{item.angle}}deg; --distance: {{item.distance}}rpx; --delay: {{item.delay}}s; --size: {{item.size}}rpx; color: {{item.color}};">
+      {{item.emoji}}
+    </view>
+  </view>
+  <!-- 速度线背景 -->
+  <view class="crit-fullscreen-speedlines"></view>
+</view>

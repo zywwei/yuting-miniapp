@@ -1,0 +1,78 @@
+<!-- ===== 胜利视图（撒花/战绩/贴纸/拍照/完成） ===== -->
+<view class="battle-victory">
+  <!-- 撒花 -->
+  <view class="confetti-layer">
+    <view wx:for="{{confetti}}" wx:key="id" wx:if="{{item.type === 'paper'}}"
+          class="confetti-paper"
+          style="left:{{item.x}}%;animation-delay:{{item.delay}}s;background:{{item.color}};width:{{item.w}}rpx;height:{{item.h}}rpx;">
+    </view>
+    <view wx:for="{{confetti}}" wx:key="id" wx:if="{{item.type === 'emoji'}}"
+          class="confetti-emoji"
+          style="left:{{item.x}}%;animation-delay:{{item.delay}}s;font-size:{{item.size}}rpx;">
+      {{item.emoji}}
+    </view>
+  </view>
+
+  <!-- 胜利主体 -->
+  <view class="victory-main">
+    <!-- 被击败的敌人 -->
+    <view class="defeated-enemy">
+      <text class="defeated-emoji">{{enemy.emoji}}</text>
+      <view class="defeated-mark">已击败</view>
+    </view>
+
+    <!-- 胜利信息 -->
+    <view class="victory-info">
+      <text class="victory-title">🎉 战斗胜利！</text>
+      <text class="victory-desc">{{completedText}}</text>
+      <view class="victory-stars">
+        <text wx:for="{{completedStarsArr}}" wx:key="index" class="star"
+              style="animation-delay:{{index * 0.15}}s">⭐</text>
+      </view>
+      <view class="victory-points" wx:if="{{brushPoints > 0}}">
+        <text>🏆 +{{brushPoints}} 积分</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 贴纸选择（胜利后显示） -->
+  <view wx:if="{{showActions}}" class="sticker-picker-inline">
+    <text class="sticker-hint">给牙齿贴个贴纸吧~</text>
+    <view class="sticker-list">
+      <view wx:for="{{stickers}}" wx:key="id" class="sticker-item" bindtap="onTapSticker" data-id="{{item.id}}">
+        <text>{{item.emoji}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 已贴贴纸展示（独立一行） -->
+  <view wx:if="{{placedStickers.length > 0}}" class="placed-stickers-row">
+    <view wx:for="{{placedStickers}}" wx:key="id" class="placed-sticker-item">
+      <text class="placed-sticker-emoji">{{item.emoji}}</text>
+      <view class="placed-sticker-delete" catchtap="onDeleteSticker" data-id="{{item.id}}">✕</view>
+    </view>
+  </view>
+
+  <!-- 拍照区域（胜利后显示，最多6张） -->
+  <view wx:if="{{showActions}}" class="photo-section">
+    <view class="photo-section-title">📷 拍照记录（可选）</view>
+    <view class="photo-list">
+      <view wx:for="{{photos}}" wx:key="*this" class="photo-item">
+        <image src="{{item}}" mode="aspectFill" class="photo-thumb" bindtap="previewPhoto" data-index="{{index}}" lazy-load />
+        <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
+        <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
+      </view>
+      <view class="photo-add {{photos.length >= 6 ? 'photo-add-disabled' : ''}}" bindtap="takePhoto">
+        <text class="add-icon">📷</text>
+        <text class="add-text">{{photos.length >= 6 ? '已满6张' : '拍照'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 完成按钮 -->
+  <view class="action-btns" wx:if="{{showActions}}">
+    <view class="action-btn done-btn" bindtap="onDone">
+      <text>✓ 完成</text>
+    </view>
+  </view>
+</view>

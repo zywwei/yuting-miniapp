@@ -1,26 +1,7 @@
 <!-- 刷牙计时页 - 战斗场景 -->
 <view class="timer-container {{currentSkin.skinClass || ''}}" style="background: {{themeBg}}; --trail-color: {{currentSkin.trailColor}}; --glow-color: {{currentSkin.glowColor}}; --aura-color: {{currentSkin.bgAura}};">
-  <!-- 背景装饰 - 闪烁星星 -->
-  <view class="bg-stars">
-    <view class="star star-1">⭐</view>
-    <view class="star star-2">✨</view>
-    <view class="star star-3">💫</view>
-    <view class="star star-4">⭐</view>
-    <view class="star star-5">✨</view>
-    <view class="star star-6">💫</view>
-    <view class="star star-7">⭐</view>
-    <view class="star star-8">✨</view>
-  </view>
-  <!-- 背景装饰 - 飘动云朵 -->
-  <view class="bg-clouds">
-    <view class="cloud cloud-1">☁️</view>
-    <view class="cloud cloud-2">☁️</view>
-    <view class="cloud cloud-3">☁️</view>
-  </view>
-  <!-- 战斗能量光环背景 -->
-  <view class="battle-aura" wx:if="{{isRunning}}"></view>
-  <!-- 战斗网格地面 -->
-  <view class="battle-grid" wx:if="{{isRunning}}"></view>
+  <!-- 背景装饰（星星/云朵/能量光环/网格） -->
+  <battle-background is-running="{{isRunning}}" />
 
   <!-- ===== 主线故事组件 ===== -->
   <story-dialog
@@ -34,36 +15,9 @@
   <!-- 状态栏占位 -->
   <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
 
-  <!-- ===== 怪物出场动画遮罩 ===== -->
-  <view wx:if="{{showEnemyEntrance}}" class="entrance-overlay phase-{{entrancePhase}} {{entranceClass}}">
-    <!-- 暗幕背景 -->
-    <view class="entrance-dark"></view>
-    <!-- 速度线背景 -->
-    <view class="entrance-speed-lines" wx:if="{{entrancePhase >= 2}}"></view>
-    <!-- VS 文字 -->
-    <view class="entrance-vs" wx:if="{{entrancePhase >= 2}}">
-      <text class="vs-text">VS</text>
-    </view>
-    <!-- 怪物登场（多种动画） -->
-    <view class="entrance-monster" wx:if="{{entrancePhase >= 3}}">
-      <text class="entrance-monster-emoji">{{currentEnemy.emoji}}</text>
-      <!-- 落地冲击波 -->
-      <view class="entrance-impact"></view>
-      <!-- 地面裂纹 -->
-    <view class="entrance-crack"></view>
-    </view>
-    <!-- 名字横幅 -->
-    <view class="entrance-name-banner" wx:if="{{entrancePhase >= 4}}">
-      <view class="entrance-name-line"></view>
-      <text class="entrance-name-text">{{currentEnemy.name}}</text>
-      <text class="entrance-name-desc">{{currentEnemy.description}}</text>
-      <view class="entrance-name-line"></view>
-    </view>
-    <!-- 战斗提示 -->
-    <view class="entrance-fight-hint" wx:if="{{entrancePhase >= 4}}">
-      <text>⚔️ 准备战斗！</text>
-    </view>
-  </view>
+  <!-- ===== 怪物出场动画遮罩（阶段定时器在页面 startTimer 内） ===== -->
+  <enemy-entrance wx:if="{{showEnemyEntrance}}"
+                  phase="{{entrancePhase}}" anim-class="{{entranceClass}}" enemy="{{currentEnemy}}" />
 
   <!-- 顶部极简工具栏（融入场景） -->
   <view class="top-bar" style="padding-right: {{capsuleRight}}px;">
@@ -87,7 +41,7 @@
       <view class="chapter-tag" wx:if="{{currentChapter}}">
         <text>{{currentChapter.emoji}} 第{{round}}轮 · {{currentChapter.name}}</text>
       </view>
-      <view class="timer-bar {{isRunning ? 'timer-active' : ''}}">
+      <view class="timer-bar {{isRunning ? 'timer-active' : ''}}" bindtap="onTapRing">
         <text class="timer-num">{{minutes}}:{{seconds}}</text>
         <view class="timer-progress">
           <view class="timer-fill" style="width: {{overallProgress}}%;"></view>
@@ -195,42 +149,18 @@
           </view>
         </view>
 
-        <!-- 攻击特效 -->
-        <view hidden="{{!showAttackEffect}}" class="hit-effect {{isCritical ? 'critical' : ''}}" style="left: {{attackEffectX}}%; top: {{attackEffectY}}%;">
-          <text class="hit-text">-{{attackDamage}}</text>
-          <text wx:if="{{isCritical}}" class="crit-text">暴击！</text>
-          <text class="hit-icon">{{isCritical ? '⚡' : '💥'}}</text>
-          <!-- 命中爆炸粒子（常驻DOM，用hidden避免反复创建销毁） -->
-          <view class="explosion-particles">
-            <view wx:for="{{explosionParticles}}" wx:key="id" class="particle {{item.type}}" style="--angle: {{item.angle}}deg; --delay: {{item.delay}}s;">{{item.emoji}}</view>
-          </view>
-        </view>
-
-        <!-- 斩击特效 -->
-        <view wx:if="{{showSlash}}" class="slash-effect {{slashClass}}" style="--slash-color: {{currentSkin.trailColor}};">
-          <view class="slash-line slash-line-1"></view>
-          <view class="slash-line slash-line-2"></view>
-        </view>
-
-        <!-- 命中冲击环 -->
-        <view wx:if="{{showHitRing}}" class="hit-ring" style="left: {{attackEffectX}}%; top: {{attackEffectY}}%; --ring-color: {{hitRingColor}};"></view>
-
-        <!-- 能量波 -->
-        <view wx:if="{{showBeam}}" class="energy-beam" style="left: {{toothbrushX}}%; top: {{toothbrushY}}%; --beam-angle: {{trailAngle}}deg; --beam-color: {{currentSkin.trailColor}};">
-          <text class="beam-emoji">{{beamEmoji}}</text>
-          <text class="beam-emoji beam-emoji-2">{{beamEmoji}}</text>
-          <text class="beam-emoji beam-emoji-3">{{beamEmoji}}</text>
-        </view>
-
-        <!-- 攻击喝声文字 -->
-        <view wx:if="{{showAttackCry}}" class="attack-cry {{isCritical ? 'attack-cry-crit' : ''}}" style="left: {{toothbrushX}}%; top: {{toothbrushY}}%;">
-          <text>{{attackCryText}}</text>
-        </view>
-
-        <!-- 连击计数器 -->
-        <view wx:if="{{showCombo}}" class="combo-counter">
-          <text class="combo-text">{{comboText}}</text>
-        </view>
+        <!-- ===== 攻击特效集合 ===== -->
+        <battle-fx show-attack-effect="{{showAttackEffect}}"
+                   attack-effect-x="{{attackEffectX}}" attack-effect-y="{{attackEffectY}}"
+                   attack-damage="{{attackDamage}}" is-critical="{{isCritical}}"
+                   explosion-particles="{{explosionParticles}}"
+                   show-slash="{{showSlash}}" slash-class="{{slashClass}}"
+                   show-hit-ring="{{showHitRing}}" hit-ring-color="{{hitRingColor}}"
+                   show-beam="{{showBeam}}" beam-emoji="{{beamEmoji}}" trail-angle="{{trailAngle}}"
+                   toothbrush-x="{{toothbrushX}}" toothbrush-y="{{toothbrushY}}"
+                   show-attack-cry="{{showAttackCry}}" attack-cry-text="{{attackCryText}}"
+                   show-combo="{{showCombo}}" combo-text="{{comboText}}"
+                   skin-trail-color="{{currentSkin.trailColor}}" />
 
         <!-- 战斗提示 -->
         <view class="fight-hint" wx:if="{{!isRunning && !isPaused}}">
@@ -253,161 +183,33 @@
       </view>
 
       <!-- 胜利状态 -->
-      <view wx:if="{{isCompleted}}" class="battle-victory">
-        <!-- 撒花 -->
-        <view class="confetti-layer">
-          <view wx:for="{{confetti}}" wx:key="id" wx:if="{{item.type === 'paper'}}"
-                class="confetti-paper"
-                style="left:{{item.x}}%;animation-delay:{{item.delay}}s;background:{{item.color}};width:{{item.w}}rpx;height:{{item.h}}rpx;">
-          </view>
-          <view wx:for="{{confetti}}" wx:key="id" wx:if="{{item.type === 'emoji'}}"
-                class="confetti-emoji"
-                style="left:{{item.x}}%;animation-delay:{{item.delay}}s;font-size:{{item.size}}rpx;">
-            {{item.emoji}}
-          </view>
-        </view>
-
-        <!-- 胜利主体 -->
-        <view class="victory-main">
-          <!-- 被击败的敌人 -->
-          <view class="defeated-enemy">
-            <text class="defeated-emoji">{{currentEnemy.emoji}}</text>
-            <view class="defeated-mark">已击败</view>
-          </view>
-
-          <!-- 胜利信息 -->
-          <view class="victory-info">
-            <text class="victory-title">🎉 战斗胜利！</text>
-            <text class="victory-desc">{{completedText}}</text>
-            <view class="victory-stars">
-              <text wx:for="{{completedStarsArr}}" wx:key="index" class="star"
-                    style="animation-delay:{{index * 0.15}}s">⭐</text>
-            </view>
-            <view class="victory-points" wx:if="{{brushPoints > 0}}">
-              <text>🏆 +{{brushPoints}} 积分</text>
-            </view>
-          </view>
-        </view>
-
-        <!-- 贴纸选择（胜利后显示） -->
-        <view wx:if="{{showStickerPicker}}" class="sticker-picker-inline">
-          <text class="sticker-hint">给牙齿贴个贴纸吧~</text>
-          <view class="sticker-list">
-            <view wx:for="{{stickers}}" wx:key="id" class="sticker-item" bindtap="onTapSticker" data-id="{{item.id}}">
-              <text>{{item.emoji}}</text>
-            </view>
-          </view>
-        </view>
-
-        <!-- 已贴贴纸展示（独立一行） -->
-        <view wx:if="{{placedStickers.length > 0}}" class="placed-stickers-row">
-          <view wx:for="{{placedStickers}}" wx:key="id" class="placed-sticker-item">
-            <text class="placed-sticker-emoji">{{item.emoji}}</text>
-            <view class="placed-sticker-delete" catchtap="onDeleteSticker" data-id="{{item.id}}">✕</view>
-          </view>
-        </view>
-
-        <!-- 拍照区域（胜利后显示，最多6张） -->
-        <view wx:if="{{showStickerPicker}}" class="photo-section">
-          <view class="photo-section-title">📷 拍照记录（可选）</view>
-          <view class="photo-list">
-            <view wx:for="{{photos}}" wx:key="*this" class="photo-item">
-              <image src="{{item}}" mode="aspectFill" class="photo-thumb" bindtap="previewPhoto" data-index="{{index}}" lazy-load />
-              <view class="photo-edit" catchtap="editPhoto" data-path="{{item}}">✏️</view>
-              <view class="photo-delete" catchtap="deletePhoto" data-index="{{index}}">✕</view>
-            </view>
-            <view class="photo-add {{photos.length >= 6 ? 'photo-add-disabled' : ''}}" bindtap="takePhoto">
-              <text class="add-icon">📷</text>
-              <text class="add-text">{{photos.length >= 6 ? '已满6张' : '拍照'}}</text>
-            </view>
-          </view>
-        </view>
-
-        <!-- 完成按钮 -->
-        <view class="action-btns" wx:if="{{showStickerPicker}}">
-          <view class="action-btn done-btn" bindtap="onDoneBrushing">
-            <text>✓ 完成</text>
-          </view>
-        </view>
-      </view>
+      <victory-panel wx:if="{{isCompleted}}"
+                     confetti="{{confetti}}" enemy="{{currentEnemy}}"
+                     completed-text="{{completedText}}" completed-stars-arr="{{completedStarsArr}}"
+                     brush-points="{{brushPoints}}" show-actions="{{showStickerPicker}}"
+                     stickers="{{stickers}}" placed-stickers="{{placedStickers}}" photos="{{photos}}"
+                     bind:tapsticker="onTapSticker" bind:deletesticker="onDeleteSticker"
+                     bind:takephoto="takePhoto" bind:deletephoto="deletePhoto"
+                     bind:previewphoto="previewPhoto" bind:editphoto="editPhoto"
+                     bind:done="onDoneBrushing" />
     </view>
 
     <!-- ===== 6区牙齿（刷牙时显示） ===== -->
-    <view wx:if="{{toothZones.length > 0 && !isCompleted}}" class="tooth-strip">
-      <view wx:for="{{toothZones}}" wx:key="index"
-            class="tooth-zone zone-{{item.state}} {{item.state === 'current' ? 'zone-pulse' : ''}}"
-            style="border-color: {{item.color}};">
-        <view class="zone-tooth-body">
-          <text class="zone-tooth-emoji">{{item.state === 'clean' ? '✨' : '🦷'}}</text>
-        </view>
-        <view class="zone-germs" wx:if="{{item.germs.length > 0 && item.state !== 'clean'}}">
-          <text wx:for="{{item.germs}}" wx:key="id"
-                class="zone-germ {{item.fleeing ? 'germ-flee' : 'germ-wiggle'}}"
-                style="left: {{item.x}}%; top: {{item.y}}%;">{{item.emoji}}</text>
-        </view>
-        <view class="zone-shine" wx:if="{{item.state === 'clean'}}">✨</view>
-        <view class="zone-crown" wx:if="{{item.state === 'clean'}}">👑</view>
-        <view class="zone-label">{{item.name}}</view>
-        <view class="zone-timer" wx:if="{{currentAreaIndex === index && isRunning}}">
-          <text class="zone-timer-num">{{areaRemaining}}</text>
-        </view>
-        <view class="zone-check" wx:if="{{item.state === 'clean'}}">✓</view>
-      </view>
-    </view>
+    <tooth-strip wx:if="{{toothZones.length > 0 && !isCompleted}}"
+                 zones="{{toothZones}}" current-index="{{currentAreaIndex}}"
+                 is-running="{{isRunning}}" area-remaining="{{areaRemaining}}" />
 
     <!-- ===== 奖励星星 ===== -->
-    <view class="reward-section" wx:if="{{isRunning || isPaused || isCompleted}}">
-      <view class="star-row">
-        <view wx:for="{{rewardStars}}" wx:key="index" class="star-item {{item ? 'earned' : ''}}">
-          <text class="star-emoji">{{item ? '⭐' : '☆'}}</text>
-        </view>
-      </view>
-      <text class="reward-text">{{currentRewardText}}</text>
-    </view>
+    <reward-section wx:if="{{isRunning || isPaused || isCompleted}}"
+                    stars="{{rewardStars}}" text="{{currentRewardText}}" />
 
   </view>
 
   <!-- ===== 时长选择 + 牙刷皮肤 ===== -->
-  <view wx:if="{{!isRunning && !isPaused && !isCompleted}}" class="pre-battle-panel">
-    <!-- 牙刷皮肤选择 -->
-    <view class="skin-picker">
-      <text class="skin-picker-title">🪥 选择你的牙刷武器</text>
-      <scroll-view class="skin-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-        <view class="skin-list">
-          <view wx:for="{{toothbrushSkins}}" wx:key="id"
-                class="skin-card {{selectedSkinId === item.id ? 'skin-active' : ''}} {{item.skinClass || ''}}"
-                style="--trail-color: {{item.trailColor}}; --glow-color: {{item.glowColor}};"
-                bindtap="selectSkin" data-id="{{item.id}}">
-            <view class="skin-card-glow"></view>
-            <text class="skin-card-emoji">{{item.emoji}}</text>
-            <text class="skin-card-name">{{item.name}}</text>
-            <text class="skin-card-desc">{{item.desc}}</text>
-            <view class="skin-card-particles">
-              <text class="skin-particle">{{item.particleEmoji}}</text>
-              <text class="skin-particle">{{item.critParticle}}</text>
-            </view>
-            <view wx:if="{{selectedSkinId === item.id}}" class="skin-check">✓</view>
-          </view>
-        </view>
-      </scroll-view>
-    </view>
-
-    <!-- 时长选择 -->
-    <view class="duration-picker">
-      <text class="duration-title">⏱ 刷牙时长</text>
-      <view class="duration-options">
-        <view class="duration-opt {{selectedDuration === 60 ? 'active' : ''}}" bindtap="selectDuration" data-sec="60">
-          <text class="duration-num">1</text><text class="duration-unit">分钟</text>
-        </view>
-        <view class="duration-opt {{selectedDuration === 120 ? 'active' : ''}}" bindtap="selectDuration" data-sec="120">
-          <text class="duration-num">2</text><text class="duration-unit">分钟</text>
-        </view>
-        <view class="duration-opt {{selectedDuration === 180 ? 'active' : ''}}" bindtap="selectDuration" data-sec="180">
-          <text class="duration-num">3</text><text class="duration-unit">分钟</text>
-        </view>
-      </view>
-    </view>
-  </view>
+  <pre-battle-panel wx:if="{{!isRunning && !isPaused && !isCompleted}}"
+                    skins="{{toothbrushSkins}}" selected-skin-id="{{selectedSkinId}}"
+                    selected-duration="{{selectedDuration}}"
+                    bind:selectskin="selectSkin" bind:selectduration="selectDuration" />
 
   <!-- ===== 按钮 ===== -->
   <view class="btn-area">
@@ -445,31 +247,10 @@
   <view class="safe-bottom"></view>
 
   <!-- ===== 全屏特效层（fixed 定位，必须放在 battle-arena 外，否则屏幕震动的 transform 会让 fixed 失效） ===== -->
-  <!-- 暴击专属特效（全屏） -->
-  <view wx:if="{{showCriticalEffect && critAnim}}" class="critical-fx-fullscreen" style="--crit-color: {{critAnim.color}}; --crit-glow: {{currentSkin.glowColor}};">
-    <!-- 全屏闪光 -->
-    <view class="crit-fullscreen-flash" style="background: {{critAnim.color}};"></view>
-    <!-- 屏幕边缘光晕 -->
-    <view class="crit-fullscreen-vignette" style="border-color: {{critAnim.color}};"></view>
-    <!-- 全屏扩散环 -->
-    <view class="crit-fullscreen-ring ring-1" style="border-color: {{critAnim.color}};"></view>
-    <view class="crit-fullscreen-ring ring-2" style="border-color: {{critAnim.color}};"></view>
-    <view class="crit-fullscreen-ring ring-3" style="border-color: {{critAnim.color}};"></view>
-    <!-- 大号暴击emoji -->
-    <text class="crit-fullscreen-emoji" style="color: {{critAnim.color}};">{{critAnim.emoji}}</text>
-    <!-- 暴击名称大字 -->
-    <text class="crit-fullscreen-text" style="color: {{critAnim.color}};">{{critAnim.name}}！</text>
-    <!-- 全屏粒子飞溅 -->
-    <view class="crit-fullscreen-particles">
-      <view wx:for="{{critFullscreenParticles}}" wx:key="id"
-            class="crit-particle-full"
-            style="--angle: {{item.angle}}deg; --distance: {{item.distance}}rpx; --delay: {{item.delay}}s; --size: {{item.size}}rpx; color: {{item.color}};">
-        {{item.emoji}}
-      </view>
-    </view>
-    <!-- 速度线背景 -->
-    <view class="crit-fullscreen-speedlines"></view>
-  </view>
+  <!-- 暴击专属特效（全屏，销毁-重建语义由 battle-manager nextTick 控制） -->
+  <crit-fullscreen-fx show="{{showCriticalEffect}}"
+                      anim="{{critAnim}}" glow-color="{{currentSkin.glowColor}}"
+                      particles="{{critFullscreenParticles}}" />
 
   <!-- 敌人被击败全屏闪光 -->
   <view wx:if="{{showDefeatFlash}}" class="defeat-flash-overlay"></view>

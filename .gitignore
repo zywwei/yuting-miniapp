@@ -47,6 +47,7 @@ project.private.config.json
 !miniprogram/images/avatar.jpg
 
 ### 临时文件 ###
+_listing.txt
 .review_diff.txt
 .review_target.txt
 .mimocode/

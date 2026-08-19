@@ -58,8 +58,6 @@ function getCompletedTexts(childName) {
     '今天又是棒棒的一天！🌈'
   ]
 }
-const CHEER_LEFT = ['加油', '好棒', '厉害', '继续', '加油', '棒棒']
-const CHEER_RIGHT = ['真乖', '认真', '好快', '漂亮', '太强', '赞赞']
 
 // 进度条颜色模式
 const RING_MODES = [
@@ -71,18 +69,6 @@ const RING_MODES = [
   { name: '星空', colors: ['#BA68C8', '#9C27B0', '#7B1FA2', '#6A1B9A', '#4A148C'] },
   { name: '糖果', colors: ['#FF9AAB', '#FFB6C1', '#FF69B4', '#FF1493', '#DB7093'] },
   { name: '金色', colors: ['#FFD700', '#FFC107', '#FF9800', '#FF5722', '#E64A19'] }
-]
-
-// 公主鼓励语（随机出现在动物气泡中）
-const PRINCESS_CHEER = [
-  { emoji: '👑', text: '艾莎说：你很棒！' },
-  { emoji: '❄️', text: '冰雪奇缘加油！' },
-  { emoji: '👸', text: '小公主加油！' },
-  { emoji: '🦄', text: '独角兽说：真厉害！' },
-  { emoji: '🐷', text: '佩奇说：太棒了！' },
-  { emoji: '🐽', text: '乔治说：哇哦~' },
-  { emoji: '🏰', text: '城堡里的公主~' },
-  { emoji: '✨', text: '魔法闪闪亮~' }
 ]
 
 // 公主角色列表
@@ -176,25 +162,6 @@ const REACTION_MAP = {
   ]
 }
 
-const BUBBLE_LIST = [
-  { x: 15, delay: 0, size: 28, emoji: '🫧' },
-  { x: 30, delay: 0.4, size: 22, emoji: '✨' },
-  { x: 50, delay: 0.8, size: 26, emoji: '💫' },
-  { x: 70, delay: 1.2, size: 20, emoji: '🫧' },
-  { x: 85, delay: 0.6, size: 24, emoji: '⭐' },
-  { x: 40, delay: 1.5, size: 18, emoji: '🌟' },
-  { x: 60, delay: 1.8, size: 22, emoji: '💖' },
-  { x: 25, delay: 2.0, size: 20, emoji: '🫧' }
-]
-
-// 刷牙前小游戏：可点击赶走的脏东西
-const PRE_GERM_TYPES = [
-  { emoji: '🦠', name: '小细菌', points: 3 },
-  { emoji: '🐛', name: '小虫虫', points: 3 },
-  { emoji: '👾', name: '小菌斑', points: 3 },
-  { emoji: '🍬', name: '小糖糖', points: 2 }
-]
-
 // 刷牙后贴纸装饰
 const STICKERS = [
   { id: 'crown', emoji: '👑' },
@@ -204,9 +171,6 @@ const STICKERS = [
   { id: 'star', emoji: '⭐' },
   { id: 'gem', emoji: '💎' }
 ]
-
-// 女孩喜欢的泡泡元素（刷牙时随机出现）
-const GIRL_BUBBLES = ['👑', '👸', '🦄', '🐷', '🦋', '🌸', '💖', '💝', '💕', '💗', '✨', '⭐', '🌟', '💫', '🎀', '🎊']
 
 // 牙齿分区上的细菌类型
 const ZONE_GERM_TYPES = ['🦠', '🍬', '🍭', '🍰', '🐛', '👾']
@@ -995,16 +959,10 @@ module.exports = {
   THEMES,
   REWARD_TEXTS,
   getCompletedTexts,
-  CHEER_LEFT,
-  CHEER_RIGHT,
   RING_MODES,
-  PRINCESS_CHEER,
   PRINCESS_CHARACTERS,
   REACTION_MAP,
-  BUBBLE_LIST,
-  PRE_GERM_TYPES,
   STICKERS,
-  GIRL_BUBBLES,
   ZONE_GERM_TYPES,
   TOOTHBRUSH_SKINS,
   BATTLEFIELD_EFFECTS,

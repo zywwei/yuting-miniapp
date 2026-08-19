@@ -3,6 +3,14 @@
   "navigationStyle": "custom",
   "usingComponents": {
     "story-dialog": "/packageHabits/components/story-dialog/story-dialog",
-    "achievement-popup": "/components/achievement-popup/achievement-popup"
+    "achievement-popup": "/components/achievement-popup/achievement-popup",
+    "battle-background": "./components/battle-background/battle-background",
+    "pre-battle-panel": "./components/pre-battle-panel/pre-battle-panel",
+    "tooth-strip": "./components/tooth-strip/tooth-strip",
+    "enemy-entrance": "./components/enemy-entrance/enemy-entrance",
+    "reward-section": "./components/reward-section/reward-section",
+    "victory-panel": "./components/victory-panel/victory-panel",
+    "battle-fx": "./components/battle-fx/battle-fx",
+    "crit-fullscreen-fx": "./components/crit-fullscreen-fx/crit-fullscreen-fx"
   }
 }

@@ -1,0 +1,41 @@
+<!-- ===== 时长选择 + 牙刷皮肤 ===== -->
+<view class="pre-battle-panel">
+  <!-- 牙刷皮肤选择 -->
+  <view class="skin-picker">
+    <text class="skin-picker-title">🪥 选择你的牙刷武器</text>
+    <scroll-view class="skin-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="skin-list">
+        <view wx:for="{{skins}}" wx:key="id"
+              class="skin-card {{selectedSkinId === item.id ? 'skin-active' : ''}} {{item.skinClass || ''}}"
+              style="--trail-color: {{item.trailColor}}; --glow-color: {{item.glowColor}};"
+              bindtap="onSelectSkin" data-id="{{item.id}}">
+          <view class="skin-card-glow"></view>
+          <text class="skin-card-emoji">{{item.emoji}}</text>
+          <text class="skin-card-name">{{item.name}}</text>
+          <text class="skin-card-desc">{{item.desc}}</text>
+          <view class="skin-card-particles">
+            <text class="skin-particle">{{item.particleEmoji}}</text>
+            <text class="skin-particle">{{item.critParticle}}</text>
+          </view>
+          <view wx:if="{{selectedSkinId === item.id}}" class="skin-check">✓</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 时长选择 -->
+  <view class="duration-picker">
+    <text class="duration-title">⏱ 刷牙时长</text>
+    <view class="duration-options">
+      <view class="duration-opt {{selectedDuration === 60 ? 'active' : ''}}" bindtap="onSelectDuration" data-sec="60">
+        <text class="duration-num">1</text><text class="duration-unit">分钟</text>
+      </view>
+      <view class="duration-opt {{selectedDuration === 120 ? 'active' : ''}}" bindtap="onSelectDuration" data-sec="120">
+        <text class="duration-num">2</text><text class="duration-unit">分钟</text>
+      </view>
+      <view class="duration-opt {{selectedDuration === 180 ? 'active' : ''}}" bindtap="onSelectDuration" data-sec="180">
+        <text class="duration-num">3</text><text class="duration-unit">分钟</text>
+      </view>
+    </view>
+  </view>
+</view>

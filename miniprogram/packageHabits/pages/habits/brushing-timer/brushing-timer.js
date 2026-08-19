@@ -8,9 +8,8 @@ const achievements = getApp().globalData.achievements
 const { getNavBarInfo, previewImage } = getApp().globalData.pageHelpers
 const {
   BRUSH_AREAS, BRUSHING_TIPS, THEMES, REWARD_TEXTS, getCompletedTexts,
-  CHEER_LEFT, CHEER_RIGHT, RING_MODES, BUBBLE_LIST, PRE_GERM_TYPES,
-  STICKERS, GIRL_BUBBLES, ZONE_GERM_TYPES, CHAPTERS, BATTLE_CONFIG,
-  PRINCESS_CHEER, getOrSelectTodayChapter, TOOTHBRUSH_SKINS,
+  RING_MODES, STICKERS, ZONE_GERM_TYPES, CHAPTERS, BATTLE_CONFIG,
+  getOrSelectTodayChapter, TOOTHBRUSH_SKINS,
   BATTLEFIELD_EFFECTS, SLASH_EFFECTS, ENTRANCE_ANIMATIONS
 } = require('./constants.js')
 const StoryManager = require('./story-manager.js')
@@ -34,15 +33,8 @@ Page({
     // 区域
     currentAreaIndex: 0,
     currentArea: BRUSH_AREAS[0],
-    teethArea: BRUSH_AREAS,
     completedAreas: [],
     areaRemaining: 20,
-    areaColor: BRUSH_AREAS[0].color,
-    // 泡泡
-    bubbles: BUBBLE_LIST,
-    // 动物加油
-    leftCheer: '加油',
-    rightCheer: '好棒',
     // 奖励
     rewardStars: [false, false, false, false, false],
     currentRewardText: '准备开始！',
@@ -66,11 +58,6 @@ Page({
     toothZones: [],
     // 刷牙小游戏（保留给刷牙前/后使用，刷牙中不再出现）
     stage: 'pre',
-    dirtySpots: [],
-    showCleanEffect: false,
-    cleanEffectText: '',
-    cleanEffectX: 50,
-    cleanEffectY: 50,
     totalDirtyCleaned: 0,
     // 刷牙后贴纸
     stickers: STICKERS,
@@ -151,7 +138,6 @@ Page({
   _timer: null,
   _elapsed: 0,
   _chapterAdvanced: false,
-  _cheerIndex: 0,
   _totalTime: 120,
   _isDestroyed: false,
   _recordSaved: false,
@@ -184,7 +170,6 @@ Page({
       statusBarHeight: navInfo.statusBarHeight,
       capsuleRight: navInfo.capsuleRight,
       timeOfDay,
-      teethArea: BRUSH_AREAS,
       soundEnabled: audio.enabled,
       themeBg: savedSkin.bgGradient || theme.bg,
       selectedSkinId: savedSkin.id,
@@ -557,7 +542,6 @@ Page({
     this._totalTime = progress.totalTime || 120
     // 区域计时已并入主计时器：已用秒数由剩余时间推导，保证两者一致
     this._elapsed = Math.max(0, this._totalTime - (progress.remainingTime || this._totalTime))
-    this._cheerIndex = 0
 
     this._areaDuration = Math.floor(this._totalTime / BRUSH_AREAS.length)
 
@@ -597,13 +581,11 @@ Page({
       overallProgress: Math.round(((this._totalTime - progress.remainingTime) / this._totalTime) * 100),
       currentAreaIndex: restoredIndex,
       currentArea: currentArea,
-      areaColor: currentArea.color,
       areaRemaining: progress.areaRemaining || this._areaDuration,
       completedAreas: completedAreas,
       brushPoints: progress.brushPoints || 0,
       stage: 'brushing',
       toothZones: progress.toothZones || [],
-      companionBubble: `刷${currentArea.name}~`,
       // 牙刷位置
       toothbrushX: progress.toothbrushX || toothbrushPos.x,
       toothbrushY: progress.toothbrushY || toothbrushPos.y,
@@ -754,10 +736,10 @@ Page({
     }, 1000)
   },
 
-  // 刷牙后贴纸装饰：点击贴纸按钮添加
+  // 刷牙后贴纸装饰：点击贴纸按钮添加（由 victory-panel 组件事件触发）
   onTapSticker(e) {
     if (this.data.stage !== 'post') return
-    const stickerId = e.currentTarget.dataset.id
+    const stickerId = e.detail.id
     const sticker = STICKERS.find(s => s.id === stickerId)
     if (!sticker) return
 
@@ -774,9 +756,9 @@ Page({
     wx.vibrateShort({ type: 'light' })
   },
 
-  // 删除贴纸
+  // 删除贴纸（由 victory-panel 组件事件触发）
   onDeleteSticker(e) {
-    const stickerId = e.currentTarget.dataset.id
+    const stickerId = e.detail.id
     const placedStickers = this.data.placedStickers.filter(s => s.id !== stickerId)
     this.setData({ placedStickers })
     wx.vibrateShort({ type: 'light' })
@@ -801,23 +783,23 @@ Page({
     })
   },
 
-  // 删除照片
+  // 删除照片（由 victory-panel 组件事件触发）
   deletePhoto(e) {
-    const index = e.currentTarget.dataset.index
+    const index = e.detail.index
     const photos = this.data.photos.slice()
     photos.splice(index, 1)
     this.setData({ photos })
   },
 
-  // 预览照片
+  // 预览照片（由 victory-panel 组件事件触发）
   previewPhoto(e) {
-    const index = e.currentTarget.dataset.index
+    const index = e.detail.index
     previewImage(this.data.photos[index], this.data.photos)
   },
 
-  // 编辑照片
+  // 编辑照片（由 victory-panel 组件事件触发）
   editPhoto(e) {
-    const path = e.currentTarget.dataset.path
+    const path = e.detail.path
     wx.setStorageSync('brushingEditOriginalPath', path)
     wx.navigateTo({
       url: '/packageCreate/pages/create/draw/draw?mode=brushing&photo=' + encodeURIComponent(path) + '&timeOfDay=' + this.data.timeOfDay
@@ -885,23 +867,6 @@ Page({
     })
   },
 
-  // 更新陪伴小公主提示语（固定右下角）
-  updateCompanion() {
-    const index = this.data.currentAreaIndex
-    const area = BRUSH_AREAS[index]
-    const areaPrompts = [
-      `${area.name}~`,
-      `刷${area.name}`,
-      `${area.name}!`,
-      `${area.name}哦`
-    ]
-    const bubble = this.data.companionBubble
-      ? areaPrompts[index % areaPrompts.length]
-      : `刷牙啦！${areaPrompts[0]}`
-
-    this.setData({ companionBubble: bubble })
-  },
-
   // 根据刷牙区域更新牙刷位置和方向
   updateToothbrushPosition() {
     const index = this.data.currentAreaIndex
@@ -926,9 +891,9 @@ Page({
   },
 
   // ===== 计时器 =====
-  // 选择牙刷皮肤
+  // 选择牙刷皮肤（由 pre-battle-panel 组件事件触发）
   selectSkin(e) {
-    const skinId = e.currentTarget.dataset.id
+    const skinId = e.detail.id
     const skin = TOOTHBRUSH_SKINS.find(s => s.id === skinId)
     if (!skin) return
 
@@ -946,9 +911,9 @@ Page({
     wx.vibrateShort({ type: 'light' })
   },
 
-  // 选择刷牙时长
+  // 选择刷牙时长（由 pre-battle-panel 组件事件触发）
   selectDuration(e) {
-    const sec = parseInt(e.currentTarget.dataset.sec)
+    const sec = e.detail.sec
     this.setData({ selectedDuration: sec })
   },
 
@@ -993,7 +958,6 @@ Page({
     this._chapterAdvanced = false
     const areaDuration = Math.floor(this._totalTime / BRUSH_AREAS.length)
     this._areaDuration = areaDuration
-    this._cheerIndex = 0
 
     const min = Math.floor(this._totalTime / 60).toString().padStart(2, '0')
     const sec = (this._totalTime % 60).toString().padStart(2, '0')
@@ -1002,14 +966,13 @@ Page({
       isRunning: true, isPaused: false, isCompleted: false,
       remainingTime: this._totalTime, overallProgress: 0,
       currentAreaIndex: 0, currentArea: BRUSH_AREAS[0],
-      areaColor: BRUSH_AREAS[0].color, completedAreas: [],
+      completedAreas: [],
       areaRemaining: areaDuration,
       ringColor: '#FF9AAB',
       rewardStars: [false, false, false, false, false],
       currentRewardText: REWARD_TEXTS[0],
       minutes: min, seconds: sec,
       stage: 'brushing',
-      dirtySpots: [],
       placedStickers: [],
       showStickerPicker: false,
       lastBrushPoints: 0
@@ -1018,16 +981,10 @@ Page({
     this._elapsed = 0
     beep.playBeep('start')
 
-    // 随机生成女孩风格泡泡
-    const girlBubbles = BUBBLE_LIST.map((item, i) => ({
-      ...item,
-      emoji: Math.random() > 0.5 ? GIRL_BUBBLES[Math.floor(Math.random() * GIRL_BUBBLES.length)] : item.emoji
-    }))
-
     // 每场战斗随机选择一个战场特效
     const battlefieldEffect = BATTLEFIELD_EFFECTS[Math.floor(Math.random() * BATTLEFIELD_EFFECTS.length)]
 
-    this.setData({ bubbles: girlBubbles, battlefieldClass: battlefieldEffect.className })
+    this.setData({ battlefieldClass: battlefieldEffect.className })
 
     // 重置颜色模式
     this._ringModeIndex = 0
@@ -1036,8 +993,6 @@ Page({
     this.initToothZones()
     // 开始刷牙后，第一个区域标记为当前
     this.updateZoneStates()
-    // 陪伴小公主就位
-    this.updateCompanion()
     // 牙刷位置就位
     this.updateToothbrushPosition()
     // 生成小怪物
@@ -1081,22 +1036,6 @@ Page({
       const starIndex = Math.floor(overallProgress / 20)
       const rewardStars = this.data.rewardStars.map((s, i) => i < starIndex)
 
-      // 动物加油文字轮换
-      this._cheerIndex = (this._cheerIndex + 1) % CHEER_LEFT.length
-      const currentIndex = this._cheerIndex
-      let leftCheer = CHEER_LEFT[currentIndex]
-      let rightCheer = CHEER_RIGHT[currentIndex]
-
-      // 随机触发公主鼓励（每6秒有概率出现）
-      if (currentIndex === 0 && Math.random() > 0.5) {
-        const princess = PRINCESS_CHEER[Math.floor(Math.random() * PRINCESS_CHEER.length)]
-        leftCheer = princess.text
-        if (this._princessTimer) this.untrack(this._princessTimer)
-        this._princessTimer = this.trackTimeout(() => {
-          this.setData({ leftCheer: CHEER_LEFT[currentIndex] })
-        }, 2000)
-      }
-
       beep.playBeep('tick')
       if (remaining <= 10) beep.playBeep('countdown')
 
@@ -1108,8 +1047,7 @@ Page({
       const updateData = {
         remainingTime: remaining, minutes: min, seconds: sec,
         overallProgress, ringColor, rewardStars,
-        currentRewardText: REWARD_TEXTS[Math.min(starIndex, REWARD_TEXTS.length - 1)],
-        leftCheer, rightCheer
+        currentRewardText: REWARD_TEXTS[Math.min(starIndex, REWARD_TEXTS.length - 1)]
       }
 
       if (currentEnemy && this.data.enemyCurrentHp > 0) {
@@ -1216,11 +1154,10 @@ Page({
     beep.playBeep('areaChange')
     this.setData({
       completedAreas, currentAreaIndex: nextIndex,
-      currentArea: BRUSH_AREAS[nextIndex], areaColor: BRUSH_AREAS[nextIndex].color,
+      currentArea: BRUSH_AREAS[nextIndex],
       areaRemaining: this._areaDuration
     }, () => {
       this.updateZoneStates()
-      this.updateCompanion()
       this.updateToothbrushPosition()
     })
   },
@@ -1233,7 +1170,6 @@ Page({
 
   resumeTimer() {
     this.setData({ isRunning: true, isPaused: false })
-    this.updateCompanion()
     this.startMainTimer()
   },
 
@@ -1287,15 +1223,14 @@ Page({
       isRunning: false, isPaused: false, isCompleted: false,
       remainingTime: this._totalTime, minutes: '02', seconds: '00',
       overallProgress: 0, currentAreaIndex: 0, currentArea: BRUSH_AREAS[0],
-      areaColor: BRUSH_AREAS[0].color, completedAreas: [],
+      completedAreas: [],
       areaRemaining: 20, ringColor: '#FF9AAB',
       rewardStars: [false, false, false, false, false],
       currentRewardText: '准备开始！',
       completedStarsArr: [], completedText: '', confetti: [],
-      dirtySpots: [], brushPoints: 0, totalDirtyCleaned: 0,
-      showCleanEffect: false, showPoints: false, showTip: false,
+      brushPoints: 0, totalDirtyCleaned: 0,
+      showPoints: false, showTip: false,
       toothZones: [],
-      companionBubble: '',
       comboCount: 0, showCombo: false, enemyAngry: false,
       // 重置故事战斗状态：否则胜利后重开会带着 HP=0 开局（全程无攻击特效）并重复推进章节
       enemyCurrentHp: this.data.currentEnemy ? this.data.currentEnemy.hp : 0,
@@ -1375,8 +1310,11 @@ Page({
     }
 
     const completedCount = this.data.completedAreas.length
-    let stars = Math.ceil((completedCount / BRUSH_AREAS.length) * 5)
-    if (stars === 0) stars = 1
+    // 星级与保存记录（saveBrushingRecord）、分享文案共用同一算法，确保结束页与统计页一致
+    const stars = this._calcStars(completedCount)
+    // 顶部进度星星行仅自然结束时补满：提前结束保留 tick 已写入的进度星（与实际刷了多久一致），
+    // 避免出现"顶部5星、胜利行/记录分却只有2-4星"的新不一致
+    const naturalEnd = this.data.remainingTime <= 1
 
     // 检查是否有连续天数的特殊称号
     const specialTitle = this.getSpecialTitle()
@@ -1403,20 +1341,18 @@ Page({
     // 清除中途退出的进度缓存
     wx.removeStorageSync('brushingProgress')
 
-    // 陪伴公主完成语
-    this.setData({ companionBubble: '太棒啦！🎉' })
-
     // 确保所有已刷区域状态为 clean
     this.updateZoneStates()
 
-    // 清除所有脏东西
     this.setData({
       isRunning: false, isPaused: false, isCompleted: true, overallProgress: 100,
       remainingTime: 0, minutes: '00', seconds: '00',
       ringColor: '#81C784',
+      // 自然完成时最后一秒 tick 因 remaining<=0 提前 return，进度星星停在 99% 的 4 颗，需补满
+      rewardStars: naturalEnd ? [true, true, true, true, true] : this.data.rewardStars,
+      currentRewardText: naturalEnd ? REWARD_TEXTS[REWARD_TEXTS.length - 1] : this.data.currentRewardText,
       completedStarsArr: Array(stars).fill(0),
       completedText: completedText,
-      dirtySpots: [],
       stage: 'post',
       showStickerPicker: true,
       lastBrushPoints: this.data.brushPoints
@@ -1454,6 +1390,12 @@ Page({
     })
   },
 
+  // 星级统一算法（1-5 分制）：结束页显示、保存记录、分享文案共用
+  // 必须与 saveBrushingRecord 的 score 保持同一实现，否则结束页星数与统计页记录不一致
+  _calcStars(areaCount) {
+    return areaCount >= 6 ? 5 : areaCount >= 4 ? 4 : areaCount >= 2 ? 3 : areaCount >= 1 ? 2 : 1
+  },
+
   // 保存刷牙记录到本地和云端
   async saveBrushingRecord() {
     // 用同步方式持久化照片到本地存储，避免临时路径失效后再次进入不显示；
@@ -1468,9 +1410,9 @@ Page({
       }
     }
 
-    // 根据完成区域数计算评分（1-5分制）
+    // 根据完成区域数计算评分（1-5分制，与结束页星级共用 _calcStars）
     const areaCount = this.data.completedAreas.length
-    const score = areaCount >= 6 ? 5 : areaCount >= 4 ? 4 : areaCount >= 2 ? 3 : areaCount >= 1 ? 2 : 1
+    const score = this._calcStars(areaCount)
 
     // 计算经验值（完成时已捕获实际时长，避免 remainingTime 归零后无法推算）
     const duration = this._usedDuration != null
@@ -1709,7 +1651,7 @@ Page({
 
   // 分享给家人
   onShareAppMessage() {
-    const score = this.data.completedAreas.length >= 6 ? 5 : this.data.completedAreas.length >= 4 ? 4 : 3
+    const score = this._calcStars(this.data.completedAreas.length)
     const { currentEnemy, isEnemyDefeated } = this.data
     const childName = auth.getChildNickname()
 

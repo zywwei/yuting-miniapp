@@ -1,0 +1,22 @@
+<!-- ===== 6区牙齿（刷牙时显示） ===== -->
+<view class="tooth-strip">
+  <view wx:for="{{zones}}" wx:key="index"
+        class="tooth-zone zone-{{item.state}} {{item.state === 'current' ? 'zone-pulse' : ''}}"
+        style="border-color: {{item.color}};">
+    <view class="zone-tooth-body">
+      <text class="zone-tooth-emoji">{{item.state === 'clean' ? '✨' : '🦷'}}</text>
+    </view>
+    <view class="zone-germs" wx:if="{{item.germs.length > 0 && item.state !== 'clean'}}">
+      <text wx:for="{{item.germs}}" wx:key="id"
+            class="zone-germ {{item.fleeing ? 'germ-flee' : 'germ-wiggle'}}"
+            style="left: {{item.x}}%; top: {{item.y}}%;">{{item.emoji}}</text>
+    </view>
+    <view class="zone-shine" wx:if="{{item.state === 'clean'}}">✨</view>
+    <view class="zone-crown" wx:if="{{item.state === 'clean'}}">👑</view>
+    <view class="zone-label">{{item.name}}</view>
+    <view class="zone-timer" wx:if="{{currentIndex === index && isRunning}}">
+      <text class="zone-timer-num">{{areaRemaining}}</text>
+    </view>
+    <view class="zone-check" wx:if="{{item.state === 'clean'}}">✓</view>
+  </view>
+</view>
