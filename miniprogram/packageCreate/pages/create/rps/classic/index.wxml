@@ -71,12 +71,14 @@
       </view>
     </view>
 
-    <!-- 出拳区域 -->
-    <view class="battle-area {{showShockwave ? 'shockwave' : ''}} {{showParticles ? 'particles' : ''}}">
+    <!-- 出拳区域 + 回合结果合并为中部弹性区：结果横幅紧跟手势下方 -->
+    <view class="battle-zone">
+    <view class="battle-area {{showShockwave ? 'shockwave' : ''}} {{showParticles ? 'particles' : ''}} {{clashType ? 'clash-' + clashType + ' clash-w' + clashWinner : ''}} {{gameResult ? 'settled' : ''}}">
       <view class="player-side">
-        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
-          <text class="choice-icon" wx:if="{{player1Icon}}">{{player1Icon}}</text>
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}} {{roundResult === 'win' ? 'clash-atk' : roundResult === 'lose' ? 'clash-vic' : ''}}">
+          <image class="choice-img" wx:if="{{iconMap[player1Icon]}}" src="{{iconMap[player1Icon]}}" mode="aspectFit"/>
           <text class="choice-placeholder" wx:else>?</text>
+          <image class="broken-img" wx:if="{{clashType && clashWinner === 2}}" src="{{brokenIcon}}" mode="aspectFit"/>
         </view>
         <view class="player-name">我</view>
       </view>
@@ -86,11 +88,42 @@
       </view>
 
       <view class="player-side">
-        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
-          <text class="choice-icon" wx:if="{{player2Icon}}">{{player2Icon}}</text>
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}} {{roundResult === 'lose' ? 'clash-atk' : roundResult === 'win' ? 'clash-vic' : ''}}">
+          <image class="choice-img" wx:if="{{iconMap[player2Icon]}}" src="{{iconMap[player2Icon]}}" mode="aspectFit"/>
           <text class="choice-placeholder" wx:else>?</text>
+          <image class="broken-img" wx:if="{{clashType && clashWinner === 1}}" src="{{brokenIcon}}" mode="aspectFit"/>
         </view>
         <view class="player-name">AI</view>
+      </view>
+
+      <!-- 克制对决特效层 -->
+      <view class="clash-fx {{clashWinner === 1 ? 'fx-hit-right' : 'fx-hit-left'}}" wx:if="{{clashType}}">
+        <view class="fx-flash"></view>
+        <view class="fx-burst" wx:if="{{clashType !== 'wrap'}}">💥</view>
+        <block wx:if="{{clashType === 'smash'}}">
+          <view class="fx-shard s1"></view>
+          <view class="fx-shard s2"></view>
+          <view class="fx-shard s3"></view>
+          <view class="fx-shard s4"></view>
+          <view class="fx-shard s5"></view>
+          <view class="fx-shard s6"></view>
+          <view class="fx-shard s7"></view>
+          <view class="fx-shard s8"></view>
+          <view class="fx-spark k1"></view>
+          <view class="fx-spark k2"></view>
+        </block>
+        <block wx:if="{{clashType === 'cut'}}">
+          <view class="fx-shard cut s1"></view>
+          <view class="fx-shard cut s2"></view>
+          <view class="fx-shard cut s3"></view>
+          <view class="fx-shard cut s4"></view>
+          <view class="fx-shard cut s5"></view>
+          <view class="fx-shard cut s6"></view>
+          <view class="fx-shard cut s7"></view>
+          <view class="fx-shard cut s8"></view>
+        </block>
+        <view class="fx-slash" wx:if="{{clashType === 'cut'}}"></view>
+        <view class="fx-wrap-ring" wx:if="{{clashType === 'wrap'}}"></view>
       </view>
 
       <!-- 撒花效果（只在赢家一侧） -->
@@ -104,12 +137,13 @@
       </view>
     </view>
 
-    <!-- 回合结果 -->
-    <view class="round-result" wx:if="{{roundResult}}">
+    <!-- 回合结果（结算弹层出现时隐藏，避免信息重复） -->
+    <view class="round-result" wx:if="{{roundResult && !gameResult}}">
       <view class="result-badge {{roundResult}}">
         <view class="result-icon">{{roundResultIcon}}</view>
         <view class="result-text">{{roundResultText}}</view>
       </view>
+    </view>
     </view>
 
     <!-- 游戏结果 -->
@@ -135,19 +169,19 @@
     <view class="choice-buttons" wx:if="{{!isAnimating && !gameResult}}">
       <view class="choice-btn" bindtap="aiPlayerChoice" data-choice="rock">
         <view class="choice-btn-inner">
-          <text class="choice-btn-icon">✊</text>
+          <image class="choice-btn-img" src="/packageCreate/images/rps/rock.jpg" mode="aspectFit"/>
         </view>
         <text class="choice-btn-text">石头</text>
       </view>
       <view class="choice-btn" bindtap="aiPlayerChoice" data-choice="scissors">
         <view class="choice-btn-inner">
-          <text class="choice-btn-icon">✌️</text>
+          <image class="choice-btn-img" src="/packageCreate/images/rps/scissors.jpg" mode="aspectFit"/>
         </view>
         <text class="choice-btn-text">剪刀</text>
       </view>
       <view class="choice-btn" bindtap="aiPlayerChoice" data-choice="paper">
         <view class="choice-btn-inner">
-          <text class="choice-btn-icon">✋</text>
+          <image class="choice-btn-img" src="/packageCreate/images/rps/paper.jpg" mode="aspectFit"/>
         </view>
         <text class="choice-btn-text">布</text>
       </view>
@@ -171,19 +205,19 @@
     <view class="choice-buttons">
       <view class="choice-btn" bindtap="playerSelectChoice" data-choice="rock">
         <view class="choice-btn-inner">
-          <text class="choice-btn-icon">✊</text>
+          <image class="choice-btn-img" src="/packageCreate/images/rps/rock.jpg" mode="aspectFit"/>
         </view>
         <text class="choice-btn-text">石头</text>
       </view>
       <view class="choice-btn" bindtap="playerSelectChoice" data-choice="scissors">
         <view class="choice-btn-inner">
-          <text class="choice-btn-icon">✌️</text>
+          <image class="choice-btn-img" src="/packageCreate/images/rps/scissors.jpg" mode="aspectFit"/>
         </view>
         <text class="choice-btn-text">剪刀</text>
       </view>
       <view class="choice-btn" bindtap="playerSelectChoice" data-choice="paper">
         <view class="choice-btn-inner">
-          <text class="choice-btn-icon">✋</text>
+          <image class="choice-btn-img" src="/packageCreate/images/rps/paper.jpg" mode="aspectFit"/>
         </view>
         <text class="choice-btn-text">布</text>
       </view>
@@ -202,19 +236,19 @@
     <view class="choice-buttons">
       <view class="choice-btn" bindtap="playerSelectChoice" data-choice="rock">
         <view class="choice-btn-inner">
-          <text class="choice-btn-icon">✊</text>
+          <image class="choice-btn-img" src="/packageCreate/images/rps/rock.jpg" mode="aspectFit"/>
         </view>
         <text class="choice-btn-text">石头</text>
       </view>
       <view class="choice-btn" bindtap="playerSelectChoice" data-choice="scissors">
         <view class="choice-btn-inner">
-          <text class="choice-btn-icon">✌️</text>
+          <image class="choice-btn-img" src="/packageCreate/images/rps/scissors.jpg" mode="aspectFit"/>
         </view>
         <text class="choice-btn-text">剪刀</text>
       </view>
       <view class="choice-btn" bindtap="playerSelectChoice" data-choice="paper">
         <view class="choice-btn-inner">
-          <text class="choice-btn-icon">✋</text>
+          <image class="choice-btn-img" src="/packageCreate/images/rps/paper.jpg" mode="aspectFit"/>
         </view>
         <text class="choice-btn-text">布</text>
       </view>
@@ -240,11 +274,13 @@
       </view>
     </view>
 
-    <!-- 出拳展示 -->
-    <view class="battle-area {{showShockwave ? 'shockwave' : ''}}">
+    <!-- 出拳展示 + 回合结果合并为中部弹性区：结果横幅紧跟手势下方 -->
+    <view class="battle-zone">
+    <view class="battle-area {{showShockwave ? 'shockwave' : ''}} {{clashType ? 'clash-' + clashType + ' clash-w' + clashWinner : ''}} {{gameResult ? 'settled' : ''}}">
       <view class="player-side">
-        <view class="player-choice {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
-          <text class="choice-icon">{{player1Icon}}</text>
+        <view class="player-choice {{roundResult === 'win' ? 'winner clash-atk' : roundResult === 'lose' ? 'loser clash-vic' : ''}}">
+          <image class="choice-img" src="{{iconMap[player1Icon]}}" mode="aspectFit"/>
+          <image class="broken-img" wx:if="{{clashType && clashWinner === 2}}" src="{{brokenIcon}}" mode="aspectFit"/>
         </view>
         <view class="player-name">玩家1</view>
       </view>
@@ -254,10 +290,41 @@
       </view>
 
       <view class="player-side">
-        <view class="player-choice {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
-          <text class="choice-icon">{{player2Icon}}</text>
+        <view class="player-choice {{roundResult === 'lose' ? 'winner clash-atk' : roundResult === 'win' ? 'loser clash-vic' : ''}}">
+          <image class="choice-img" src="{{iconMap[player2Icon]}}" mode="aspectFit"/>
+          <image class="broken-img" wx:if="{{clashType && clashWinner === 1}}" src="{{brokenIcon}}" mode="aspectFit"/>
         </view>
         <view class="player-name">玩家2</view>
+      </view>
+
+      <!-- 克制对决特效层 -->
+      <view class="clash-fx {{clashWinner === 1 ? 'fx-hit-right' : 'fx-hit-left'}}" wx:if="{{clashType}}">
+        <view class="fx-flash"></view>
+        <view class="fx-burst" wx:if="{{clashType !== 'wrap'}}">💥</view>
+        <block wx:if="{{clashType === 'smash'}}">
+          <view class="fx-shard s1"></view>
+          <view class="fx-shard s2"></view>
+          <view class="fx-shard s3"></view>
+          <view class="fx-shard s4"></view>
+          <view class="fx-shard s5"></view>
+          <view class="fx-shard s6"></view>
+          <view class="fx-shard s7"></view>
+          <view class="fx-shard s8"></view>
+          <view class="fx-spark k1"></view>
+          <view class="fx-spark k2"></view>
+        </block>
+        <block wx:if="{{clashType === 'cut'}}">
+          <view class="fx-shard cut s1"></view>
+          <view class="fx-shard cut s2"></view>
+          <view class="fx-shard cut s3"></view>
+          <view class="fx-shard cut s4"></view>
+          <view class="fx-shard cut s5"></view>
+          <view class="fx-shard cut s6"></view>
+          <view class="fx-shard cut s7"></view>
+          <view class="fx-shard cut s8"></view>
+        </block>
+        <view class="fx-slash" wx:if="{{clashType === 'cut'}}"></view>
+        <view class="fx-wrap-ring" wx:if="{{clashType === 'wrap'}}"></view>
       </view>
 
       <!-- 撒花效果（只在赢家一侧） -->
@@ -271,12 +338,13 @@
       </view>
     </view>
 
-    <!-- 回合结果 -->
-    <view class="round-result">
+    <!-- 回合结果（结算弹层出现时隐藏，避免信息重复） -->
+    <view class="round-result" wx:if="{{!gameResult}}">
       <view class="result-badge {{roundResult}}">
         <view class="result-icon">{{roundResultIcon}}</view>
-        <view class="result-text">{{roundResult === 'win' ? '玩家1胜！' : roundResult === 'lose' ? '玩家2胜！' : '平局！'}}</view>
+        <view class="result-text">{{clashText || (roundResult === 'win' ? '玩家1胜！' : roundResult === 'lose' ? '玩家2胜！' : '平局！')}}</view>
       </view>
+    </view>
     </view>
 
     <!-- 游戏结果 -->
@@ -307,7 +375,7 @@
 
   <!-- 亲子随机模式 -->
   <view class="phase-random" wx:if="{{phase === 'randomPlaying'}}">
-    <view class="random-header">
+    <view class="random-header" wx:if="{{!gameResult}}">
       <view class="random-title">🎲 亲子随机</view>
       <view class="random-desc">{{currentPlayer === 1 ? '玩家1 点击随机出拳' : '玩家1已出拳，玩家2 点击随机出拳'}}</view>
     </view>
@@ -329,12 +397,14 @@
       </view>
     </view>
 
-    <!-- 出拳区域 -->
-    <view class="battle-area {{showShockwave ? 'shockwave' : ''}}">
+    <!-- 出拳区域 + 回合结果合并为中部弹性区：结果横幅紧跟手势下方 -->
+    <view class="battle-zone">
+    <view class="battle-area {{showShockwave ? 'shockwave' : ''}} {{clashType ? 'clash-' + clashType + ' clash-w' + clashWinner : ''}} {{gameResult ? 'settled' : ''}}">
       <view class="player-side">
-        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner' : roundResult === 'lose' ? 'loser' : ''}}">
-          <text class="choice-icon" wx:if="{{player1Icon}}">{{player1Icon}}</text>
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'win' ? 'winner clash-atk' : roundResult === 'lose' ? 'loser clash-vic' : ''}}">
+          <image class="choice-img" wx:if="{{iconMap[player1Icon]}}" src="{{iconMap[player1Icon]}}" mode="aspectFit"/>
           <text class="choice-placeholder" wx:else>?</text>
+          <image class="broken-img" wx:if="{{clashType && clashWinner === 2}}" src="{{brokenIcon}}" mode="aspectFit"/>
         </view>
         <view class="player-name">玩家1</view>
       </view>
@@ -344,11 +414,42 @@
       </view>
 
       <view class="player-side">
-        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner' : roundResult === 'win' ? 'loser' : ''}}">
-          <text class="choice-icon" wx:if="{{player2Icon}}">{{player2Icon}}</text>
+        <view class="player-choice {{isAnimating ? 'animating' : ''}} {{roundResult === 'lose' ? 'winner clash-atk' : roundResult === 'win' ? 'loser clash-vic' : ''}}">
+          <image class="choice-img" wx:if="{{iconMap[player2Icon]}}" src="{{iconMap[player2Icon]}}" mode="aspectFit"/>
           <text class="choice-placeholder" wx:else>?</text>
+          <image class="broken-img" wx:if="{{clashType && clashWinner === 1}}" src="{{brokenIcon}}" mode="aspectFit"/>
         </view>
         <view class="player-name">玩家2</view>
+      </view>
+
+      <!-- 克制对决特效层 -->
+      <view class="clash-fx {{clashWinner === 1 ? 'fx-hit-right' : 'fx-hit-left'}}" wx:if="{{clashType}}">
+        <view class="fx-flash"></view>
+        <view class="fx-burst" wx:if="{{clashType !== 'wrap'}}">💥</view>
+        <block wx:if="{{clashType === 'smash'}}">
+          <view class="fx-shard s1"></view>
+          <view class="fx-shard s2"></view>
+          <view class="fx-shard s3"></view>
+          <view class="fx-shard s4"></view>
+          <view class="fx-shard s5"></view>
+          <view class="fx-shard s6"></view>
+          <view class="fx-shard s7"></view>
+          <view class="fx-shard s8"></view>
+          <view class="fx-spark k1"></view>
+          <view class="fx-spark k2"></view>
+        </block>
+        <block wx:if="{{clashType === 'cut'}}">
+          <view class="fx-shard cut s1"></view>
+          <view class="fx-shard cut s2"></view>
+          <view class="fx-shard cut s3"></view>
+          <view class="fx-shard cut s4"></view>
+          <view class="fx-shard cut s5"></view>
+          <view class="fx-shard cut s6"></view>
+          <view class="fx-shard cut s7"></view>
+          <view class="fx-shard cut s8"></view>
+        </block>
+        <view class="fx-slash" wx:if="{{clashType === 'cut'}}"></view>
+        <view class="fx-wrap-ring" wx:if="{{clashType === 'wrap'}}"></view>
       </view>
 
       <!-- 撒花效果（只在赢家一侧） -->
@@ -362,12 +463,13 @@
       </view>
     </view>
 
-    <!-- 回合结果 -->
-    <view class="round-result" wx:if="{{roundResult}}">
+    <!-- 回合结果（结算弹层出现时隐藏，避免信息重复） -->
+    <view class="round-result" wx:if="{{roundResult && !gameResult}}">
       <view class="result-badge {{roundResult}}">
         <view class="result-icon">{{roundResultIcon}}</view>
-        <view class="result-text">{{roundResult === 'win' ? '玩家1胜！' : roundResult === 'lose' ? '玩家2胜！' : '平局！'}}</view>
+        <view class="result-text">{{clashText || (roundResult === 'win' ? '玩家1胜！' : roundResult === 'lose' ? '玩家2胜！' : '平局！')}}</view>
       </view>
+    </view>
     </view>
 
     <!-- 游戏结果 -->

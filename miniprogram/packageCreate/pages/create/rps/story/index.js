@@ -6,6 +6,7 @@ var gameEconomy = require('../../../../utils/game-economy.js')
 
 Page({
   data: {
+    iconMap: rpsManager.ICON_TO_IMAGE,
     phase: 'intro', // intro, battle, victory, defeat, ending, shop
     currentChapter: 1,
     chapterInfo: null,
@@ -26,7 +27,11 @@ Page({
     roundResultIcon: '',
     isAnimating: false,
     showConfetti: false,
-    usedItems: []
+    usedItems: [],
+    clashType: '',
+    clashText: '',
+    clashWinner: 0,
+    brokenIcon: ''
   },
 
   onLoad: function() {
@@ -100,7 +105,10 @@ Page({
       hasLuckyCharm: (playerItems['lucky_charm'] || 0) > 0,
       hasSpyGlass: (playerItems['spy_glass'] || 0) > 0,
       hasSkipCard: (playerItems['skip'] || 0) > 0,
-      hasShield: (playerItems['shield'] || 0) > 0
+      hasShield: (playerItems['shield'] || 0) > 0,
+      clashType: '',
+      clashText: '',
+      clashWinner: 0
     })
   },
 
@@ -163,6 +171,9 @@ Page({
     var aiChoice = rpsManager.aiChoice(difficulty, this.data.battleHistory)
     var result = rpsManager.judge(choice, aiChoice)
     var resultInfo = rpsUtils.formatResult(result)
+    var clashType = rpsUtils.getClashType(choice, aiChoice, result)
+    var brokenIcon = clashType ? rpsManager.BROKEN_IMAGE[result === 'win' ? aiChoice : choice] : ''
+    var clashText = rpsUtils.getClashText(choice, aiChoice, result)
 
     // 透视镜效果：显示AI出拳提示
     if (this.data.hasSpyGlass) {
@@ -184,28 +195,38 @@ Page({
     if (result === 'win') player1Wins++
     else if (result === 'lose') player2Wins++
 
+    // 第一步：双方手势亮相，清空上回合克制动画
     this.setData({
       isAnimating: true,
       player1Choice: choice,
       player2Choice: aiChoice,
       player1Icon: rpsManager.CHOICE_ICONS[choice],
       player2Icon: rpsManager.CHOICE_ICONS[aiChoice],
-      player1Wins: player1Wins,
-      player2Wins: player2Wins,
-      roundResult: result,
-      roundResultText: resultInfo.text,
-      roundResultIcon: resultInfo.icon,
-      battleHistory: battleHistory
+      roundResult: '',
+      clashType: '',
+      clashText: '',
+      clashWinner: 0
     })
 
-    // 音效
     beep.playBeep('rpsShoot')
 
     var that = this
     setTimeout(function() {
-      that.setData({ isAnimating: false })
+      // 第二步：克制对决爆发
+      that.setData({
+        player1Wins: player1Wins,
+        player2Wins: player2Wins,
+        roundResult: result,
+        roundResultText: clashText || resultInfo.text,
+        roundResultIcon: resultInfo.icon,
+        battleHistory: battleHistory,
+        clashType: clashType,
+        clashText: clashText,
+        clashWinner: result === 'win' ? 1 : 2,
+        brokenIcon: brokenIcon
+      })
 
-      // 音效反馈
+      // 命中时刻的反馈
       if (result === 'win') {
         beep.playBeep('win')
         wx.vibrateShort({ type: 'medium' })
@@ -213,6 +234,10 @@ Page({
         beep.playBeep('lose')
         wx.vibrateShort({ type: 'light' })
       }
+    }, 320)
+
+    setTimeout(function() {
+      that.setData({ isAnimating: false })
 
       // 检查是否达成胜利/失败条件
       if (player1Wins >= that.data.chapterInfo.winsRequired) {
@@ -220,7 +245,7 @@ Page({
       } else if (player2Wins >= that.data.chapterInfo.winsRequired) {
         that.defeat()
       }
-    }, 800)
+    }, 1100)
   },
 
   victory: function() {

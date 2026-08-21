@@ -450,6 +450,12 @@
   margin-bottom: 12rpx;
 }
 
+.quick-icon-img {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+}
+
 .quick-text {
   font-size: 24rpx;
   color: #666;

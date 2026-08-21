@@ -45,6 +45,8 @@ project.private.config.json
 # 保留项目设计图
 !miniprogram/images/avatar.png
 !miniprogram/images/avatar.jpg
+# 保留 rps 卡通手势图（代码引用，必须入库）
+!miniprogram/packageCreate/images/rps/*.jpg
 
 ### 临时文件 ###
 _listing.txt
@@ -58,6 +60,7 @@ miniprogram/nul
 .codegraph/
 miniprogram/.claude/
 miniprogram/.mcp.json
+dsh.config.yml
 
 ### 设计稿与工具配置 ###
 design/

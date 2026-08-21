@@ -4,6 +4,7 @@ var childStorage = getApp().globalData.childStorage
 
 Page({
   data: {
+    iconMap: rpsManager.ICON_TO_IMAGE,
     phase: 'select', // select, playing, player1Select, player2Select, result
     playMode: '', // parent, ai
     difficulty: 'simple',
@@ -26,7 +27,11 @@ Page({
     winsRequired: 2,
     showShockwave: false,
     showScreenShake: false,
-    showParticles: false
+    showParticles: false,
+    clashType: '',
+    clashText: '',
+    clashWinner: 0,
+    brokenIcon: ''
   },
 
   onLoad: function(options) {
@@ -90,7 +95,10 @@ Page({
       roundResultIcon: '',
       showConfetti: false,
       scoreChanged: false,
-      currentPlayer: 1
+      currentPlayer: 1,
+      clashType: '',
+      clashText: '',
+      clashWinner: 0
     })
     this.gameStartTime = Date.now()
   },
@@ -124,6 +132,9 @@ Page({
     var player1Choice = this.data.player1Choice
     var result = rpsManager.judge(player1Choice, player2Choice)
     var resultInfo = rpsUtils.formatResult(result)
+    var clashType = rpsUtils.getClashType(player1Choice, player2Choice, result)
+    var clashText = rpsUtils.getClashText(player1Choice, player2Choice, result)
+    var brokenIcon = clashType ? rpsManager.BROKEN_IMAGE[result === 'win' ? player2Choice : player1Choice] : ''
 
     // 亲子模式下玩家2赢也显示庆祝表情
     if (result === 'lose') {
@@ -167,7 +178,11 @@ Page({
       phase: 'result',
       isAnimating: true,
       showConfetti: result !== 'draw',
-      scoreChanged: true
+      scoreChanged: true,
+      clashType: clashType,
+      clashText: clashText,
+      clashWinner: result === 'win' ? 1 : 2,
+      brokenIcon: brokenIcon
     })
 
     // 振动反馈
@@ -254,6 +269,9 @@ Page({
     var player1Choice = this.data.player1Choice
     var result = rpsManager.judge(player1Choice, player2Choice)
     var resultInfo = rpsUtils.formatResult(result)
+    var clashType = rpsUtils.getClashType(player1Choice, player2Choice, result)
+    var clashText = rpsUtils.getClashText(player1Choice, player2Choice, result)
+    var brokenIcon = clashType ? rpsManager.BROKEN_IMAGE[result === 'win' ? player2Choice : player1Choice] : ''
 
     // 亲子模式下玩家2赢也显示庆祝表情
     if (result === 'lose') {
@@ -294,7 +312,11 @@ Page({
       roundHistory: roundHistory,
       roundFinished: true,
       isAnimating: true,
-      showConfetti: result !== 'draw'
+      showConfetti: result !== 'draw',
+      clashType: clashType,
+      clashText: clashText,
+      clashWinner: result === 'win' ? 1 : 2,
+      brokenIcon: brokenIcon
     })
 
     // 如果游戏结束，保存记录
@@ -332,14 +354,17 @@ Page({
     var choice = e.currentTarget.dataset.choice
     var player2Choice = rpsManager.aiChoice(this.data.difficulty, this.data.roundHistory)
 
-    this.setData({ 
+    this.setData({
       isAnimating: true,
       player1Choice: choice,
       player1Icon: rpsManager.CHOICE_ICONS[choice],
       player2Icon: '',
       roundResult: '',
       roundResultText: '',
-      roundResultIcon: ''
+      roundResultIcon: '',
+      clashType: '',
+      clashText: '',
+      clashWinner: 0
     })
 
     // 倒计时动画
@@ -367,6 +392,9 @@ Page({
   showResult: function(player1Choice, player2Choice) {
     var result = rpsManager.judge(player1Choice, player2Choice)
     var resultInfo = rpsUtils.formatResult(result)
+    var clashType = rpsUtils.getClashType(player1Choice, player2Choice, result)
+    var clashText = rpsUtils.getClashText(player1Choice, player2Choice, result)
+    var brokenIcon = clashType ? rpsManager.BROKEN_IMAGE[result === 'win' ? player2Choice : player1Choice] : ''
 
     var player1Wins = this.data.player1Wins
     var player2Wins = this.data.player2Wins
@@ -403,7 +431,7 @@ Page({
       player1Wins: player1Wins,
       player2Wins: player2Wins,
       roundResult: result,
-      roundResultText: resultInfo.text,
+      roundResultText: clashText || resultInfo.text,
       roundResultIcon: resultInfo.icon,
       gameResult: gameResult,
       gameResultText: gameResultText,
@@ -413,7 +441,11 @@ Page({
       scoreChanged: true,
       showShockwave: true,
       showScreenShake: true,
-      showParticles: true
+      showParticles: true,
+      clashType: clashType,
+      clashText: clashText,
+      clashWinner: result === 'win' ? 1 : 2,
+      brokenIcon: brokenIcon
     })
 
     // 清除动画效果
@@ -459,7 +491,10 @@ Page({
       gameResult: '',
       gameResultText: '',
       roundFinished: false,
-      currentPlayer: 1
+      currentPlayer: 1,
+      clashType: '',
+      clashText: '',
+      clashWinner: 0
     })
   },
 
@@ -476,7 +511,10 @@ Page({
       gameResult: '',
       gameResultText: '',
       roundFinished: false,
-      currentPlayer: 1
+      currentPlayer: 1,
+      clashType: '',
+      clashText: '',
+      clashWinner: 0
     })
   },
 

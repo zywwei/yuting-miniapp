@@ -16,6 +16,7 @@ var AI_OPPONENTS = [
 
 Page({
   data: {
+    iconMap: rpsManager.ICON_TO_IMAGE,
     phase: 'bracket', // bracket, matchIntro, match, matchResult, champion
     currentRound: 0, // 0=8强, 1=4强, 2=决赛
     roundNames: ['8强赛', '半决赛', '决赛'],
@@ -29,6 +30,10 @@ Page({
     roundResult: '',
     roundResultText: '',
     roundResultIcon: '',
+    clashType: '',
+    clashText: '',
+    clashWinner: 0,
+    brokenIcon: '',
     matchResult: '',
     isAnimating: false,
     showConfetti: false,
@@ -90,6 +95,11 @@ Page({
       playerWins: 0,
       opponentWins: 0,
       roundResult: '',
+      roundResultText: '',
+      roundResultIcon: '',
+      clashType: '',
+      clashText: '',
+      clashWinner: 0,
       matchResult: ''
     })
   },
@@ -107,6 +117,9 @@ Page({
     var aiChoice = rpsManager.aiChoice(opponent.difficulty, [])
     var result = rpsManager.judge(choice, aiChoice)
     var resultInfo = rpsUtils.formatResult(result)
+    var clashType = rpsUtils.getClashType(choice, aiChoice, result)
+    var brokenIcon = clashType ? rpsManager.BROKEN_IMAGE[result === 'win' ? aiChoice : choice] : ''
+    var clashText = rpsUtils.getClashText(choice, aiChoice, result)
 
     var playerWins = this.data.playerWins
     var opponentWins = this.data.opponentWins
@@ -114,26 +127,40 @@ Page({
     if (result === 'win') playerWins++
     else if (result === 'lose') opponentWins++
 
+    // 第一步：双方手势亮相，清空上回合克制动画
     this.setData({
       isAnimating: true,
       playerChoice: choice,
       opponentChoice: aiChoice,
       playerIcon: rpsManager.CHOICE_ICONS[choice],
       opponentIcon: rpsManager.CHOICE_ICONS[aiChoice],
-      playerWins: playerWins,
-      opponentWins: opponentWins,
-      roundResult: result,
-      roundResultText: resultInfo.text,
-      roundResultIcon: resultInfo.icon,
-      showConfetti: result === 'win'
+      roundResult: '',
+      roundResultText: '',
+      roundResultIcon: '',
+      clashType: '',
+      clashText: '',
+      clashWinner: 0
     })
 
     beep.playBeep('rpsShoot')
 
     var that = this
     setTimeout(function() {
-      that.setData({ isAnimating: false, showConfetti: false })
+      // 第二步：克制对决爆发
+      that.setData({
+        playerWins: playerWins,
+        opponentWins: opponentWins,
+        roundResult: result,
+        roundResultText: clashText || resultInfo.text,
+        roundResultIcon: resultInfo.icon,
+        showConfetti: result === 'win',
+        clashType: clashType,
+        clashText: clashText,
+        clashWinner: result === 'win' ? 1 : 2,
+        brokenIcon: brokenIcon
+      })
 
+      // 命中时刻的反馈
       if (result === 'win') {
         beep.playBeep('win')
         wx.vibrateShort({ type: 'medium' })
@@ -141,6 +168,10 @@ Page({
         beep.playBeep('lose')
         wx.vibrateShort({ type: 'light' })
       }
+    }, 320)
+
+    setTimeout(function() {
+      that.setData({ isAnimating: false, showConfetti: false })
 
       // 检查比赛是否结束
       if (playerWins >= that.data.winsRequired) {
@@ -283,6 +314,11 @@ Page({
     this.setData({
       matchResult: '',
       roundResult: '',
+      roundResultText: '',
+      roundResultIcon: '',
+      clashType: '',
+      clashText: '',
+      clashWinner: 0,
       currentOpponent: null
     })
   },

@@ -74,7 +74,9 @@
     <view class="section-title">🎯 快捷入口</view>
     <view class="quick-grid">
       <view class="quick-item" bindtap="goModule" data-module="rps">
-        <view class="quick-icon">✊</view>
+        <view class="quick-icon">
+          <image class="quick-icon-img" src="/images/rps/rock.jpg" mode="aspectFit"/>
+        </view>
         <view class="quick-text">猜拳大战</view>
       </view>
       <view class="quick-item" bindtap="goModule" data-module="book">

@@ -75,6 +75,14 @@
   flex-shrink: 0;
 }
 
+.card-icon-img {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+
 .card-info {
   flex: 1;
 }

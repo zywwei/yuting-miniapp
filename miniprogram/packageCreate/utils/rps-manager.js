@@ -12,6 +12,18 @@ var CHOICE_ICONS = {
   paper: '✋',
   scissors: '✌️'
 }
+// 卡通手势图（AI 生成徽章图），key 与 CHOICE_ICONS 的 value 对应，供 WXML 直接查表渲染
+var ICON_TO_IMAGE = {
+  '✊': '/packageCreate/images/rps/rock.jpg',
+  '✋': '/packageCreate/images/rps/paper.jpg',
+  '✌️': '/packageCreate/images/rps/scissors.jpg'
+}
+// 战败破损手势图（克制动画碎裂后保留展示），key 与 choice 对应
+var BROKEN_IMAGE = {
+  rock: '/packageCreate/images/rps/rock-broken.jpg',
+  paper: '/packageCreate/images/rps/paper-broken.jpg',
+  scissors: '/packageCreate/images/rps/scissors-broken.jpg'
+}
 var CHOICE_NAMES = {
   rock: '石头',
   paper: '布',
@@ -337,6 +349,8 @@ function saveTournamentRecord(record) {
 module.exports = {
   CHOICES: CHOICES,
   CHOICE_ICONS: CHOICE_ICONS,
+  ICON_TO_IMAGE: ICON_TO_IMAGE,
+  BROKEN_IMAGE: BROKEN_IMAGE,
   CHOICE_NAMES: CHOICE_NAMES,
   STORY_CHAPTERS: STORY_CHAPTERS,
   STORY_ITEMS: STORY_ITEMS,

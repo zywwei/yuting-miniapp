@@ -5,6 +5,7 @@ var beep = getApp().globalData.beep
 
 Page({
   data: {
+    iconMap: rpsManager.ICON_TO_IMAGE,
     phase: 'menu', // menu, playing, levelComplete, gameOver
     currentLevel: 1,
     lives: 3,
@@ -20,7 +21,11 @@ Page({
     roundResult: '',
     isAnimating: false,
     roundHistory: [],
-    showConfetti: false
+    showConfetti: false,
+    clashType: '',
+    clashText: '',
+    clashWinner: 0,
+    brokenIcon: ''
   },
 
   onLoad: function() {
@@ -62,7 +67,10 @@ Page({
       player2Choice: '',
       player1Icon: '',
       player2Icon: '',
-      showConfetti: false
+      showConfetti: false,
+      clashType: '',
+      clashText: '',
+      clashWinner: 0
     })
     this.gameStartTime = Date.now()
   },
@@ -74,6 +82,9 @@ Page({
     var aiChoice = rpsManager.aiChoice(this.data.levelConfig.difficulty, this.data.roundHistory)
     var result = rpsManager.judge(choice, aiChoice)
     var resultInfo = rpsUtils.formatResult(result)
+    var clashType = rpsUtils.getClashType(choice, aiChoice, result)
+    var brokenIcon = clashType ? rpsManager.BROKEN_IMAGE[result === 'win' ? aiChoice : choice] : ''
+    var clashText = rpsUtils.getClashText(choice, aiChoice, result)
 
     var player1Wins = this.data.player1Wins
     var player2Wins = this.data.player2Wins
@@ -87,27 +98,39 @@ Page({
       result: result
     }])
 
+    // 第一步：双方手势亮相，清空上回合克制动画
     this.setData({
       isAnimating: true,
       player1Choice: choice,
       player2Choice: aiChoice,
       player1Icon: rpsManager.CHOICE_ICONS[choice],
       player2Icon: rpsManager.CHOICE_ICONS[aiChoice],
-      player1Wins: player1Wins,
-      player2Wins: player2Wins,
-      roundResult: result,
-      roundHistory: roundHistory,
-      showConfetti: result === 'win'
+      roundResult: '',
+      clashType: '',
+      clashText: '',
+      clashWinner: 0
     })
 
-    // 音效
     beep.playBeep('rpsShoot')
 
     var that = this
     setTimeout(function() {
-      that.setData({ isAnimating: false, showConfetti: false })
+      // 第二步：克制对决爆发
+      that.setData({
+        player1Wins: player1Wins,
+        player2Wins: player2Wins,
+        roundResult: result,
+        roundResultText: clashText || resultInfo.text,
+        roundResultIcon: resultInfo.icon,
+        roundHistory: roundHistory,
+        showConfetti: result === 'win',
+        clashType: clashType,
+        clashText: clashText,
+        clashWinner: result === 'win' ? 1 : 2,
+        brokenIcon: brokenIcon
+      })
 
-      // 音效反馈
+      // 命中时刻的反馈
       if (result === 'win') {
         beep.playBeep('win')
         wx.vibrateShort({ type: 'medium' })
@@ -115,6 +138,10 @@ Page({
         beep.playBeep('lose')
         wx.vibrateShort({ type: 'light' })
       }
+    }, 320)
+
+    setTimeout(function() {
+      that.setData({ isAnimating: false, showConfetti: false })
 
       if (player1Wins >= that.data.levelConfig.winsRequired) {
         that.levelComplete()

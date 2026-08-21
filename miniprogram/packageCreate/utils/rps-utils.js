@@ -74,6 +74,27 @@ function getAnimationParams(type) {
   return params[type] || params.shake
 }
 
+// 获取克制对决类型：smash=石头砸剪刀 cut=剪刀剪布 wrap=布包石头
+function getClashType(player1Choice, player2Choice, result) {
+  if (!result || result === 'draw') return ''
+  var winner = result === 'win' ? player1Choice : player2Choice
+  var loser = result === 'win' ? player2Choice : player1Choice
+  if (winner === 'rock' && loser === 'scissors') return 'smash'
+  if (winner === 'scissors' && loser === 'paper') return 'cut'
+  if (winner === 'paper' && loser === 'rock') return 'wrap'
+  return ''
+}
+
+// 获取克制对决文案
+function getClashText(player1Choice, player2Choice, result) {
+  var map = {
+    smash: '石头砸烂了剪刀！',
+    cut: '剪刀剪碎了布！',
+    wrap: '布包住了石头！'
+  }
+  return map[getClashType(player1Choice, player2Choice, result)] || ''
+}
+
 // 生成统计数据摘要
 function generateStatsSummary(stats) {
   if (!stats || stats.totalGames === 0) {
@@ -105,5 +126,7 @@ module.exports = {
   getAnimationParams: getAnimationParams,
   generateStatsSummary: generateStatsSummary,
   getRecentRecords: getRecentRecords,
-  formatOpponentName: formatOpponentName
+  formatOpponentName: formatOpponentName,
+  getClashType: getClashType,
+  getClashText: getClashText
 }
