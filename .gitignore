@@ -47,6 +47,7 @@ project.private.config.json
 !miniprogram/images/avatar.jpg
 # 保留 rps 卡通手势图（代码引用，必须入库）
 !miniprogram/packageCreate/images/rps/*.jpg
+!miniprogram/images/rps/rock.jpg
 
 ### 临时文件 ###
 _listing.txt
