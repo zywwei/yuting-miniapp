@@ -102,12 +102,9 @@ function updateData(id, data) {
   return updated
 }
 
-function markAsFailed(item) {
-  var queue = getQueue()
-  // 按 seq 精确移除，避免误删同 id 的其他项
-  var filtered = queue.filter(function(q) { return q.seq !== item.seq })
-  saveQueue(filtered)
-
+// 仅追加到 failed 列表（队列剔除统一由 flush 尾部重建完成，
+// 修复：原实现先改存储再被 flush 末尾旧快照回写，导致失败项复活、failed 无限重复追加）
+function appendToFailed(item) {
   var failed = getFailed()
   failed.push(item)
   saveFailed(failed)
@@ -141,11 +138,13 @@ async function flush() {
   if (!wx.cloud) return
 
   var succeededSeqs = []
-  var changedItems = []  // 因图片上传成功而需要回写队列的项
+  var failedSeqs = []      // 本轮达到重试上限、需移入 failed 列表的 seq
+  var failedItems = []     // 对应的完整队列项
+  var snapshotRetries = {} // seq -> 本轮处理后的 retries（未达上限项也要持久化计数）
+  var changedData = {}     // seq -> 图片上传成功后回写的最新 data
 
   for (var i = 0; i < queue.length; i++) {
     var item = queue[i]
-    var itemChanged = false
     try {
       if (item.uploadImages && item.uploadImages.length > 0) {
         for (var j = 0; j < item.uploadImages.length; j++) {
@@ -161,11 +160,10 @@ async function flush() {
               filePath: img.localPath
             })
             setNestedValue(item.data, img.field, uploadRes.fileID)
-            itemChanged = true
+            // 部分成功也要记录，落盘时回写 fileID 避免下次重传已成功的图
+            changedData[item.seq] = item.data
           } catch (imgErr) {
             console.warn('图片上传失败:', img.localPath, imgErr)
-            // 部分成功也要回写已传的 fileID，避免下次重传已成功的图
-            if (itemChanged) changedItems.push(item)
             throw imgErr
           }
         }
@@ -198,22 +196,32 @@ async function flush() {
     } catch (err) {
       console.warn('同步失败:', item.id, err)
       item.retries = (item.retries || 0) + 1
-      if (itemChanged && succeededSeqs.indexOf(item.seq) < 0) {
-        changedItems.push(item)
-      }
+      snapshotRetries[item.seq] = item.retries
       if (item.retries >= MAX_RETRIES) {
-        markAsFailed(item)
+        failedSeqs.push(item.seq)
+        failedItems.push(item)
       }
     }
   }
 
-  // 移除已成功的项；changedItems 中的项已原地修改 item.data，保留在 remaining 中
-  if (succeededSeqs.length > 0 || changedItems.length > 0) {
-    var remaining = queue.filter(function(item) {
-      return succeededSeqs.indexOf(item.seq) < 0
-    })
-    saveQueue(remaining)
+  // 统一以「存储中的最新队列」为骨架重建落盘（无条件执行，修复三个缺陷）：
+  // a) 失败项不再被旧快照复活（按 seq 从 remaining 剔除）；
+  // b) 全部失败时 retries 计数也持久化（原实现全失败不落盘导致无限重试）；
+  // c) flush 执行期间的 enqueue/dequeue/updateData 结果保留在 latest 中不被覆盖。
+  if (failedItems.length > 0) {
+    failedItems.forEach(appendToFailed)
   }
+
+  var latest = getQueue()
+  var remaining = latest.filter(function(q) {
+    return succeededSeqs.indexOf(q.seq) < 0 && failedSeqs.indexOf(q.seq) < 0
+  })
+  // 把本轮处理产生的最新状态（retries 计数、图片回写后的 data）合并回剩余项
+  remaining.forEach(function(q) {
+    if (snapshotRetries[q.seq] !== undefined) q.retries = snapshotRetries[q.seq]
+    if (changedData[q.seq]) q.data = changedData[q.seq]
+  })
+  saveQueue(remaining)
 }
 
 var _syncing = false

@@ -45,6 +45,8 @@ Page({
       })
 
       if (res.result.code === 0) {
+        // P1-15：本地不再自授权限——服务端 joinFamily 已按角色写入权威 permissions，
+        // 本地仅以最小权限占位，随后从云端拉取权威成员数据覆盖
         auth.setMember({
           _id: '',
           familyId: res.result.data.familyId,
@@ -52,13 +54,19 @@ Page({
           roleName: this.data.roleName,
           nickname: this.data.nickname,
           avatar: this.data.avatar,
-          permissions: (this.data.role === 'father' || this.data.role === 'mother') ? ['admin'] : ['editor']
+          permissions: []
         })
+        auth.setFamily({ _id: res.result.data.familyId })
 
         wx.showToast({ title: '加入成功', icon: 'success' })
-        setTimeout(function() {
-          wx.reLaunch({ url: '/pages/index/index' })
-        }, 1500)
+        // 从云端拉取权威 member（含真实 _id/openid/permissions）后再进入首页；
+        // 失败也放行（下次启动 checkAuth 会再校正），本地保持最小权限
+        var app = getApp()
+        app.refreshFamilyInfo().then(function() {
+          setTimeout(function() { wx.reLaunch({ url: '/pages/index/index' }) }, 600)
+        }).catch(function() {
+          setTimeout(function() { wx.reLaunch({ url: '/pages/index/index' }) }, 600)
+        })
       } else {
         wx.showToast({ title: res.result.msg || '加入失败', icon: 'none' })
         this.setData({ loading: false })

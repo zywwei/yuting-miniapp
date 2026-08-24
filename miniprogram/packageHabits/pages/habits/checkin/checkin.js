@@ -35,6 +35,8 @@ Page({
   onLoad: function(options) {
     var navInfo = getNavBarInfo()
     var habitType = options.type || 'custom'
+    // P1-7：自定义习惯的精确隔离 id
+    this._habitId = options.habitId || ''
     var config = getHabitConfig(habitType)
 
     this.setData({
@@ -50,8 +52,40 @@ Page({
     })
 
     this.loadTodayRecords()
+    // P1-16：恢复该习惯的暂存草稿（goBack 写入 checkinDraft_，此前只写不读）
+    this.restoreDraftIfExists(habitType)
     // 记录初始表单基线，返回时按"与基线是否一致"判断是否有未保存修改
     this._baseline = this.captureFormState()
+  },
+
+  // 恢复暂存草稿：确认恢复则回填表单并重算基线；放弃则清除草稿避免重复弹窗
+  restoreDraftIfExists: function(habitType) {
+    var draft = wx.getStorageSync('checkinDraft_' + habitType)
+    if (!draft || !draft.time) return
+    var that = this
+    wx.showModal({
+      title: '发现暂存',
+      content: '有 ' + String(draft.time).slice(0, 10) + ' 暂存的打卡内容，是否恢复？',
+      confirmText: '恢复',
+      cancelText: '放弃',
+      success: function(res) {
+        if (res.confirm) {
+          var score = draft.score || 5
+          that.setData({
+            images: draft.images || [],
+            note: draft.note || '',
+            score: score,
+            scoreLabel: that.data.scoreLabels[score - 1] || that.data.scoreLabel,
+            formData: Object.assign({}, that.data.formData, draft.formData || {})
+          })
+          // 内容已回到表单，清除草稿；重算基线避免返回时误提示
+          wx.removeStorageSync('checkinDraft_' + habitType)
+          that._baseline = that.captureFormState()
+        } else {
+          wx.removeStorageSync('checkinDraft_' + habitType)
+        }
+      }
+    })
   },
 
   // 初始化表单数据
@@ -254,6 +288,7 @@ Page({
       var record = {
         id: util.generateId(),
         type: that.data.habitType,
+        habitId: that._habitId || '',
         date: util.getTodayStr(),
         images: savedImages,
         imagePath: savedImages[0] || '',

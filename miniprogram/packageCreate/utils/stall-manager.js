@@ -69,9 +69,9 @@ async function syncFromCloud() {
       childStorage.set(SETTINGS_KEY, settings)
     }
     
-    // 同步挑战
+    // 同步挑战（空对象防护：fetch 拿不到云端数据时不得覆盖本地进度，P1-5 配套）
     var challenges = await cloud.fetchStallChallenges()
-    if (challenges) {
+    if (challenges && Object.keys(challenges).length > 0) {
       childStorage.set(CHALLENGES_KEY, challenges)
     }
     
@@ -337,6 +337,8 @@ function checkChallenges() {
   var allChallenges = childStorage.get(CHALLENGES_KEY) || {}
   allChallenges[today] = challenges
   childStorage.set(CHALLENGES_KEY, allChallenges)
+  // 进度变更即上云，修复键名错位导致的「进度永不上云、重启被空对象覆盖」（P1-5）
+  cloud.uploadStallChallenges(allChallenges)
 
   return newCompleted
 }
@@ -361,6 +363,8 @@ function claimChallenge(challengeId) {
   var allChallenges = childStorage.get(CHALLENGES_KEY) || {}
   allChallenges[today] = challenges
   childStorage.set(CHALLENGES_KEY, allChallenges)
+  // 领取奖励同样上云（P1-5 配套）
+  cloud.uploadStallChallenges(allChallenges)
 
   return true
 }

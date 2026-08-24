@@ -860,6 +860,11 @@ function setCurrentSessionId(sessionId) {
   childStorage.set('currentAiSessionId', sessionId)
 }
 
+// 本地缓存上限（P1-10）：所有会话共用一个 storage key（单 key 1MB 上限），
+// 无限增长会导致 setStorageSync 抛错、聊天整体不可用
+var MAX_MESSAGES_PER_SESSION = 50  // 每会话保留最近 N 条
+var MAX_SESSIONS = 30              // 最多保留 N 个会话（LRU 淘汰最旧）
+
 /**
  * 保存到本地缓存
  * @param {string} sessionId - 会话ID，为null时自动获取当前会话
@@ -873,12 +878,12 @@ function saveToLocal(sessionId, role, content, thinking, image) {
   if (!sessionId) {
     sessionId = getCurrentSessionId()
   }
-  
+
   var localChats = childStorage.get(CHATS_KEY) || {}
   if (!localChats[sessionId]) {
     localChats[sessionId] = []
   }
-  
+
   // 添加新消息
   localChats[sessionId].push({
     role: role,
@@ -887,8 +892,31 @@ function saveToLocal(sessionId, role, content, thinking, image) {
     image: image || null,
     createTime: new Date().toISOString()
   })
-  
-  childStorage.set(CHATS_KEY, localChats)
+
+  // 截断：每会话只留最近 N 条（旧消息云端仍有，仅本地兜底展示受限）
+  if (localChats[sessionId].length > MAX_MESSAGES_PER_SESSION) {
+    localChats[sessionId] = localChats[sessionId].slice(-MAX_MESSAGES_PER_SESSION)
+  }
+
+  // 会话数 LRU：超过上限时按"最近一条消息时间"淘汰最旧会话
+  var sessionIds = Object.keys(localChats)
+  if (sessionIds.length > MAX_SESSIONS) {
+    sessionIds.sort(function(a, b) {
+      var ta = localChats[a].length ? localChats[a][localChats[a].length - 1].createTime : ''
+      var tb = localChats[b].length ? localChats[b][localChats[b].length - 1].createTime : ''
+      return tb.localeCompare(ta) // 新的在前
+    })
+    sessionIds.slice(MAX_SESSIONS).forEach(function(oldId) {
+      delete localChats[oldId]
+    })
+  }
+
+  try {
+    childStorage.set(CHATS_KEY, localChats)
+  } catch (e) {
+    // 兜底：极端情况下仍超限则放弃本地缓存（云端是权威数据源），不影响聊天主流程
+    console.warn('AI 本地历史写入失败，跳过本地缓存:', e)
+  }
 }
 
 /**

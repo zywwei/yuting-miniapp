@@ -724,14 +724,18 @@ async function uploadBrushingRecord(record) {
           cloudPath: img2.cloudPath,
           filePath: img2.localPath
         })
-        fullRecord.images[k] = uploadRes.fileID
-        if (k === 0) fullRecord.imagePath = uploadRes.fileID
+        // 回写用 field 里的原始下标（uploadImages 是过滤 cloud:// 后的压缩数组，
+        // 用循环下标 k 会错位覆盖，P1-3）
+        var idxMatch = img2.field.match(/\[(\d+)\]/)
+        var origIdx = idxMatch ? Number(idxMatch[1]) : k
+        fullRecord.images[origIdx] = uploadRes.fileID
+        if (origIdx === 0) fullRecord.imagePath = uploadRes.fileID
         // 回写本地缓存
         var tmpRecs = childStorage.get('brushingRecords') || []
         for (var ti = 0; ti < tmpRecs.length; ti++) {
           if (tmpRecs[ti].id === record.id) {
-            tmpRecs[ti].images[k] = uploadRes.fileID
-            if (k === 0) tmpRecs[ti].imagePath = uploadRes.fileID
+            tmpRecs[ti].images[origIdx] = uploadRes.fileID
+            if (origIdx === 0) tmpRecs[ti].imagePath = uploadRes.fileID
             break
           }
         }
@@ -798,7 +802,6 @@ async function fetchBrushingRecords(date) {
       action: 'list',
       collection: 'brushingRecords',
       childId: auth.getCurrentChildId(),
-      page: 1,
       pageSize: 200
     }
     // 如果指定了日期，只拉取该日期的数据
@@ -806,35 +809,49 @@ async function fetchBrushingRecords(date) {
       queryData.date = date
     }
 
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: Object.assign({ familyId: auth.getCurrentFamilyId() }, queryData)
-    })
-
-    if (res.result.code === 0) {
-      var cloudList = res.result.data.list || []
-      var deletedIds = getDeletedBrushingIds()
-      var deletedSet = {}
-      deletedIds.forEach(function(id) { deletedSet[id] = true })
-
-      var merged = mergeAndHeal('brushingRecords', 'brushingRecords', localRecords, cloudList, deletedSet, function(r) {
-        // 优先使用云端路径，其次使用本地路径
-        var images = r.images || []
-        var imagePath = r.imagePath || ''
-        var cloudFileID = r.cloudFileID || ''
-        
-        // 优先使用云端路径
-        var firstImage = cloudFileID || imagePath || images[0] || ''
-        
-        return {
-          ...r,
-          id: r.id || r._id,
-          imagePath: firstImage,
-          images: images.length > 0 ? images : (firstImage ? [firstImage] : [])
-        }
+    // 无 date 为全量拉取：分页循环防单页截断（截断子集走默认合并会误删历史，P1-2 复核修正）
+    var cloudList = []
+    var page = 1
+    while (page <= 50) {  // 安全上限 10000 条
+      queryData.page = page
+      var res = await wx.cloud.callFunction({
+        name: 'record',
+        data: Object.assign({ familyId: auth.getCurrentFamilyId() }, queryData)
       })
-      return merged
+
+      if (!res.result || res.result.code !== 0) {
+        console.warn('fetchBrushingRecords: 云函数返回错误:', res.result && res.result.msg)
+        return localRecords  // 中止合并，防止部分结果误删本地
+      }
+
+      var batch = res.result.data.list || []
+      cloudList = cloudList.concat(batch)
+      if (batch.length < 200) break  // 没有更多了
+      page++
     }
+
+    var deletedIds = getDeletedBrushingIds()
+    var deletedSet = {}
+    deletedIds.forEach(function(id) { deletedSet[id] = true })
+
+    // 合并策略：带 date 过滤时缺失≠删除（keepLocalOnly）；全量拉取走默认合并（跨设备删除可同步）
+    var merged = mergeAndHeal('brushingRecords', 'brushingRecords', localRecords, cloudList, deletedSet, function(r) {
+      // 优先使用云端路径，其次使用本地路径
+      var images = r.images || []
+      var imagePath = r.imagePath || ''
+      var cloudFileID = r.cloudFileID || ''
+
+      // 优先使用云端路径
+      var firstImage = cloudFileID || imagePath || images[0] || ''
+
+      return {
+        ...r,
+        id: r.id || r._id,
+        imagePath: firstImage,
+        images: images.length > 0 ? images : (firstImage ? [firstImage] : [])
+      }
+    }, { keepLocalOnly: !!date })
+    return merged
   } catch (err) {
     console.warn('云端读取失败，使用本地缓存:', err)
   }
@@ -1250,7 +1267,11 @@ function selfHealRecords(collection, localList, cloudIdSet, deletedSet) {
 }
 
 // 通用合并+自愈+排序+存储+墓碑重试（抽取自 fetchBrushingRecords/fetchNotes/fetchHabitRecords 共用逻辑，防止策略漂移）
-function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, transformCloudItem) {
+// @param {Object} [options] - { keepLocalOnly }: 带过滤条件/分页的拉取必须传 true，
+//   此时「云端缺失」不再视为他端已删除，本地已同步记录原样保留。
+//   否则按日期/分页子集合并会把未返回的历史记录从本地清掉（P1-2）。
+function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, transformCloudItem, options) {
+  var keepLocalOnly = !!(options && options.keepLocalOnly)
   var merged = []
   var mergedIds = {}
 
@@ -1265,10 +1286,13 @@ function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, 
     }
   })
 
-  // 再添加本地独有数据：仅保留未同步的（新创建的），已同步但云端缺失的视为被其他设备删除
+  // 再添加本地独有数据：默认仅保留未同步的（新创建的），已同步但云端缺失的视为被其他设备删除；
+  // keepLocalOnly 时全部保留（本次拉取是过滤/部分结果，缺失不代表被删）
   localList.forEach(function(r) {
-    if (r && r.id && !mergedIds[r.id] && !deletedSet[r.id] && !r.synced) {
-      merged.push(r)
+    if (r && r.id && !mergedIds[r.id] && !deletedSet[r.id]) {
+      if (!r.synced || keepLocalOnly) {
+        merged.push(r)
+      }
     }
   })
 
@@ -1922,6 +1946,10 @@ function createSingletonSync(config) {
           ...data,
           updatedAt: now
         }, childId, memberId)
+
+        // 3. 直传成功后移除离线期间的旧快照队列项，
+        //    避免下次 flush 用旧数据重传、回滚云端较新的单例（P1-4）
+        syncQueue.dequeue('singleton_' + config.collection + '_' + config.key)
       } catch (err) {
         console.warn(config.key + ' 云端保存失败:', err)
         // 3. 失败入队离线重试
@@ -2064,7 +2092,9 @@ var SINGLETON_MODULE_CONFIGS = {
   stallChallenges: {
     collection: 'userSettings',
     key: 'stallChallenges',
-    storageKey: 'stallChallenges',
+    // 实际读写键是 stallDailyChallenges（child-storage CHILD_KEYS 内按孩子隔离），
+    // 原配置写成 'stallChallenges' 导致进度永不上云且启动被空对象覆盖（P1-5）
+    storageKey: 'stallDailyChallenges',
     isolation: SINGLETON_ISOLATION.CHILD,
     useOptimisticLock: true
   },
@@ -2161,8 +2191,9 @@ async function fetchNotes() {
 
       if (!res.result || res.result.code !== 0) {
         console.warn('fetchNotes: 云函数返回错误:', res.result && res.result.msg)
-        if (page === 1) return localNotes  // 首页失败直接用本地
-        break  // 后续页失败则用已拉取的部分
+        // 任何一页失败都中止合并：部分结果走 mergeAndHeal 会把未返回的
+        // 本地已同步笔记误判为「他端已删除」而清掉（P1-2）
+        return localNotes
       }
 
       var batch = res.result.data.list || []
@@ -2406,13 +2437,16 @@ async function uploadHabitRecord(record) {
           cloudPath: img.cloudPath,
           filePath: img.localPath
         })
-        fullRecord.images[k] = uploadRes.fileID
-        if (k === 0) fullRecord.imagePath = uploadRes.fileID
+        // 回写用 field 里的原始下标，避免压缩数组下标错位覆盖（P1-3 同型）
+        var idxMatch = img.field.match(/\[(\d+)\]/)
+        var origIdx = idxMatch ? Number(idxMatch[1]) : k
+        fullRecord.images[origIdx] = uploadRes.fileID
+        if (origIdx === 0) fullRecord.imagePath = uploadRes.fileID
         var tmpRecs = childStorage.get('habitRecords') || []
         for (var ti = 0; ti < tmpRecs.length; ti++) {
           if (tmpRecs[ti].id === record.id) {
-            tmpRecs[ti].images[k] = uploadRes.fileID
-            if (k === 0) tmpRecs[ti].imagePath = uploadRes.fileID
+            tmpRecs[ti].images[origIdx] = uploadRes.fileID
+            if (origIdx === 0) tmpRecs[ti].imagePath = uploadRes.fileID
             break
           }
         }
@@ -2475,34 +2509,49 @@ async function fetchHabitRecords() {
   }
 
   try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: { familyId: auth.getCurrentFamilyId(),
-        action: 'list',
-        collection: 'habitRecords',
-        childId: auth.getCurrentChildId(),
-        page: 1,
-        pageSize: 500
-      }
-    })
-
-    if (res.result.code === 0) {
-      var cloudList = res.result.data.list || []
-      var deletedIds = getDeletedHabitRecordIds()
-      var deletedSet = {}
-      deletedIds.forEach(function(id) { deletedSet[id] = true })
-
-      var merged = mergeAndHeal('habitRecords', 'habitRecords', localRecords, cloudList, deletedSet, function(r) {
-        return {
-          ...r,
-          id: r.id || r._id,
-          imagePath: r.cloudFileID || r.imagePath || '',
-          images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+    // P1-2 复核修正：分页循环拉全量后走默认合并（云端缺失=他端已删除，跨设备删除可同步）。
+    // 此前因单页截断风险改传 keepLocalOnly，会导致 A 设备的删除在 B 设备永久残留——两害相权，
+    // 完整分页才是正解；任何一页失败则中止合并返回本地（部分结果合并会误删）。
+    var cloudList = []
+    var page = 1
+    var pageSize = 500
+    while (page <= 20) {  // 安全上限 10000 条
+      var res = await wx.cloud.callFunction({
+        name: 'record',
+        data: { familyId: auth.getCurrentFamilyId(),
+          action: 'list',
+          collection: 'habitRecords',
+          childId: auth.getCurrentChildId(),
+          page: page,
+          pageSize: pageSize
         }
       })
 
-      return merged
+      if (!res.result || res.result.code !== 0) {
+        console.warn('fetchHabitRecords: 云函数返回错误:', res.result && res.result.msg)
+        return localRecords  // 中止合并，防止部分结果误删本地
+      }
+
+      var batch = res.result.data.list || []
+      cloudList = cloudList.concat(batch)
+      if (batch.length < pageSize) break  // 没有更多了
+      page++
     }
+
+    var deletedIds = getDeletedHabitRecordIds()
+    var deletedSet = {}
+    deletedIds.forEach(function(id) { deletedSet[id] = true })
+
+    var merged = mergeAndHeal('habitRecords', 'habitRecords', localRecords, cloudList, deletedSet, function(r) {
+      return {
+        ...r,
+        id: r.id || r._id,
+        imagePath: r.cloudFileID || r.imagePath || '',
+        images: r.images || (r.cloudFileID ? [r.cloudFileID] : [])
+      }
+    })
+
+    return merged
   } catch (err) {
     console.warn('习惯记录云端读取失败，使用本地缓存:', err)
   }

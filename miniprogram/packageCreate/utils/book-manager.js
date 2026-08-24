@@ -444,6 +444,13 @@ function removeTemplate(id) {
 function generateRepeatEntries() {
   var entries = childStorage.get(ENTRIES_KEY) || []
   var today = getTodayStr()
+  // 快速短路：无任何到期项时零写入（本函数在记账本 onShow 高频触发）
+  var dueCount = 0
+  for (var k = 0; k < entries.length; k++) {
+    var e0 = entries[k]
+    if (e0.repeatRule && e0.nextRepeatDate && e0.nextRepeatDate <= today) dueCount++
+  }
+  if (dueCount === 0) return []
   var newEntries = []
   for (var i = 0; i < entries.length; i++) {
     var e = entries[i]

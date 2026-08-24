@@ -113,13 +113,15 @@ Page({
           return r.date === today
         }).length
       } else {
+        // P1-7：自定义习惯按 habitId 精确计数（旧记录无 habitId 回落 type 聚合）
         var todayRecords = records.filter(function(r) {
-          return r.date === today && r.type === habit.type
+          return r.date === today && r.type === habit.type && (!habit.id || !r.habitId || r.habitId === habit.id)
         })
         done = todayRecords.length
       }
       var target = habit.target || 1
       return {
+        id: habit.id || '',
         type: habit.type,
         name: habit.name,
         icon: habit.icon,
@@ -161,12 +163,13 @@ Page({
   // 跳转到习惯详情
   goDetail: function(e) {
     var type = e.currentTarget.dataset.type
+    var habitId = e.currentTarget.dataset.habitId || ''
 
     if (type === 'brushing') {
       wx.navigateTo({ url: '/packageHabits/pages/habits/brushing/brushing' })
     } else {
       wx.navigateTo({
-        url: '/packageHabits/pages/habits/detail?type=' + type
+        url: '/packageHabits/pages/habits/detail?type=' + type + '&habitId=' + habitId
       })
     }
   },

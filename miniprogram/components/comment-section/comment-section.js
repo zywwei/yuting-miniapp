@@ -48,7 +48,13 @@ Component({
           var pendingLocal = (this.data.comments || []).filter(function(c) {
             return c._pending
           })
-          this.setData({ comments: cloudComments.concat(pendingLocal) })
+          // P1-11：计算 _canDelete 供 WXML 绑定（WXML 无法调用组件方法）
+          var withPerm = cloudComments.concat(pendingLocal).map(function(c) {
+            var member = auth.getMember()
+            c._canDelete = !!(member && (auth.isAdmin() || c.authorId === member._id))
+            return c
+          })
+          this.setData({ comments: withPerm })
         }
       } catch (err) {
         console.warn('加载评论失败:', err)
@@ -94,7 +100,8 @@ Component({
         emoji: '',
         isDeleted: false,
         createTime: new Date().toISOString(),
-        _pending: true  // 标记为待同步
+        _pending: true,  // 标记为待同步
+        _canDelete: true // 自己发的乐观评论可删（P1-11）
       }
       this.setData({
         comments: this.data.comments.concat([optimisticComment]),

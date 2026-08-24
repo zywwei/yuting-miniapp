@@ -18,6 +18,15 @@ Page({
   },
 
   onShow: function() {
+    // P1-14：激活周期记账——到期条目在进入记账本时自动生成
+    try {
+      var generated = bookManager.generateRepeatEntries()
+      if (generated.length > 0) {
+        wx.showToast({ title: '已生成 ' + generated.length + ' 条周期账目', icon: 'none' })
+      }
+    } catch (e) {
+      console.warn('周期记账生成失败:', e)
+    }
     if (!this._loaded) {
       this.loadData()
     }

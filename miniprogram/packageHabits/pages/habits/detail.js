@@ -164,6 +164,8 @@ Page({
   onLoad: function(options) {
     var navInfo = getNavBarInfo()
     var type = options.type || 'brushing'
+    // P1-7：自定义习惯携带 habitId 精确隔离记录与草稿（默认习惯为空，按 type 聚合）
+    this._habitId = options.habitId || ''
     var config = getHabitConfig(type)
 
     this.setData({
@@ -219,8 +221,10 @@ Page({
   // 只加载记录和统计（不重置表单）
   loadRecordsAndStats: function() {
     var type = this.data.type
+    var habitId = this._habitId || ''
     var records = childStorage.get('habitRecords') || []
-    var habitRecords = records.filter(function(r) { return r.type === type })
+    // 自定义习惯按 habitId 精确隔离；旧记录无 habitId 时回落 type 聚合（P1-7）
+    var habitRecords = records.filter(function(r) { return r.type === type && (!habitId || !r.habitId || r.habitId === habitId) })
     habitRecords.sort(function(a, b) { return new Date(b.date) - new Date(a.date) })
 
     var total = habitRecords.length
@@ -311,7 +315,11 @@ Page({
 
     var habit = defaultHabits[type]
     if (!habit) {
-      var found = habits.find(function(h) { return h.type === type })
+      // P1-7：优先按 habitId 精确匹配自定义习惯（多个自定义习惯 type 同为 custom）
+      var selfHabitId = this._habitId || ''
+      var found = null
+      if (selfHabitId) found = habits.find(function(h) { return h.id === selfHabitId })
+      if (!found) found = habits.find(function(h) { return h.type === type })
       habit = found || { type: type, name: '自定义', icon: '⭐', color: '#FF6B8A', target: 1 }
     }
 
@@ -330,8 +338,9 @@ Page({
     var isSleepHabit = sleepTypes.indexOf(type) !== -1
     habit.isSleepHabit = isSleepHabit
 
-    // 获取该习惯的记录
-    var habitRecords = records.filter(function(r) { return r.type === type })
+    // 获取该习惯的记录（自定义习惯按 habitId 精确隔离，P1-7）
+    var pageHabitId = this._habitId || ''
+    var habitRecords = records.filter(function(r) { return r.type === type && (!pageHabitId || !r.habitId || r.habitId === pageHabitId) })
     habitRecords.sort(function(a, b) { return new Date(b.date) - new Date(a.date) })
 
     // 计算统计
@@ -546,8 +555,9 @@ Page({
     var formData = this.data.formData
     var config = this.data.habitConfig
 
-    // 今日已完成次数
-    var todayRecords = records.filter(function(r) { return r.date === today && r.type === type })
+    // 今日已完成次数（自定义习惯按 habitId 计数，P1-7）
+    var pageHabitId2 = this._habitId || ''
+    var todayRecords = records.filter(function(r) { return r.date === today && r.type === type && (!pageHabitId2 || !r.habitId || r.habitId === pageHabitId2) })
     if (todayRecords.length >= habit.target) {
       wx.showToast({ title: '今日已完成啦！', icon: 'none' })
       return
@@ -637,10 +647,12 @@ Page({
       })
     }
 
+    var newRecordHabitId = this._habitId || ''
     saveImages(function(savedImages) {
       var newRecord = {
         id: util.generateId(),
         type: type,
+        habitId: newRecordHabitId,
         date: today,
         time: currentTime,
         images: savedImages,
@@ -735,9 +747,8 @@ Page({
       confirmColor: '#FF4444',
       success: function(res) {
         if (res.confirm) {
-          const records = childStorage.get('habitRecords') || []
-          const updated = records.filter(r => r.id !== id)
-          childStorage.set('habitRecords', updated)
+          // P1-6：走云端删除（内部含墓碑+离线入队），防止下次拉取"复活"
+          cloud.removeHabitRecord(id)
           that.setData({ showDetail: false, detailRecord: null })
           that.loadHabitDetail(that.data.type)
           wx.showToast({ title: '已删除', icon: 'success' })
@@ -762,6 +773,7 @@ Page({
     var hasChanges = this._baseline === undefined || this.captureFormState() !== this._baseline
 
     if (hasChanges) {
+      var that = this
       wx.showModal({
         title: '提示',
         content: '当前有未保存的内容，是否暂存？',
@@ -769,11 +781,12 @@ Page({
         cancelText: '不保存',
         success: function(res) {
           if (res.confirm) {
-            wx.setStorageSync('habitDraft_' + this.data.type, {
-              images: this.data.images,
-              note: this.data.note,
-              score: this.data.score,
-              formData: this.data.formData,
+            // P1-7：草稿 key 带 habitId，多个自定义习惯互不覆盖
+            wx.setStorageSync('habitDraft_' + that.data.type + (that._habitId ? '_' + that._habitId : ''), {
+              images: that.data.images,
+              note: that.data.note,
+              score: that.data.score,
+              formData: that.data.formData,
               time: new Date().toISOString()
             })
             wx.showToast({ title: '已暂存', icon: 'success' })
@@ -781,7 +794,7 @@ Page({
           } else {
             wx.navigateBack()
           }
-        }.bind(this)
+        }
       })
     } else {
       wx.navigateBack()
@@ -790,9 +803,10 @@ Page({
 
   // 恢复暂存数据
   restoreDraft: function(type) {
-    var draft = wx.getStorageSync('habitDraft_' + type)
+    var draftKey = 'habitDraft_' + type + (this._habitId ? '_' + this._habitId : '')
+    var draft = wx.getStorageSync(draftKey)
     if (!draft) return
-    wx.removeStorageSync('habitDraft_' + type)
+    wx.removeStorageSync(draftKey)
     this.setData({
       images: draft.images || [],
       note: draft.note || '',
@@ -805,7 +819,7 @@ Page({
   // 跳转到统计页
   goStats: function() {
     wx.navigateTo({
-      url: '/packageHabits/pages/habits/habit-stats/habit-stats?type=' + this.data.type
+      url: '/packageHabits/pages/habits/habit-stats/habit-stats?type=' + this.data.type + '&habitId=' + (this._habitId || '')
     })
   },
 })

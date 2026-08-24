@@ -291,6 +291,11 @@ async function getConfig(member, childId) {
 // 保存AI配置
 async function saveConfig(member, childId, config) {
   try {
+    // P1-19：仅管理员可修改全家 AI 配置（防止儿童角色覆盖付费密钥/切换高价模型）
+    if (!isAdmin(member)) {
+      return { code: -1, msg: '仅家庭管理员可修改 AI 配置' }
+    }
+
     // 查找现有配置
     const existing = await db.collection('aiConfigs')
       .where({
@@ -1727,6 +1732,11 @@ async function getTtsConfig(member, childId) {
 // 保存TTS配置
 async function saveTtsConfig(member, event) {
   try {
+    // P1-19 配套：TTS 密钥写入同样仅限管理员
+    if (!isAdmin(member)) {
+      return { code: -1, msg: '仅家庭管理员可修改 TTS 配置' }
+    }
+
     console.log('saveTtsConfig调用:', { 
       familyId: member.familyId,
       eventKeys: Object.keys(event),

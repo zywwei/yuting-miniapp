@@ -184,10 +184,15 @@ async function getComments(member, { targetType, targetId, page, pageSize }) {
       isDeleted: false
     }
 
+    // P1-18：补齐分页能力（page/pageSize 缺省时行为与旧版一致）
+    var size = Math.min(Number(pageSize) || 100, 100)
+    var skip = (Math.max(Number(page) || 1, 1) - 1) * size
+
     const res = await db.collection('comments')
       .where(where)
       .orderBy('createTime', 'asc')
-      .limit(pageSize || 100)
+      .skip(skip)
+      .limit(size)
       .get()
 
     var list = await resolveCommentImages(res.data)

@@ -35,6 +35,8 @@ Page({
     var navInfo = getNavBarInfo()
     var now = new Date()
     var type = options.type || 'custom'
+    // P1-7：自定义习惯的精确隔离 id
+    this._habitId = options.habitId || ''
 
     // 获取习惯信息
     var defaultHabits = {
@@ -75,7 +77,10 @@ Page({
 
   loadData: function() {
     var records = childStorage.get('habitRecords') || []
-    var typeRecords = records.filter(function(r) { return r.type === this.data.type }.bind(this))
+    // 自定义习惯按 habitId 精确隔离（P1-7）
+    var habitId = this._habitId || ''
+    var pageType = this.data.type
+    var typeRecords = records.filter(function(r) { return r.type === pageType && (!habitId || !r.habitId || r.habitId === habitId) })
 
     // 格式化时间
     var formattedRecords = typeRecords.map(function(r) {
@@ -257,9 +262,8 @@ Page({
       confirmColor: '#FF4444',
       success: function(res) {
         if (res.confirm) {
-          var records = childStorage.get('habitRecords') || []
-          records = records.filter(function(r) { return r.id !== id })
-          childStorage.set('habitRecords', records)
+          // P1-6：走云端删除（内部含墓碑+离线入队），防止下次拉取"复活"
+          getApp().globalData.cloud.removeHabitRecord(id)
           that.loadData()
           wx.showToast({ title: '已删除', icon: 'success' })
         }

@@ -58,6 +58,7 @@
         class="habit-item {{item.completed ? 'completed' : ''}}"
         bindtap="goHabit"
         data-type="{{item.type}}"
+        data-habit-id="{{item.id}}"
       >
         <view class="habit-icon">{{item.icon}}</view>
         <view class="habit-name">{{item.name}}</view>

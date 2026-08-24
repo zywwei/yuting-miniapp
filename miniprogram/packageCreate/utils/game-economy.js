@@ -70,6 +70,8 @@ function migrateOldCoins() {
   var rpsStory = childStorage.get('rpsStory')
   if (rpsStory && rpsStory.coins > 0) {
     childStorage.set('gameCoins', rpsStory.coins)
+    // P1-20：迁移后清零源余额，防止金币花光到 0 后再次迁移、凭空发币
+    childStorage.set('rpsStory', Object.assign({}, rpsStory, { coins: 0 }))
     logTransaction('add', rpsStory.coins, '从故事模式迁移')
   }
 }

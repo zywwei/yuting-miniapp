@@ -131,6 +131,22 @@ Page({
         var app = getApp()
         app.globalData.children = res.result.data.children
         auth.setChildren(res.result.data.children)
+
+        // P1-15 配套：用云端权威数据回写本地 member（真实 _id/openid/permissions），
+        // 修复成员列表"自我排除失效"与本地权限过期问题
+        var members = res.result.data.members || []
+        var myOpenid = app.globalData.member && app.globalData.member.openid
+        var mine = null
+        for (var i = 0; i < members.length; i++) {
+          if ((myOpenid && members[i].openid === myOpenid) || (!myOpenid && members[i]._id === auth.getMember()._id)) {
+            mine = members[i]
+            break
+          }
+        }
+        if (mine) {
+          auth.setMember(mine)
+          app.globalData.member = mine
+        }
       }
     } catch (err) {
       console.warn('加载成员失败:', err)
