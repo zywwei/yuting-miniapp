@@ -143,13 +143,18 @@ function buildQuestion(source, card, module, quizType) {
 }
 
 // 生成干扰项（通用版：按任意字段取同模块其他条目）
+// 注意：pool 是初始快照，push 后必须逐个去重——朝代/作者这类取值域小的字段
+// 会在快照中大量重复，不去重会产生重复选项
 function generateOptionsByField(source, correctCard, field) {
   var options = [correctCard[field]]
-  var pool = source.filter(function(c) { return c !== correctCard && c[field] && options.indexOf(c[field]) === -1 })
+  var pool = source.filter(function(c) { return c !== correctCard && c[field] })
   while (options.length < 4 && pool.length > 0) {
     var idx = Math.floor(Math.random() * pool.length)
-    options.push(pool[idx][field])
+    var val = pool[idx][field]
     pool.splice(idx, 1)
+    if (options.indexOf(val) === -1) {
+      options.push(val)
+    }
   }
   return shuffleArray(options)
 }

@@ -47,13 +47,14 @@ Page({
       return
     }
     var result = quizEngine.submitAnswer(this.data.quiz, this.data.selectedOption)
-    this.setData({ showResult: true, isCorrect: result.isCorrect })
+    this.setData({ quiz: this.data.quiz, showResult: true, isCorrect: result.isCorrect })
   },
 
   nextQuestion: function() {
     var hasNext = quizEngine.nextQuestion(this.data.quiz)
     if (hasNext) {
       this.setData({
+        quiz: this.data.quiz,
         currentQuestion: this.data.quiz.questions[this.data.quiz.currentIndex],
         selectedOption: -1,
         showResult: false

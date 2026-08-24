@@ -6,7 +6,7 @@
       {{quiz.currentIndex + 1}} / {{quiz.questions.length}}
     </view>
     <view class="quiz-score">
-      得分：{{quiz.score}}
+      答对：{{quiz.correctCount}}
     </view>
   </view>
 

@@ -8,10 +8,10 @@
     </view>
   </view>
 
-  <view wx:if="{{selectedType && !isFinished}}" class="quiz-area">
+  <view wx:if="{{selectedType && !isFinished && quiz.questions.length > 0}}" class="quiz-area">
     <view class="quiz-header">
       <view class="quiz-progress">{{quiz.currentIndex + 1}} / {{quiz.questions.length}}</view>
-      <view class="quiz-score">得分：{{quiz.score}}</view>
+      <view class="quiz-score">答对：{{quiz.correctCount}}</view>
     </view>
     <view class="question-area">
       <view class="question-text">{{currentQuestion.question}}</view>
@@ -32,6 +32,12 @@
       <view class="action-btn" wx:if="{{!showResult}}" bindtap="submitAnswer">提交</view>
       <view class="action-btn" wx:if="{{showResult}}" bindtap="nextQuestion">{{quiz.currentIndex < quiz.questions.length - 1 ? '下一题' : '查看结果'}}</view>
     </view>
+  </view>
+
+  <!-- 空卷兜底：题库不足时给出明确提示，避免停留在空白答题界面 -->
+  <view wx:if="{{selectedType && !isFinished && quiz.questions.length === 0}}" class="quiz-area">
+    <view style="text-align: center; color: #999; padding: 80rpx 0;">题库准备中，暂无题目</view>
+    <view class="action-btn" style="margin: 0 auto; max-width: 240rpx;" bindtap="back">返回</view>
   </view>
 
   <view wx:if="{{isFinished}}" class="result-area">

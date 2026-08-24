@@ -17,8 +17,46 @@ var getBuiltinCards = function() {
   ]
 }
 
-var getBuiltinPoems = function() { return [] }
-var getBuiltinEnglish = function() { return [] }
+// 古诗/英语真实数据在主包 utils/poems-level-* 与 english-level-*（分包允许引用主包模块）。
+// require 路径必须逐个写死：小程序打包工具无法静态分析动态拼接的路径。
+var getBuiltinPoems = function() {
+  if (!cachedData.poems) {
+    var poems = []
+    try {
+      var p1 = require('../../utils/poems-level-1.js')
+      var p2 = require('../../utils/poems-level-2.js')
+      var p3 = require('../../utils/poems-level-3.js')
+      var p4 = require('../../utils/poems-level-4.js')
+      ;[p1, p2, p3, p4].forEach(function(level) {
+        if (Array.isArray(level)) poems = poems.concat(level)
+      })
+    } catch (e) {
+      console.warn('古诗数据聚合失败:', e)
+    }
+    cachedData.poems = poems
+  }
+  return cachedData.poems
+}
+
+var getBuiltinEnglish = function() {
+  if (!cachedData.english) {
+    var words = []
+    try {
+      var e1 = require('../../utils/english-level-1.js')
+      var e2 = require('../../utils/english-level-2.js')
+      var e3 = require('../../utils/english-level-3.js')
+      var e4 = require('../../utils/english-level-4.js')
+      var e5 = require('../../utils/english-level-5.js')
+      ;[e1, e2, e3, e4, e5].forEach(function(level) {
+        if (Array.isArray(level)) words = words.concat(level)
+      })
+    } catch (e) {
+      console.warn('英语单词数据聚合失败:', e)
+    }
+    cachedData.english = words
+  }
+  return cachedData.english
+}
 
 var getBuiltinMathFormulas = function() {
   return [
