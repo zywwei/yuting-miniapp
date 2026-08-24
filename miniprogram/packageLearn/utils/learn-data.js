@@ -1,4 +1,6 @@
 var childStorage = require('../../utils/child-storage.js')
+var learnProgress = require('./learn-progress.js')
+var modulesData = require('./modules-data.js')
 
 var cachedData = { cards: null, poems: null, english: null, math: { formulas: null, concepts: null, practice: null } }
 
@@ -182,16 +184,18 @@ var loadPoemsData = function(dynasty) { return getBuiltinPoems() }
 var loadEnglishData = function(level) { return getBuiltinEnglish() }
 var loadAllEnglish = function() { if (!cachedData.english) cachedData.english = getBuiltinEnglish(); return cachedData.english }
 
+// P1-12：公式/概念列表委托 modules-data 同源数据（详情页同源，id 互通，
+// 点条目不再打开错误的第 1 条）；内置 f001/m001 兜底废弃不再使用
 var loadMathFormulas = function(category) {
-  if (!cachedData.math.formulas) { try { cachedData.math.formulas = require('../data/math/formulas/index.js') } catch (e) { cachedData.math.formulas = getBuiltinMathFormulas() } }
-  if (category) return cachedData.math.formulas.filter(function(f) { return f.category === category })
-  return cachedData.math.formulas
+  var items = modulesData.loadModuleData('math-formulas').items
+  if (category) return items.filter(function(f) { return f.category === category })
+  return items
 }
 
 var loadMathConcepts = function(category) {
-  if (!cachedData.math.concepts) { try { cachedData.math.concepts = require('../data/math/concepts/index.js') } catch (e) { cachedData.math.concepts = getBuiltinMathConcepts() } }
-  if (category) return cachedData.math.concepts.filter(function(c) { return c.category === category })
-  return cachedData.math.concepts
+  var items = modulesData.loadModuleData('math-concepts').items
+  if (category) return items.filter(function(c) { return c.category === category })
+  return items
 }
 
 var loadMathPractice = function(type, difficulty) {
@@ -215,6 +219,8 @@ var markAsLearned = function(module, itemId) {
   if (!progress[module][itemId]) {
     progress[module][itemId] = { learnedAt: new Date().toISOString(), reviewCount: 0 }
     childStorage.set('learnProgress', progress)
+    // P1-13：写入学习日志，激活 stats 连续天数与 history 页（此前 addLearnLog 零调用）
+    learnProgress.addLearnLog(module, itemId, 'learn')
   }
   return progress[module][itemId]
 }

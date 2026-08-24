@@ -22,7 +22,16 @@ Page({
 
   loadFormulas: function() {
     var formulas = learnData.loadMathFormulas()
-    this.setData({ formulas: formulas })
+    // P1-12：分类从同源数据动态提取（真实数据为中文分类，原静态英文 key 已失配）
+    var seen = {}
+    var dynamicCategories = []
+    formulas.forEach(function(f) {
+      if (f.category && !seen[f.category]) {
+        seen[f.category] = true
+        dynamicCategories.push({ id: f.category, name: f.category })
+      }
+    })
+    this.setData({ formulas: formulas, categories: dynamicCategories })
   },
 
   switchCategory: function(e) {

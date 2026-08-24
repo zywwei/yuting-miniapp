@@ -405,5 +405,3 @@ module.exports = [
     tips: "洞不要扎太大，水流太快就不准了。"
   }
 ];
-
-module.exports = experimentsData;

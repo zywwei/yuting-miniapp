@@ -19,7 +19,16 @@ Page({
 
   loadConcepts: function() {
     var concepts = learnData.loadMathConcepts()
-    this.setData({ concepts: concepts })
+    // P1-12：分类从同源数据动态提取（真实数据为中文分类，原静态英文 key 已失配）
+    var seen = {}
+    var dynamicCategories = []
+    concepts.forEach(function(c) {
+      if (c.category && !seen[c.category]) {
+        seen[c.category] = true
+        dynamicCategories.push({ id: c.category, name: c.category })
+      }
+    })
+    this.setData({ concepts: concepts, categories: dynamicCategories })
   },
 
   switchCategory: function(e) {

@@ -5,6 +5,7 @@
 
 var childStorage = require('../../utils/child-storage.js')
 var cloud = require('../../utils/cloud.js')
+var learnProgress = require('./learn-progress.js')
 
 // 导入所有数据文件
 var mathFormulasData = require('./math-formulas-data.js')
@@ -105,6 +106,16 @@ var MODULE_MAP = {
   'life-skills': { data: lifeSkillsData, name: '生活技能', storageKey: 'lifeSkills' }
 }
 
+// P1-12：为缺 id 的条目生成稳定 id（chinese-writing/reading/rhetoric 等数据文件
+// 无 id 字段，导致已学标记全部塌缩到 undefined 键、进度瞬间 100%）
+Object.keys(MODULE_MAP).forEach(function(moduleKey) {
+  var data = MODULE_MAP[moduleKey].data
+  if (!Array.isArray(data)) return
+  data.forEach(function(item, idx) {
+    if (item && !item.id) item.id = moduleKey + '_' + (idx + 1)
+  })
+})
+
 /**
  * 获取学习进度映射表
  * @param {string} module - 模块类型
@@ -176,21 +187,24 @@ function getItemById(module, id) {
 function markAsLearned(module, id, title) {
   var config = MODULE_MAP[module]
   if (!config) return
-  
-  var learnProgress = childStorage.get('learnProgress') || {}
-  if (!learnProgress[config.storageKey]) {
-    learnProgress[config.storageKey] = {}
+
+  var learnProgressData = childStorage.get('learnProgress') || {}
+  if (!learnProgressData[config.storageKey]) {
+    learnProgressData[config.storageKey] = {}
   }
-  
-  learnProgress[config.storageKey][id] = {
+
+  learnProgressData[config.storageKey][id] = {
     learnedAt: new Date().toISOString(),
     title: title || id
   }
-  
-  childStorage.set('learnProgress', learnProgress)
-  
+
+  childStorage.set('learnProgress', learnProgressData)
+
+  // P1-13：写入学习日志，激活 history 页与 stats 连续天数统计
+  try { learnProgress.addLearnLog(config.storageKey, id, 'learn', title || id) } catch (e) {}
+
   // 异步同步到云端
-  cloud.uploadLearnProgress(learnProgress).catch(function(err) {
+  cloud.uploadLearnProgress(learnProgressData).catch(function(err) {
     console.warn('学习进度同步失败:', err)
   })
 }

@@ -54,13 +54,15 @@ var isLearned = function(module, itemId) {
  * @param {string} type - 学习类型
  * @param {string} itemId - 学习项ID
  * @param {string} action - 动作类型
+ * @param {string} [title] - 展示标题（可选，history 页直接显示）
  */
-var addLearnLog = function(type, itemId, action) {
+var addLearnLog = function(type, itemId, action, title) {
   var logs = childStorage.get('learnLogs') || []
   logs.push({
     type: type,
     itemId: itemId,
     action: action,
+    title: title || itemId || '',
     time: new Date().toISOString()
   })
   // 保留最近1000条记录
