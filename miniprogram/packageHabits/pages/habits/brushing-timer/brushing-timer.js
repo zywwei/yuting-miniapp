@@ -918,6 +918,8 @@ Page({
   },
 
   startTimer() {
+    if (this._starting) return // 防重入：入场动画期间忽略重复点击
+    this._starting = true
     // 随机选择一种出场动画
     const entranceAnim = ENTRANCE_ANIMATIONS[Math.floor(Math.random() * ENTRANCE_ANIMATIONS.length)]
     const p = entranceAnim.phases
@@ -998,12 +1000,14 @@ Page({
     // 生成小怪物
     this.generateMinions()
 
+    this._starting = false // isRunning 已置位，解除防重入
     this.startMainTimer()
   },
 
   startMainTimer() {
     // 单一计时器 + 单一 _elapsed 计数：剩余时间、总进度、敌人HP、区域推进全部由它推导，
     // 消除原先主/区域双 interval 各自计数导致的漂移
+    if (this._timer) clearInterval(this._timer) // 兜底：防止旧 interval 未清导致双开
     this._timer = setInterval(() => {
       this._elapsed = (this._elapsed || 0) + 1
       const remaining = this._totalTime - this._elapsed

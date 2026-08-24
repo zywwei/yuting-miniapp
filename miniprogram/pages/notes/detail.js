@@ -209,7 +209,7 @@ Page({
     var that = this
     wx.cloud.callFunction({
       name: 'interaction',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'getComments',
         targetType: 'note',
         targetId: noteId

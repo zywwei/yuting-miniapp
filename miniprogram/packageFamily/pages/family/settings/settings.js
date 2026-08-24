@@ -117,7 +117,7 @@ Page({
     try {
       var res = await wx.cloud.callFunction({
         name: 'family',
-        data: { action: 'getInfo' }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'getInfo' }
       })
 
       if (res.result.code === 0) {
@@ -160,7 +160,7 @@ Page({
     try {
       await wx.cloud.callFunction({
         name: 'family',
-        data: {
+        data: { familyId: auth.getCurrentFamilyId(),
           action: 'updateChild',
           childId: childId,
           theme: themeId
@@ -209,7 +209,7 @@ Page({
     try {
       var res = await wx.cloud.callFunction({
         name: 'family',
-        data: { action: 'refreshInviteCode' }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'refreshInviteCode' }
       })
 
       if (res.result.code === 0) {
@@ -295,7 +295,7 @@ Page({
 
       var res = await wx.cloud.callFunction({
         name: 'family',
-        data: {
+        data: { familyId: auth.getCurrentFamilyId(),
           action: 'addChild',
           name: this.data.newChildName.trim(),
           nickname: this.data.newChildNickname.trim(),
@@ -411,7 +411,7 @@ Page({
 
       var res = await wx.cloud.callFunction({
         name: 'family',
-        data: {
+        data: { familyId: auth.getCurrentFamilyId(),
           action: 'updateChild',
           childId: this.data.editChildId,
           name: this.data.editChildName.trim(),
@@ -487,7 +487,7 @@ Page({
           try {
             var result = await wx.cloud.callFunction({
               name: 'family',
-              data: { action: 'removeChild', childId: childId }
+              data: { familyId: auth.getCurrentFamilyId(), action: 'removeChild', childId: childId }
             })
 
             if (result.result.code === 0) {
@@ -514,7 +514,7 @@ Page({
           try {
             var result = await wx.cloud.callFunction({
               name: 'family',
-              data: { action: 'removeMember', memberId: memberId }
+              data: { familyId: auth.getCurrentFamilyId(), action: 'removeMember', memberId: memberId }
             })
 
             if (result.result.code === 0) {
@@ -540,7 +540,7 @@ Page({
           try {
             var result = await wx.cloud.callFunction({
               name: 'family',
-              data: { action: 'disableMember', memberId: memberId }
+              data: { familyId: auth.getCurrentFamilyId(), action: 'disableMember', memberId: memberId }
             })
 
             if (result.result.code === 0) {
@@ -561,7 +561,7 @@ Page({
     try {
       var result = await wx.cloud.callFunction({
         name: 'family',
-        data: { action: 'enableMember', memberId: memberId }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'enableMember', memberId: memberId }
       })
 
       if (result.result.code === 0) {
@@ -582,7 +582,7 @@ Page({
           try {
             var result = await wx.cloud.callFunction({
               name: 'family',
-              data: { action: 'leaveFamily' }
+              data: { familyId: auth.getCurrentFamilyId(), action: 'leaveFamily' }
             })
 
             if (result.result.code === 0) {
@@ -610,7 +610,7 @@ Page({
           try {
             var result = await wx.cloud.callFunction({
               name: 'family',
-              data: { action: 'updateProfile', nickname: res.content.trim() }
+              data: { familyId: auth.getCurrentFamilyId(), action: 'updateProfile', nickname: res.content.trim() }
             })
 
             if (result.result.code === 0) {

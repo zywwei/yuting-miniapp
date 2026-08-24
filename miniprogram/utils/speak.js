@@ -3,6 +3,7 @@
  * 支持Edge TTS、百度TTS和大模型TTS三种引擎
  */
 
+var auth = require('./auth.js')
 var beep = require('./beep.js')
 
 var isSpeaking = false
@@ -298,7 +299,7 @@ function speak(text, callback) {
   
   wx.cloud.callFunction({
     name: 'ai-chat',
-    data: requestData,
+    data: Object.assign({ familyId: auth.getCurrentFamilyId() }, requestData),
     success: function(result) {
       if (result.result && result.result.code === 0 && result.result.data.audio) {
         playAudio(result.result.data.audio, callback)
@@ -450,7 +451,7 @@ function speakWord(text, callback) {
   
   wx.cloud.callFunction({
     name: 'ai-chat',
-    data: {
+    data: { familyId: auth.getCurrentFamilyId(),
       action: 'textToSpeech',
       text: text.substring(0, 1000),
       voice: edgeVoice
@@ -525,7 +526,7 @@ function testBaiduVoice(text) {
 
       wx.cloud.callFunction({
         name: 'ai-chat',
-        data: {
+        data: { familyId: auth.getCurrentFamilyId(),
           action: 'textToSpeech',
           text: text.substring(0, 100),
           baiduPer: voice.id

@@ -75,7 +75,7 @@ Component({
       try {
         var res = await wx.cloud.callFunction({
           name: 'interaction',
-          data: {
+          data: { familyId: auth.getCurrentFamilyId(),
             action: 'toggleLike',
             targetType: this.data.targetType,
             targetId: this.data.targetId

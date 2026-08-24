@@ -107,7 +107,7 @@ Page({
 
       var res = await wx.cloud.callFunction({
         name: 'family',
-        data: {
+        data: { familyId: auth.getCurrentFamilyId(),
           action: 'create',
           familyName: this.data.familyName.trim() || (this.data.childName.trim() + '的家'),
           role: this.data.role,
@@ -132,7 +132,7 @@ Page({
           try {
             var familyRes = await wx.cloud.callFunction({
               name: 'family',
-              data: { action: 'getMyFamilies' }
+              data: { familyId: auth.getCurrentFamilyId(), action: 'getMyFamilies' }
             })
             if (familyRes.result.code === 0 && familyRes.result.data.families.length > 0) {
               var f = familyRes.result.data.families[0]
@@ -166,7 +166,7 @@ Page({
         if (childAvatar) {
           await wx.cloud.callFunction({
             name: 'family',
-            data: { action: 'updateChildAvatar', childId: data.childId, avatar: childAvatar }
+            data: { familyId: auth.getCurrentFamilyId(), action: 'updateChildAvatar', childId: data.childId, avatar: childAvatar }
           })
         }
 

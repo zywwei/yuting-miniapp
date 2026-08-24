@@ -1,5 +1,6 @@
 var aiManager = getApp().globalData.aiManager
 var childStorage = getApp().globalData.childStorage
+var auth = require('../../../../utils/auth.js')
 var contextDetector = require('../../../utils/ai-context-detector')
 var skillsManager = require('../../../utils/ai-skills')
 var markdown = require('../../../utils/markdown')
@@ -319,7 +320,8 @@ Page({
           icon: provider.icon,
           color: provider.color,
           description: provider.description,
-          configured: !!(configuredModels[provider.key] && configuredModels[provider.key].apiKey),
+          // P0-7 配套：非 admin 配置为脱敏版，已配置状态以服务端 hasKeyByProvider 为准
+          configured: !!(configuredModels[provider.key] && configuredModels[provider.key].apiKey) || !!(config.hasKeyByProvider && config.hasKeyByProvider[provider.key]),
           subModels: provider.subModels
         }
       })
@@ -386,7 +388,8 @@ Page({
         currentSubModelName: currentSubModelName,
         currentTemplateKey: currentTemplateKey,
         currentTemplateName: currentTemplateName,
-        isConfigured: !!(configuredModels[currentProvider] && configuredModels[currentProvider].apiKey),
+        // P0-7 配套：非 admin 配置为脱敏版，已配置状态以服务端 hasKeyByProvider 为准
+        isConfigured: !!(configuredModels[currentProvider] && configuredModels[currentProvider].apiKey) || !!(config.hasKeyByProvider && config.hasKeyByProvider[currentProvider]),
         modelInfo: {
           icon: (models[currentProvider] || models['minimax'] || { icon: '🤖' }).icon,
           name: (models[currentProvider] || models['minimax'] || { name: 'AI助手' }).name
@@ -589,7 +592,10 @@ Page({
     
     // 检查是否已配置
     aiManager.getConfig().then(function(config) {
-      if (!config.models || !config.models[key] || !config.models[key].apiKey) {
+      // 非 admin 拿到的是脱敏配置（apiKey 为空），以服务端 hasKeyByProvider 为准判断
+      var hasKeyByProvider = config.hasKeyByProvider || {}
+      var localConfigured = !!(config.models && config.models[key] && config.models[key].apiKey)
+      if (!localConfigured && !hasKeyByProvider[key]) {
         wx.showToast({
           title: '请先配置该供应商的API Key',
           icon: 'none'
@@ -1528,7 +1534,7 @@ Page({
     // 从云端获取价格配置
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: { action: 'getModelPrices' }
+      data: { familyId: auth.getCurrentFamilyId(), action: 'getModelPrices' }
     }).then(function(res) {
       if (res.result.code === 0) {
         var prices = res.result.data
@@ -2187,7 +2193,7 @@ Page({
         // 调用云函数进行语音识别
         wx.cloud.callFunction({
           name: 'ai-chat',
-          data: {
+          data: { familyId: auth.getCurrentFamilyId(),
             action: 'speechToText',
             audioData: base64Data
           },

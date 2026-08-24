@@ -11,9 +11,9 @@ const COLLECTION_MAP = {
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()
-  const { action } = event
+  const { action, familyId } = event
 
-  const member = await getMemberByOpenid(OPENID)
+  const member = await getMemberByOpenid(OPENID, familyId)
   if (!member) {
     return { code: -1, msg: '未加入家庭' }
   }
@@ -32,9 +32,13 @@ exports.main = async (event, context) => {
   }
 }
 
-async function getMemberByOpenid(openid) {
+async function getMemberByOpenid(openid, familyId) {
+  // 优先按客户端传入的当前家庭精确匹配（多家庭切换场景）；未传时保持旧行为取第一条
+  const cond = familyId
+    ? { openid, familyId, status: 'active' }
+    : { openid, status: 'active' }
   const res = await db.collection('familyMembers')
-    .where({ openid, status: 'active' })
+    .where(cond)
     .get()
   return res.data[0] || null
 }

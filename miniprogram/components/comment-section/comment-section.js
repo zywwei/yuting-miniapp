@@ -35,7 +35,7 @@ Component({
       try {
         var res = await wx.cloud.callFunction({
           name: 'interaction',
-          data: {
+          data: { familyId: auth.getCurrentFamilyId(),
             action: 'getComments',
             targetType: this.data.targetType,
             targetId: this.data.targetId
@@ -104,7 +104,7 @@ Component({
       try {
         var res = await wx.cloud.callFunction({
           name: 'interaction',
-          data: {
+          data: { familyId: auth.getCurrentFamilyId(),
             action: 'addComment',
             targetType: this.data.targetType,
             targetId: this.data.targetId,
@@ -154,7 +154,7 @@ Component({
 
         var res = await wx.cloud.callFunction({
           name: 'interaction',
-          data: {
+          data: { familyId: auth.getCurrentFamilyId(),
             action: 'addComment',
             targetType: this.data.targetType,
             targetId: this.data.targetId,
@@ -197,7 +197,7 @@ Component({
             try {
               var result = await wx.cloud.callFunction({
                 name: 'interaction',
-                data: {
+                data: { familyId: auth.getCurrentFamilyId(),
                   action: 'deleteComment',
                   commentId: commentId
                 }

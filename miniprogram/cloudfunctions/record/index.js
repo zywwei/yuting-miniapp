@@ -12,9 +12,9 @@ const ALLOWED_COLLECTIONS = [
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()
-  const { action, collection, data, id, childId, key, page, pageSize, memberId, date } = event
+  const { action, collection, data, id, childId, key, page, pageSize, memberId, date, familyId } = event
 
-  const member = await getMemberByOpenid(OPENID)
+  const member = await getMemberByOpenid(OPENID, familyId)
   if (!member) {
     return { code: -1, msg: '未加入家庭' }
   }
@@ -42,9 +42,13 @@ exports.main = async (event, context) => {
   }
 }
 
-async function getMemberByOpenid(openid) {
+async function getMemberByOpenid(openid, familyId) {
+  // 优先按客户端传入的当前家庭精确匹配（多家庭切换场景）；未传时保持旧行为取第一条
+  const cond = familyId
+    ? { openid, familyId, status: 'active' }
+    : { openid, status: 'active' }
   const res = await db.collection('familyMembers')
-    .where({ openid, status: 'active' })
+    .where(cond)
     .get()
   return res.data[0] || null
 }
@@ -250,7 +254,12 @@ async function updateRecord(member, collection, id, updates) {
       docId = id
     } catch (e) {
       // 如果找不到，用 where({ id }) 查找客户端生成的 id 字段
-      const res = await db.collection(collection).where({ id }).get()
+      // 先带 familyId 精确查；查不到再不带 familyId 查一次，兼容无 familyId 的历史数据
+      // （命中后走下方统一校验：有 familyId 且不匹配才拒绝）
+      let res = await db.collection(collection).where({ id, familyId: member.familyId }).get()
+      if (!res.data || res.data.length === 0) {
+        res = await db.collection(collection).where({ id }).get()
+      }
       if (res.data && res.data.length > 0) {
         record = res.data[0]
         docId = record._id
@@ -258,6 +267,13 @@ async function updateRecord(member, collection, id, updates) {
     }
 
     if (!record) {
+      return { code: -3, msg: '记录不存在' }
+    }
+
+    // 跨家庭防护（收紧）：familyId 不匹配或缺失一律按"不存在"处理。
+    // 服务端 addRecord 历来强制写入 familyId，正常数据均含该字段；
+    // 历史遗留的无归属文档需先用 reviewed/migrate-orphan-familyid.md 的方式归位。
+    if (record.familyId !== member.familyId) {
       return { code: -3, msg: '记录不存在' }
     }
 
@@ -356,7 +372,12 @@ async function removeRecord(member, collection, id) {
       docId = id
     } catch (e) {
       // 如果找不到，用 where({ id }) 查找客户端生成的 id 字段
-      const res = await db.collection(collection).where({ id }).get()
+      // 先带 familyId 精确查；查不到再不带 familyId 查一次，兼容无 familyId 的历史数据
+      // （命中后走下方统一校验：有 familyId 且不匹配才拒绝）
+      let res = await db.collection(collection).where({ id, familyId: member.familyId }).get()
+      if (!res.data || res.data.length === 0) {
+        res = await db.collection(collection).where({ id }).get()
+      }
       if (res.data && res.data.length > 0) {
         record = res.data[0]
         docId = record._id
@@ -364,6 +385,12 @@ async function removeRecord(member, collection, id) {
     }
 
     if (!record) {
+      return { code: -3, msg: '记录不存在' }
+    }
+
+    // 跨家庭防护（收紧）：familyId 不匹配或缺失一律按"不存在"处理。
+    // 历史遗留的无归属文档需先用 reviewed/migrate-orphan-familyid.md 的方式归位。
+    if (record.familyId !== member.familyId) {
       return { code: -3, msg: '记录不存在' }
     }
 

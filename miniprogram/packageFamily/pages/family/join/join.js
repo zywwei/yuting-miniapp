@@ -34,7 +34,7 @@ Page({
     try {
       var res = await wx.cloud.callFunction({
         name: 'family',
-        data: {
+        data: { familyId: auth.getCurrentFamilyId(),
           action: 'join',
           inviteCode: code,
           role: this.data.role,

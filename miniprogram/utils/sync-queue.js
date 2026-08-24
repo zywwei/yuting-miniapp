@@ -4,6 +4,8 @@
  * 支持图片两阶段同步：先上传图片获取fileID，再同步记录
  */
 
+var auth = require('./auth.js')
+
 var QUEUE_KEY = 'syncQueue'
 var FAILED_KEY = 'syncFailed'
 var SEQ_KEY = 'syncQueueSeq'
@@ -184,6 +186,9 @@ async function flush() {
           callData[k] = item.extra[k]
         })
       }
+      // P0-8 配套：离线重放也携带当前家庭，避免多家庭用户重试时写入第一个家庭
+      // （云端兼容设计：未带 familyId 的旧队列项仍按旧行为处理，不会报错）
+      callData.familyId = auth.getCurrentFamilyId()
       await wx.cloud.callFunction({
         name: funcName,
         data: callData

@@ -223,6 +223,7 @@ Page({
           cart[i].quantity--
           if (cart[i].quantity <= 0) {
             cart.splice(i, 1)
+            break // 该项已删除，跳过下方小计重算（cart[i] 已不存在）
           }
         }
         cart[i].subtotal = cart[i].quantity * cart[i].unitPrice

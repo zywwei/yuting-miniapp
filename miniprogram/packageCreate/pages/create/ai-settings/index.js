@@ -297,18 +297,21 @@ Page({
     
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'getTtsConfig'
       },
       success: function(result) {
         if (result.result && result.result.code === 0) {
           var ttsConfig = result.result.data || {}
+          // P0-7：云函数不再回传明文密钥，只回就绪状态；表单留空=保持已有配置不变
           that.setData({
-            mimoTtsApiKey: ttsConfig.mimoTtsApiKey || '',
-            mimoTtsPlanApiKey: ttsConfig.mimoTtsPlanApiKey || '',
-            baiduAppId: ttsConfig.baiduTtsAppId || '',
-            baiduApiKey: ttsConfig.baiduTtsApiKey || '',
-            baiduSecretKey: ttsConfig.baiduTtsSecretKey || ''
+            mimoTtsReady: !!ttsConfig.mimoTtsReady,
+            baiduTtsReady: !!ttsConfig.baiduTtsReady,
+            mimoTtsApiKey: '',
+            mimoTtsPlanApiKey: '',
+            baiduAppId: '',
+            baiduApiKey: '',
+            baiduSecretKey: ''
           })
         }
       },
@@ -518,7 +521,7 @@ Page({
       // 直接测试API Key，不需要先保存
       var res = await wx.cloud.callFunction({
         name: 'ai-chat',
-        data: {
+        data: { familyId: auth.getCurrentFamilyId(),
           action: 'testConfig',
           model: this.data.currentModel,
           apiKey: this.data.apiKey,
@@ -690,14 +693,21 @@ Page({
     var that = this
     
     if (this.data.savingMimoTts) return
-    
+
+    // P0-7 配套：脱敏后表单不回显已存密钥，空值提交会覆盖真值，必须拦截
+    var newKey = (this.data.mimoTtsApiKey || '').trim()
+    if (!newKey) {
+      wx.showToast({ title: '请输入新的API Key', icon: 'none' })
+      return
+    }
+
     this.setData({ savingMimoTts: true })
-    
+
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'saveTtsConfig',
-        mimoTtsApiKey: this.data.mimoTtsApiKey
+        mimoTtsApiKey: newKey
       },
       success: function(result) {
         that.setData({ savingMimoTts: false })
@@ -729,14 +739,21 @@ Page({
     var that = this
     
     if (this.data.savingMimoTts) return
-    
+
+    // P0-7 配套：空值提交会覆盖已存真值，必须拦截
+    var newKey = (this.data.mimoTtsPlanApiKey || '').trim()
+    if (!newKey) {
+      wx.showToast({ title: '请输入新的API Key', icon: 'none' })
+      return
+    }
+
     this.setData({ savingMimoTts: true })
-    
+
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'saveTtsConfig',
-        mimoTtsPlanApiKey: this.data.mimoTtsPlanApiKey
+        mimoTtsPlanApiKey: newKey
       },
       success: function(result) {
         that.setData({ savingMimoTts: false })
@@ -773,7 +790,7 @@ Page({
     
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'testTts',
         engine: 'mimo'
       },
@@ -835,18 +852,28 @@ Page({
     var that = this
     
     if (this.data.savingBaiduTts) return
-    
+
+    // P0-7 配套：脱敏后表单不回显，只提交非空字段防止空串覆盖已存真值
+    var patch = {}
+    var baiduAppId = (this.data.baiduAppId || '').trim()
+    var baiduApiKey = (this.data.baiduApiKey || '').trim()
+    var baiduSecretKey = (this.data.baiduSecretKey || '').trim()
+    if (baiduAppId) patch.baiduAppId = baiduAppId
+    if (baiduApiKey) patch.baiduApiKey = baiduApiKey
+    if (baiduSecretKey) patch.baiduSecretKey = baiduSecretKey
+    if (Object.keys(patch).length === 0) {
+      wx.showToast({ title: '请至少填写一项', icon: 'none' })
+      return
+    }
+
     this.setData({ savingBaiduTts: true })
-    
+
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: Object.assign({ familyId: auth.getCurrentFamilyId(),
         action: 'saveTtsConfig',
-        engine: 'baidu',
-        baiduAppId: this.data.baiduAppId,
-        baiduApiKey: this.data.baiduApiKey,
-        baiduSecretKey: this.data.baiduSecretKey
-      },
+        engine: 'baidu'
+      }, patch),
       success: function(result) {
         that.setData({ savingBaiduTts: false })
         
@@ -882,7 +909,7 @@ Page({
     
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'testTts',
         engine: 'baidu'
       },

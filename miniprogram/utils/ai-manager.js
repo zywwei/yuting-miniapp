@@ -364,7 +364,7 @@ function getConfig() {
     
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'getConfig',
         childId: auth.getCurrentChildId()
       }
@@ -455,7 +455,7 @@ function saveConfig(config) {
     
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'saveConfig',
         childId: auth.getCurrentChildId(),
         config: config
@@ -516,7 +516,7 @@ function sendMessage(message, model, imageFileID, extraContext, skillPrompt) {
     
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: data
+      data: Object.assign({ familyId: auth.getCurrentFamilyId() }, data)
     }).then(function(res) {
       if (res.result.code === 0) {
         // 保存到本地缓存
@@ -570,7 +570,7 @@ function sendMessageStream(message, model, imageFileID, extraContext, skillPromp
     
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: data
+      data: Object.assign({ familyId: auth.getCurrentFamilyId() }, data)
     }).then(function(res) {
       if (res.result.code === 0) {
         // 保存用户消息到本地
@@ -596,7 +596,7 @@ function getThinkingProgress(taskId) {
   return new Promise(function(resolve, reject) {
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'getThinkingProgress',
         taskId: taskId
       }
@@ -654,7 +654,7 @@ function getUserPreference(key) {
   return new Promise(function(resolve, reject) {
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'getUserPreference',
         key: key
       }
@@ -681,7 +681,7 @@ function saveUserPreference(key, value) {
   return new Promise(function(resolve, reject) {
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'saveUserPreference',
         key: key,
         value: value
@@ -709,7 +709,7 @@ function getHistory(sessionId, page, pageSize) {
     
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'getHistory',
         childId: auth.getCurrentChildId(),
         sessionId: sessionId,
@@ -753,7 +753,7 @@ function getSessions(limit) {
   return new Promise(function(resolve, reject) {
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'getSessions',
         childId: auth.getCurrentChildId(),
         limit: limit || 500
@@ -778,7 +778,7 @@ function clearHistory(sessionId) {
   return new Promise(function(resolve, reject) {
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'clearHistory',
         childId: auth.getCurrentChildId(),
         sessionId: sessionId
@@ -807,7 +807,7 @@ function deleteSession(sessionId) {
   return new Promise(function(resolve, reject) {
     wx.cloud.callFunction({
       name: 'ai-chat',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'deleteSession',
         childId: auth.getCurrentChildId(),
         sessionId: sessionId
@@ -896,11 +896,20 @@ function saveToLocal(sessionId, role, content, thinking, image) {
  */
 function isConfigured() {
   var config = childStorage.get(CONFIG_KEY)
-  if (!config || !config.models) return false
-  
+  if (!config) return false
+
   var currentModel = config.currentModel || 'minimax'
+
+  // P0-7 配套：非 admin 拿到的是脱敏配置（apiKey 为空串），
+  // 以服务端 hasKeyByProvider 为准——聊天走云端代理用的是服务端密钥
+  if (config.hasKeyByProvider && typeof config.hasKeyByProvider[currentModel] !== 'undefined') {
+    return !!config.hasKeyByProvider[currentModel]
+  }
+
+  if (!config.models) return false
+
   var modelConfig = config.models[currentModel]
-  
+
   return modelConfig && modelConfig.apiKey && modelConfig.apiKey.length > 0
 }
 

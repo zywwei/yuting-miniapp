@@ -17,7 +17,7 @@ exports.main = async (event, context) => {
     case 'join':
       return await joinFamily(OPENID, event)
     case 'getInfo':
-      return await getFamilyInfo(OPENID)
+      return await getFamilyInfo(OPENID, event.familyId)
     case 'getMyFamilies':
       return await getMyFamilies(OPENID)
     case 'getFamilyDetail':
@@ -25,7 +25,7 @@ exports.main = async (event, context) => {
     case 'getMembers':
       return await getMembers(OPENID, event)
     case 'refreshInviteCode':
-      return await refreshInviteCode(OPENID)
+      return await refreshInviteCode(OPENID, event.familyId)
     case 'addChild':
       return await addChild(OPENID, event)
     case 'updateChild':
@@ -47,7 +47,7 @@ exports.main = async (event, context) => {
     case 'saveCurrentChild':
       return await saveCurrentChild(OPENID, event)
     case 'leaveFamily':
-      return await leaveFamily(OPENID)
+      return await leaveFamily(OPENID, event.familyId)
     default:
       return { code: -1, msg: '未知操作' }
   }
@@ -61,12 +61,14 @@ function generateInviteCode() {
   return code
 }
 
-async function getMemberByOpenid(openid) {
+async function getMemberByOpenid(openid, familyId) {
+  // P0-8 第四处同型修复：优先按客户端传入的当前家庭精确匹配（多家庭切换场景）；
+  // 未传时保持旧行为取第一条。status 含 disabled：管理操作需要能查到被禁用成员。
+  const cond = familyId
+    ? { openid, familyId, status: db.command.in(['active', 'disabled']) }
+    : { openid, status: db.command.in(['active', 'disabled']) }
   const res = await db.collection('familyMembers')
-    .where({
-      openid,
-      status: db.command.in(['active', 'disabled'])
-    })
+    .where(cond)
     .get()
   return res.data[0] || null
 }
@@ -77,6 +79,7 @@ async function isAdmin(member) {
 
 async function createFamily(openid, { familyName, role, roleName, nickname, childName, childNickname, childGender, childBirthday, avatar, familyAvatar, childTheme }) {
   try {
+    // 建家语义：不按当前家庭过滤，需检查该 openid 名下全部 membership
     const existing = await getMemberByOpenid(openid)
     if (existing) {
       // 已加入家庭，返回家庭信息而不是报错
@@ -211,9 +214,9 @@ async function joinFamily(openid, { inviteCode, role, roleName, nickname, avatar
   }
 }
 
-async function getFamilyInfo(openid) {
+async function getFamilyInfo(openid, familyId) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member) {
       return { code: -1, msg: '未加入家庭' }
     }
@@ -430,9 +433,9 @@ async function getFamilyDetail(openid, { familyId }) {
   }
 }
 
-async function refreshInviteCode(openid) {
+async function refreshInviteCode(openid, familyId) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member || !await isAdmin(member)) {
       return { code: -1, msg: '无权限' }
     }
@@ -454,9 +457,9 @@ async function refreshInviteCode(openid) {
   }
 }
 
-async function addChild(openid, { name, nickname, gender, birthday, avatar, theme }) {
+async function addChild(openid, { familyId, name, nickname, gender, birthday, avatar, theme }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member || !await isAdmin(member)) {
       return { code: -1, msg: '无权限' }
     }
@@ -485,9 +488,9 @@ async function addChild(openid, { name, nickname, gender, birthday, avatar, them
   }
 }
 
-async function updateChild(openid, { childId, name, nickname, gender, birthday, avatar, theme }) {
+async function updateChild(openid, { familyId, childId, name, nickname, gender, birthday, avatar, theme }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member || !await isAdmin(member)) {
       return { code: -1, msg: '无权限' }
     }
@@ -520,9 +523,9 @@ async function updateChild(openid, { childId, name, nickname, gender, birthday, 
   }
 }
 
-async function removeChild(openid, { childId }) {
+async function removeChild(openid, { familyId, childId }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member || !await isAdmin(member)) {
       return { code: -1, msg: '无权限' }
     }
@@ -540,9 +543,9 @@ async function removeChild(openid, { childId }) {
   }
 }
 
-async function removeMember(openid, { memberId }) {
+async function removeMember(openid, { familyId, memberId }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member || !await isAdmin(member)) {
       return { code: -1, msg: '无权限' }
     }
@@ -551,9 +554,12 @@ async function removeMember(openid, { memberId }) {
       return { code: -2, msg: '不能移除自己' }
     }
 
-    await db.collection('familyMembers').doc(memberId).update({
-      data: { status: 'removed' }
-    })
+    const upd = await db.collection('familyMembers')
+      .where({ _id: memberId, familyId: member.familyId })
+      .update({ data: { status: 'removed' } })
+    if (!upd.stats || upd.stats.updated === 0) {
+      return { code: -3, msg: '目标成员不存在或不属于本家庭' }
+    }
 
     return { code: 0 }
   } catch (err) {
@@ -561,9 +567,9 @@ async function removeMember(openid, { memberId }) {
   }
 }
 
-async function disableMember(openid, { memberId }) {
+async function disableMember(openid, { familyId, memberId }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member || !await isAdmin(member)) {
       return { code: -1, msg: '无权限' }
     }
@@ -572,9 +578,12 @@ async function disableMember(openid, { memberId }) {
       return { code: -2, msg: '不能禁用自己' }
     }
 
-    await db.collection('familyMembers').doc(memberId).update({
-      data: { status: 'disabled' }
-    })
+    const upd = await db.collection('familyMembers')
+      .where({ _id: memberId, familyId: member.familyId })
+      .update({ data: { status: 'disabled' } })
+    if (!upd.stats || upd.stats.updated === 0) {
+      return { code: -3, msg: '目标成员不存在或不属于本家庭' }
+    }
 
     return { code: 0 }
   } catch (err) {
@@ -582,16 +591,19 @@ async function disableMember(openid, { memberId }) {
   }
 }
 
-async function enableMember(openid, { memberId }) {
+async function enableMember(openid, { familyId, memberId }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member || !await isAdmin(member)) {
       return { code: -1, msg: '无权限' }
     }
 
-    await db.collection('familyMembers').doc(memberId).update({
-      data: { status: 'active' }
-    })
+    const upd = await db.collection('familyMembers')
+      .where({ _id: memberId, familyId: member.familyId })
+      .update({ data: { status: 'active' } })
+    if (!upd.stats || upd.stats.updated === 0) {
+      return { code: -3, msg: '目标成员不存在或不属于本家庭' }
+    }
 
     return { code: 0 }
   } catch (err) {
@@ -599,9 +611,9 @@ async function enableMember(openid, { memberId }) {
   }
 }
 
-async function updateProfile(openid, { nickname, avatar }) {
+async function updateProfile(openid, { familyId, nickname, avatar }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member) {
       return { code: -1, msg: '未加入家庭' }
     }
@@ -622,9 +634,9 @@ async function updateProfile(openid, { nickname, avatar }) {
   }
 }
 
-async function updateAvatar(openid, { avatar }) {
+async function updateAvatar(openid, { familyId, avatar }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member) {
       return { code: -1, msg: '未加入家庭' }
     }
@@ -639,9 +651,9 @@ async function updateAvatar(openid, { avatar }) {
   }
 }
 
-async function updateChildAvatar(openid, { childId, avatar }) {
+async function updateChildAvatar(openid, { familyId, childId, avatar }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member) {
       return { code: -1, msg: '未加入家庭' }
     }
@@ -666,9 +678,9 @@ async function updateChildAvatar(openid, { childId, avatar }) {
   }
 }
 
-async function saveCurrentChild(openid, { childId }) {
+async function saveCurrentChild(openid, { familyId, childId }) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member) {
       return { code: -1, msg: '未加入家庭' }
     }
@@ -683,9 +695,9 @@ async function saveCurrentChild(openid, { childId }) {
   }
 }
 
-async function leaveFamily(openid) {
+async function leaveFamily(openid, familyId) {
   try {
-    const member = await getMemberByOpenid(openid)
+    const member = await getMemberByOpenid(openid, familyId)
     if (!member) {
       return { code: -1, msg: '未加入家庭' }
     }

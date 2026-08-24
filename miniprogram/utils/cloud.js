@@ -173,7 +173,7 @@ function callUpsertSingleton(collection, key, data, childId, memberId) {
   }
   return wx.cloud.callFunction({
     name: 'record',
-    data: callData
+    data: Object.assign({ familyId: auth.getCurrentFamilyId() }, callData)
   })
 }
 
@@ -190,7 +190,7 @@ function callGetSingleton(collection, key, childId, memberId) {
   }
   return wx.cloud.callFunction({
     name: 'record',
-    data: callData
+    data: Object.assign({ familyId: auth.getCurrentFamilyId() }, callData)
   })
 }
 
@@ -368,7 +368,7 @@ async function uploadDrawing(tempFilePath, drawing) {
     try {
       await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'add', collection: 'drawings', data: record }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: 'drawings', data: record }
       })
     } catch (e) {
       // 云函数调用失败：入队重试（图片已传，仅重试记录入库）
@@ -416,7 +416,7 @@ async function fetchDrawings() {
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'list',
         collection: 'drawings',
         childId: auth.getCurrentChildId(),
@@ -459,7 +459,7 @@ async function fetchDrawings() {
         if (d && d.id && deletedSet[d.id]) {
           wx.cloud.callFunction({
             name: 'record',
-            data: { action: 'remove', collection: 'drawings', id: d.id }
+            data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: 'drawings', id: d.id }
           }).then(function(res) {
             if (res.result && res.result.code === 0) {
               removeTombstone(DELETED_DRAWINGS_KEY, d.id)
@@ -495,7 +495,7 @@ function selfHealDrawings(cloudList, localDrawings, deletedSet) {
       if (d.imagePath && d.imagePath.startsWith('cloud://')) {
         wx.cloud.callFunction({
           name: 'record',
-          data: { action: 'add', collection: 'drawings', data: d }
+          data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: 'drawings', data: d }
         }).catch(function(err) { console.warn('画作补传失败:', d.id, err) })
       } else if (d.imagePath) {
         // 图片是本地路径，先上传图片再入库
@@ -506,7 +506,7 @@ function selfHealDrawings(cloudList, localDrawings, deletedSet) {
           var healed = Object.assign({}, d, { cloudFileID: fileID, imagePath: fileID, synced: true })
           return wx.cloud.callFunction({
             name: 'record',
-            data: { action: 'add', collection: 'drawings', data: healed }
+            data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: 'drawings', data: healed }
           }).then(function() { return fileID })
         }).then(function(fileID) {
           // 补传成功后回写本地缓存：imagePath 由本地路径更新为 fileID
@@ -571,7 +571,7 @@ async function removeDrawing(id) {
     try {
       var res = await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'remove', collection: 'drawings', id: id }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: 'drawings', id: id }
       })
       // 只有云端删除成功后，才清除墓碑
       if (res.result && res.result.code === 0) {
@@ -597,7 +597,7 @@ async function updateDrawingName(id, newName) {
     try {
       await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'update', collection: 'drawings', id: id, data: { name: newName } }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'update', collection: 'drawings', id: id, data: { name: newName } }
       })
     } catch (err) {
       console.warn('云端更新名称失败，已入队重试:', err)
@@ -752,7 +752,7 @@ async function uploadBrushingRecord(record) {
     // 图片全部上传成功后，保存到云端
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'brushingRecords', data: fullRecord }
+      data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: 'brushingRecords', data: fullRecord }
     })
 
     // 同步成功，标记 synced=true
@@ -808,7 +808,7 @@ async function fetchBrushingRecords(date) {
 
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: queryData
+      data: Object.assign({ familyId: auth.getCurrentFamilyId() }, queryData)
     })
 
     if (res.result.code === 0) {
@@ -854,7 +854,7 @@ async function removeBrushingRecord(id) {
     try {
       var res = await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'remove', collection: 'brushingRecords', id: id }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: 'brushingRecords', id: id }
       })
       // 只有云端删除成功后，才清除墓碑
       if (res.result && res.result.code === 0) {
@@ -964,7 +964,7 @@ async function updateBrushingRecord(timeOfDay, updates) {
     try {
       var updateRes = await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'update', collection: 'brushingRecords', id: target.id, data: cloudUpdates }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'update', collection: 'brushingRecords', id: target.id, data: cloudUpdates }
       })
       if (!updateRes.result || updateRes.result.code !== 0) {
         console.warn('[updateBrushingRecord] 云端更新业务失败:', target.id, updateRes.result)
@@ -1009,7 +1009,7 @@ async function updateBrushingRecordById(id, updates) {
     try {
       await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'update', collection: 'brushingRecords', id: id, data: updates }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'update', collection: 'brushingRecords', id: id, data: updates }
       })
     } catch (err) {
       console.warn('云端更新失败，已入队重试:', err)
@@ -1152,7 +1152,7 @@ async function uploadNote(note) {
     // 上传笔记记录到云端（即使图片上传失败也要尝试）
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'notes', data: uploadData }
+      data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: 'notes', data: uploadData }
     })
     
     // 检查云函数返回值
@@ -1242,7 +1242,7 @@ function selfHealRecords(collection, localList, cloudIdSet, deletedSet) {
     if (r && r.id && !r.synced && !cloudIdSet[r.id] && !deletedSet[r.id] && !r.lastSyncAt && !_uploadingRecordIds[r.id]) {
       wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'add', collection: collection, data: r }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: collection, data: r }
       }).catch(function(err) { console.warn('自愈补传失败:', r.id, err) })
       count++
     }
@@ -1289,7 +1289,7 @@ function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, 
     if (item && item.id && (deletedSet[item.id] || deletedSet[item._id])) {
       wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'remove', collection: collection, id: item.id }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: collection, id: item.id }
       }).catch(function(err) { console.warn('云端删除同步失败:', item.id, err) })
     }
   })
@@ -1356,7 +1356,7 @@ function mergeAndHealV2(collection, storageKey, localList, cloudList, deletedSet
     if (item && item.id && (deletedSet[item.id] || deletedSet[item._id])) {
       wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'remove', collection: collection, id: item.id }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: collection, id: item.id }
       }).catch(function(err) { console.warn('云端删除同步失败:', item.id, err) })
     }
   })
@@ -1393,7 +1393,7 @@ function selfHealWithImages(collection, storageKey, localList, cloudIdSet, delet
             })
             return wx.cloud.callFunction({
               name: 'record',
-              data: { action: 'add', collection: collection, data: healed }
+              data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: collection, data: healed }
             })
           })
           .then(function() {
@@ -1412,7 +1412,7 @@ function selfHealWithImages(collection, storageKey, localList, cloudIdSet, delet
         // 图片已是云端 fileID 或无图片，直接补传记录
         wx.cloud.callFunction({
           name: 'record',
-          data: { action: 'add', collection: collection, data: r }
+          data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: collection, data: r }
         }).catch(function(err) { console.warn('自愈补传失败:', r.id, err) })
       }
       count++
@@ -1480,7 +1480,7 @@ function createListFetcher(config) {
       
       var res = await wx.cloud.callFunction({
         name: 'record',
-        data: queryParams
+        data: Object.assign({ familyId: auth.getCurrentFamilyId() }, queryParams)
       })
       
       if (res.result.code === 0) {
@@ -1558,7 +1558,7 @@ function createUploader(config) {
     try {
       await wx.cloud.callFunction({
         name: 'record',
-        data: { 
+        data: { familyId: auth.getCurrentFamilyId(), 
           action: 'add', 
           collection: config.collection, 
           data: { _id: record.id, ...recordData } 
@@ -1683,7 +1683,7 @@ function createUploaderWithImage(config) {
       // 再同步记录
       await wx.cloud.callFunction({
         name: 'record',
-        data: { 
+        data: { familyId: auth.getCurrentFamilyId(), 
           action: 'add', 
           collection: config.collection, 
           data: { _id: record.id, ...recordData } 
@@ -1728,7 +1728,7 @@ function createRemover(config) {
     try {
       var res = await wx.cloud.callFunction({
         name: 'record',
-        data: { 
+        data: { familyId: auth.getCurrentFamilyId(), 
           action: 'remove', 
           collection: config.collection, 
           id: id 
@@ -2150,7 +2150,7 @@ async function fetchNotes() {
     while (page <= 50) {  // 安全上限 5000 篇
       var res = await wx.cloud.callFunction({
         name: 'record',
-        data: {
+        data: { familyId: auth.getCurrentFamilyId(),
           action: 'list',
           collection: 'notes',
           childId: auth.getCurrentChildId(),
@@ -2211,7 +2211,7 @@ async function updateNoteInCloud(id, updates) {
     try {
       await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'update', collection: 'notes', id: id, data: updates }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'update', collection: 'notes', id: id, data: updates }
       })
     } catch (err) {
       console.warn('笔记云端更新失败，已入队重试:', err)
@@ -2238,7 +2238,7 @@ async function removeNote(id) {
     try {
       var res = await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'remove', collection: 'notes', id: id }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: 'notes', id: id }
       })
       // 只有云端删除成功后，才清除墓碑
       if (res.result && res.result.code === 0) {
@@ -2425,7 +2425,7 @@ async function uploadHabitRecord(record) {
     }
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'habitRecords', data: fullRecord }
+      data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: 'habitRecords', data: fullRecord }
     })
     syncQueue.dequeue(record.id, 'add')
 
@@ -2477,7 +2477,7 @@ async function fetchHabitRecords() {
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: {
+      data: { familyId: auth.getCurrentFamilyId(),
         action: 'list',
         collection: 'habitRecords',
         childId: auth.getCurrentChildId(),
@@ -2519,7 +2519,7 @@ async function removeHabitRecord(id) {
     try {
       var res = await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'remove', collection: 'habitRecords', id: id }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: 'habitRecords', id: id }
       })
       if (res.result && res.result.code === 0) {
         removeTombstone(DELETED_HABIT_RECORDS_KEY, id)
@@ -2757,7 +2757,7 @@ async function uploadStallProduct(product) {
   try {
     await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'add', collection: 'stallProducts', data: { _id: productData.id, ...productData } }
+      data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: 'stallProducts', data: { _id: productData.id, ...productData } }
     })
     
     // 同步成功，标记 synced=true
@@ -2781,7 +2781,7 @@ async function fetchStallProducts() {
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'list', collection: 'stallProducts', childId: auth.getCurrentChildId(), pageSize: 100 }
+      data: { familyId: auth.getCurrentFamilyId(), action: 'list', collection: 'stallProducts', childId: auth.getCurrentChildId(), pageSize: 100 }
     })
     if (res.result.code === 0) {
       var cloudList = res.result.data.list || []
@@ -2827,7 +2827,7 @@ async function fetchStallProducts() {
         if (p && p.id && deletedSet[p.id]) {
           wx.cloud.callFunction({
             name: 'record',
-            data: { action: 'remove', collection: 'stallProducts', id: p._id || p.id }
+            data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: 'stallProducts', id: p._id || p.id }
           }).catch(function(err) { console.warn('摆摊商品云端删除失败:', p.id, err) })
         }
       })
@@ -2855,7 +2855,7 @@ async function removeStallProduct(id) {
   try {
     var res = await wx.cloud.callFunction({
       name: 'record',
-      data: { action: 'remove', collection: 'stallProducts', id: id }
+      data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: 'stallProducts', id: id }
     })
     // 云端删除成功后，清除墓碑
     if (res.result && res.result.code === 0) {
@@ -2913,7 +2913,7 @@ async function cleanLegacyArrayDocs(collection, cloudList) {
     try {
       await wx.cloud.callFunction({
         name: 'record',
-        data: { action: 'remove', collection: collection, id: doc._id }
+        data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: collection, id: doc._id }
       })
     } catch (err) {
       console.warn('清理旧格式文档失败:', doc._id, err)

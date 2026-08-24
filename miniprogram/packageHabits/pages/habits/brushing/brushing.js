@@ -194,7 +194,7 @@ Page({
           // 走 record 云函数更新（支持客户端业务 id 兜底查找，doc(id) 直写会因 _id 不匹配而静默失败）
           await wx.cloud.callFunction({
             name: 'record',
-            data: {
+            data: { familyId: auth.getCurrentFamilyId(),
               action: 'update',
               collection: 'brushingRecords',
               id: record.id,

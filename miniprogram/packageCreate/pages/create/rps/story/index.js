@@ -118,7 +118,7 @@ Page({
 
     rpsManager.useItem('skip', this.data.storyProgress)
 
-    var roundHistory = this.data.roundHistory.concat([{
+    var battleHistory = this.data.battleHistory.concat([{
       player1: 'skip',
       player2: 'skip',
       result: 'draw'
@@ -129,7 +129,7 @@ Page({
       roundResult: 'draw',
       roundResultText: '跳过',
       roundResultIcon: '⏭️',
-      roundHistory: roundHistory
+      battleHistory: battleHistory
     })
 
     beep.playBeep('tick')

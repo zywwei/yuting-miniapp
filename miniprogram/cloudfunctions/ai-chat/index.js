@@ -91,11 +91,11 @@ async function callAIModel(modelName, apiKey, messages, model, secretKey) {
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()
-  const { action } = event
+  const { action, familyId } = event
   const startTime = Date.now()
 
   // 获取用户身份
-  const member = await getMemberByOpenid(OPENID)
+  const member = await getMemberByOpenid(OPENID, familyId)
   if (!member) {
     return { code: -1, msg: '未加入家庭' }
   }
@@ -142,7 +142,7 @@ exports.main = async (event, context) => {
     case 'textToSpeech':
       return await textToSpeech(event.text, event.voice, event.baiduPer, event.mimoVoice)
     case 'getTtsConfig':
-      return await getTtsConfig(member)
+      return await getTtsConfig(member, event.childId)
     case 'saveTtsConfig':
       return await saveTtsConfig(member, event)
     case 'testTts':
@@ -202,11 +202,19 @@ function checkRateLimit(userId, action) {
 }
 
 // 获取用户身份
-async function getMemberByOpenid(openid) {
+async function getMemberByOpenid(openid, familyId) {
+  // 优先按客户端传入的当前家庭精确匹配（多家庭切换场景）；未传时保持旧行为取第一条
+  const cond = familyId
+    ? { openid, familyId, status: 'active' }
+    : { openid, status: 'active' }
   const res = await db.collection('familyMembers')
-    .where({ openid, status: 'active' })
+    .where(cond)
     .get()
   return res.data[0] || null
+}
+
+function isAdmin(member) {
+  return !!(member && member.permissions && member.permissions.indexOf('admin') >= 0)
 }
 
 // 获取AI配置
@@ -220,7 +228,37 @@ async function getConfig(member, childId) {
       .get()
 
     if (res.data.length > 0) {
-      return { code: 0, data: res.data[0] }
+      const cfg = res.data[0]
+      // 密钥防泄漏（P0-7）：仅管理员返回完整配置；其他成员返回脱敏版——
+      // models 结构保留、apiKey/secretKey 清空，保证前端 hasValidConfig 等逻辑不崩；
+      // direct 直调对非管理员视为"未配置"，聊天仍可走云端代理。
+      if (isAdmin(member)) {
+        // 附带各供应商"是否已配置密钥"映射，供前端供应商切换判断（脱敏/明文两分支结构一致）
+        const hasKeyByProviderAdmin = {}
+        if (cfg.models) {
+          for (const mk in cfg.models) {
+            hasKeyByProviderAdmin[mk] = !!(cfg.models[mk] && (cfg.models[mk].apiKey || cfg.models[mk].secretKey))
+          }
+        }
+        return { code: 0, data: Object.assign({ hasKeyByProvider: hasKeyByProviderAdmin }, cfg) }
+      }
+      const safeModels = {}
+      const hasKeyByProvider = {}
+      if (cfg.models) {
+        for (const mk in cfg.models) {
+          safeModels[mk] = Object.assign({}, cfg.models[mk], { apiKey: '', secretKey: '' })
+          hasKeyByProvider[mk] = !!(cfg.models[mk] && (cfg.models[mk].apiKey || cfg.models[mk].secretKey))
+        }
+      }
+      return { code: 0, data: {
+        familyId: cfg.familyId,
+        childId: cfg.childId,
+        currentModel: cfg.currentModel,
+        models: safeModels,
+        hasKeyByProvider: hasKeyByProvider,
+        mimoTtsReady: !!cfg.mimoTtsApiKey,
+        baiduTtsReady: !!(cfg.baiduTtsApiKey && cfg.baiduTtsSecretKey)
+      }}
     }
 
     // 返回默认配置（与前端ai-manager.js的getDefaultConfig保持一致）
@@ -1652,37 +1690,32 @@ async function getMimoTtsApiKey() {
 }
 
 // 获取TTS配置
-async function getTtsConfig(member) {
+async function getTtsConfig(member, childId) {
   try {
     // 从aiConfigs集合获取（与模型配置共用）
-    // 使用与getConfig相同的查询条件
+    // 使用与getConfig相同的查询条件（P1-17：childId 以客户端传入为准，member 上无该字段）
     const result = await db.collection('aiConfigs').where({
       familyId: member.familyId,
-      childId: member.childId || ''
+      childId: childId || ''
     }).get()
-    
+
     if (result.data && result.data.length > 0) {
       const config = result.data[0]
+      // 密钥防泄漏（P0-7）：TTS 合成在云端 textToSpeech 完成，前端只需就绪状态，不回传明文密钥
       return {
         code: 0,
         data: {
-          mimoTtsApiKey: config.mimoTtsApiKey || '',
-          mimoTtsPlanApiKey: config.mimoTtsPlanApiKey || '',
-          baiduTtsAppId: config.baiduTtsAppId || '',
-          baiduTtsApiKey: config.baiduTtsApiKey || '',
-          baiduTtsSecretKey: config.baiduTtsSecretKey || ''
+          mimoTtsReady: !!config.mimoTtsApiKey,
+          baiduTtsReady: !!(config.baiduTtsApiKey && config.baiduTtsSecretKey)
         }
       }
     }
-    
+
     return {
       code: 0,
       data: {
-        mimoTtsApiKey: '',
-        mimoTtsPlanApiKey: '',
-        baiduTtsAppId: '',
-        baiduTtsApiKey: '',
-        baiduTtsSecretKey: ''
+        mimoTtsReady: false,
+        baiduTtsReady: false
       }
     }
   } catch (err) {
@@ -1739,7 +1772,7 @@ async function saveTtsConfig(member, event) {
     // 使用与saveConfig相同的查询条件
     const result = await db.collection('aiConfigs').where({
       familyId: member.familyId,
-      childId: member.childId || ''
+      childId: event.childId || ''
     }).get()
     
     console.log('saveTtsConfig查询结果:', result.data.length, '条记录')
@@ -1756,7 +1789,7 @@ async function saveTtsConfig(member, event) {
       await db.collection('aiConfigs').add({
         data: {
           familyId: member.familyId,
-          childId: member.childId || '',
+          childId: event.childId || '',
           ...updateData
         }
       })

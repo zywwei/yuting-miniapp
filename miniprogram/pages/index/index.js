@@ -179,7 +179,7 @@ Page({
 
     wx.cloud.callFunction({
       name: 'family',
-      data: { action: 'saveCurrentChild', childId: childId }
+      data: { familyId: auth.getCurrentFamilyId(), action: 'saveCurrentChild', childId: childId }
     }).catch(function(err) {
       console.warn('保存当前孩子失败:', err)
     })

@@ -35,7 +35,7 @@ App({
       try {
         var res = await wx.cloud.callFunction({
           name: 'family',
-          data: { action: 'getMyFamilies' }
+          data: { familyId: auth.getCurrentFamilyId(), action: 'getMyFamilies' }
         })
 
         if (res.result.code === 0) {
