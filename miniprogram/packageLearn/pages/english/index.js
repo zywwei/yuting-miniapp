@@ -4,6 +4,11 @@ var englishData = require('../../../utils/english-data.js')
 var learnAIHelper = require('../../utils/learn-ai-helper.js')
 
 Page({
+  
+  onUnload: function() {
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null }
+  },
+
   data: {
     mode: 'select',
     letters: [],
@@ -74,6 +79,7 @@ Page({
   },
 
   prevLetter: function() {
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null } // F4
     var currentIndex = this.data.currentLetterIndex
     if (currentIndex > 0) {
       this.setData({ currentLetterIndex: currentIndex - 1 })
@@ -82,6 +88,7 @@ Page({
   },
 
   nextLetter: function() {
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null } // F4
     var currentIndex = this.data.currentLetterIndex
     var letters = this.data.letters
     if (currentIndex < letters.length - 1) {
@@ -240,7 +247,7 @@ Page({
     }
 
     if (currentIndex < words.length - 1) {
-      setTimeout(function() {
+      this._flipTimer = setTimeout(function() {
         self.setData({ currentWordIndex: currentIndex + 1 })
       }, 500)
     }

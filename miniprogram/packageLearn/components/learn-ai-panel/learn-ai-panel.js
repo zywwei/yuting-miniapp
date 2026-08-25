@@ -218,7 +218,10 @@ Component({
 
     sendMessage: function(question) {
       if ((!question && this.data.selectedImages.length === 0) || this.data.isLoading) return
-      
+
+      // F7：新消息递增令牌，终止仍在进行的旧打字链
+      this._typeToken = (this._typeToken || 0) + 1
+
       var that = this
       var module = this.data.module
       var contextData = this.data.contextData
@@ -355,12 +358,18 @@ Component({
         this.setData({ messages: messages })
       }
       
-      // 开始打字机效果
-      this.typeWriter(content, 0)
+      // 开始打字机效果（携带令牌，防止连续提问时新旧两条打字链交叉串台）
+      this._typeToken = (this._typeToken || 0) + 1
+      this.typeWriter(content, 0, this._typeToken)
     },
 
-    typeWriter: function(content, index) {
+    typeWriter: function(content, index, token) {
       var that = this
+
+      // F7：令牌失效说明已有新回复接管输出，旧链立即终止
+      if (token !== undefined && token !== this._typeToken) {
+        return
+      }
 
       // 如果组件已销毁或内容为空，停止打字
       if (that._isDetached || !content || index > content.length) {
@@ -409,7 +418,7 @@ Component({
       }
 
       setTimeout(function() {
-        that.typeWriter(content, index + 1)
+        that.typeWriter(content, index + 1, token)
       }, delay)
     },
 

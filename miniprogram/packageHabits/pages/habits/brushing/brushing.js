@@ -375,8 +375,13 @@ Page({
     try {
       const today = util.getTodayStr()
 
-      // 检查是否已有同日同时段记录
-      const existingRecords = childStorage.get('brushingRecords') || []
+      // H1：以云端合并结果查重（原实现只查本地缓存，多设备/云端拉取失败时同日同时段可重复打卡）
+      var existingRecords
+      try {
+        existingRecords = await cloud.fetchBrushingRecords(today)
+      } catch (e) {
+        existingRecords = childStorage.get('brushingRecords') || []
+      }
       const duplicate = existingRecords.find(r => r.date === today && r.timeOfDay === modalTime)
       if (duplicate) {
         wx.hideLoading()

@@ -86,6 +86,23 @@ Page({
     return list
   },
 
+  // E14：回合开始前预生成 AI 出拳；持有透视镜时提前展示并消耗，
+  // 使道具真正影响玩家的选择（原实现胜负已定后才提示，等于白买）
+  _prepareNextRound: function() {
+    var difficulty = this.data.chapterInfo ? this.data.chapterInfo.difficulty : 'normal'
+    this._pendingAiChoice = rpsManager.aiChoice(difficulty, this.data.battleHistory)
+
+    if (this.data.hasSpyGlass) {
+      this.setData({ hasSpyGlass: false })
+      rpsManager.useItem('spy_glass', this.data.storyProgress)
+      wx.showToast({
+        title: '🔮 预知：AI 将出「' + (rpsManager.CHOICE_NAMES[this._pendingAiChoice] || '?') + '」',
+        icon: 'none',
+        duration: 2000
+      })
+    }
+  },
+
   startBattle: function() {
     beep.playBeep('start')
 
@@ -110,6 +127,9 @@ Page({
       clashText: '',
       clashWinner: 0
     })
+
+    // E14：预生成首回合 AI 出拳（含透视镜提示）
+    this._prepareNextRound()
   },
 
   // 跳过卡效果：跳过一局算平局
@@ -143,6 +163,9 @@ Page({
         that.victory()
       } else if (that.data.player2Wins >= that.data.chapterInfo.winsRequired) {
         that.defeat()
+      } else {
+        // E14：为下一回合预生成 AI 出拳（含透视镜提示）
+        that._prepareNextRound()
       }
     }, 1000)
   },
@@ -161,26 +184,21 @@ Page({
     var choice = e.currentTarget.dataset.choice
     var difficulty = this.data.chapterInfo.difficulty
 
-    // 幸运符效果：AI使用随机策略
+    // 幸运符效果：AI使用随机策略（难度变化后需重新预生成 AI 出拳）
     if (this.data.hasLuckyCharm) {
       difficulty = 'simple'
       this.setData({ hasLuckyCharm: false })
       rpsManager.useItem('lucky_charm', this.data.storyProgress)
+      this._pendingAiChoice = rpsManager.aiChoice(difficulty, this.data.battleHistory)
     }
 
-    var aiChoice = rpsManager.aiChoice(difficulty, this.data.battleHistory)
+    // E14：使用回合开始前预生成的 AI 出拳
+    var aiChoice = this._pendingAiChoice || rpsManager.aiChoice(difficulty, this.data.battleHistory)
     var result = rpsManager.judge(choice, aiChoice)
     var resultInfo = rpsUtils.formatResult(result)
     var clashType = rpsUtils.getClashType(choice, aiChoice, result)
     var brokenIcon = clashType ? rpsManager.BROKEN_IMAGE[result === 'win' ? aiChoice : choice] : ''
     var clashText = rpsUtils.getClashText(choice, aiChoice, result)
-
-    // 透视镜效果：显示AI出拳提示
-    if (this.data.hasSpyGlass) {
-      wx.showToast({ title: 'AI出了' + rpsManager.CHOICE_NAMES[aiChoice], icon: 'none', duration: 1500 })
-      this.setData({ hasSpyGlass: false })
-      rpsManager.useItem('spy_glass', this.data.storyProgress)
-    }
 
     // 更新对战历史（用于AI学习）
     var battleHistory = this.data.battleHistory.concat([{

@@ -227,9 +227,9 @@ class BattleManager {
       })
     }, 600)
 
-    // 1秒后隐藏暴击特效
+    // 1秒后隐藏暴击特效（H8：槽位错开，避免覆盖 600ms 回调句柄导致泄漏）
     if (isCritical) {
-      this._attackTimers[4] = setTimeout(() => {
+      this._attackTimers[5] = setTimeout(() => {
         this.page.setData({ showCriticalEffect: false, critAnim: null, critFullscreenParticles: [] })
       }, 1000)
     }

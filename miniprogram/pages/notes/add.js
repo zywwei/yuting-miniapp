@@ -83,6 +83,15 @@ Page({
   },
 
   onUnload: function() {
+    // A5：释放录音相关资源（定时器与音频上下文），防止卸载后仍 setData
+    if (this._recordTimer) {
+      clearInterval(this._recordTimer)
+      this._recordTimer = null
+    }
+    if (this.innerAudioContext) {
+      try { this.innerAudioContext.stop(); this.innerAudioContext.destroy() } catch (e) {}
+      this.innerAudioContext = null
+    }
     // 页面卸载时保存草稿（如果不是正常保存退出）
     if (!this._isSaving) {
       this.saveDraft()
@@ -219,6 +228,17 @@ Page({
   },
 
   saveDraft: function() {
+    // A4：空内容不落草稿（否则进页即退会生成"无标题/暂无内容"垃圾草稿、角标虚高）
+    var stripHtml = function(html) {
+      return html ? html.replace(/<[^>]+>/g, '').trim() : ''
+    }
+    var hasContent = stripHtml(this.data.title).length > 0 ||
+                     stripHtml(this.data.content).length > 0 ||
+                     (this.data.images && this.data.images.length > 0) ||
+                     (this.data.tags && this.data.tags.length > 0) ||
+                     !!this.data.voicePath
+    if (!hasContent) return
+
     var draftKey = this.getDraftKey()
     this._currentDraftKey = draftKey
     var draftData = {
@@ -401,12 +421,18 @@ Page({
         clearInterval(that._recordTimer)
         that._recordTimer = null
       }
-      
+
+      // A13：取消录音的 stop 会异步触发 onStop，此处短路防止被取消的录音写回
+      if (that._canceling) {
+        that._canceling = false
+        return
+      }
+
       if (res.duration < 1000) {
         wx.showToast({ title: '录音时间太短', icon: 'none' })
         return
       }
-      
+
       that.setData({
         voicePath: res.tempFilePath,
         voiceDuration: Math.floor(res.duration / 1000)
@@ -460,6 +486,7 @@ Page({
 
   cancelRecord: function() {
     if (this.data.isRecording) {
+      this._canceling = true // A13：标记取消，onStop 回调中丢弃结果
       this.recorderManager.stop()
       this.setData({ voicePath: '', voiceDuration: 0 })
     }

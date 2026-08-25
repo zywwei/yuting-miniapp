@@ -4,6 +4,11 @@ var poemsData = require('../../../utils/poems-data.js')
 var learnAIHelper = require('../../utils/learn-ai-helper.js')
 
 Page({
+  
+  onUnload: function() {
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null }
+  },
+
   data: {
     poems: [],
     currentIndex: 0,
@@ -44,6 +49,7 @@ Page({
   },
 
   prevPoem: function() {
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null } // F4
     var currentIndex = this.data.currentIndex
     if (currentIndex > 0) {
       this.setData({ currentIndex: currentIndex - 1 })
@@ -52,6 +58,7 @@ Page({
   },
 
   nextPoem: function() {
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null } // F4
     var currentIndex = this.data.currentIndex
     var poems = this.data.poems
     if (currentIndex < poems.length - 1) {
@@ -118,7 +125,7 @@ Page({
     }
 
     if (currentIndex < poems.length - 1) {
-      setTimeout(function() {
+      this._flipTimer = setTimeout(function() {
         self.setData({ currentIndex: currentIndex + 1 })
       }, 500)
     }

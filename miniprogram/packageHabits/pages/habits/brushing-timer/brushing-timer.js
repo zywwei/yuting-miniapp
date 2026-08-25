@@ -177,7 +177,7 @@ Page({
     })
 
     // 检查是否有未完成的进度
-    const savedProgress = wx.getStorageSync('brushingProgress')
+    const savedProgress = childStorage.get('brushingProgress') // H5：按孩子隔离存取
     if (savedProgress && savedProgress.date === util.getTodayStr() && savedProgress.timeOfDay === timeOfDay) {
       wx.showModal({
         title: '继续刷牙？',
@@ -188,7 +188,7 @@ Page({
           if (res.confirm) {
             this.restoreProgress(savedProgress)
           } else {
-            wx.removeStorageSync('brushingProgress')
+            childStorage.remove('brushingProgress')
             this.initFresh()
           }
         }
@@ -643,7 +643,7 @@ Page({
         totalDirtyCleaned: this.data.totalDirtyCleaned,
         savedAt: Date.now()
       }
-      wx.setStorageSync('brushingProgress', progress)
+      childStorage.set('brushingProgress', progress)
     }
 
     // 统一清理：主计时器 + 所有登记定时器 + 战斗管理器内部定时器
@@ -1055,7 +1055,8 @@ Page({
       }
 
       if (currentEnemy && this.data.enemyCurrentHp > 0) {
-        const newHp = Math.round(Math.max(0, currentEnemy.hp * (1 - this._elapsed / this._totalTime)) * 10) / 10
+        // H7：向上取整到 0.1——四舍五入会在最后一秒提前归零、错过 KO 特效
+        const newHp = Math.ceil(Math.max(0, currentEnemy.hp * (1 - this._elapsed / this._totalTime)) * 10) / 10
         const hpRatio = newHp / currentEnemy.hp
         const enemyScale = 0.5 + hpRatio * 0.8
         const enemyAngry = hpRatio < BATTLE_CONFIG.ENEMY_ANGER_THRESHOLD
@@ -1065,10 +1066,13 @@ Page({
         updateData.enemyScale = enemyScale
       }
 
+      // H7：先取上一拍状态再 setData（setData 同步改 this.data，
+      // 原 `!this.data.isEnemyDefeated` 恒 false 导致特效永不触发）
+      const wasDefeatedBeforeTick = this.data.isEnemyDefeated
       this.setData(updateData)
 
       // 敌人被击败 → 全套视觉冲击特效
-      if (updateData.isEnemyDefeated && !this.data.isEnemyDefeated) {
+      if (updateData.isEnemyDefeated && !wasDefeatedBeforeTick) {
         this.triggerEnemyDefeatEffects()
       }
 
@@ -1343,7 +1347,7 @@ Page({
     this._recordSaved = false
 
     // 清除中途退出的进度缓存
-    wx.removeStorageSync('brushingProgress')
+    childStorage.remove('brushingProgress')
 
     // 确保所有已刷区域状态为 clean
     this.updateZoneStates()

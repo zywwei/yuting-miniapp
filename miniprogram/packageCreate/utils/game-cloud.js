@@ -175,6 +175,7 @@ function updateLocalStats(gameType, record) {
     return stats
   }
 
+  // E4：仅 win/lose/draw 参与胜负统计；'gameOver' 等其他结果不再误计为平局
   if (record.result === 'win') {
     stats.wins++
     stats.currentStreak++
@@ -184,8 +185,10 @@ function updateLocalStats(gameType, record) {
   } else if (record.result === 'lose') {
     stats.losses++
     stats.currentStreak = 0
-  } else {
+  } else if (record.result === 'draw') {
     stats.draws++
+  } else {
+    return stats // 其他结果（gameOver/abandon 等）不污染统计
   }
 
   // 更新模式统计

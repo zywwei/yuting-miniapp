@@ -247,9 +247,10 @@ Page({
       var d = new Date()
       if (rule === 'daily') d.setDate(d.getDate() + 1)
       else if (rule === 'weekly') d.setDate(d.getDate() + 7)
-      else if (rule === 'monthly') d.setMonth(d.getMonth() + 1)
-      else if (rule === 'yearly') d.setFullYear(d.getFullYear() + 1)
-      nextDate = d.toISOString().substring(0, 10)
+      // I-2：与 book-manager 一致的月末 clamp，避免 1/31 → 2/31 溢出跳月
+      else if (rule === 'monthly') bookManager.addMonthsClamped(d, 1)
+      else if (rule === 'yearly') bookManager.addMonthsClamped(d, 12)
+      nextDate = bookManager.formatLocalDate(d)
     }
     this.setData({ repeatRule: rule, nextRepeatDate: nextDate })
   },

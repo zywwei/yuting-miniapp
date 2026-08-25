@@ -174,13 +174,20 @@ var saveImageToPersistent = function(tempFilePath, prefix) {
 
       if (drawings.length >= 50) {
         var toRemove = drawings.slice(45)
+        var cleanedIds = {}
         toRemove.forEach(function(d) {
           try {
             if (d.imagePath && d.imagePath.startsWith(wx.env.USER_DATA_PATH)) {
               fs.unlinkSync(d.imagePath)
             }
           } catch (e) {}
+          // C4：记录被 LRU 淘汰后同步移除，避免残留 imagePath 悬空的记录
+          // （未同步的旧画自愈上传会永远失败）
+          if (d.id) cleanedIds[d.id] = true
         })
+        if (Object.keys(cleanedIds).length > 0) {
+          childStorage.set('drawings', drawings.filter(function(d) { return !cleanedIds[d.id] }))
+        }
       }
     }
 

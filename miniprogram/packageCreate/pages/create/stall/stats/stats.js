@@ -272,15 +272,16 @@ Page({
         })
       }
     } else if (tab === 'month') {
-      for (var i = 29; i >= 0; i--) {
-        var d = new Date(today)
-        d.setDate(d.getDate() - i)
-        var dateStr = stallUtils.formatDate(d)
+      // D7：按自然月（1 日至今）遍历，与统计卡片的「本月」口径一致
+      // （原实现固定回溯 30 天，月初会混入上月数据）
+      var monthFirstDay = new Date(today.getFullYear(), today.getMonth(), 1)
+      for (var dd = new Date(monthFirstDay); dd <= today; dd.setDate(dd.getDate() + 1)) {
+        var dateStr = stallUtils.formatDate(dd)
         var daySales = sales.filter(function(s) { return s.date === dateStr })
         var revenue = daySales.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
         result.push({
           date: dateStr,
-          label: (d.getMonth() + 1) + '/' + d.getDate(),
+          label: (dd.getMonth() + 1) + '/' + dd.getDate(),
           revenue: revenue,
           orders: daySales.length
         })
@@ -849,19 +850,8 @@ Page({
   },
 
   sharePoster: function() {
-    var that = this
-    wx.shareAppMessage({
-      title: '🏪 我的小铺 - 营业报告',
-      path: '/packageCreate/pages/create/stall/stats/stats',
-      imageUrl: that.data.posterPath || '',
-      success: function() {
-        wx.showToast({ title: '分享成功', icon: 'success' })
-        that.closePoster()
-      },
-      fail: function(err) {
-        console.warn('分享失败:', err)
-      }
-    })
+    // D6：wx.shareAppMessage 并非小程序 API（分享应由 button open-type="share"
+    // 触发，stats.wxml:263 已正确使用），此函数为死代码，删除以防误用抛错
   },
 
   onShareAppMessage: function() {

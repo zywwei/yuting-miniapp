@@ -58,17 +58,19 @@ Page({
   },
 
   deleteProduct: function(e) {
+    var that = this
     var id = e.currentTarget.dataset.id
     wx.showModal({
       title: '确认删除',
-      content: '确定要删除这个商品吗？',
+      // D3：提示销售引用影响——删除后历史利润按 0 成本计算、相关库存回滚失效
+      content: '确定要删除这个商品吗？若它已有销售记录，历史利润统计将不再计入其成本。',
       success: function(res) {
         if (res.confirm) {
           stallManager.removeProduct(id)
-          this.loadData()
+          that.loadData()
           wx.showToast({ title: '已删除', icon: 'success' })
         }
-      }.bind(this)
+      }
     })
   }
 })

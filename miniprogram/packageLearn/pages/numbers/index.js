@@ -4,6 +4,11 @@ var numbersData = require('../../../utils/numbers-data.js')
 var learnAIHelper = require('../../utils/learn-ai-helper.js')
 
 Page({
+  
+  onUnload: function() {
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null }
+  },
+
   data: {
     numbers: [],
     currentIndex: 0,
@@ -58,6 +63,7 @@ Page({
   },
 
   prevNumber: function() {
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null } // F4
     var currentIndex = this.data.currentIndex
     if (currentIndex > 0) {
       this.setData({ currentIndex: currentIndex - 1 })
@@ -66,6 +72,7 @@ Page({
   },
 
   nextNumber: function() {
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null } // F4
     var currentIndex = this.data.currentIndex
     var numbers = this.data.numbers
     if (currentIndex < numbers.length - 1) {
@@ -140,7 +147,7 @@ Page({
     }
 
     if (currentIndex < numbers.length - 1) {
-      setTimeout(function() {
+      this._flipTimer = setTimeout(function() {
         self.setData({ currentIndex: currentIndex + 1 })
       }, 500)
     }

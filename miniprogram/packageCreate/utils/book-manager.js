@@ -485,9 +485,32 @@ function getNextRepeatDate(currentDate, rule) {
   var d = new Date(currentDate)
   if (rule === 'daily') d.setDate(d.getDate() + 1)
   else if (rule === 'weekly') d.setDate(d.getDate() + 7)
-  else if (rule === 'monthly') d.setMonth(d.getMonth() + 1)
-  else if (rule === 'yearly') d.setFullYear(d.getFullYear() + 1)
-  return d.toISOString().substring(0, 10)
+  // I-2：按月/按年推进时对"目标月末日"做 clamp，
+  // 避免 1/31 → 2/31 溢出到 3/3（二月整月漏账、日期永久漂移）
+  else if (rule === 'monthly') addMonthsClamped(d, 1)
+  else if (rule === 'yearly') addMonthsClamped(d, 12)
+  // E10：本地时区日期格式化（toISOString 按 UTC 截断，东八区凌晨差一天）
+  return formatLocalDate(d)
+}
+
+// I-2：目标月末日（clamp 到该月实际最后一天）
+function daysInMonth(y, m) {
+  return new Date(y, m + 1, 0).getDate()
+}
+
+function addMonthsClamped(d, months) {
+  var day = d.getDate()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + months)
+  d.setDate(Math.min(day, daysInMonth(d.getFullYear(), d.getMonth())))
+  return d
+}
+
+// E10-E13：本地时区 YYYY-MM-DD 格式化
+function formatLocalDate(d) {
+  var m = d.getMonth() + 1
+  var day = d.getDate()
+  return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day)
 }
 
 // ===== 记账提醒 =====
@@ -670,10 +693,10 @@ function getComparisonStats(bookId, period) {
     currentEnd = getTodayStr()
     var prevWeekStart = new Date(currentStart)
     prevWeekStart.setDate(prevWeekStart.getDate() - 7)
-    prevStart = prevWeekStart.toISOString().substring(0, 10)
+    prevStart = formatLocalDate(prevWeekStart)
     var prevWeekEnd = new Date(currentStart)
     prevWeekEnd.setDate(prevWeekEnd.getDate() - 1)
-    prevEnd = prevWeekEnd.toISOString().substring(0, 10)
+    prevEnd = formatLocalDate(prevWeekEnd)
   } else if (period === 'year') {
     currentStart = today.getFullYear() + '-01-01'
     currentEnd = getTodayStr()
@@ -972,6 +995,8 @@ function saveSettings(settings) {
 }
 
 module.exports = {
+  formatLocalDate: formatLocalDate,
+  addMonthsClamped: addMonthsClamped,
   EXPENSE_CATEGORIES: EXPENSE_CATEGORIES,
   INCOME_CATEGORIES: INCOME_CATEGORIES,
   TRANSFER_CATEGORIES: TRANSFER_CATEGORIES,

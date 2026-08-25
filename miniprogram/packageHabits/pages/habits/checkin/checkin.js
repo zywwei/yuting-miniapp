@@ -241,13 +241,33 @@ Page({
     var formData = this.data.formData
     var config = this.data.habitConfig
 
+    // H2：防重复提交（图片持久化为异步回调，期间可被连点）
+    if (this._saving) return
+    this._saving = true
+
+    // H3：required 字段校验（此前书名等留空照常入库）
+    var missingField = null
+    ;(config && config.fields || []).forEach(function(field) {
+      if (!missingField && field.required) {
+        var v = formData[field.key]
+        if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) {
+          missingField = field.label || field.key
+        }
+      }
+    })
+    if (missingField) {
+      this._saving = false
+      wx.showToast({ title: '请填写：' + missingField, icon: 'none' })
+      return
+    }
+
     // 生成特色摘要
     var summary = ''
     if (config && config.summary) {
       summary = config.summary(formData)
     }
 
-    wx.showLoading({ title: '保存中...' })
+    wx.showLoading({ title: '保存中...', mask: true })
 
     // 持久化图片
     var saveImages = function(callback) {
@@ -285,6 +305,9 @@ Page({
     }
 
     saveImages(function(savedImages) {
+      // H2 兜底：保存主流程任何一步异常都必须复位锁与 loading，
+      // 否则 _saving 永久卡 true，该页无法再次打卡
+      try {
       var record = {
         id: util.generateId(),
         type: that.data.habitType,
@@ -312,11 +335,14 @@ Page({
       }
 
       wx.hideLoading()
+      that._saving = false // H2：保存流程结束
       that.setData({
         images: [],
         note: '',
         score: 5,
         scoreLabel: '超级棒！',
+        // H4：重建表单配置，清除选项 selected 残留高亮
+        habitFields: (that.data.habitConfig && that.data.habitConfig.fields) || [],
         formData: that.initFormData(that.data.habitConfig)
       })
       // 打卡已保存，更新基线避免返回时误报未保存
@@ -334,6 +360,12 @@ Page({
             duration: 2000
           })
         }, 2500)
+      }
+      } catch (saveErr) {
+        console.error('保存打卡记录失败:', saveErr)
+        wx.hideLoading()
+        that._saving = false
+        wx.showToast({ title: '保存失败，请重试', icon: 'none' })
       }
     })
   },

@@ -130,7 +130,8 @@ Page({
     let capsuleRight = 0
     try {
       const capsule = wx.getMenuButtonBoundingClientRect()
-      capsuleRight = windowInfo.windowWidth - capsule.left + 8
+      // D5：应基于胶囊右缘（capsule.right）计算，原实现用 left 多预留了一个胶囊宽度
+      capsuleRight = windowInfo.windowWidth - capsule.right + 8
     } catch (e) {
       capsuleRight = 80
     }
@@ -239,9 +240,20 @@ Page({
 
   // ========== 画布触摸事件（画笔/橡皮） ==========
 
+  // D11：按 identifier 跟踪起始手指，避免多指触屏时 touches[0] 在两指间
+  // 切换导致线条乱连；非起始指的 move/end 直接忽略
+  _getTouchByIdentifier(e, identifier) {
+    if (identifier === undefined || identifier === null) return e.touches[0]
+    var list = (e.changedTouches && e.changedTouches.length) ? e.changedTouches : e.touches
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].identifier === identifier) return list[i]
+    }
+    return null
+  },
+
   // 获取触摸点相对于画布的坐标
-  _getCanvasPos(e) {
-    const touch = e.touches[0]
+  _getCanvasPos(e, touchOverride) {
+    const touch = touchOverride || e.touches[0]
     // 优先用缓存的 rect 转换坐标
     if (this._canvasRect) {
       return {
@@ -266,10 +278,21 @@ Page({
       return
     }
 
-    const pos = this._getCanvasPos(e)
+    // D11：记录起始手指，后续 move/end 只跟踪该指
+    const startTouch = this._getTouchByIdentifier(e, e.touches[0] && e.touches[0].identifier)
+    if (!startTouch) return
+    this._activeTouchId = startTouch.identifier
+
+    const pos = this._getCanvasPos(e, startTouch)
     this.isDrawing = true
     this.lastX = pos.x
     this.lastY = pos.y
+
+    // D4：照片模式橡皮擦——从照片底图恢复该圆形区域，而非涂白
+    if (this.data.currentMode === 'eraser' && this._eraseFromBase(pos)) {
+      audio.eraserTouch()
+      return
+    }
 
     this.ctx.beginPath()
     this.ctx.arc(pos.x, pos.y, this.data.currentSize / 2, 0, Math.PI * 2)
@@ -283,6 +306,32 @@ Page({
     }
   },
 
+  // D4：确保照片底图 Image 对象已加载（首次擦除前预加载一次）
+  _ensurePhotoBaseImg() {
+    if (this._photoBaseImg || !this._photoBaseSnapshot || !this.canvas) return
+    const img = this.canvas.createImage()
+    img.onload = () => { this._photoBaseReady = true }
+    img.src = this._photoBaseSnapshot
+    this._photoBaseImg = img
+  },
+
+  // D4：照片模式橡皮擦——从底图快照重绘对应圆形区域（恢复照片而非涂白）；
+  // 底图未就绪时返回 false 回落涂白
+  _eraseFromBase(pos) {
+    this._ensurePhotoBaseImg()
+    if (!this._photoBaseReady || !this.ctx) return false
+    const r = this.data.currentSize / 2
+    const size = this.data.currentSize
+    const img = this._photoBaseImg
+    // 底图被拉伸至画布尺寸，源坐标按比例换算
+    const sx = pos.x * (img.width / this.canvasWidth)
+    const sy = pos.y * (img.height / this.canvasHeight)
+    const sw = size * (img.width / this.canvasWidth)
+    const sh = size * (img.height / this.canvasHeight)
+    this.ctx.drawImage(img, sx - sw / 2, sy - sh / 2, sw, sh, pos.x - r, pos.y - r, size, size)
+    return true
+  },
+
   onCanvasTouchMove(e) {
     if (this.data.currentMode === 'sticker') {
       this._onStickerTouchMove(e)
@@ -290,7 +339,18 @@ Page({
     }
     if (!this.isDrawing || !this.ctx) return
 
-    const pos = this._getCanvasPos(e)
+    // D11：只跟踪起始手指的移动，其他手指触屏不干扰当前笔画
+    const touch = this._getTouchByIdentifier(e, this._activeTouchId)
+    if (!touch) return
+    const pos = this._getCanvasPos(e, touch)
+
+    // D4：照片模式橡皮擦逐段从底图恢复
+    if (this.data.currentMode === 'eraser' && this._eraseFromBase(pos)) {
+      this.lastX = pos.x
+      this.lastY = pos.y
+      return
+    }
+
     this.ctx.beginPath()
     this.ctx.moveTo(this.lastX, this.lastY)
     this.ctx.lineTo(pos.x, pos.y)
@@ -310,7 +370,13 @@ Page({
       return
     }
     if (!this.isDrawing) return
+
+    // D11：仅当起始手指抬起（changedTouches 含该 identifier）才结束笔画
+    const ended = (e.changedTouches || []).some(function(t) { return t.identifier === this._activeTouchId }, this)
+    if (!ended && e.touches && e.touches.length > 0) return
+
     this.isDrawing = false
+    this._activeTouchId = undefined
     this.saveHistory()
   },
 
@@ -689,6 +755,11 @@ Page({
 
       console.log('[draw] 绘制图片:', { drawX, drawY, drawW, drawH })
       this.ctx.drawImage(img, drawX, drawY, drawW, drawH)
+      // D4：缓存照片原始状态，供照片模式橡皮擦从底图恢复（而非涂白）
+      // I-3：换新照片后必须重置底图 Image 缓存，否则橡皮擦仍用旧照片（_ensurePhotoBaseImg 命中旧缓存即 return）
+      try { this._photoBaseSnapshot = this.canvas.toDataURL() } catch (e) { this._photoBaseSnapshot = null }
+      this._photoBaseImg = null
+      this._photoBaseReady = false
       this.saveHistory()
       audio.stickerPlace()
       wx.showToast({ title: '已加载照片', icon: 'success' })
@@ -724,7 +795,11 @@ Page({
     this.history.push(imageData)
     this.historyIndex = this.history.length - 1
 
-    if (this.history.length > 30) {
+    // D10：照片背景模式每帧是整张照片的 base64，体积可达 MB 级，
+    // 撤销栈上限降为 10，避免低端机 OOM/卡顿（以是否持有照片底图快照为准）
+    const maxHistory = this._photoBaseSnapshot ? 10 : 30
+
+    if (this.history.length > maxHistory) {
       this.history.shift()
       this.historyIndex--
     }
@@ -778,6 +853,10 @@ Page({
 
           this.history = []
           this.historyIndex = -1
+          // D4：清空画布后照片底图快照失效，一并清除
+          this._photoBaseSnapshot = null
+          this._photoBaseImg = null
+          this._photoBaseReady = false
           this.saveHistory()
           audio.deleteAction()
           wx.showToast({ title: '已清空', icon: 'success' })

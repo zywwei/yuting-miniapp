@@ -280,11 +280,40 @@ Page({
     if (allPlaced) {
       var elapsed = Math.floor((Date.now() - this.data.startTime) / 1000)
       var levelData = tetrisUtils.PUZZLE_LEVELS[this.data.selectedLevel - 1]
+
+      var complete = filled >= this.data.targetTotal
+
+      // E6：未达标（目标格未全部填满）视为失败——不计通关、不发星币，
+      // 仅记录 gameover 并展示结果面板
+      if (!complete) {
+        tetrisManager.saveGameRecord({
+          mode: 'puzzle',
+          result: 'gameover',
+          score: 0,
+          lines: 0,
+          level: 0,
+          duration: elapsed,
+          coinsEarned: 0,
+          puzzleLevel: this.data.selectedLevel,
+          stars: 0
+        })
+        this.clearTimer()
+        this.setData({
+          board: board,
+          currentPiece: null,
+          targetFilled: filled,
+          phase: 'result',
+          stars: 0,
+          showResult: true,
+          elapsed: elapsed,
+          resultComplete: false
+        })
+        return
+      }
+
       var stars = 1
       if (elapsed < levelData.starThresholds[1]) stars = 3
       else if (elapsed < levelData.starThresholds[0]) stars = 2
-
-      var complete = filled >= this.data.targetTotal
 
       tetrisManager.completePuzzleLevel(this.data.selectedLevel, stars)
       var coins = stars
@@ -292,7 +321,7 @@ Page({
 
       tetrisManager.saveGameRecord({
         mode: 'puzzle',
-        result: complete ? 'complete' : 'gameover',
+        result: 'complete',
         score: stars * 100,
         lines: 0,
         level: 0,

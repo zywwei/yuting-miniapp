@@ -195,6 +195,8 @@ Page({
     this._isPlaying = true
     this._clearingLines = null
     this._clearingFlash = false
+    // E5：重置本局四连消计数，防止跨局重复累加进统计
+    this._tetrisCount = 0
 
     this.setData({
       score: 0,

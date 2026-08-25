@@ -201,6 +201,12 @@ Page({
       showConfetti: result === 'win'
     })
 
+    // E3：任何一场败北即整届出局，立即计入锦标赛统计
+    // （原实现 tournamentEnd 仅在决赛胜利分支可达，败场永不统计）
+    if (result === 'lose') {
+      this.tournamentEnd()
+    }
+
     var that = this
     setTimeout(function() {
       that.setData({ showConfetti: false })

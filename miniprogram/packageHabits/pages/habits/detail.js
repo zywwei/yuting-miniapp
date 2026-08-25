@@ -588,7 +588,25 @@ Page({
       summary = config.summary(formData)
     }
 
-    wx.showLoading({ title: '保存中...' })
+    // H2：防重复提交 + H3：required 字段校验
+    if (this._saving) return
+    this._saving = true
+    var missingField = null
+    ;(config && config.fields || []).forEach(function(field) {
+      if (!missingField && field.required) {
+        var v = formData[field.key]
+        if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) {
+          missingField = field.label || field.key
+        }
+      }
+    })
+    if (missingField) {
+      this._saving = false
+      wx.showToast({ title: '请填写：' + missingField, icon: 'none' })
+      return
+    }
+
+    wx.showLoading({ title: '保存中...', mask: true })
 
     // 持久化图片（带超时保护）
     var that = this
@@ -649,6 +667,9 @@ Page({
 
     var newRecordHabitId = this._habitId || ''
     saveImages(function(savedImages) {
+      // H2 兜底：保存主流程任何一步异常都必须复位锁与 loading，
+      // 否则 _saving 永久卡 true，该页无法再次打卡
+      try {
       var newRecord = {
         id: util.generateId(),
         type: type,
@@ -675,6 +696,7 @@ Page({
       }
 
       wx.hideLoading()
+      that._saving = false // H2：保存流程结束
 
       // 显示打卡动画
       that.setData({ showCheckinAnimation: true })
@@ -688,6 +710,8 @@ Page({
         note: '',
         score: 5,
         scoreLabel: '超级棒！',
+        // H4：重建表单配置，清除选项 selected 残留高亮
+        habitFields: (that.data.habitConfig && that.data.habitConfig.fields) || [],
         formData: that.initFormData(that.data.habitConfig)
       })
       // 打卡已保存，更新基线避免返回时误报未保存
@@ -703,6 +727,12 @@ Page({
       }, 2000)
 
       that.loadHabitDetail(type)
+      } catch (saveErr) {
+        console.error('保存打卡记录失败:', saveErr)
+        wx.hideLoading()
+        that._saving = false
+        wx.showToast({ title: '保存失败，请重试', icon: 'none' })
+      }
     })
   },
 

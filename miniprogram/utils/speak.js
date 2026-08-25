@@ -137,9 +137,10 @@ function preload() {
   var savedEngine = childStorage.get('ttsEngine')
   var savedEdgeVoice = childStorage.get('ttsVoice')
   var savedBaiduVoice = childStorage.get('ttsBaiduVoice')
-  
-  console.log('preload加载设置:', { savedEngine, savedEdgeVoice, savedBaiduVoice })
-  
+  var savedMimoVoice = childStorage.get('ttsMimoVoice') // G2：mimo 音色独立存储
+
+  console.log('preload加载设置:', { savedEngine, savedEdgeVoice, savedBaiduVoice, savedMimoVoice })
+
   if (savedEngine && TTS_ENGINES[savedEngine]) {
     currentEngine = savedEngine
   }
@@ -149,7 +150,10 @@ function preload() {
   if (savedBaiduVoice) {
     TTS_ENGINES['baidu'].voice = savedBaiduVoice
   }
-  
+  if (savedMimoVoice && TTS_ENGINES['mimo']) {
+    TTS_ENGINES['mimo'].voice = savedMimoVoice
+  }
+
   console.log('preload完成，当前状态:', { currentEngine, TTS_ENGINES })
 }
 
@@ -198,6 +202,9 @@ function setVoice(voiceId) {
   var childStorage = require('./child-storage.js')
   if (currentEngine === 'edge') {
     childStorage.set('ttsVoice', voiceId)
+  } else if (currentEngine === 'mimo') {
+    // G2：mimo 音色此前误写入百度键，与百度音色互相覆盖
+    childStorage.set('ttsMimoVoice', voiceId)
   } else {
     childStorage.set('ttsBaiduVoice', voiceId)
   }
@@ -341,9 +348,9 @@ function playAudio(base64Audio, callback) {
       data: wx.base64ToArrayBuffer(base64Audio),
       encoding: 'binary',
       success: function() {
-        // 停止之前的播放
+        // G1：先销毁旧上下文释放原生播放器资源（仅置 null 会泄漏）
         if (currentAudioContext) {
-          currentAudioContext.stop()
+          try { currentAudioContext.stop(); currentAudioContext.destroy() } catch (e) {}
           currentAudioContext = null
         }
 
@@ -357,6 +364,7 @@ function playAudio(base64Audio, callback) {
         currentAudioContext.onEnded(function() {
           console.log('TTS播放结束')
           isSpeaking = false
+          try { currentAudioContext.destroy() } catch (e) {}
           currentAudioContext = null
           // 删除临时文件
           try { fs.unlinkSync(tempPath) } catch (e) {}
@@ -366,6 +374,7 @@ function playAudio(base64Audio, callback) {
         currentAudioContext.onError(function(err) {
           console.error('TTS播放失败:', err)
           isSpeaking = false
+          try { currentAudioContext.destroy() } catch (e) {}
           currentAudioContext = null
           // 删除临时文件
           try { fs.unlinkSync(tempPath) } catch (e) {}
@@ -507,41 +516,5 @@ module.exports = {
   getMimoVoiceList: getMimoVoiceList,
   getBaiduVoiceGroups: getBaiduVoiceGroups,
   getCurrentVoice: getCurrentVoice,
-  getIsSpeaking: getIsSpeaking,
-  testBaiduVoice: testBaiduVoice
-}
-
-// 测试百度TTS不同音色（调试用）
-function testBaiduVoice(text) {
-  if (!text || text.trim() === '') {
-    text = '你好，我是测试语音'
-  }
-
-  console.log('开始测试百度TTS音色...')
-  console.log('音色列表:', BAIDU_VOICE_LIST.map(function(v) { return v.name + '(' + v.id + ')' }).join(', '))
-
-  BAIDU_VOICE_LIST.forEach(function(voice, index) {
-    setTimeout(function() {
-      console.log('测试音色:', voice.name, '(per=' + voice.id + ')')
-
-      wx.cloud.callFunction({
-        name: 'ai-chat',
-        data: { familyId: auth.getCurrentFamilyId(),
-          action: 'textToSpeech',
-          text: text.substring(0, 100),
-          baiduPer: voice.id
-        },
-        success: function(result) {
-          if (result.result && result.result.code === 0 && result.result.data.audio) {
-            console.log('音色', voice.name, '成功，音频大小:', result.result.data.audio.length)
-          } else {
-            console.log('音色', voice.name, '失败:', result.result)
-          }
-        },
-        fail: function(err) {
-          console.log('音色', voice.name, '请求失败:', err)
-        }
-      })
-    }, index * 3000) // 每个音色间隔3秒
-  })
+  getIsSpeaking: getIsSpeaking
 }

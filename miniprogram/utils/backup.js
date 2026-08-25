@@ -146,19 +146,30 @@ function saveBackupToFile(backupData) {
       var fileName = 'backup_' + util.formatDate(new Date()).replace(/[:\s]/g, '-') + '.json'
       var filePath = wx.env.USER_DATA_PATH + '/' + fileName
 
-      var jsonData = JSON.stringify(backupData)
+      // C8：分批写入——images(base64 大头)逐张序列化追加，
+      // 消除「整包 JSON.stringify + 原对象并存」的双倍内存峰值
+      var meta = {}
+      for (var k in backupData) {
+        if (k !== 'images') meta[k] = backupData[k]
+      }
+      var images = backupData.images || []
 
-      fs.writeFile({
-        filePath: filePath,
-        data: jsonData,
-        encoding: 'utf8',
-        success: function() {
-          resolve(filePath)
-        },
-        fail: function(err) {
-          reject(err)
-        }
-      })
+      var head = JSON.stringify(meta)
+      // 空 meta 时也必须以 '{' 起头产出合法 JSON 对象（此前缺左花括号会生成非法文件）
+      var prefix = Object.keys(meta).length > 0 ? head.replace(/\}\s*$/, ',') : '{'
+      fs.writeFileSync(filePath, prefix + '"images": [')
+      try {
+        images.forEach(function(img, i) {
+          fs.appendFileSync(filePath, (i > 0 ? ',' : '') + JSON.stringify(img))
+        })
+        fs.appendFileSync(filePath, ']}')
+      } catch (appendErr) {
+        // 追加中断时补全 JSON 结构，尽量保住已写入的内容
+        try { fs.appendFileSync(filePath, ']}') } catch (e2) {}
+        throw appendErr
+      }
+
+      resolve(filePath)
     } catch (err) {
       reject(err)
     }

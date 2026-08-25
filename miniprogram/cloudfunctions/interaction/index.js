@@ -1,7 +1,9 @@
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
+const cmd = db.command
 
+// B11：targetType 白名单——仅允许映射命中的集合，防止客户端传入任意集合名探测/污染
 const COLLECTION_MAP = {
   drawing: 'drawings',
   brushing: 'brushingRecords',
@@ -21,6 +23,8 @@ exports.main = async (event, context) => {
   switch (action) {
     case 'toggleLike':
       return await toggleLike(member, event)
+    case 'setLike':
+      return await setLike(member, event)
     case 'addComment':
       return await addComment(member, event)
     case 'deleteComment':
@@ -47,52 +51,93 @@ function isAdmin(member) {
   return member && member.permissions && member.permissions.indexOf('admin') >= 0
 }
 
+// B11：白名单命中才返回集合名，否则返回 null（旧实现回退到原始字符串可达任意集合）
 function getCollectionName(targetType) {
-  return COLLECTION_MAP[targetType] || targetType
+  return COLLECTION_MAP[targetType] || null
 }
 
-async function toggleLike(member, { targetType, targetId }) {
+// B13：点赞核心——pull 保底去重 + 可选 push，全部走数组原子操作，
+// 并发点赞不再互相覆盖；setLike 语义为幂等终态（离线重放安全）
+async function applyLike(member, targetType, targetId, liked) {
   const collectionName = getCollectionName(targetType)
+  if (!collectionName) {
+    return { code: -1, msg: '无效的目标类型' }
+  }
 
   try {
     const doc = await db.collection(collectionName).doc(targetId).get()
-    const record = doc.data
-
-    if (record.familyId !== member.familyId) {
+    if (doc.data.familyId !== member.familyId) {
       return { code: -2, msg: '无权操作' }
     }
 
-    const likes = record.likes || []
-    const existingIndex = likes.findIndex(l => l.memberId === member._id)
+    // 先移除本人已有点赞（幂等去重）
+    await db.collection(collectionName).doc(targetId).update({
+      data: { likes: cmd.pull({ memberId: member._id }) }
+    })
 
-    if (existingIndex >= 0) {
-      likes.splice(existingIndex, 1)
-    } else {
-      likes.push({
-        memberId: member._id,
-        memberName: member.roleName,
-        time: new Date().toISOString()
+    if (liked) {
+      await db.collection(collectionName).doc(targetId).update({
+        data: {
+          likes: cmd.push([{
+            memberId: member._id,
+            memberName: member.roleName,
+            time: new Date().toISOString()
+          }])
+        }
       })
     }
 
-    await db.collection(collectionName).doc(targetId).update({
-      data: { likes }
-    })
+    const fresh = await db.collection(collectionName).doc(targetId).get()
+    const likes = fresh.data.likes || []
+    const likedFinal = likes.some(l => l.memberId === member._id)
 
     return {
       code: 0,
-      data: {
-        liked: existingIndex < 0,
-        likes
-      }
+      data: { liked: likedFinal, likes }
     }
   } catch (err) {
     return { code: -3, msg: '记录不存在' }
   }
 }
 
+async function toggleLike(member, { targetType, targetId }) {
+  const collectionName = getCollectionName(targetType)
+  if (!collectionName) {
+    return { code: -1, msg: '无效的目标类型' }
+  }
+
+  try {
+    const doc = await db.collection(collectionName).doc(targetId).get()
+    const existing = (doc.data.likes || []).some(l => l.memberId === member._id)
+    return await applyLike(member, targetType, targetId, !existing)
+  } catch (err) {
+    return { code: -3, msg: '记录不存在' }
+  }
+}
+
+// 幂等的终态式点赞（配合离线队列重放：携带目标状态，重试不会来回翻转）
+async function setLike(member, { targetType, targetId, liked }) {
+  return applyLike(member, targetType, targetId, !!liked)
+}
+
 async function addComment(member, { targetType, targetId, childId, content, type, imageFileId, emoji }) {
   const collectionName = getCollectionName(targetType)
+  if (!collectionName) {
+    return { code: -1, msg: '无效的目标类型' }
+  }
+
+  // B12：内容长度限制 + 图片引用必须是合法的云存储 fileID
+  var safeContent = typeof content === 'string' ? content : ''
+  if (safeContent.length > 500) {
+    return { code: -4, msg: '评论内容过长' }
+  }
+  var safeImageFileId = ''
+  if (imageFileId) {
+    if (typeof imageFileId !== 'string' || imageFileId.indexOf('cloud://') !== 0) {
+      return { code: -4, msg: '图片引用无效' }
+    }
+    safeImageFileId = imageFileId
+  }
 
   try {
     const doc = await db.collection(collectionName).doc(targetId).get()
@@ -113,9 +158,9 @@ async function addComment(member, { targetType, targetId, childId, content, type
       authorId: member._id,
       authorName: member.roleName,
       authorRole: member.role,
-      content: content || '',
+      content: safeContent,
       type: type || 'text',
-      imageFileId: imageFileId || '',
+      imageFileId: safeImageFileId,
       emoji: emoji || '',
       isDeleted: false,
       createTime: now

@@ -171,16 +171,22 @@ Page({
       success: async function(res) {
         if (res.confirm) {
           wx.showLoading({ title: '删除中...' })
-          var noteManager = require('../../utils/note-manager.js')
-          var result = await noteManager.deleteNote(self.data.note.id)
-          wx.hideLoading()
-          
-          if (result.success) {
-            wx.showToast({ title: '已删除', icon: 'success' })
-          } else {
-            wx.showToast({ title: '本地已删除，云端同步失败', icon: 'none' })
+          try {
+            var noteManager = require('../../utils/note-manager.js')
+            var result = await noteManager.deleteNote(self.data.note.id)
+
+            if (result.success) {
+              wx.showToast({ title: '已删除', icon: 'success' })
+            } else {
+              wx.showToast({ title: '本地已删除，云端同步失败', icon: 'none' })
+            }
+            setTimeout(function() { wx.navigateBack() }, 1500)
+          } catch (err) {
+            // A6：异常时也必须收起 loading，避免"删除中..."永久卡屏
+            console.warn('删除笔记失败:', err)
+            wx.hideLoading()
+            wx.showToast({ title: '删除失败，请重试', icon: 'none' })
           }
-          setTimeout(function() { wx.navigateBack() }, 1500)
         }
       }
     })
@@ -254,7 +260,15 @@ Page({
   initAudioContext: function() {
     var that = this
     this.innerAudioContext = wx.createInnerAudioContext()
-    
+
+    // A7：元数据就绪后读取真实时长（此前 voiceDuration 无赋值恒显示 0 秒）
+    this.innerAudioContext.onCanplay(function() {
+      var d = that.innerAudioContext.duration
+      if (d && isFinite(d) && d > 0) {
+        that.setData({ voiceDuration: Math.round(d) })
+      }
+    })
+
     this.innerAudioContext.onEnded(function() {
       that.setData({ isPlayingVoice: false })
     })

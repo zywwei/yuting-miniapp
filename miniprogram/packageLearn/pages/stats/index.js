@@ -25,6 +25,8 @@ Page({
     var byModule = {}
 
     var modules = ['cards', 'poems', 'numbers', 'english', 'mathFormulas', 'mathConcepts', 'mathPractice',
+      // F3：补齐此前遗漏的三个数学模块（modules-data.js 中有对应 storageKey）
+      'mathProblems', 'mathGeometry', 'mathOlympiad',
       'chineseReading', 'chineseWriting', 'chineseRhetoric', 'chineseClassical',
       'englishGrammar', 'englishSentences', 'englishReading', 'englishListening',
       'scienceExperiments', 'sciencePhysics', 'scienceChemistry', 'scienceBiology',

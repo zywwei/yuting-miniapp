@@ -310,6 +310,14 @@ function removeTombstoneByKey(key, id) {
   removeTombstone(key, id)
 }
 
+// C7：collection → 墓碑 key 映射（惰性求值：引用的常量定义在模块后部）
+function getTombstoneKeyByCollection(collection) {
+  if (collection === 'notes') return DELETED_NOTES_KEY
+  if (collection === 'brushingRecords') return DELETED_BRUSHING_KEY
+  if (collection === 'habitRecords') return DELETED_HABIT_RECORDS_KEY
+  return null
+}
+
 // ===== 画作 =====
 
 async function uploadDrawing(tempFilePath, drawing) {
@@ -530,6 +538,12 @@ function selfHealDrawings(cloudList, localDrawings, deletedSet) {
 
 // 一次性迁移：将旧的全局 drawings（迁移到孩子隔离存储前）合并进来
 function migrateLegacyDrawings(childScopedDrawings) {
+  // C1：未选中孩子时，childStorage.set('drawings', …) 与旧全局 key 解析为同一物理 key，
+  // 迁移结果会写完即删；此时跳过迁移，待选中孩子后再执行
+  if (!auth.getCurrentChildId()) {
+    return childScopedDrawings
+  }
+
   var legacy = wx.getStorageSync('drawings')
   if (!legacy || !Array.isArray(legacy) || legacy.length === 0) {
     return childScopedDrawings
@@ -1024,10 +1038,21 @@ async function updateBrushingRecordById(id, updates) {
 
   if (isCloudReady()) {
     try {
-      await wx.cloud.callFunction({
+      var res = await wx.cloud.callFunction({
         name: 'record',
         data: { familyId: auth.getCurrentFamilyId(), action: 'update', collection: 'brushingRecords', id: id, data: updates }
       })
+      // C3：业务失败（code!==0）同样入队重试，避免本地已改云端未改且无补偿
+      if (!res.result || res.result.code !== 0) {
+        console.warn('云端更新业务失败，已入队重试:', res.result && res.result.msg)
+        syncQueue.enqueue({
+          id: 'update_brushing_' + id,
+          action: 'update',
+          collection: 'brushingRecords',
+          data: updates,
+          extra: { id: id }
+        })
+      }
     } catch (err) {
       console.warn('云端更新失败，已入队重试:', err)
       syncQueue.enqueue({
@@ -1308,12 +1333,22 @@ function mergeAndHeal(collection, storageKey, localList, cloudList, deletedSet, 
 
   childStorage.set(storageKey, merged)
 
-  // 云端仍存在但本地已删除的记录，再次尝试删除
+  // 云端仍存在但本地已删除的记录，再次尝试删除；成功后清除墓碑，
+  // 避免 TTL 窗口内每个 fetch 周期都重复发起同样的删除（C7）
+  // I-1：callFunction resolve ≠ 业务成功——仅 code===0（已删）或 -3（不存在）时清墓碑，
+  // 其他失败（如无权限）保留墓碑待下轮重试，防止已删记录复活
   cloudList.forEach(function(item) {
     if (item && item.id && (deletedSet[item.id] || deletedSet[item._id])) {
       wx.cloud.callFunction({
         name: 'record',
         data: { familyId: auth.getCurrentFamilyId(), action: 'remove', collection: collection, id: item.id }
+      }).then(function(res) {
+        var code = res.result && res.result.code
+        if (code === 0 || code === -3) {
+          removeTombstoneByKey(getTombstoneKeyByCollection(collection), item.id)
+        } else {
+          console.warn('云端删除未成功，保留墓碑:', item.id, res.result && res.result.msg)
+        }
       }).catch(function(err) { console.warn('云端删除同步失败:', item.id, err) })
     }
   })
@@ -1922,12 +1957,11 @@ function createSingletonSync(config) {
       
       try {
         var now = new Date().toISOString()
-        childStorage.set(storageKey + 'UpdatedAt', now)
-        
+
         // 根据隔离级别构建上传参数
         var childId = undefined
         var memberId = undefined
-        
+
         switch (isolation) {
           case SINGLETON_ISOLATION.FAMILY:
             childId = ''
@@ -1940,12 +1974,23 @@ function createSingletonSync(config) {
             memberId = auth.getMember()._id
             break
         }
-        
+
         // 2. 同步云端
-        await callUpsertSingleton(config.collection, config.key, {
+        var upsertRes = await callUpsertSingleton(config.collection, config.key, {
           ...data,
           updatedAt: now
         }, childId, memberId)
+
+        // I-6：callFunction resolve ≠ 业务成功——upsertSingleton 有业务失败路径
+        //（无效 childId / 家庭校验失败 / 保存失败返回 -1/-2），此处不 throw 则 UpdatedAt
+        // 照常落盘且不入队，与"云端确认成功后才落盘"的 C2 承诺不符
+        if (!upsertRes.result || upsertRes.result.code !== 0) {
+          throw new Error((upsertRes.result && upsertRes.result.msg) || 'upsertSingleton 业务失败')
+        }
+
+        // C2：UpdatedAt 只在云端确认成功后落盘——提前写入会让本地时间戳
+        // 虚假偏新，fetch 时 shouldUseCloud 拒绝其他设备合法写入的数据
+        childStorage.set(storageKey + 'UpdatedAt', now)
 
         // 3. 直传成功后移除离线期间的旧快照队列项，
         //    避免下次 flush 用旧数据重传、回滚云端较新的单例（P1-4）
@@ -2286,6 +2331,10 @@ async function getFamilyMembers() {
   var member = auth.getMember()
   if (!member) return []
 
+  // C6：兜底缓存 key 拼接 familyId——切换家庭后云调用失败时
+  // 不得返回上一个家庭的成员列表（权限选择数据错乱）
+  var cacheKey = 'cachedFamilyMembers_' + (member.familyId || '')
+
   // 尝试从云函数获取
   if (isCloudReady()) {
     try {
@@ -2297,7 +2346,7 @@ async function getFamilyMembers() {
         var members = res.result.data || []
         // 缓存到本地
         try {
-          wx.setStorageSync('cachedFamilyMembers', members)
+          wx.setStorageSync(cacheKey, members)
         } catch (e) {}
         return members
       }
@@ -2308,7 +2357,7 @@ async function getFamilyMembers() {
 
   // fallback：从本地缓存读取
   try {
-    var cached = wx.getStorageSync('cachedFamilyMembers')
+    var cached = wx.getStorageSync(cacheKey)
     if (cached && cached.length > 0) {
       return cached
     }

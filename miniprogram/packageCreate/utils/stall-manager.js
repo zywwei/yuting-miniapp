@@ -171,12 +171,13 @@ function addSale(sale) {
   sale.discountAmount = sale.discountAmount || 0
 
   // 重新计算小计（使用原价单价）
+  // D1：统一按分取整，避免 0.1+0.2 类浮点脏值入库与展示（如 ¥3.3000000000000003）
   sale.total = 0
   for (var i = 0; i < sale.items.length; i++) {
     var item = sale.items[i]
-    item.subtotal = item.quantity * item.unitPrice
+    item.subtotal = Math.round(item.quantity * item.unitPrice * 100) / 100
     sale.total += item.subtotal
-    
+
     // 保存成本价快照（向后兼容）
     for (var j = 0; j < products.length; j++) {
       if (products[j].id === item.productId) {
@@ -185,6 +186,7 @@ function addSale(sale) {
       }
     }
   }
+  sale.total = Math.round(sale.total * 100) / 100
   
   // 如果有折扣，使用折后价
   if (sale.discount < 10) {
@@ -192,7 +194,7 @@ function addSale(sale) {
     sale.discountAmount = Math.round((sale.originalTotal - sale.total) * 100) / 100
   }
 
-  sale.change = (sale.paymentReceived || 0) - sale.total
+  sale.change = Math.round(((sale.paymentReceived || 0) - sale.total) * 100) / 100
 
     // 更新库存（使用折后收入）
   for (var i = 0; i < sale.items.length; i++) {
@@ -636,11 +638,6 @@ function getAllLevels() {
   return LEVELS
 }
 
-// Change calculator
-function calculateChange(total, received) {
-  return received - total
-}
-
 // Categories
 function getCategories() {
   return CATEGORIES
@@ -665,7 +662,6 @@ module.exports = {
   checkLevelUp: checkLevelUp,
   getLevelInfo: getLevelInfo,
   getAllLevels: getAllLevels,
-  calculateChange: calculateChange,
   getCategories: getCategories,
   getTodayStr: getTodayStr,
   syncFromCloud: syncFromCloud,

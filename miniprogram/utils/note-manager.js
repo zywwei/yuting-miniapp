@@ -144,8 +144,10 @@ var searchNotes = function(options, notesList) {
     var dateMatch = true
     if (startDate || endDate) {
       var noteDate = new Date(n.createTime)
-      if (startDate) dateMatch = dateMatch && noteDate >= new Date(startDate)
-      if (endDate) dateMatch = dateMatch && noteDate <= new Date(endDate + 'T23:59:59')
+      // C5：起止日期统一按本地时区解析（'YYYY-MM-DD' 会被当作 UTC 零点，
+      // 东八区下开始日 00:00-08:00 创建的笔记会被漏掉）
+      if (startDate) dateMatch = dateMatch && noteDate >= new Date(startDate + 'T00:00:00')
+      if (endDate) dateMatch = dateMatch && noteDate <= new Date(endDate + 'T23:59:59.999')
     }
     
     // 类型匹配

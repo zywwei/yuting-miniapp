@@ -63,7 +63,8 @@ Page({
 
   switchTab: function(e) {
     var tab = e.currentTarget.dataset.tab
-    this.setData({ activeTab: tab })
+    // D2：切换页签时复位分页，避免停留在第 N 页切片导致前几页记录"消失"
+    this.setData({ activeTab: tab, ordersPage: 1, hoursPage: 1 })
     this.loadData()
   },
 
@@ -512,6 +513,7 @@ Page({
   },
 
   deleteSale: function(e) {
+    var that = this
     var id = e.currentTarget.dataset.id
     wx.showModal({
       title: '确认删除',
@@ -519,10 +521,12 @@ Page({
       success: function(res) {
         if (res.confirm) {
           stallManager.deleteSale(id)
-          this.loadData()
+          // D2：删除后复位分页再加载，防止停留在第 N 页切片导致前几页"消失"
+          that.setData({ ordersPage: 1, hoursPage: 1 })
+          that.loadData()
           wx.showToast({ title: '已删除', icon: 'success' })
         }
-      }.bind(this)
+      }
     })
   }
 })

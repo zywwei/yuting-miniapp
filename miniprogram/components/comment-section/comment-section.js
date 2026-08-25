@@ -124,6 +124,12 @@ Component({
         if (res.result.code === 0) {
           this.loadComments()
           this.triggerEvent('commentAdded')
+        } else {
+          // A10：业务失败（如内容审核拒绝）时移除乐观评论并提示，否则幽灵评论常驻
+          this.setData({
+            comments: this.data.comments.filter(function(c) { return c._id !== tempId })
+          })
+          wx.showToast({ title: res.result.msg || '评论发送失败', icon: 'none' })
         }
       } catch (err) {
         console.warn('评论失败，已入队等待重试:', err)

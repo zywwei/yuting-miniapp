@@ -50,6 +50,22 @@ Page({
   },
 
   onUnload: function() {
+    // E7：动画进行中退出——按预生成结果立即结算，避免押注被白扣
+    if (this.data.isSpinning && this._pendingFinalReels) {
+      var result = this.calculateResult(this._pendingFinalReels)
+      if (result.winAmount > 0) {
+        gameEconomy.addCoins(result.winAmount, '抽奖中奖（退出结算）')
+      }
+      var stats = childStorage.get('diceSlots') || {}
+      stats.totalSpins = (stats.totalSpins || 0) + 1
+      stats.totalWin = (stats.totalWin || 0) + result.winAmount
+      if (result.type === 'three_same') stats.threeSameCount = (stats.threeSameCount || 0) + 1
+      else if (result.type === 'two_same') stats.twoSameCount = (stats.twoSameCount || 0) + 1
+      else if (result.type === 'all_diff') stats.allDiffCount = (stats.allDiffCount || 0) + 1
+      childStorage.set('diceSlots', stats)
+      this._pendingFinalReels = null
+    }
+
     // 清理定时器
     if (this.spinTimer) {
       clearInterval(this.spinTimer)
@@ -99,6 +115,15 @@ Page({
     gameEconomy.spendCoins(this.data.betAmount, '抽奖押注')
     var balance = gameEconomy.getCoins()
 
+    // E7：预先确定最终结果——中途退出（onUnload）时可据此即时结算，
+    // 避免押注已扣而结果永不产生
+    var pendingFinal = []
+    for (var p = 0; p < 3; p++) {
+      pendingFinal.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)])
+    }
+    this._pendingFinalReels = pendingFinal
+    this._pendingBet = this.data.betAmount
+
     this.setData({
       isSpinning: true,
       phase: 'spinning',
@@ -124,10 +149,13 @@ Page({
         clearInterval(that.spinTimer)
         that.spinTimer = null
 
-        // 最终结果
-        var finalReels = []
-        for (var i = 0; i < 3; i++) {
-          finalReels.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)])
+        // 最终结果（spin 时已预生成，中途退出也可据此结算）
+        var finalReels = that._pendingFinalReels
+        if (!finalReels || finalReels.length < 3) {
+          finalReels = []
+          for (var p = 0; p < 3; p++) {
+            finalReels.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)])
+          }
         }
 
         // 计算奖励
@@ -164,6 +192,10 @@ Page({
         }
 
         that.saveStats()
+
+        // E7：本轮已结算，清除待结算标记
+        that._pendingFinalReels = null
+        that._pendingBet = null
       }
     }, 100)
   },

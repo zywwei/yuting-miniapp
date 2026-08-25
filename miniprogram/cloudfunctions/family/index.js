@@ -175,11 +175,12 @@ async function joinFamily(openid, { inviteCode, role, roleName, nickname, avatar
       return { code: -2, msg: '邀请码已过期' }
     }
 
+    // B1：查重覆盖 removed/disabled——被移除或禁用的成员不得凭邀请码自行回归
     const existing = await db.collection('familyMembers')
-      .where({ familyId: family._id, openid, status: 'active' })
+      .where({ familyId: family._id, openid, status: db.command.in(['active', 'disabled', 'removed']) })
       .get()
     if (existing.data.length > 0) {
-      return { code: -3, msg: '您已是该家庭成员' }
+      return { code: -3, msg: existing.data[0].status === 'active' ? '您已是该家庭成员' : '该账号已被限制加入此家庭，请联系管理员' }
     }
 
     const isChildRole = role === 'child'

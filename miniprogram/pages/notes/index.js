@@ -418,33 +418,43 @@ Page({
   // 批量获取图片临时URL
   _convertCloudUrls: function(notes) {
     var needConvertUrls = []
-    var noteIndexMap = {}
-    
-    notes.forEach(function(note, index) {
+    var notesByFileId = {}  // A11: fileID -> [noteId,...]，同首图的多篇笔记都要更新
+
+    notes.forEach(function(note) {
       if (note._needConvertUrl && note._thumbnailUrl) {
-        needConvertUrls.push(note._thumbnailUrl)
-        noteIndexMap[note._thumbnailUrl] = index
+        if (!notesByFileId[note._thumbnailUrl]) {
+          notesByFileId[note._thumbnailUrl] = []
+          needConvertUrls.push(note._thumbnailUrl)
+        }
+        notesByFileId[note._thumbnailUrl].push(note.id)
       }
     })
-    
+
     if (needConvertUrls.length === 0) return
-    
+
     var that = this
     wx.cloud.getTempFileURL({
       fileList: needConvertUrls,
       success: function(res) {
-        if (res.fileList) {
-          // 使用路径更新，避免竞态条件
-          res.fileList.forEach(function(file) {
-            var index = noteIndexMap[file.fileID]
-            if (index !== undefined && file.tempFileURL) {
-              that.setData({
-                [`notes[${index}]._thumbnailUrl`]: file.tempFileURL,
-                [`notes[${index}]._needConvertUrl`]: false
-              })
+        if (!res.fileList) return
+        // 回调时按 note.id 重新定位当前列表索引：
+        // 旧实现以 fileID 为 map key 只保留最后一条索引，且期间列表重排会写错条目（A11）
+        var currentNotes = that.data.notes || []
+        var indexById = {}
+        currentNotes.forEach(function(n, i) { indexById[n.id] = i })
+
+        var updates = {}
+        res.fileList.forEach(function(file) {
+          if (!file.tempFileURL) return
+          ;(notesByFileId[file.fileID] || []).forEach(function(noteId) {
+            var idx = indexById[noteId]
+            if (idx !== undefined) {
+              updates['notes[' + idx + ']._thumbnailUrl'] = file.tempFileURL
+              updates['notes[' + idx + ']._needConvertUrl'] = false
             }
           })
-        }
+        })
+        if (Object.keys(updates).length > 0) that.setData(updates)
       }
     })
   },
@@ -627,10 +637,11 @@ Page({
     // 保留当前选中的日期状态
     var selectedDate = this.data.selectedDate
     if (selectedDate) {
-      var parts = selectedDate.replace('月', '-').replace('日', '').split('-')
-      var selectedMonth = parseInt(parts[0])
-      var selectedDay = parseInt(parts[1])
-      
+      // selectedDate 存储格式为 "年-月-日"（见 selectCalendarDay :694），此前误按"x月x日"解析导致年份被当月份、切月后选中态必丢（A1）
+      var parts = selectedDate.split('-')
+      var selectedMonth = parseInt(parts[1])
+      var selectedDay = parseInt(parts[2])
+
       calendarDays.forEach(function(item) {
         var itemParts = item.date.split('-')
         var itemMonth = parseInt(itemParts[1])
@@ -867,6 +878,18 @@ Page({
     // 刷新列表
     this.loadNotes()
     
+    // A2：连续删除时先结算上一条的撤销期，避免旧定时器把新撤销条提前清掉
+    // 注意：需在 setData 之前捕获旧值，否则 this.data.undoNoteId 已被同步覆盖，
+    // 下方 "!== id" 判断恒为 false，导致上一条笔记云端删除永不执行。
+    var previousUndoId = this.data.undoNoteId
+    if (this._undoTimer) {
+      clearTimeout(this._undoTimer)
+      this._undoTimer = null
+      if (previousUndoId && previousUndoId !== id) {
+        this.executeCloudDelete(previousUndoId)
+      }
+    }
+
     // 显示撤销条
     this.setData({
       showUndoBar: true,
@@ -874,7 +897,7 @@ Page({
       undoNoteTitle: title,
       undoNoteData: deletedNote
     })
-    
+
     // 5秒后自动清除撤销数据，执行云端删除
     this._undoTimer = setTimeout(function() {
       that.executeCloudDelete(id)

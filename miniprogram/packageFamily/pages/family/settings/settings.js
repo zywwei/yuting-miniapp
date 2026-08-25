@@ -602,7 +602,28 @@ Page({
             })
 
             if (result.result.code === 0) {
+              // C-2 修正：auth.clear() 会删除 currentChildId/family 等身份 key，
+              // 必须先捕获两个 id 再清理，否则业务缓存一条都清不到
+              var familyIdBeforeClear = auth.getCurrentFamilyId()
+              var childIdBeforeClear = auth.getCurrentChildId()
+
               auth.clear()
+
+              // H6：清理按孩子隔离的业务数据缓存，防止存储膨胀与换家庭后残留
+              try {
+                var childStorage = getApp().globalData.childStorage
+                var keysToDelete = []
+                if (childIdBeforeClear) keysToDelete = childStorage.getChildKeys(childIdBeforeClear)
+                keysToDelete.forEach(function(key) {
+                  try { wx.removeStorageSync(key) } catch (e) {}
+                })
+                // 家庭级兜底缓存一并清理
+                ;['cachedFamilyMembers_' + (familyIdBeforeClear || ''), 'brushingProgress'].forEach(function(k) {
+                  try { wx.removeStorageSync(k) } catch (e2) {}
+                })
+              } catch (cleanErr) {
+                console.warn('清理业务缓存失败:', cleanErr)
+              }
               wx.reLaunch({ url: '/packageFamily/pages/family/role-select/role-select' })
             } else {
               wx.showToast({ title: result.result.msg || '退出失败', icon: 'none' })

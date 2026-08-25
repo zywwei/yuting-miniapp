@@ -43,10 +43,14 @@ Page({
   },
 
   onUnload: function() {
-    // 清理定时器
+    // 清理定时器（E1：含倒计时句柄）
     if (this.animTimer) {
       clearInterval(this.animTimer)
       this.animTimer = null
+    }
+    if (this._countdownTimer) {
+      clearInterval(this._countdownTimer)
+      this._countdownTimer = null
     }
   },
 
@@ -78,7 +82,8 @@ Page({
     } else if (this.data.playMode === 'parentRandom') {
       phase = 'randomPlaying'
     }
-    
+    this._resultSaved = false // E2：新一局重置保存标志
+
     this.setData({
       phase: phase,
       player1Wins: 0,
@@ -377,16 +382,18 @@ Page({
 
     that.setData({ countdown: count })
 
-    var timer = setInterval(function() {
+    // E1：倒计时句柄挂到 this，onUnload 统一清理（原为局部变量泄漏）
+    this._countdownTimer = setInterval(function() {
       count--
       if (count > 0) {
         that.setData({ countdown: count })
       } else {
-        clearInterval(timer)
+        clearInterval(this._countdownTimer)
+        this._countdownTimer = null
         that.setData({ countdown: 0 })
         that.showResult(player1Choice, player2Choice)
       }
-    }, 800)
+    }.bind(that), 800)
   },
 
   showResult: function(player1Choice, player2Choice) {
@@ -447,6 +454,22 @@ Page({
       clashWinner: result === 'win' ? 1 : 2,
       brokenIcon: brokenIcon
     })
+
+    // E2：整局结束立即保存人机模式战绩（原实现仅 endGame 按钮触发，
+    // 点「再来一局」或直接返回均丢失整局记录）
+    if (gameResult && !this._resultSaved) {
+      this._resultSaved = true
+      rpsManager.saveGameRecord({
+        gameType: 'rps',
+        mode: 'classic',
+        playMode: 'ai',
+        result: gameResult,
+        score: rpsUtils.formatScore(this.data.player1Wins, this.data.player2Wins),
+        duration: this.gameStartTime ? Math.floor((Date.now() - this.gameStartTime) / 1000) : 0,
+        participants: [],
+        rounds: roundHistory
+      })
+    }
 
     // 清除动画效果
     var that = this
@@ -519,8 +542,9 @@ Page({
   },
 
   endGame: function() {
-    // 保存游戏记录（人机模式在showResult中已保存整局结果，这里只处理返回）
-    if (this.data.gameResult && this.data.playMode === 'ai') {
+    // E2：showResult 已即时保存；此处仅兜底（如极端情况下未保存）
+    if (this.data.gameResult && this.data.playMode === 'ai' && !this._resultSaved) {
+      this._resultSaved = true
       var record = {
         gameType: 'rps',
         mode: 'classic',

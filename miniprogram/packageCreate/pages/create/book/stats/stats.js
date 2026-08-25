@@ -166,10 +166,10 @@ Page({
       currentEnd = bookManager.getTodayStr()
       var prevWeekStart = new Date(currentStart)
       prevWeekStart.setDate(prevWeekStart.getDate() - 7)
-      prevStart = prevWeekStart.toISOString().substring(0, 10)
+      prevStart = bookManager.formatLocalDate(prevWeekStart)
       var prevWeekEnd = new Date(currentStart)
       prevWeekEnd.setDate(prevWeekEnd.getDate() - 1)
-      prevEnd = prevWeekEnd.toISOString().substring(0, 10)
+      prevEnd = bookManager.formatLocalDate(prevWeekEnd)
     } else if (this.data.timeRange === 'year') {
       currentStart = today.getFullYear() + '-01-01'
       currentEnd = bookManager.getTodayStr()
@@ -377,7 +377,7 @@ Page({
       var diff = d.getDate() - day + (day === 0 ? -6 : 1)
       var start = new Date(d.getFullYear(), d.getMonth(), diff)
       return {
-        startDate: start.toISOString().substring(0, 10),
+        startDate: bookManager.formatLocalDate(start),
         endDate: today
       }
     } else if (this.data.timeRange === 'month') {

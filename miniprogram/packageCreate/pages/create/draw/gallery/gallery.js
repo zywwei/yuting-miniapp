@@ -339,16 +339,20 @@ Page({
 
     // 滚动到锚点
     setTimeout(function() {
+      // D9：boundingClientRect 相对视口，需叠加当前滚动量才是绝对滚动位置
       var query = wx.createSelectorQuery()
-      query.select('#date-' + dateStr).boundingClientRect(function(rect) {
-        if (rect) {
+      query.selectViewport().scrollOffset()
+      query.select('#date-' + dateStr).boundingClientRect()
+      query.exec(function(res) {
+        var view = res[0]
+        var rect = res[1]
+        if (rect && view) {
           wx.pageScrollTo({
-            scrollTop: rect.top - 100,
+            scrollTop: view.scrollTop + rect.top - 100,
             duration: 300
           })
         }
       })
-      query.exec()
     }, 100)
   },
 

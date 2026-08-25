@@ -32,14 +32,31 @@ exports.main = async (event, context) => {
     case 'remove':
       return await removeRecord(member, collection, id)
     case 'list':
-      return await listRecords(member, collection, childId, page || 1, pageSize || 20, memberId, date)
+      // B14：pageSize 钳制上限并校验类型，防止全量拉取与 NaN
+      var safePage = Math.max(parseInt(page) || 1, 1)
+      var safePageSize = Math.min(Math.max(parseInt(pageSize) || 20, 1), 100)
+      return await listRecords(member, collection, childId, safePage, safePageSize, memberId, date)
     case 'upsertSingleton':
-      return await upsertSingleton(member, collection, key, childId, data, memberId)
+      // B14：memberId 维度强制取服务端身份，不接受客户端传值
+      return await upsertSingleton(member, collection, key, childId, data, member._id)
     case 'getSingleton':
-      return await getSingleton(member, collection, key, childId, memberId)
+      // B14：同 upsertSingleton，memberId 强制取服务端身份
+      return await getSingleton(member, collection, key, childId, member._id)
     default:
       return { code: -1, msg: '未知操作' }
   }
+}
+
+// B14：通用体量兜底校验（所有白名单集合共用）
+function validateRecordSize(record) {
+  if (!record || typeof record !== 'object') return null
+  if (typeof record.content === 'string' && record.content.length > 5000) return '内容过长'
+  try {
+    if (JSON.stringify(record).length > 100 * 1024) return '记录体积过大'
+  } catch (e) {
+    return '记录序列化失败'
+  }
+  return null
 }
 
 async function getMemberByOpenid(openid, familyId) {
@@ -204,15 +221,43 @@ async function addRecord(member, collection, data) {
     }
   }
 
+  // B14：所有白名单集合通用的体量兜底校验（此前仅 notes 有长度限制，
+  // 其余集合内容可任意超大）；100KB 为单文档合理上限
+  var sizeError = validateRecordSize(record)
+  if (sizeError) {
+    return { code: -4, msg: sizeError }
+  }
+
   // 如果指定了 _id，则使用指定的 _id（用于设置等单例文档）
   const id = record._id
   if (id) {
+    // B2：客户端自指定 _id 是既有幂等 upsert 协议（列表记录/商品/战绩均以本地 id 作为 _id，
+    // 如 prod_xxx/sale_xxx/base36 时间戳），故不做 familyId_ 前缀白名单——那会拒绝全部合法上传；
+    // 防跨家庭覆盖由下方 get 归属校验保障，新建文档强制回写 familyId 确保归属本家庭
+    if (typeof id !== 'string' || !id || !member.familyId) {
+      return { code: -4, msg: '非法的文档ID' }
+    }
     delete record._id
+    record.familyId = member.familyId
     try {
+      const current = await db.collection(collection).doc(id).get()
+      const cur = current && current.data
+      if (cur) {
+        if (cur.familyId) {
+          // 已归属他家庭：拒绝覆盖
+          if (cur.familyId !== member.familyId) {
+            return { code: -2, msg: '无权覆盖该文档' }
+          }
+        } else if (id.indexOf(member.familyId + '_') !== 0) {
+          // 存量脏数据（缺失 familyId）：仅允许 _id 以本家庭前缀开头的文档被认领覆盖，
+          // 防止任意家庭成员凭碰撞到的 _id 认领改写无归属文档
+          return { code: -2, msg: '无权覆盖该文档' }
+        }
+      }
       await db.collection(collection).doc(id).set({ data: record })
       return { code: 0, data: { _id: id } }
     } catch (err) {
-      // 如果文档不存在，使用 add
+      // 文档不存在时使用 add 创建（归属由上方 familyId 回写保证；指定 _id 已存在时 add 自身会报错，不会静默覆盖）
       const res = await db.collection(collection).add({ data: { _id: id, ...record } })
       return { code: 0, data: { _id: res._id } }
     }
@@ -292,6 +337,10 @@ async function updateRecord(member, collection, id, updates) {
       }
     }
 
+    // B14：剔除点赞字段——likes 只能由 interaction 云函数维护，
+    // 防止创建者通过 update 整包伪造点赞数据
+    delete updates.likes
+
     // 笔记权限字段校验
     if (collection === 'notes') {
       // 校验 visibility 字段值
@@ -356,7 +405,10 @@ async function updateRecord(member, collection, id, updates) {
     await db.collection(collection).doc(docId).update({ data: updates })
     return { code: 0 }
   } catch (err) {
-    return { code: -3, msg: '记录不存在' }
+    // B14/I-1：真实服务器错误用 -5 与"记录不存在(-3)"区分开，
+    // 避免客户端把"更新失败"误当成"记录已删"而清墓碑，导致已删记录复活
+    console.error('updateRecord 异常:', collection, err)
+    return { code: -5, msg: '更新失败: ' + (err.message || '未知错误') }
   }
 }
 
@@ -404,7 +456,10 @@ async function removeRecord(member, collection, id) {
     await deleteCloudFiles(record)
     return { code: 0 }
   } catch (err) {
-    return { code: -3, msg: '记录不存在' }
+    // B14/I-1：真实服务器错误用 -5 与"记录不存在(-3)"区分开，
+    // 避免客户端把"删除失败"误当成"已删"而清墓碑，导致已删记录复活
+    console.error('removeRecord 异常:', collection, err)
+    return { code: -5, msg: '删除失败: ' + (err.message || '未知错误') }
   }
 }
 

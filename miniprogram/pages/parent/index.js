@@ -57,9 +57,28 @@ Page({
 
     var achievementStats = achievements.getAchievementStats()
 
-    var recentNotes = notes.sort(function(a, b) {
+    // A8：三处修正——按 visibility 过滤（不泄露他人私密笔记标题）、标题剥 HTML、时间本地化
+    var memberId = member ? member._id : ''
+    var stripHtml = function(html) {
+      return html ? html.replace(/<[^>]+>/g, '').trim() : ''
+    }
+    var recentNotes = notes.filter(function(note) {
+      // 与服务端 listRecords 口径一致：private 仅创建者本人可见，admin 无特例
+      // （详情页数据走服务端接口同样拦截 admin，客户端若放行会造成"看得到标题看不到内容"的割裂）
+      if (note.createdBy === memberId) return true
+      var vis = note.visibility || 'family'
+      if (vis === 'family') return true
+      if (vis === 'designated') return (note.visibleTo || []).indexOf(memberId) >= 0
+      return false
+    }).sort(function(a, b) {
       return new Date(b.createTime) - new Date(a.createTime)
-    }).slice(0, 5)
+    }).slice(0, 5).map(function(note) {
+      var d = new Date(note.createTime)
+      return Object.assign({}, note, {
+        title: stripHtml(note.title || ''),
+        createTime: d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()
+      })
+    })
 
     this.setData({
       stats: {

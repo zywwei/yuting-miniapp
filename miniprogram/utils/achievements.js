@@ -140,7 +140,19 @@ var getGameExtraData = function() {
   var tetrisAdventure = childStorage.get('tetrisAdventure') || {}
   var tetrisPuzzle = childStorage.get('tetrisPuzzle') || {}
 
+  // G6：飞行棋数据（此前缺失导致 6 条成就永远无法解锁）
+  var diceFlight = childStorage.get('diceFlight') || {}
+  var flightStats = diceFlight.stats || {}
+  var flightRecords = diceFlight.records || []
+
   return {
+    // G6：飞行棋统计
+    flightWins: flightStats.wins || 0,
+    flightPerfect: flightRecords.some(function(r) { return r.result === 'win' && (r.planesFinished || 0) === 4 && !(r.planesKnocked > 0) }) ? 1 : 0,
+    flightSpeedWin: flightRecords.some(function(r) { return r.result === 'win' && (r.rounds || 99) <= 20 }) ? 1 : 0,
+    flightItemMaster: flightRecords.some(function(r) { return (r.itemsUsed || 0) >= 3 }) ? 1 : 0,
+    flightHardWin: flightRecords.some(function(r) { return r.result === 'win' && r.difficulty === 'hard' }) ? 1 : 0,
+
     rpsWins: rpsStats.wins || 0,
     rpsTotalGames: rpsStats.totalGames || 0,
     rpsBestStreak: rpsStats.bestStreak || 0,

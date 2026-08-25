@@ -72,14 +72,21 @@ Page({
     this.setData({ uploading: true })
     wx.showLoading({ title: '上传中...' })
 
+    // D8：记录上传前的旧图（编辑模式），新图上传失败时保留旧图引用，
+    // 避免保存后商品图片被空串覆盖
+    var previousImage = this.data.imagePath || ''
+
     // 使用压缩上传
     cloud.uploadImageCompressed(tempPath, 'stall/products').then(function(fileID) {
       this.setData({ imagePath: fileID })
       wx.showToast({ title: '上传成功', icon: 'success' })
     }.bind(this)).catch(function(err) {
       console.warn('云存储上传失败:', err)
-      this.setData({ imagePath: '' })
-      wx.showToast({ title: '图片上传失败，请重试', icon: 'none' })
+      // D8：仅当原本就没有图片时才置空；有旧图时保留并提示重试
+      if (!previousImage) {
+        this.setData({ imagePath: '' })
+      }
+      wx.showToast({ title: '图片上传失败，已保留原图片', icon: 'none' })
     }.bind(this)).finally(function() {
       this.setData({ uploading: false })
       wx.hideLoading()

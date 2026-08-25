@@ -7,13 +7,17 @@
 // 音效管理器
 class AudioManager {
   constructor() {
-    this.enabled = false // 默认关闭音效
+    // G5：开关状态持久化（原实现 toggle 后重启即复位）
+    var saved = false
+    try { saved = wx.getStorageSync('soundEnabled') === true } catch (e) {}
+    this.enabled = saved
     this.volume = 0.5
   }
 
   // 开关音效
   toggle() {
     this.enabled = !this.enabled
+    try { wx.setStorageSync('soundEnabled', this.enabled) } catch (e) {}
     return this.enabled
   }
 

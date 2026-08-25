@@ -3,6 +3,14 @@
  * 从 achievements.js 分离，便于维护和扩展
  */
 
+// G7：真实语料规模（聚合各分级数据文件），「学完全部」类成就阈值动态取值，
+// 修复此前写死 120/25/56 与实际语料（汉字1358/古诗92/单词556）严重不符的问题
+// I-4：静态 require。小程序构建器依赖字符串字面量做静态分析，
+// 原先的动态 require(f)+try/catch 一旦解析失败会被静默吞掉 → 总数 0 → 「汉字全通」等成就对新用户秒解锁
+var CARD_TOTAL = require('./cards-level-1.js').length + require('./cards-level-2.js').length + require('./cards-level-3.js').length + require('./cards-level-4.js').length
+var POEM_TOTAL = require('./poems-level-1.js').length + require('./poems-level-2.js').length + require('./poems-level-3.js').length + require('./poems-level-4.js').length
+var ENGLISH_TOTAL = require('./english-level-1.js').length + require('./english-level-2.js').length + require('./english-level-3.js').length + require('./english-level-4.js').length + require('./english-level-5.js').length
+
 // 稀有度定义
 var RARITY = {
   common: { name: '普通', color: '#4CAF50', bg: '#E8F5E9' },
@@ -50,9 +58,9 @@ var ACHIEVEMENTS = [
   { id: 'cards_100', icon: '🎓', title: '识字大师', desc: '认识100个汉字', category: 'learn', rarity: 'rare',
     condition: function(data) { return data.cardsLearned >= 100 },
     progress: function(data) { return Math.min(data.cardsLearned, 100) }, maxProgress: 100 },
-  { id: 'cards_all_120', icon: '👑', title: '汉字全通', desc: '学完全部120个汉字', category: 'learn', rarity: 'legendary',
-    condition: function(data) { return data.cardsLearned >= 120 },
-    progress: function(data) { return Math.min(data.cardsLearned, 120) }, maxProgress: 120 },
+  { id: 'cards_all_120', icon: '👑', title: '汉字全通', desc: '学完全部' + CARD_TOTAL + '个汉字', category: 'learn', rarity: 'legendary',
+    condition: function(data) { return data.cardsLearned >= CARD_TOTAL },
+    progress: function(data) { return Math.min(data.cardsLearned, CARD_TOTAL) }, maxProgress: CARD_TOTAL },
 
   // ===== 古诗成就 =====
   { id: 'poems_5', icon: '📜', title: '诗歌入门', desc: '背诵5首古诗', category: 'learn', rarity: 'common',
@@ -61,9 +69,9 @@ var ACHIEVEMENTS = [
   { id: 'poems_10', icon: '🎭', title: '诗歌达人', desc: '背诵10首古诗', category: 'learn', rarity: 'common',
     condition: function(data) { return data.poemsMemorized >= 10 },
     progress: function(data) { return Math.min(data.poemsMemorized, 10) }, maxProgress: 10 },
-  { id: 'poems_25', icon: '🏅', title: '诗歌大师', desc: '背诵全部25首古诗', category: 'learn', rarity: 'legendary',
-    condition: function(data) { return data.poemsMemorized >= 25 },
-    progress: function(data) { return Math.min(data.poemsMemorized, 25) }, maxProgress: 25 },
+  { id: 'poems_25', icon: '🏅', title: '诗歌大师', desc: '背诵全部' + POEM_TOTAL + '首古诗', category: 'learn', rarity: 'legendary',
+    condition: function(data) { return data.poemsMemorized >= POEM_TOTAL },
+    progress: function(data) { return Math.min(data.poemsMemorized, POEM_TOTAL) }, maxProgress: POEM_TOTAL },
 
   // ===== 数字学习成就 =====
   { id: 'numbers_10', icon: '🔢', title: '数字入门', desc: '学习10个数字', category: 'learn', rarity: 'common',
@@ -83,9 +91,9 @@ var ACHIEVEMENTS = [
   { id: 'english_30', icon: '📝', title: '英语能手', desc: '学习30个英语单词', category: 'learn', rarity: 'common',
     condition: function(data) { return data.englishLearned >= 30 },
     progress: function(data) { return Math.min(data.englishLearned, 30) }, maxProgress: 30 },
-  { id: 'english_56', icon: '🌍', title: '英语大师', desc: '学完全部56个英语单词', category: 'learn', rarity: 'rare',
-    condition: function(data) { return data.englishLearned >= 56 },
-    progress: function(data) { return Math.min(data.englishLearned, 56) }, maxProgress: 56 },
+  { id: 'english_56', icon: '🌍', title: '英语大师', desc: '学完全部' + ENGLISH_TOTAL + '个英语单词', category: 'learn', rarity: 'rare',
+    condition: function(data) { return data.englishLearned >= ENGLISH_TOTAL },
+    progress: function(data) { return Math.min(data.englishLearned, ENGLISH_TOTAL) }, maxProgress: ENGLISH_TOTAL },
 
   // ===== 学习综合成就 =====
   { id: 'learn_all', icon: '🌟', title: '学习全能', desc: '四个学习模块各学过至少1个', category: 'learn', rarity: 'rare',
@@ -173,8 +181,9 @@ var ACHIEVEMENTS = [
   { id: 'rps_streak_5', icon: '🔥', title: '连胜达人', desc: '猜拳5连胜', category: 'game', rarity: 'rare',
     condition: function(data) { return data.rpsBestStreak >= 5 },
     progress: function(data) { return Math.min(data.rpsBestStreak, 5) }, maxProgress: 5 },
-  { id: 'rps_challenge_5', icon: '⚔️', title: '闯关勇士', desc: '闯关挑战达到第5关', category: 'game', rarity: 'common',
-    condition: function(data) { return data.rpsChallengeLevel >= 5 },
+  { id: 'rps_challenge_5', icon: '⚔️', title: '闯关勇士', desc: '通关闯关挑战第5关', category: 'game', rarity: 'common',
+    // G8：判定与进度统一口径——level 为当前到达关数，「通关第 N 关」即 level >= N+1
+    condition: function(data) { return data.rpsChallengeLevel >= 6 },
     progress: function(data) { return Math.min(data.rpsChallengeLevel - 1, 5) }, maxProgress: 5 },
   { id: 'rps_challenge_10', icon: '👑', title: '闯关王者', desc: '通关闯关挑战第10关', category: 'game', rarity: 'legendary',
     condition: function(data) { return data.rpsChallengeLevel >= 11 },

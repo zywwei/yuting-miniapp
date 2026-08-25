@@ -127,7 +127,8 @@ Page({
     var that = this
     wx.showModal({
       title: '删除商品',
-      content: '确定要删除「' + name + '」吗？',
+      // D3：提示销售引用影响
+      content: '确定要删除「' + name + '」吗？若它已有销售记录，历史利润统计将不再计入其成本。',
       confirmColor: '#FF6B8A',
       success: function(res) {
         if (res.confirm) {

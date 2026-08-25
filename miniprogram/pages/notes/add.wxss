@@ -815,6 +815,16 @@
   transition: height 0.1s ease;
 }
 
+/* A3：播放态声波条抖动动画（WXML 表达式不支持 Math.random，改由 CSS 实现） */
+.wave-bar.wave-playing {
+  animation: wave-jump 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes wave-jump {
+  from { height: 10rpx; }
+  to { height: 30rpx; }
+}
+
 .voice-duration-text {
   font-size: 22rpx;
   color: #A89B8C;

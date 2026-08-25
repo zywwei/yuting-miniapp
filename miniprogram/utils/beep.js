@@ -18,8 +18,10 @@ function writeString(view, offset, str) {
 
 function envelope(i, total) {
   const fadeIn = Math.min(1, i / (SAMPLE_RATE * 0.003))
-  const fadeOut = Math.max(0, 1 - (i - total * 0.7) / (total * 0.3))
-  return fadeIn * Math.max(fadeOut, 0)
+  // G4：淡出系数钳制到 [0,1]——原公式在前 70% 时长取值 1~3.33，
+  // 与 fadeIn 相乘后大于 1，写入 int16 时削波产生爆音
+  const fadeOut = Math.min(1, Math.max(0, 1 - (i - total * 0.7) / (total * 0.3)))
+  return fadeIn * fadeOut
 }
 
 // 生成带谐波的单音

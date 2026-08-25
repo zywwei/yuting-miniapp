@@ -212,7 +212,7 @@ Page({
     
     // 盥后处理
     var that = this
-    setTimeout(function() {
+    this._schedule(function() {
       that.afterRoll(value)
     }, 300)
   },
@@ -461,7 +461,7 @@ Page({
     // 如果第一个玩家是AI，自动摇骰子
     if (gameState.players[0].isAI) {
       this.setData({ showRollButton: false, turnHint: 'AI思考中...' })
-      setTimeout(function() {
+      this._schedule(function() {
         that.rollDice()
       }, 1000)
     }
@@ -618,10 +618,23 @@ Page({
   },
 
   onUnload: function() {
+    // E8：置卸载标志，所有经 _schedule 的延迟回调（AI 回合链/掷骰后续）
+    // 在入口处短路，不再对已销毁页面 setData
+    this._unloaded = true
     if (this.rollInterval) {
       clearInterval(this.rollInterval)
       this.rollInterval = null
     }
+  },
+
+  // E8：统一延迟调度——卸载后所有延迟回调短路
+  _schedule: function(fn, delay) {
+    if (this._unloaded) return
+    var that = this
+    setTimeout(function() {
+      if (that._unloaded) return
+      fn()
+    }, delay || 0)
   },
 
   rollDice: function() {
@@ -654,7 +667,7 @@ Page({
           beep.playBeep('diceSettle')
         }
         
-        setTimeout(function() {
+        this._schedule(function() {
           that.afterRoll(diceValue)
         }, 300)
       }
@@ -674,7 +687,7 @@ Page({
     
     if (movablePlanes.length === 0) {
       this.setData({ turnHint: '无可移动的飞机' })
-      setTimeout(function() {
+      this._schedule(function() {
         that.nextTurn()
       }, 1000)
       return
@@ -684,7 +697,7 @@ Page({
       // AI选择飞机
       var planeIndex = ai.selectPlane(gameState, gameState.currentPlayer, diceValue)
       this.setData({ turnHint: 'AI选择移动飞机 ' + (planeIndex + 1) })
-      setTimeout(function() {
+      this._schedule(function() {
         that.movePlane(planeIndex)
       }, 500)
     } else {
@@ -763,7 +776,7 @@ Page({
       
       this.refreshBoard()
       
-      setTimeout(function() {
+      this._schedule(function() {
         that.afterMove(planeIndex, diceValue)
       }, 500)
       return
@@ -801,13 +814,11 @@ Page({
     function moveStep() {
       current += step
       stepCount++
-      
+
       // 只在主赛道上循环，终点跑道不循环
-      if (current < 52) {
-        if (current >= 52) current -= 52
-        if (current < 0) current += 52
-      }
-      
+      // E9：engine.calcNewPosition 保证主赛道目标 ∈ [0,51]、终点跑道 ∈ [52,56]，
+      // 动画路径不会越界，此处无需（也不能）取模——无条件 %52 会把终点 56 折回 4
+
       plane.position = current
       that.refreshBoard()
       
@@ -816,14 +827,15 @@ Page({
       }
       
       if (stepCount < totalSteps) {
-        setTimeout(moveStep, 150)
+        // moveStep 经 _schedule 无接收者回调，this 不指向 Page 实例，必须用闭包 that
+        that._schedule(moveStep, 150)
       } else {
         callback()
       }
     }
     
     if (totalSteps > 0) {
-      setTimeout(moveStep, 150)
+      this._schedule(moveStep, 150)
     } else {
       callback()
     }
@@ -883,14 +895,14 @@ Page({
         turnHint: '掷出6！再摇一次'
       })
     } else {
-      setTimeout(function() {
+      this._schedule(function() {
         that.nextTurn()
       }, 1000)
     }
     
     // 检查游戏是否结束
     if (gameState.phase === 'result') {
-      setTimeout(function() {
+      this._schedule(function() {
         that.showResult()
       }, 1000)
     }
@@ -914,7 +926,7 @@ Page({
     // 如果是AI，自动摇骰子
     if (nextPlayer.isAI) {
       var that = this
-      setTimeout(function() {
+      this._schedule(function() {
         that.rollDice()
       }, 1000)
     } else {

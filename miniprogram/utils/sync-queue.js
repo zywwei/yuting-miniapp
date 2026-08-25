@@ -26,7 +26,20 @@ function getQueue() {
 }
 
 function saveQueue(queue) {
-  wx.setStorageSync(QUEUE_KEY, queue)
+  // C9：所有队列写点统一走这里。队列项携带完整 record.data，
+  // 逼近微信单 key 1MB 上限时 setStorageSync 抛错会中断用户保存主流程——
+  // 捕获后裁剪掉较旧的一半再试一次；仍失败则放弃本次落盘并告警
+  try {
+    wx.setStorageSync(QUEUE_KEY, queue)
+  } catch (e) {
+    console.warn('同步队列写入失败，尝试裁剪:', e)
+    try {
+      var keep = Math.max(Math.floor(queue.length / 2), 1)
+      wx.setStorageSync(QUEUE_KEY, queue.slice(-keep))
+    } catch (e2) {
+      console.error('同步队列裁剪后仍写入失败:', e2)
+    }
+  }
 }
 
 function getFailed() {
@@ -187,10 +200,21 @@ async function flush() {
       // P0-8 配套：离线重放也携带当前家庭，避免多家庭用户重试时写入第一个家庭
       // （云端兼容设计：未带 familyId 的旧队列项仍按旧行为处理，不会报错）
       callData.familyId = auth.getCurrentFamilyId()
-      await wx.cloud.callFunction({
+      const res = await wx.cloud.callFunction({
         name: funcName,
         data: callData
       })
+
+      // C3 配套：callFunction resolve 不代表业务成功——服务端可能返回非 0 业务码
+      // （如 -1 内部错误、-5 服务器错误）。若不校验，补偿项会被当成"已成功"静默清掉，
+      // 本地已改云端未改的状态将永远失去补偿机会。
+      // 例外：remove 遇到 -3（云端记录不存在）视为幂等成功，删除目标已达成，
+      // 否则该队列项会重试到上限后进 failed 列表成为垃圾项
+      var bizCode = res && res.result ? res.result.code : undefined
+      var isIdempotentRemoveGone = item.action === 'remove' && bizCode === -3
+      if (bizCode !== 0 && !isIdempotentRemoveGone) {
+        throw new Error('业务失败 code=' + bizCode + ' msg=' + (res.result && res.result.msg))
+      }
 
       succeededSeqs.push(item.seq)
     } catch (err) {

@@ -146,10 +146,15 @@ miniprogram/
 │   └── ...                  # 其他工具
 │
 ├── packageCreate/           # 分包：奇趣屋子功能（~830K）
-│   ├── pages/create/        # 画画、摆摊、剪刀石头布、骰子、AI聊天
+│   ├── pages/create/        # 画画、摆摊、剪刀石头布、骰子、AI聊天、俄罗斯方块、记账本
 │   ├── components/          # dice-face、enemy-card
 │   ├── utils/               # 专用工具（stall-manager、rps-manager等）
 │   └── audio/               # 画画音乐
+│
+├── packageLearn/            # 分包：学习乐园扩展科目（~715K）
+│   ├── pages/               # 数学/语文/科学/编程/艺术/社科/体育/生活等40+科目
+│   ├── components/          # learn-ai-panel、quiz-card 等学习组件
+│   └── utils/               # modules-data 统一数据层、quiz-engine、learn-data
 │
 ├── packageHabits/           # 分包：习惯子功能（~480K）
 │   ├── pages/habits/        # 刷牙、签到、统计、习惯详情
@@ -161,7 +166,7 @@ miniprogram/
     └── components/          # role-badge
 ```
 
-> **分包说明**：主包约 1MB，三个分包共约 1.4MB，总计约 2.4MB（原主包 2.6MB）。
+> **分包说明**：主包约 1.4MB，四个分包共约 2.1MB，总计约 3.5MB。
 
 ## 🛠️ 技术栈
 

@@ -339,6 +339,22 @@ Page({
     const { modalTime, score, note, catchUpDate } = this.data
     wx.showLoading({ title: '保存中...' })
     try {
+      // H9：同日同时段查重（云端合并结果），防止重复补刷
+      var existing = []
+      try {
+        existing = await cloud.fetchBrushingRecords(catchUpDate) || []
+      } catch (e) {}
+      if (existing.some(function(r) { return r.date === catchUpDate && r.timeOfDay === modalTime && !r.isCatchUp })) {
+        wx.hideLoading()
+        wx.showToast({ title: '该时段已有正常打卡，无需补刷', icon: 'none' })
+        return
+      }
+      if (existing.some(function(r) { return r.date === catchUpDate && r.timeOfDay === modalTime && r.isCatchUp })) {
+        wx.hideLoading()
+        wx.showToast({ title: '该时段已补刷过', icon: 'none' })
+        return
+      }
+
       // 补刷记录使用补刷日期的时间，保持时间排序正确
       const catchTime = modalTime === 'morning' ? 'T08:00:00' : 'T21:00:00'
       const record = {

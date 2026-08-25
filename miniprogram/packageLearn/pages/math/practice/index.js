@@ -96,6 +96,11 @@ Page({
   },
 
   submitAnswer: function() {
+    // F5：空答案拦截（parseInt('') 为 NaN 直接判错且计入总数）
+    if (this.data.userAnswer === '' || this.data.userAnswer === null) {
+      wx.showToast({ title: '请输入答案', icon: 'none' })
+      return
+    }
     var userAnswer = parseInt(this.data.userAnswer)
     var correctAnswer = this.data.currentQuestion.answer
     var isCorrect = userAnswer === correctAnswer

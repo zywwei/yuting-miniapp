@@ -120,7 +120,7 @@ exports.main = async (event, context) => {
     case 'chatStream':
       return await chatStream(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID, event.extraContext, event.skillPrompt)
     case 'getThinkingProgress':
-      return await getThinkingProgress(event.taskId)
+      return await getThinkingProgress(member, event.taskId)
     case 'getUserPreference':
       return await getUserPreference(member, event.key)
     case 'saveUserPreference':
@@ -137,26 +137,114 @@ exports.main = async (event, context) => {
       return await deleteSession(member, event.childId, event.sessionId)
     case 'getModelPrices':
       return getModelPrices()
-    case 'speechToText':
-      return await speechToText(event.audioData)
-    case 'textToSpeech':
-      return await textToSpeech(event.text, event.voice, event.baiduPer, event.mimoVoice)
+    case 'speechToText': {
+      // B4：外部付费接口纳入家庭级日配额（防费用滥用）
+      const quotaErr = await checkDailyQuota(member, 'speechToText')
+      if (quotaErr) return quotaErr
+      return await speechToText(event.audioData, member.familyId)
+    }
+    case 'textToSpeech': {
+      const quotaErr = await checkDailyQuota(member, 'textToSpeech')
+      if (quotaErr) return quotaErr
+      // B6：透传 familyId，密钥只取本家庭的
+      return await textToSpeech(event.text, event.voice, event.baiduPer, event.mimoVoice, member.familyId)
+    }
     case 'getTtsConfig':
       return await getTtsConfig(member, event.childId)
     case 'saveTtsConfig':
       return await saveTtsConfig(member, event)
-    case 'testTts':
+    case 'testTts': {
+      const quotaErr = await checkDailyQuota(member, 'testTts')
+      if (quotaErr) return quotaErr
       return await testTts(member, event)
+    }
     default:
       return { code: -1, msg: '未知操作' }
   }
+}
+
+// B4：家庭级日配额（落库计数，防多实例绕过内存限流刷外部付费接口）。
+// 以 key 作为文档 _id + inc 原子自增：并发首次创建时同 _id 的 add 只会成功一个，
+// 计数不会分散到多条文档，也不会互相覆盖少计
+const DAILY_QUOTA = {
+  speechToText: 20,
+  textToSpeech: 50,
+  testTts: 5
+}
+
+async function checkDailyQuota(member, action) {
+  var limit = DAILY_QUOTA[action]
+  if (!limit || !member || !member.familyId) return null
+  try {
+    var now = Date.now()
+    var key = member.familyId + '_' + new Date(now).toISOString().slice(0, 10) + '_' + action
+    try {
+      // expireAt：2 天缓冲（覆盖跨时区/跨日边界），供 cleanupExpiredQuota 判定过期
+      await db.collection('aiDailyQuota').add({ data: { _id: key, count: 0, expireAt: new Date(now + 2 * 24 * 60 * 60 * 1000) } })
+    } catch (e) {
+      // 文档已存在（当日已有调用或并发首建撞车）：忽略，统一走下方原子自增
+    }
+    // 异步清理过期配额文档——按 familyId_日期_action 建档每天新增、只增不减，
+    // 不清理会无限累积；fire-and-forget，不阻塞配额主流程
+    cleanupExpiredQuota()
+    await db.collection('aiDailyQuota').doc(key).update({ data: { count: db.command.inc(1) } })
+    var fresh = await db.collection('aiDailyQuota').doc(key).get()
+    var count = (fresh.data && fresh.data.count) || 0
+    if (count > limit) {
+      return { code: -6, msg: '今日' + action + '调用次数已达上限，明天再试吧' }
+    }
+    return null
+  } catch (e) {
+    // 配额存储故障不阻塞业务（内存限流仍在第一道）
+    console.warn('日配额检查失败:', e)
+    return null
+  }
+}
+
+// 清理过期的 aiDailyQuota 配额文档（与 chatStream 清理 aiThinkingProgress 同模式：
+// 按 expireAt 查询、limit 分批、异步删除）。部署前创建的存量文档无 expireAt 字段，
+// 通过 _id 中的日期段兜底判定，但今天的配额文档即便缺字段也保留，
+// 避免误删导致当日计数清零、配额被重置
+function cleanupExpiredQuota() {
+  const cmd = db.command
+  db.collection('aiDailyQuota')
+    .where(cmd.or([
+      { expireAt: cmd.lt(new Date()) },
+      { expireAt: cmd.exists(false) }
+    ]))
+    .limit(20)
+    .get()
+    .then(async function(res) {
+      if (!res.data || res.data.length === 0) return
+      var todaySeg = '_' + new Date().toISOString().slice(0, 10) + '_'
+      var stale = res.data.filter(function(item) {
+        if (item.expireAt) return true
+        // _id 形如 familyId_YYYY-MM-DD_action（action 不含下划线），倒数第二段为日期
+        var parts = String(item._id).split('_')
+        return parts.length < 3 || ('_' + parts[parts.length - 2] + '_') !== todaySeg
+      })
+      if (stale.length > 0) {
+        const deletePromises = stale.map(function(item) {
+          return db.collection('aiDailyQuota').doc(item._id).remove()
+        })
+        await Promise.all(deletePromises)
+        console.log('清理了' + stale.length + '条过期配额记录')
+      }
+    })
+    .catch(function(err) {
+      console.warn('清理过期配额记录失败:', err)
+    })
 }
 
 // 速率限制配置
 const RATE_LIMIT_CONFIG = {
   'chat': { maxRequests: 20, windowMs: 60000 }, // 每分钟最多20次
   'chatStream': { maxRequests: 20, windowMs: 60000 },
-  'testConfig': { maxRequests: 5, windowMs: 60000 }
+  'testConfig': { maxRequests: 5, windowMs: 60000 },
+  // B4：外部付费接口同样纳入内存级快速限流（家庭级日配额见 DAILY_QUOTA）
+  'speechToText': { maxRequests: 10, windowMs: 60000 },
+  'textToSpeech': { maxRequests: 20, windowMs: 60000 },
+  'testTts': { maxRequests: 3, windowMs: 60000 }
 }
 
 // 速率限制存储（内存中，重启后清空）
@@ -192,11 +280,6 @@ function checkRateLimit(userId, action) {
 
   // 记录本次请求
   rateLimitStore[key].push(now)
-
-  // 定期清理空 key，防止内存泄漏
-  if (rateLimitStore[key].length === 0) {
-    delete rateLimitStore[key]
-  }
 
   return null
 }
@@ -506,16 +589,26 @@ async function buildMessages(config, history, newMessage, imageFileID, extraCont
     systemPrompt = systemPrompt.replace(/\{\{childName\}\}/g, childName)
   }
   
+  // B7：技能提示词/额外上下文长度上限——两者直接拼进 systemPrompt，
+  // 无上限可被用于注入覆盖人设并放大 token 成本（message 本身限 4000）
+  const EXTRA_LIMIT = 4000
+  if (skillPrompt && skillPrompt.length > EXTRA_LIMIT) {
+    return { code: -4, msg: '技能指令过长' }
+  }
+  if (extraContext && extraContext.length > EXTRA_LIMIT) {
+    return { code: -4, msg: '附加上下文过长' }
+  }
+
   // 如果有技能提示词，附加到系统提示词
   if (skillPrompt) {
     systemPrompt = systemPrompt + '\n\n【当前技能指令】\n' + skillPrompt
   }
-  
+
   // 如果有额外上下文（用户数据），附加到系统提示词
   if (extraContext) {
     systemPrompt = systemPrompt + '\n\n' + extraContext
   }
-  
+
   if (systemPrompt) {
     messages.push({
       role: 'system',
@@ -523,13 +616,18 @@ async function buildMessages(config, history, newMessage, imageFileID, extraCont
     })
   }
 
-  // 历史消息（验证role合法性）
+  // 历史消息（验证role合法性；B10：无 content 的历史消息一并跳过，
+  // 防止纯图片消息回放时向 AI API 传空内容导致会话异常）
   const validRoles = ['user', 'assistant', 'system']
   for (const item of history) {
     const role = item.role
     // 跳过无效role的消息
     if (!role || !validRoles.includes(role)) {
       console.warn('跳过无效role的历史消息:', role)
+      continue
+    }
+    if (typeof item.content !== 'string' || !item.content.trim()) {
+      console.warn('跳过无content的历史消息:', item._id || '')
       continue
     }
     messages.push({
@@ -624,10 +722,9 @@ async function chatStream(member, childId, sessionId, message, model, imageFileI
       }
     })
 
-    // 异步清理过期的思考记录（24小时前）- 不阻塞主流程
-    const expireTime = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    // 异步清理已过期的思考记录（按 expireAt 判定，与写入的 2 小时 TTL 一致）- 不阻塞主流程
     db.collection('aiThinkingProgress')
-      .where({ createTime: db.command.lt(expireTime) })
+      .where({ expireAt: db.command.lt(new Date()) })
       .limit(50)
       .get()
       .then(async function(res) {
@@ -724,6 +821,9 @@ async function callAIWithProgress(aiModel, modelConfig, messages, taskId, member
         saveMessage(member, childId, sessionId, 'assistant', streamResult.data.content, aiModel, streamResult.data.usage, streamResult.data.thinking)
       ])
 
+      // B9：流式路径同样生成会话标题（与 chat 路径对齐）
+      generateSessionTitleIfNeeded(member, childId, sessionId, message)
+
       await updateThinkingProgress(taskId, 'completed', streamResult.data.thinking || '', streamResult.data.content, streamResult.data.usage)
     } else {
       // 降级：非流式调用
@@ -779,14 +879,15 @@ async function updateThinkingProgress(taskId, status, thinkingContent, finalCont
 }
 
 // 获取思考进度
-async function getThinkingProgress(taskId) {
+async function getThinkingProgress(member, taskId) {
   try {
     if (!taskId) {
       return { code: -5, msg: '缺少任务ID' }
     }
 
+    // B3：限定本家庭+本人发起的任务，防止凭 taskId 跨家庭读取他人对话
     const res = await db.collection('aiThinkingProgress')
-      .where({ taskId: taskId })
+      .where({ taskId: taskId, familyId: member.familyId })
       .get()
 
     if (res.data.length === 0) {
@@ -824,11 +925,15 @@ async function getHistory(member, childId, sessionId, page, pageSize) {
       .where(where)
       .count()
 
+    // B8：page/pageSize 缺省与类型防御，避免 skip(NaN)
+    var safePage = Math.max(parseInt(page) || 1, 1)
+    var safePageSize = Math.min(Math.max(parseInt(pageSize) || 20, 1), 100)
+
     const res = await db.collection('aiChats')
       .where(where)
       .orderBy('createTime', 'desc')
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
+      .skip((safePage - 1) * safePageSize)
+      .limit(safePageSize)
       .get()
 
     return {
@@ -1181,58 +1286,66 @@ function getModelPrices() {
 }
 
 // 从云数据库读取百度API密钥（带25天TTL）
-let _baiduKeysCache = null
-let _baiduKeysCacheTime = 0
+let _baiduKeysCache = {}
+let _baiduKeysCacheTime = {}
 const BAIDU_KEYS_TTL = 25 * 24 * 60 * 60 * 1000 // 25天
 
-async function getBaiduKeys() {
+// B6：按家庭取用本家庭的百度 TTS 密钥（缓存与查询均以 familyId 隔离），
+// 不再"全库第一条"，防止 A 家庭的语音请求消耗 B 家庭配置的付费密钥
+async function getBaiduKeys(familyId) {
   const now = Date.now()
-  if (_baiduKeysCache && (now - _baiduKeysCacheTime) < BAIDU_KEYS_TTL) {
-    console.log('使用缓存的百度密钥')
-    return _baiduKeysCache
+  var cacheKey = familyId || '_global'
+  if (_baiduKeysCache[cacheKey] && (now - _baiduKeysCacheTime[cacheKey]) < BAIDU_KEYS_TTL) {
+    return _baiduKeysCache[cacheKey]
   }
-  
-  // 优先从aiConfigs获取（新配置，语音设置页面配置）
-  // 注意：getBaiduKeys没有member参数，需要查询所有配置
-  const configRes = await db.collection('aiConfigs').where({ 
-    baiduTtsApiKey: db.command.exists(true) 
-  }).get()
-  if (configRes.data.length > 0 && configRes.data[0].baiduTtsApiKey && configRes.data[0].baiduTtsSecretKey) {
-    console.log('使用aiConfigs中的百度TTS配置')
-    _baiduKeysCache = { 
-      apiKey: configRes.data[0].baiduTtsApiKey, 
-      secretKey: configRes.data[0].baiduTtsSecretKey 
+  if (!_baiduKeysCacheTime) _baiduKeysCacheTime = {}
+
+  if (familyId) {
+    // 仅查本家庭配置；未配置则明确报错（B6）
+    const configRes = await db.collection('aiConfigs').where({
+      familyId: familyId,
+      baiduTtsApiKey: db.command.exists(true)
+    }).get()
+    if (configRes.data.length > 0 && configRes.data[0].baiduTtsApiKey && configRes.data[0].baiduTtsSecretKey) {
+      _baiduKeysCache[cacheKey] = {
+        apiKey: configRes.data[0].baiduTtsApiKey,
+        secretKey: configRes.data[0].baiduTtsSecretKey
+      }
+      _baiduKeysCacheTime[cacheKey] = now
+      return _baiduKeysCache[cacheKey]
     }
-    _baiduKeysCacheTime = now
-    return _baiduKeysCache
+    throw new Error('本家庭尚未配置百度TTS密钥，请管理员在语音设置中配置')
   }
-  
-  // 备用：从systemConfig获取（旧配置）
+
+  // 无家庭上下文（防御路径）：沿用旧的 systemConfig 兜底
   const res = await db.collection('systemConfig').where({ key: 'baiduTTS' }).get()
-  console.log('数据库查询结果:', JSON.stringify(res.data))
   if (res.data.length === 0) {
     throw new Error('百度TTS密钥未配置，请在语音设置中配置')
   }
   console.log('使用systemConfig中的百度TTS配置')
-  _baiduKeysCache = { apiKey: res.data[0].apiKey, secretKey: res.data[0].secretKey }
-  _baiduKeysCacheTime = now
-  return _baiduKeysCache
+  _baiduKeysCache[cacheKey] = { apiKey: res.data[0].apiKey, secretKey: res.data[0].secretKey }
+  _baiduKeysCacheTime[cacheKey] = now
+  return _baiduKeysCache[cacheKey]
 }
 
 // 百度access_token缓存
-let _baiduTokenCache = null
-let _baiduTokenCacheTime = 0
+let _baiduTokenCache = {}
+let _baiduTokenCacheTime = {}
 const BAIDU_TOKEN_TTL = 25 * 24 * 60 * 60 * 1000 // 25天
 
 // 获取百度access_token
-async function getBaiduAccessToken() {
+async function getBaiduAccessToken(familyId) {
   const now = Date.now()
-  if (_baiduTokenCache && (now - _baiduTokenCacheTime) < BAIDU_TOKEN_TTL) {
-    return _baiduTokenCache
+  // B6：token 按家庭缓存（不同家庭的密钥换来的 token 不能混用）
+  var tkCacheKey = familyId || '_global'
+  _baiduTokenCache = _baiduTokenCache || {}
+  _baiduTokenCacheTime = _baiduTokenCacheTime || {}
+  if (_baiduTokenCache[tkCacheKey] && (now - _baiduTokenCacheTime[tkCacheKey]) < BAIDU_TOKEN_TTL) {
+    return _baiduTokenCache[tkCacheKey]
   }
 
   const https = require('https')
-  const keys = await getBaiduKeys()
+  const keys = await getBaiduKeys(familyId)
   return new Promise((resolve, reject) => {
     const url = `https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${keys.apiKey}&client_secret=${keys.secretKey}`
 
@@ -1247,8 +1360,8 @@ async function getBaiduAccessToken() {
             reject(new Error('百度token获取失败: ' + (result.error_description || '未知错误')))
             return
           }
-          _baiduTokenCache = result.access_token
-          _baiduTokenCacheTime = now
+          _baiduTokenCache[tkCacheKey] = result.access_token
+          _baiduTokenCacheTime[tkCacheKey] = now
           resolve(result.access_token)
         } catch (err) {
           console.error('百度token解析失败:', err.message)
@@ -1263,12 +1376,12 @@ async function getBaiduAccessToken() {
 }
 
 // 百度语音识别
-async function speechToText(audioData) {
+async function speechToText(audioData, familyId) {
   const https = require('https')
   
   try {
     // 获取access_token
-    const accessToken = await getBaiduAccessToken()
+    const accessToken = await getBaiduAccessToken(familyId)
     
     return new Promise((resolve, reject) => {
       const postData = JSON.stringify({
@@ -1336,7 +1449,7 @@ async function speechToText(audioData) {
 }
 
 // 语音合成（优先使用Edge TTS，降级到百度TTS）
-async function textToSpeech(text, voice, baiduPer, mimoVoice) {
+async function textToSpeech(text, voice, baiduPer, mimoVoice, familyId) {
   const maxLen = 1000
   const truncatedText = text.length > maxLen ? text.substring(0, maxLen) : text
   const ttsVoice = voice || 'zh-CN-XiaoxiaoNeural'
@@ -1350,7 +1463,7 @@ async function textToSpeech(text, voice, baiduPer, mimoVoice) {
   if (mimoVoice) {
     // 使用小米TTS
     try {
-      return await mimoTTS(truncatedText, 'mimo-v2.5-tts', null, mimoVoice)
+      return await mimoTTS(truncatedText, 'mimo-v2.5-tts', null, mimoVoice, familyId)
     } catch (err) {
       console.error('小米TTS异常:', err.message)
       return { code: -1, msg: '小米TTS服务不可用: ' + err.message }
@@ -1358,7 +1471,7 @@ async function textToSpeech(text, voice, baiduPer, mimoVoice) {
   } else if (baiduPer) {
     // 使用百度TTS
     try {
-      return await baiduTTS(truncatedText, ttsVoice, baiduPer)
+      return await baiduTTS(truncatedText, ttsVoice, baiduPer, familyId)
     } catch (err) {
       console.error('百度TTS异常:', err.message)
       return { code: -1, msg: '百度TTS服务不可用: ' + err.message }
@@ -1436,7 +1549,7 @@ async function edgeTTS(text, voice) {
 }
 
 // 百度TTS（备用）
-async function baiduTTS(text, voice, baiduPer) {
+async function baiduTTS(text, voice, baiduPer, familyId) {
   const https = require('https')
 
   if (!text || text.trim() === '') {
@@ -1464,7 +1577,7 @@ async function baiduTTS(text, voice, baiduPer) {
   console.log('baiduTTS参数:', { voice, baiduPer, per })
   
   try {
-    const accessToken = await getBaiduAccessToken()
+    const accessToken = await getBaiduAccessToken(familyId)
     console.log('百度access_token:', accessToken ? '已获取' : '获取失败')
     if (!accessToken) {
       return { code: -1, msg: '百度access_token获取失败' }
@@ -1551,45 +1664,45 @@ async function baiduTTS(text, voice, baiduPer) {
 
 // 小米TTS（大模型语音合成）
 // 文档：https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/audio/speech-synthesis-v2.5
-async function mimoTTS(text, voice, overrideApiKey, overrideVoice) {
+async function mimoTTS(text, voice, overrideApiKey, overrideVoice, familyId) {
   const https = require('https')
-  
+
   if (!text || text.trim() === '') {
     return { code: -1, msg: '文本为空' }
   }
-  
+
   // 移除emoji和特殊字符
   text = text.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')
     .replace(/[\u2600-\u27BF\uFE00-\uFE0F\u{1F000}-\u{1FFFF}]/gu, '')
     .replace(/\s+/g, ' ').trim()
-  
+
   const voiceName = voice || 'mimo-v2.5-tts'
   const voiceParam = overrideVoice || '冰糖'
-  
+
   // 获取小米API密钥（复用mimo模型的配置）
   let apiKey = overrideApiKey
   if (!apiKey) {
-    // 从数据库获取TTS配置（查询有mimoTtsApiKey的配置）
+    // B6：仅查询本家庭的配置，防止跨家庭消耗他人付费密钥
     const configResult = await db.collection('aiConfigs').where({
+      familyId: familyId || '',
       mimoTtsApiKey: db.command.exists(true)
     }).get()
-    
+
     if (configResult.data && configResult.data.length > 0) {
       const config = configResult.data[0]
       // 优先使用TTS专用密钥，如果没有则使用模型配置的密钥
       apiKey = config.mimoTtsApiKey || config.models?.mimo?.apiKey || ''
     }
   }
-  
+
   if (!apiKey) {
-    return { code: -1, msg: '小米API密钥未配置，请先在模型配置中设置小米模型' }
+    return { code: -1, msg: '本家庭尚未配置小米API密钥，请管理员在模型配置中设置' }
   }
-  
+
   console.log('mimoTTS调用参数:', {
     voiceName,
     voiceParam,
     apiKeyLength: apiKey.length,
-    apiKeyPrefix: apiKey.substring(0, 10) + '...',
     textLength: text.length
   })
   
@@ -1776,7 +1889,8 @@ async function saveTtsConfig(member, event) {
       updateData.baiduTtsSecretKey = baiduSecretKey.trim()
     }
     
-    console.log('saveTtsConfig准备保存的数据:', updateData)
+    // B5：只记录字段名，绝不输出密钥明文
+    console.log('saveTtsConfig准备保存的字段:', Object.keys(updateData))
     
     // 查询现有配置（使用aiConfigs集合，与模型配置共用）
     // 使用与saveConfig相同的查询条件

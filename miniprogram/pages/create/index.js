@@ -62,7 +62,8 @@ Page({
     var sales = childStorage.get('stallSales') || []
     var today = this.getTodayStr()
     var todaySalesRecords = sales.filter(function(s) { return s.date === today })
-    var todaySalesAmount = todaySalesRecords.reduce(function(sum, s) { return sum + (s.total || 0) }, 0)
+    // A12：UI 标签为「笔今日」，此处应为成交笔数而非金额合计
+    var todaySalesCount = todaySalesRecords.length
 
     // 获取AI模型信息
     var modelInfo = aiManager.getCurrentModelInfo()
@@ -85,7 +86,7 @@ Page({
 
     this.setData({
       drawingCount: drawings.length,
-      todaySales: todaySalesAmount,
+      todaySales: todaySalesCount,
       aiModelIcon: aiModelIcon,
       aiModelName: aiModelName,
       rpsGames: rpsRecords.length,

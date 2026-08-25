@@ -7,6 +7,8 @@ var auth = require('./auth.js')
 
 var CHILD_KEYS = [
   'learnProgress',
+  'learnLogs',
+  'aiCollects',
   'achievements',
   'habits',
   'habitRecords',
@@ -16,6 +18,8 @@ var CHILD_KEYS = [
   'brushingStory',
   'brushingSceneNotice',
   'brushingAvatar',
+  // H5：刷牙计时进度按孩子隔离（注册白名单后 childStorage 读写才会落到 key_childId）
+  'brushingProgress',
   'totalBrushPoints',
   'toothDecorations',
   'settings',
@@ -79,10 +83,32 @@ var CHILD_KEYS = [
 var CHILD_KEY_MAP = {}
 CHILD_KEYS.forEach(function(k) { CHILD_KEY_MAP[k] = true })
 
+// 注册白名单前，这 3 个 key 的数据存在裸 key 下；注册后读写落到 key_<childId>。
+// 为避免存量数据升级后"清零"，选中孩子首次读取时做一次性迁移（裸 key 有数据且新 key 为空）。
+// 多孩取舍（已知设计，非缺陷）：旧数据为单孩语义，升级后只能归一人——
+// 首个访问的孩子若无自有数据，裸数据迁给他并删除裸 key，其余孩子不再获得；
+// 若已有自有数据则裸 key 暂留，其余孩子需重启（重置内存标记）并先被选中才补迁。
+var LEGACY_SCOPED_KEYS = { learnLogs: true, aiCollects: true, brushingProgress: true }
+var legacyMigrated = {}
+
+function ensureLegacyScopedMigrated(key, childId) {
+  if (!LEGACY_SCOPED_KEYS[key]) return
+  if (legacyMigrated[key]) return
+  legacyMigrated[key] = true
+  var scoped = key + '_' + childId
+  var bareVal = wx.getStorageSync(key)
+  var scopedVal = wx.getStorageSync(scoped)
+  if (bareVal !== '' && bareVal !== undefined && (scopedVal === '' || scopedVal === undefined)) {
+    wx.setStorageSync(scoped, bareVal)
+    wx.removeStorageSync(key)
+  }
+}
+
 function getKey(key) {
   var childId = auth.getCurrentChildId()
   if (!CHILD_KEY_MAP[key]) return key
   if (!childId) return key
+  ensureLegacyScopedMigrated(key, childId)
   return key + '_' + childId
 }
 

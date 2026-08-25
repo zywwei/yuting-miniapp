@@ -531,7 +531,7 @@ detail.js previewImage:
 
 | 问题 | 文件 | 说明 |
 |------|------|------|
-| P1-5 安全规则缺失 | `cloudfunctions/cloudbase/database.rules.json` | 新建权限规则基线，所有集合 read/write:false（强制经云函数）；含 storage 规则建议。需在云开发控制台同步配置 |
+| P1-5 安全规则缺失 | `design/database.rules.json` | 新建权限规则基线，所有集合 read/write:false（强制经云函数）；含 storage 规则建议。需在云开发控制台同步配置。注：原置于 `cloudfunctions/cloudbase/` 下，因非可部署云函数（无 index.js/package.json）会污染部署列表，已移至 design 文档目录 |
 
 ### 经评估不改（说明原因）
 

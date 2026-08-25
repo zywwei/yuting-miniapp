@@ -1,4 +1,5 @@
 var childStorage = require('../../utils/child-storage.js')
+var cloud = require('../../utils/cloud.js')
 var learnProgress = require('./learn-progress.js')
 var modulesData = require('./modules-data.js')
 
@@ -221,6 +222,10 @@ var markAsLearned = function(module, itemId) {
     childStorage.set('learnProgress', progress)
     // P1-13：写入学习日志，激活 stats 连续天数与 history 页（此前 addLearnLog 零调用）
     learnProgress.addLearnLog(module, itemId, 'learn')
+    // F2：与 modules-data 版本对齐——进度上云，否则这批科目换设备丢进度
+    cloud.uploadLearnProgress(progress).catch(function(err) {
+      console.warn('学习进度同步失败:', err)
+    })
   }
   return progress[module][itemId]
 }
