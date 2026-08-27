@@ -11,6 +11,11 @@ var poemsData = require('./poems-data.js')
 
 // ===== 进度管理 =====
 var getProgress = function() {
+  // P1 修复：迁移挂到按孩子触发的必经入口（此前挂在 english-data 模块顶层，
+  // CommonJS 缓存使整个生命周期只执行一次，多孩家庭仅首个孩子被迁移）。
+  // migrate 内部有按孩子隔离的 DONE_FLAG 守卫，重复调用 O(1) 早退。
+  require('./english-migrate.js').migrate()
+
   var learnProgress = childStorage.get('learnProgress') || {}
   return {
     cards: learnProgress.cards || {},

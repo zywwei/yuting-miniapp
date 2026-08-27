@@ -35,13 +35,15 @@
 
     <view class="board-wrap"><canvas type="2d" id="adventureCanvas" class="board-canvas" style="width:{{boardWidth}}px;height:{{boardHeight}}px"></canvas></view>
 
-    <view class="items-bar">
+    <!-- P1 修复：catch 阻断 touch 冒泡——否则点任意按钮时 touchend 会冒泡到
+         根容器的左右半区「点按即移动」判定，导致每点一次按钮方块多移一格 -->
+    <view class="items-bar" catchtouchstart="noop" catchtouchend="noop">
       <view class="itb {{items.bomb>0?'':'off'}}" bindtap="useBomb"><text>💣</text><text class="it-c">{{items.bomb}}</text></view>
       <view class="itb {{items.freeze>0?'':'off'}}" bindtap="useFreeze"><text>🧊</text><text class="it-c">{{items.freeze}}</text></view>
       <view class="itb {{items.rainbow>0?'':'off'}}" bindtap="useRainbow"><text>🌈</text><text class="it-c">{{items.rainbow}}</text></view>
     </view>
 
-    <view class="btn-bar">
+    <view class="btn-bar" catchtouchstart="noop" catchtouchend="noop">
       <view class="btn-row">
         <view class="btn" bindtap="holdCurrentPiece"><text class="btn-t">暂存</text></view>
         <view class="btn" bindtap="moveLeft"><text class="btn-a">◀</text></view>

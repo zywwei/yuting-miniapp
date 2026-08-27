@@ -575,6 +575,10 @@ Page({
     ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
   },
 
+  // P1 修复配套：items-bar/btn-bar 容器以 catchtouch* 调用此空处理器阻断冒泡，
+  // 防止点按钮时 touchend 冒泡到根容器被误判为「左右半区点按移动」
+  noop: function () {},
+
   onTouchStart: function (e) {
     this.touchStartX = e.touches[0].clientX
     this.touchStartY = e.touches[0].clientY

@@ -294,7 +294,10 @@ var ACHIEVEMENTS = [
     condition: function(data) { return data.unlockedCount >= 15 },
     progress: function(data) { return Math.min(data.unlockedCount, 15) }, maxProgress: 15 },
   { id: 'legend', icon: '👑', title: '传说之子', desc: '解锁全部成就', category: 'special', rarity: 'legendary',
-    condition: function(data) { return data.unlockedCount >= ACHIEVEMENTS.length },
+    // P1 修复：检查 legend 自身时 unlockedCount 最大只能到 总数-1（自身尚未计入），
+    // 原条件 `>= ACHIEVEMENTS.length` 永假，属自引用死锁；改为 >= 总数-1
+    // （super_star 因阈值 15 远小于总数不受影响）
+    condition: function(data) { return data.unlockedCount >= ACHIEVEMENTS.length - 1 },
     progress: function(data) { return Math.min(data.unlockedCount, ACHIEVEMENTS.length) }, maxProgress: 0 }
 ]
 

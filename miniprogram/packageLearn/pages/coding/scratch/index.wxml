@@ -1,16 +1,12 @@
 <view class="container">
   <view class="header"><view class="header-title">Scratch入门</view><view class="header-desc">图形化编程</view></view>
   <view class="project-list">
-    <view wx:for="{{projects}}" wx:key="id" class="project-item">
+    <view wx:for="{{items}}" wx:key="id" class="project-item" bindtap="goDetail" data-id="{{item.id}}">
       <view class="project-header">
-        <view class="project-title">{{item.title}}</view>
-        <view class="project-difficulty">难度：{{item.difficulty}}</view>
+        <view class="project-title">{{item.no}}. {{item.title}}</view>
+        <view class="project-difficulty">{{item.tag}}{{item.learned ? ' · 已学' : ''}}</view>
       </view>
       <view class="project-desc">{{item.desc}}</view>
-      <view class="project-blocks">
-        <view class="blocks-title">用到的积木：</view>
-        <view wx:for="{{item.blocks}}" wx:for-item="block" wx:key="*this" class="block-item">{{block}}</view>
-      </view>
     </view>
   </view>
 </view>

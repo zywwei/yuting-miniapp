@@ -76,7 +76,9 @@ var CHILD_KEYS = [
   'deletedBookIds',
   'deletedEntryIds',
   // 单例数据迁移标志（按孩子隔离，确保每个孩子只迁移一次）
-  'singletonMigratedV2'
+  'singletonMigratedV2',
+  // C2 配套：英语词库 id 重排后的进度迁移标志（按孩子隔离）
+  'englishMigrateV2Flag'
 ]
 
 // O(1) 查找表

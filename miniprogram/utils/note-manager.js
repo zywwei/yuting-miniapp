@@ -48,7 +48,11 @@ var addNote = function(note) {
   notes.unshift(newNote)
   childStorage.set('notes', notes)
 
-  cloud.uploadNote(newNote).catch(function() {})
+  // 上传失败（如图片落盘 reject）不影响本地已保存的笔记：
+  // 记录保持 synced:false，后续 fetchNotes 的 selfHealRecords 会自动补传
+  cloud.uploadNote(newNote).catch(function(err) {
+    console.warn('[note-manager] 笔记上云失败，等待自愈补传:', err)
+  })
 
   return newNote
 }
@@ -160,7 +164,11 @@ var searchNotes = function(options, notesList) {
   })
   
   // 排序
+  // P1 修复：置顶优先稳定分组——此前只按 createTime 排序完全丢弃 pinned，
+  // 列表页 loadNotes 先做的置顶排序会被本函数（applyFilter 必经）覆盖，
+  // 导致「置顶」从未真正生效
   filtered.sort(function(a, b) {
+    if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1
     var timeA = new Date(a.createTime).getTime()
     var timeB = new Date(b.createTime).getTime()
     return sortOrder === 'desc' ? timeB - timeA : timeA - timeB

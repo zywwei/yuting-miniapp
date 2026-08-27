@@ -1,13 +1,10 @@
 <view class="container">
   <view class="header"><view class="header-title">算法基础</view><view class="header-desc">学习常见算法</view></view>
   <view class="algorithm-list">
-    <view wx:for="{{algorithms}}" wx:key="id" class="algorithm-item">
-      <view class="algorithm-name">{{item.name}}</view>
+    <view wx:for="{{items}}" wx:key="id" class="algorithm-item" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="algorithm-name">{{item.no}}. {{item.title}}</view>
       <view class="algorithm-desc">{{item.desc}}</view>
-      <view class="algorithm-steps">
-        <view wx:for="{{item.steps}}" wx:for-item="step" wx:key="*this" class="step-item">{{index + 1}}. {{step}}</view>
-      </view>
-      <view class="algorithm-complexity">时间复杂度：{{item.timeComplexity}}</view>
+      <view class="algorithm-complexity">{{item.tag}}{{item.learned ? ' · 已学' : ''}}</view>
     </view>
   </view>
 </view>

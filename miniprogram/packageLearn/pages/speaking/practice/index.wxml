@@ -1,16 +1,11 @@
 <view class="container">
   <view class="header"><view class="header-title">口语练习</view><view class="header-desc">提升口语能力</view></view>
   <view class="exercise-list">
-    <view wx:for="{{exercises}}" wx:key="id" class="exercise-item">
-      <view class="exercise-type">{{item.type}}</view>
-      <view class="exercise-text">{{item.text}}</view>
-      <view class="exercise-phonetic" wx:if="{{item.phonetic}}">{{item.phonetic}}</view>
-      <view class="exercise-meaning">{{item.meaning}}</view>
-      <view class="exercise-example" wx:if="{{item.example}}">
-        <view class="example-title">示例：</view>
-        <view class="example-text">{{item.example}}</view>
-      </view>
-      <view class="audio-btn" bindtap="playAudio">🔊 播放</view>
+    <view wx:for="{{items}}" wx:key="id" class="exercise-item" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="exercise-type">{{item.tag}}{{item.learned ? ' · 已学' : ''}}</view>
+      <view class="exercise-text">{{item.no}}. {{item.title}}</view>
+      <view class="exercise-meaning">{{item.desc}}</view>
+      <view class="audio-btn" catchtap="playAudio">🔊 播放</view>
     </view>
   </view>
 </view>

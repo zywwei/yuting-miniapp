@@ -1,17 +1,28 @@
-var learnData = require('../../../utils/learn-data.js')
+var listAdapter = require('../../../utils/list-adapter.js')
 
 Page({
   data: {
-    skills: [
-      { id: 'ss01', name: '跑步技巧', desc: '正确的跑步姿势和呼吸方法', steps: ['身体稍微前倾', '手臂自然摆动', '脚掌先着地', '保持均匀呼吸'] },
-      { id: 'ss02', name: '跳绳技巧', desc: '跳绳的基本方法和花样', steps: ['手腕发力', '双脚并拢跳', '保持节奏', '逐渐加速'] }
-    ]
+    items: [],
+    learnedCount: 0,
+    totalCount: 0
   },
 
-  onLoad: function() {},
+  onLoad: function() {
+    this.loadData()
+  },
+
+  onShow: function() {
+    this.loadData()
+  },
+
+  loadData: function() {
+    // C3：数据源收口到 modules-data（此前内置演示数据与详情页不同源）
+    this.setData(listAdapter.loadList('sports-skills'))
+  },
 
   markAsLearned: function(e) {
     var id = e.currentTarget.dataset.id
+    var learnData = require('../../../utils/learn-data.js')
     learnData.markAsLearned('sportsSkills', id)
     wx.showToast({ title: '已学会', icon: 'success' })
   },

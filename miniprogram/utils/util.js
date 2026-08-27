@@ -172,8 +172,13 @@ var saveImageToPersistent = function(tempFilePath, prefix) {
     if (prefix === 'drawing') {
       var drawings = getDrawings()
 
-      if (drawings.length >= 50) {
-        var toRemove = drawings.slice(45)
+      // P1 修复：仅淘汰「已同步」的旧画作。未同步（离线创作/队列积压中）的记录
+      // 一旦被删，其自愈补传将永久失去载体（见下方 C4 注释），LRU 必须跳过；
+      // 仅当已同步数量本身超限时，才在已同步集合内部裁剪到 45 张。
+      var deletable = drawings.filter(function (d) { return d.synced || !!d.lastSyncAt })
+
+      if (deletable.length >= 50) {
+        var toRemove = deletable.slice(45)
         var cleanedIds = {}
         toRemove.forEach(function(d) {
           try {

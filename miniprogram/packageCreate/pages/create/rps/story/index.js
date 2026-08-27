@@ -44,6 +44,9 @@ Page({
     var progress = rpsManager.getStoryProgress()
     var chapterIndex = progress.currentChapter - 1
 
+    // 新章节开始：解除章节结算锁（见 victory/defeat 的重入保护）
+    this._chapterSettled = false
+
     // 通关检测：所有章节完成后进入结局
     if (chapterIndex >= rpsManager.STORY_CHAPTERS.length) {
       this.setData({
@@ -106,6 +109,10 @@ Page({
   startBattle: function() {
     beep.playBeep('start')
 
+    // 解除章节结算锁：retryBattle（失败→再试一次）不经过 loadStory，
+    // 若只在 loadStory 复位，重试获胜时 victory 会被残留的锁拦截，章节永久卡死
+    this._chapterSettled = false
+
     // 检查拥有的道具
     var playerItems = rpsManager.getPlayerItems()
 
@@ -136,6 +143,11 @@ Page({
   useSkipCard: function() {
     if (!this.data.hasSkipCard || this.data.isAnimating) return
 
+    // P1 修复：跳过结算的 1s 窗口内必须锁定出拳——否则玩家出拳再获胜时，
+    // 本回调与 playerChoice 的结算回调会并发执行两次 victory/defeat
+    // （章节连跳 2 级、奖励金币双倍、战绩重复入库）
+    this.setData({ isAnimating: true })
+
     rpsManager.useItem('skip', this.data.storyProgress)
 
     var battleHistory = this.data.battleHistory.concat([{
@@ -157,7 +169,7 @@ Page({
 
     var that = this
     setTimeout(function() {
-      that.setData({ roundResult: '' })
+      that.setData({ roundResult: '', isAnimating: false })
       // 检查是否需要继续
       if (that.data.player1Wins >= that.data.chapterInfo.winsRequired) {
         that.victory()
@@ -267,6 +279,10 @@ Page({
   },
 
   victory: function() {
+    // P1 修复：章节结算重入保护——跳过卡与出拳的回调若并发到达，
+    // 只允许第一次执行结算，防止章节连跳与奖励双发
+    if (this._chapterSettled) return
+    this._chapterSettled = true
     var progress = this.data.storyProgress
     var currentChapter = progress.currentChapter
     progress.defeatedEnemies.push(this.data.chapterInfo.enemy)
@@ -331,8 +347,13 @@ Page({
   },
 
   defeat: function() {
+    // P1 修复：与 victory 相同的章节结算重入保护（护盾抵消不消耗结算次数）
+    if (this._chapterSettled) return
+    this._chapterSettled = true
     // 护盾效果：失败时抵消，不扣失败次数
     if (this.useShieldEffect()) {
+      // 护盾抵消后本局重新可操作，解除结算锁
+      this._chapterSettled = false
       beep.playBeep('tick')
       wx.showToast({ title: '🛡️ 护盾抵消了失败！', icon: 'none' })
       return

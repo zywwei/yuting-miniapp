@@ -1,15 +1,14 @@
 <view class="container">
   <view class="header"><view class="header-title">文言文</view><view class="header-desc">学习经典古文</view></view>
   <view class="classics-list">
-    <view wx:for="{{classics}}" wx:key="id" class="classic-item">
+    <view wx:for="{{items}}" wx:key="id" class="classic-item" bindtap="goDetail" data-id="{{item.id}}">
       <view class="classic-header">
-        <view class="classic-title">{{item.title}}</view>
-        <view class="classic-source">《{{item.source}}》</view>
+        <view class="classic-title">{{item.no}}. {{item.title}}</view>
+        <view class="classic-source" wx:if="{{item.tag}}">{{item.tag}}{{item.learned ? ' · 已学' : ''}}</view>
       </view>
-      <view class="classic-content">{{item.content}}</view>
       <view class="classic-meaning">
         <view class="meaning-label">译文：</view>
-        <view class="meaning-text">{{item.meaning}}</view>
+        <view class="meaning-text">{{item.desc}}</view>
       </view>
     </view>
   </view>

@@ -22,7 +22,7 @@
         bindtap="switchCategory"
         data-category="{{item.id}}"
       >
-        {{item.icon}} {{item.name}}
+        {{item.name}}
       </view>
     </view>
   </scroll-view>
@@ -30,24 +30,28 @@
   <!-- 公式列表 -->
   <view class="formula-list">
     <view
-      wx:for="{{formulas}}"
+      wx:for="{{items}}"
       wx:key="id"
       class="formula-item"
       bindtap="showFormulaDetail"
-      data-formula="{{item}}"
+      data-id="{{item.id}}"
     >
-      <view class="formula-title">{{item.title}}</view>
-      <view class="formula-preview">{{item.formula}}</view>
-      <view class="formula-grade">适用年级：{{item.grade}}年级</view>
+      <view class="formula-title">{{item.no}}. {{item.title}}{{item.learned ? ' ✓' : ''}}</view>
+      <view class="formula-preview">{{item.desc}}</view>
+      <view class="formula-grade" wx:if="{{item.tag}}">{{item.tag}}</view>
     </view>
   </view>
 
   <!-- 公式详情弹窗 -->
-  <view class="modal-mask" wx:if="{{showDetail}}" bindtap="hideDetail">
+  <view class="modal-mask" wx:if="{{showDetail && currentFormula}}" bindtap="hideDetail">
     <view class="modal-content" catchtap="">
       <view class="modal-title">{{currentFormula.title}}</view>
       <view class="modal-formula">{{currentFormula.formula}}</view>
-      <view class="modal-explanation">{{currentFormula.explanation}}</view>
+      <view class="modal-explanation" wx:if="{{currentFormula.explanation}}">{{currentFormula.explanation}}</view>
+      <view class="modal-section" wx:if="{{currentFormula.grade}}">
+        <view class="section-title">适用年级</view>
+        <view class="tip-item">{{currentFormula.grade}}年级</view>
+      </view>
 
       <view class="modal-section" wx:if="{{currentFormula.variables}}">
         <view class="section-title">变量说明</view>
@@ -75,6 +79,7 @@
 
       <view class="modal-actions">
         <view class="modal-btn" bindtap="markAsLearned" data-id="{{currentFormula.id}}">标记为已学会</view>
+        <view class="modal-btn" bindtap="goDetail" data-id="{{currentFormula.id}}">查看详情</view>
         <view class="modal-btn close" bindtap="hideDetail">关闭</view>
       </view>
     </view>

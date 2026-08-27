@@ -164,8 +164,16 @@ function createQuiz(module, quizType, count) {
   // 题库不足以出选择题（少于 4 条无法凑齐选项）时返回空卷，页面按无题处理，不再抛错
   var usable = source.length >= 4 ? source : []
   var questions = []
+  var usedCards = []
   for (var i = 0; i < count && usable.length > 0; i++) {
-    var card = usable[Math.floor(Math.random() * usable.length)]
+    // M 修复：同一份卷内不放回抽题——原实现有放回，短题库会出重复词条
+    var card = null
+    for (var t = 0; t < usable.length && !card; t++) {
+      var cand = usable[Math.floor(Math.random() * usable.length)]
+      if (usedCards.indexOf(cand) < 0) card = cand
+    }
+    if (!card) break
+    usedCards.push(card)
     questions.push(buildQuestion(usable, card, module, quizType))
   }
   return { module: module, quizType: quizType, questions: questions, currentIndex: 0, correctCount: 0, startedAt: Date.now() }

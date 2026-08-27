@@ -100,6 +100,9 @@ Page({
   },
 
   selectBet: function(e) {
+    // P1 修复：转轮动画期间改押注会导致「按新注额计奖、按旧注额扣款」的错账
+    // （spin 开始时已按旧额扣款，calculateResult 读的是被改后的 betAmount）
+    if (this.data.isSpinning) return
     var amount = parseInt(e.currentTarget.dataset.amount)
     this.setData({ betAmount: amount })
   },
@@ -201,6 +204,8 @@ Page({
   },
 
   calculateResult: function(reels) {
+    // M 修复：押注额以 spin 发起时登记的 _pendingBet 为准（selectBet 守卫之外的最后防线）
+    var betAmount = (this._pendingBet != null) ? this._pendingBet : this.data.betAmount
     var s1 = reels[0], s2 = reels[1], s3 = reels[2]
     var key = s1 + s2 + s3
 
@@ -212,14 +217,14 @@ Page({
           type: 'three_same',
           name: payout.name,
           multiplier: payout.multiplier,
-          winAmount: this.data.betAmount * payout.multiplier
+          winAmount: betAmount * payout.multiplier
         }
       }
       return {
         type: 'three_same',
         name: '中奖',
         multiplier: 3,
-        winAmount: this.data.betAmount * 3
+        winAmount: betAmount * 3
       }
     }
 
@@ -229,7 +234,7 @@ Page({
         type: 'two_same',
         name: '小奖',
         multiplier: 2,
-        winAmount: this.data.betAmount * 2
+        winAmount: betAmount * 2
       }
     }
 

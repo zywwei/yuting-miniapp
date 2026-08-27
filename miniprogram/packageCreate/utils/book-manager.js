@@ -1,6 +1,7 @@
 var childStorage = require('../../utils/child-storage.js')
 var cloud = require('../../utils/cloud.js')
 var auth = require('../../utils/auth.js')
+var syncQueue = require('../../utils/sync-queue.js')
 
 var BOOKS_KEY = 'accountBooks'
 var ENTRIES_KEY = 'accountEntries'
@@ -249,7 +250,7 @@ function addEntry(entry) {
   return entry
 }
 
-async function uploadEntryImages(entry) {
+async function uploadEntryImages(entry, cloudPathPrefix, skipLocalWrite) {
   var images = []
   for (var i = 0; i < entry.images.length; i++) {
     var img = entry.images[i]
@@ -257,7 +258,9 @@ async function uploadEntryImages(entry) {
       images.push(img)
     } else if (img) {
       try {
-        var cloudPath = 'account/' + entry.id + '_' + i + '.jpg'
+        // P1 修复：支持自定义前缀——overwrite 补传的旧账目与导入条目可能同 id，
+        // 固定路径会把导入数据引用的云图覆盖成旧图
+        var cloudPath = (cloudPathPrefix || ('account/' + entry.id + '_')) + i + '.jpg'
         var res = await wx.cloud.uploadFile({ cloudPath: cloudPath, filePath: img })
         images.push(res.fileID)
       } catch (e) {
@@ -267,14 +270,19 @@ async function uploadEntryImages(entry) {
     }
   }
   entry.images = images
-  var entries = childStorage.get(ENTRIES_KEY) || []
-  for (var j = 0; j < entries.length; j++) {
-    if (entries[j].id === entry.id) {
-      entries[j].images = images
-      break
+  // P1 修复（I-2 第四轮）：overwrite 补传路径传 skipLocalWrite 跳过本地回写——
+  // 补传链在覆盖落盘之后异步完成，按 id 回写会把导入数据中同 id 条目的
+  // images 替换成旧条目刚上传的 orphan 云图（字段级竞态）
+  if (!skipLocalWrite) {
+    var entries = childStorage.get(ENTRIES_KEY) || []
+    for (var j = 0; j < entries.length; j++) {
+      if (entries[j].id === entry.id) {
+        entries[j].images = images
+        break
+      }
     }
+    childStorage.set(ENTRIES_KEY, entries)
   }
-  childStorage.set(ENTRIES_KEY, entries)
   return entry
 }
 
@@ -927,6 +935,53 @@ function exportBackup(bookId) {
 
 function importBackup(data, mode) {
   if (mode === 'overwrite') {
+    // P1 修复：overwrite 整库替换会把本机「未同步」的账本/账目直接丢弃，
+    // 其云端补传载体随之消失、数据永久丢失。覆盖前先把未同步条目推上云
+    // （createUploader 失败时自动入 syncQueue 重试），确保云端保有完整历史后
+    // 本地再按用户意图执行覆盖。
+    var oldBooks = getBooks()
+    for (var oi = 0; oi < oldBooks.length; oi++) {
+      if (!oldBooks[oi].synced) cloud.uploadAccountBook(oldBooks[oi])
+    }
+    var oldEntries = childStorage.get(ENTRIES_KEY) || []
+    for (var oj = 0; oj < oldEntries.length; oj++) {
+      if (!oldEntries[oj].synced) {
+        // P1 修复：先走 uploadEntryImages 把本地图片路径转为 cloud:// 再上传条目，
+        // 否则本地路径被服务端 sanitizeMediaFields 清洗掉，其他设备图片失效
+        // （与 addEntry 的两阶段模式一致）。
+        // 用深拷贝上传：避免补传链对源条目的任何引用突变
+        var snapshot = JSON.parse(JSON.stringify(oldEntries[oj]))
+        // I-2：一次性前缀避免与本机/备份同 id 条目的云图路径碰撞；
+        // skipLocalWrite 跳过按 id 回写（覆盖落盘后回写会污染导入数据的 images）
+        uploadEntryImages(snapshot, 'account/orphan_' + Date.now() + '_' + oj + '_', true).then(function(uploaded) {
+          // P1 修复（I-2 第三轮）：必须直传云端——cloud.uploadBookEntry 内部
+          // createUploader 会先把条目 unshift 回本地 ENTRIES_KEY，导致 overwrite
+          // 清空的旧账目在新数据集中「复活」、同 id 时旧字段污染导入数据。
+          // 失败入 syncQueue，flush 重放同样只发云端不回写本地。
+          // P1 修复（P3-1）：data 携带 _id 走自指定 _id 的幂等 upsert——
+          // 无 _id 时 record 的 add 按 id 查重短路（命中返回 duplicated 不更新），
+          // 离线编辑过的条目（云端已有旧版文档）最新版本会被旧版顶掉。
+          // P1 修复（P3-4）：isCloudReady 前置 + 外层 catch——wx.cloud 缺失时
+          // callFunction 同步 throw，无兜底则未同步条目直接丢失
+          var payload = Object.assign({ _id: uploaded.id }, uploaded)
+          if (!cloud.isCloudReady()) {
+            syncQueue.enqueue({ id: uploaded.id, action: 'add', collection: 'bookEntries', data: payload })
+            return
+          }
+          wx.cloud.callFunction({
+            name: 'record',
+            data: { familyId: auth.getCurrentFamilyId(), action: 'add', collection: 'bookEntries', data: payload }
+          }).catch(function(err) {
+            console.warn('[book-manager] overwrite 补传失败，入队重试:', err)
+            syncQueue.enqueue({ id: uploaded.id, action: 'add', collection: 'bookEntries', data: payload })
+            syncQueue.flush()
+          })
+        }).catch(function(err) {
+          console.warn('[book-manager] overwrite 补传图片转换异常，该条目未能保全到云端:', err)
+        })
+      }
+    }
+
     var books = data.books || []
     var entries = data.entries || []
     for (var i = 0; i < books.length; i++) books[i].synced = false

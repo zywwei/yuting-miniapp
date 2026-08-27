@@ -181,9 +181,38 @@ Component({
         if (res.result.code === 0) {
           this.loadComments()
           this.triggerEvent('commentAdded')
+        } else {
+          // 业务失败：与文本评论 A10 同样处理，避免幽灵评论常驻
+          wx.showToast({ title: res.result.msg || '评论发送失败', icon: 'none' })
         }
       } catch (err) {
-        console.warn('图片评论失败，已入队等待重试:', err)
+        // P1 修复补充：catch 覆盖了选图/上传/调云三段，必须区分处理——
+        // ① 用户取消选图（errMsg 含 cancel）：静默返回，不提示不入队
+        var errMsg = (err && err.errMsg) || ''
+        if (errMsg.indexOf('cancel') >= 0) return
+        console.warn('图片评论失败:', err)
+        // ② 图片未上传成功（无合法 fileID）：入队会产生空图脏数据，提示重试
+        if (typeof fileID !== 'string' || fileID.indexOf('cloud://') !== 0) {
+          wx.showToast({ title: '图片上传失败，请重试', icon: 'none' })
+          return
+        }
+        // ③ 图片已上传成功但评论接口失败：入队等待联网重试
+        // （flush 的业务码校验/重试机制已覆盖 addComment）
+        syncQueue.enqueue({
+          id: 'imgcomment_' + Date.now(),
+          action: 'addComment',
+          collection: 'comments',
+          funcName: 'interaction',
+          extra: {
+            targetType: this.data.targetType,
+            targetId: this.data.targetId,
+            childId: this.data.childId,
+            content: '',
+            type: 'image',
+            imageFileId: typeof fileID === 'string' ? fileID : ''
+          }
+        })
+        syncQueue.flush()
         wx.showToast({ title: '图片评论将在联网后发送', icon: 'none' })
       }
     },

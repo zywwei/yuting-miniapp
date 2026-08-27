@@ -1,7 +1,8 @@
-var learnData = require('../../../utils/learn-data.js')
+var listAdapter = require('../../../utils/list-adapter.js')
 
 Page({
   data: {
+    // 交互式练习
     practiceTypes: [
       { id: 'addition', name: '加法练习', icon: '➕', difficulty: 1 },
       { id: 'subtraction', name: '减法练习', icon: '➖', difficulty: 1 },
@@ -19,11 +20,27 @@ Page({
     isCorrect: false,
     score: 0,
     totalQuestions: 0,
-    currentQuestionIndex: 0
+    currentQuestionIndex: 0,
+    // 题目列表
+    items: [],
+    learnedCount: 0,
+    totalCount: 0
   },
 
-  onLoad: function() {},
+  onLoad: function() {
+    this.loadList()
+  },
 
+  onShow: function() {
+    this.loadList()
+  },
+
+  loadList: function() {
+    // C3：数据源统一收口到 modules-data（题目列表 + 详情跳转）
+    this.setData(listAdapter.loadList('math-practice'))
+  },
+
+  // ===== 交互式练习 =====
   selectType: function(e) {
     var type = e.currentTarget.dataset.type
     this.setData({

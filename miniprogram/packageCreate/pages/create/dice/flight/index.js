@@ -154,7 +154,15 @@ Page({
     var itemId = e.currentTarget.dataset.id
     var item = items.getItem(itemId)
     if (!item) return
-    
+
+    // P1 修复：道具面板是普通卡片非全屏遮罩，摇骰动画/选机阶段仍可点击；
+    // 动画中使用「遥控骰」会并发触发第二个 afterMove→movePlane，
+    // 一回合双动、状态互相覆盖
+    if (this.data.isAnimating || this.data.showPlaneSelector) {
+      wx.showToast({ title: '请等待当前回合完成', icon: 'none' })
+      return
+    }
+
     var gameState = this.data.gameState
     var player = gameState.players[gameState.currentPlayer]
     
@@ -639,6 +647,11 @@ Page({
 
   rollDice: function() {
     if (this.data.isAnimating) return
+    // P1 修复：结果页在途 AI 回合链到此终止，防止后台空转与「再来一局」污染新局。
+    // 双查 gameState.phase（与 nextTurn 守卫对齐）：掷 6 结束游戏时 showRollAgain
+    // 按钮与 1s 后的结算并存，data.phase 要等 showResult 才置 'result'，
+    // 仅查 data 会留一个多余摇骰的越守卫窗口
+    if (this.data.phase === 'result' || (this.data.gameState && this.data.gameState.phase === 'result')) return
 
     var that = this
     this.setData({ isAnimating: true, isRolling: true, showRollButton: false })
@@ -666,8 +679,9 @@ Page({
         if (that.soundEnabled) {
           beep.playBeep('diceSettle')
         }
-        
-        this._schedule(function() {
+
+        // setInterval 回调内 this 不指向 Page 实例，必须用闭包 that（同 moveStep 注释）
+        that._schedule(function() {
           that.afterRoll(diceValue)
         }, 300)
       }
@@ -751,16 +765,25 @@ Page({
 
   movePlane: function(planeIndex) {
     var that = this
+    // P1 修复：起飞逐格动画约 500ms 内 movablePlanes 高亮未清空，
+    // 连点停机坪另一架飞机会二次进入本函数，一次掷骰起飞两架、回合链错乱。
+    // 注意不能用 isAnimating 做守卫：它从 rollDice 起置位、到 afterMove/nextTurn
+    // 才复位，贯穿选机阶段，用它会把人机所有正常移动全部拦截（首次摇骰即软锁）
+    if (this._moving) return
+    this._moving = true
     var gameState = this.data.gameState
     var player = gameState.players[gameState.currentPlayer]
     var plane = player.planes[planeIndex]
     var diceValue = this.data.diceValue
-    
-    this.setData({ 
+
+    this.setData({
       isAnimating: true,
       showPlaneSelector: false,
+      movablePlanes: [],
       turnHint: '移动中...'
     })
+    // 同步清掉停机坪高亮，防止动画期间连点另一架可移动飞机
+    this.updateMovablePlanes([])
     
     // 计算新位置
     var newPos = engine.calcNewPosition(plane, diceValue, player.color)
@@ -848,14 +871,19 @@ Page({
     var plane = player.planes[planeIndex]
     
     // 检查撞机
-    var knockResult = engine.checkKnock(gameState, gameState.currentPlayer, plane.position)
-    if (knockResult.knocked) {
-      if (this.soundEnabled) {
-        beep.playBeep('planeKnock')
+    // P1 修复：四色终点跑道共用 52-55 数值空间但物理上相互独立，
+    // 缺少主赛道过滤会把「自己终点跑道第 N 格」误判为对手主赛道同数值格，
+    // 造成进入终点跑道即假撞机（与引擎 executeMove 内的过滤保持一致）
+    if (plane.position < 52) {
+      var knockResult = engine.checkKnock(gameState, gameState.currentPlayer, plane.position)
+      if (knockResult.knocked) {
+        if (this.soundEnabled) {
+          beep.playBeep('planeKnock')
+        }
+
+        this.planesKnockedCount++
+        this.setData({ turnHint: '撞机！' })
       }
-      
-      this.planesKnockedCount++
-      this.setData({ turnHint: '撞机！' })
     }
     
     // 检查特殊格子
@@ -888,6 +916,7 @@ Page({
     
     // 检查是否可以再掷一次
     if (engine.canRollAgain(diceValue)) {
+      this._moving = false
       this.setData({
         showRollAgain: true,
         showDice: true,
@@ -910,9 +939,13 @@ Page({
 
   nextTurn: function() {
     var gameState = this.data.gameState
+    // P1 修复：游戏已结束时不再推进回合（showResult 与 nextTurn 双调度时，
+    // 在途回调在此终止；AI 自动摇骰链随之断开，不再后台空转）
+    if (this.data.phase === 'result' || gameState.phase === 'result') return
     var nextPlayerIndex = engine.nextPlayer(gameState)
     var nextPlayer = gameState.players[nextPlayerIndex]
-    
+
+    this._moving = false
     this.setData({
       gameState: gameState,
       showRollAgain: false,

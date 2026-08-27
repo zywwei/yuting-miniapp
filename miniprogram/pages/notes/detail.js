@@ -468,10 +468,11 @@ Page({
       canvas: canvas,
       x: 0,
       y: 0,
-      width: 600,
-      height: 800,
-      destWidth: 600,
-      destHeight: 800,
+      // type=2d 画布的截取区按物理像素计算，需与绘制缓冲区（600*dpr）对齐，否则高分屏只导出左上局部
+      width: canvas.width,
+      height: canvas.height,
+      destWidth: canvas.width,
+      destHeight: canvas.height,
       success: function(res) {
         wx.hideLoading()
         wx.saveImageToPhotosAlbum({

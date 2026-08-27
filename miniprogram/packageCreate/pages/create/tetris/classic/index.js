@@ -728,6 +728,11 @@ Page({
   loadGame: function () {
     var save = childStorage.get('tetrisSave')
     if (!save || !save.board) return false
+    // P1 修复：消行动画窗口内（lockPiece 已置 _currentPiece=null 的约 300ms）
+    // 触发 pauseGame/onHide 存盘会写入 currentPiece:null 的坏存档，直接恢复后
+    // gameLoop 遇空永久 return、方块不再生成，「继续游戏」必然卡死。
+    // 此类存档一律判无效，走全新开局。
+    if (!save.currentPiece) return false
     // 验证 board 数据完整性
     if (save.board.length !== ROWS) return false
     for (var r = 0; r < ROWS; r++) {

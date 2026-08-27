@@ -249,31 +249,40 @@ Page({
   calcStreak: function(drawings) {
     if (drawings.length === 0) return 0
 
+    // P1 修复：原实现日期键不补零（'2026-1-9' 与 '2026-10-8' 字典序排序错乱），
+    // 且 new Date('YYYY-M-D') 在 iOS JSCore 返回 Invalid Date 导致 diff=NaN，
+    // 连续天数恒为 0 或 1。改为补零键 + 按年月日分量构造 Date 比较。
+    function dayKey(ts) {
+      var d = new Date(ts)
+      return d.getFullYear() + '-' +
+        ('0' + (d.getMonth() + 1)).slice(-2) + '-' +
+        ('0' + d.getDate()).slice(-2)
+    }
+    function toDate(key) {
+      var parts = key.split('-')
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+    }
+
     // 获取所有创作日期（去重）
     var dateSet = {}
     drawings.forEach(function(d) {
-      var date = new Date(d.createTime)
-      var key = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate()
-      dateSet[key] = true
+      dateSet[dayKey(d.createTime)] = true
     })
     var dates = Object.keys(dateSet).sort().reverse()
 
-    // 检查是否今天有创作
+    // 如果今天和昨天都没有创作，连续天数为0
     var today = new Date()
-    var todayKey = today.getFullYear() + '-' + today.getMonth() + '-' + today.getDate()
     var yesterday = new Date(today)
     yesterday.setDate(yesterday.getDate() - 1)
-    var yesterdayKey = yesterday.getFullYear() + '-' + yesterday.getMonth() + '-' + yesterday.getDate()
 
-    // 如果今天和昨天都没有创作，连续天数为0
-    if (dates[0] !== todayKey && dates[0] !== yesterdayKey) {
+    if (dates[0] !== dayKey(today.getTime()) && dates[0] !== dayKey(yesterday.getTime())) {
       return 0
     }
 
     var streak = 1
     for (var i = 0; i < dates.length - 1; i++) {
-      var current = new Date(dates[i])
-      var next = new Date(dates[i + 1])
+      var current = toDate(dates[i])
+      var next = toDate(dates[i + 1])
       var diff = (current - next) / (1000 * 60 * 60 * 24)
 
       if (diff === 1) {

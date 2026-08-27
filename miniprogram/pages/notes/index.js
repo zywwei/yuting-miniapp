@@ -375,13 +375,14 @@ Page({
 
     var page = this.data.currentPage
     var displayed = filtered.slice(0, page * PAGE_SIZE)
-    
+
     // 设置按月分组标题
     var lastMonth = ''
+    var that = this
     displayed.forEach(function(note) {
       var noteDate = new Date(note.createTime)
       var monthKey = noteDate.getFullYear() + '-' + (noteDate.getMonth() + 1)
-      
+
       if (monthKey !== lastMonth) {
         note._showMonthHeader = true
         note._monthLabel = noteDate.getFullYear() + '年' + (noteDate.getMonth() + 1) + '月'
@@ -390,6 +391,11 @@ Page({
         note._showMonthHeader = false
         note._monthLabel = ''
       }
+
+      // P1 修复：高亮分段仅在 loadNotes 时按「当时」的 searchKeyword 生成，
+      // 输入关键词后 applyFilter 不重算，导致搜索高亮永不出现——随每次过滤重算
+      note._titleHighlight = that._highlightText(note._titlePreview || '', that.data.searchKeyword)
+      note._contentHighlight = that._highlightText((note._contentPreview || '').substring(0, 100), that.data.searchKeyword)
     })
 
     this.setData({

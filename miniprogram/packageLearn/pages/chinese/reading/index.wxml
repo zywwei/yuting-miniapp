@@ -5,29 +5,12 @@
   </view>
 
   <view class="article-list">
-    <view wx:for="{{articles}}" wx:key="id" class="article-item" bindtap="showArticleDetail" data-article="{{item}}">
-      <view class="article-title">{{item.title}}</view>
+    <view wx:for="{{items}}" wx:key="id" class="article-item" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="article-title">{{item.no}}. {{item.title}}</view>
       <view class="article-meta">
-        <view class="article-type">{{item.type === 'narrative' ? '记叙文' : item.type === 'expository' ? '说明文' : '议论文'}}</view>
-        <view class="article-grade">{{item.grade}}年级</view>
+        <view class="article-type" wx:if="{{item.tag}}">{{item.tag}}{{item.learned ? ' · 已学' : ''}}</view>
       </view>
-    </view>
-  </view>
-
-  <view class="modal-mask" wx:if="{{showArticle}}" bindtap="hideArticle">
-    <view class="modal-content" catchtap="">
-      <view class="modal-title">{{currentArticle.title}}</view>
-      <scroll-view scroll-y class="article-content-scroll">
-        <view class="article-content">{{currentArticle.content}}</view>
-      </scroll-view>
-      <view class="questions" wx:if="{{currentArticle.questions}}">
-        <view class="questions-title">思考题</view>
-        <view wx:for="{{currentArticle.questions}}" wx:key="*this" class="question-item">{{index + 1}}. {{item}}</view>
-      </view>
-      <view class="modal-actions">
-        <view class="modal-btn" bindtap="markAsCompleted" data-id="{{currentArticle.id}}">已完成阅读</view>
-        <view class="modal-btn close" bindtap="hideArticle">关闭</view>
-      </view>
+      <view class="article-content">{{item.desc}}</view>
     </view>
   </view>
 </view>

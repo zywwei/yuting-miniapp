@@ -693,6 +693,10 @@ Page({
   // 滚动到底部
   scrollToBottom: function() {
     var that = this
+    // P1 修复：scroll-into-view 值恒为 'msg-bottom'，重复 setData 相同值经
+    // 框架 diff 后不会触发滚动——长回复打字机期间每 15 字符调用的本方法
+    // 全部无效、视图不再跟随。先置空打断相等性，下一拍设回锚点强制滚动
+    this.setData({ scrollToView: '' })
     setTimeout(function() {
       that.setData({ scrollToView: 'msg-bottom' })
     }, 100)
@@ -1287,6 +1291,12 @@ Page({
       var msgTimeout = setTimeout(function() {
         that.setData({ loadingText: 'AI思考时间较长，请耐心等待...' })
       }, 10000)
+
+      // P1 修复补充（I-1）：非流式是默认路径（streamThinkingEnabled 默认 false），
+      // 与流式路径同样需要会话归属快照——生成期间切会话时回复只落在原会话
+      // （aiManager.sendMessage 内部已按发送时会话落库），不再写入当前界面。
+      // 注意 sessionChanged 必须在回调时点与「当时的」currentSessionId 比对
+      var originSessionId = that.data.currentSessionId || aiManager.getCurrentSessionId()
       aiManager.sendMessage(message, model, imageFileIDs, extraContext, skillPrompt).then(function(result) {
         clearTimeout(msgTimeout)
         messageIdCounter++
@@ -1320,18 +1330,33 @@ Page({
           timeStr: that.formatTime(new Date())
         }
         
+        // I-1：回调时点比对会话归属——已切会话则仅复位 loading（落库已由
+        // aiManager.sendMessage 按发送时快照完成），不把回复渲染进当前界面。
+        // P1 修复补充：token 用量同样按会话归属，切换时丢弃本次统计，
+        // 防止旧会话 usage 记入新会话并持久化到新会话的 tokenStats
+        if (originSessionId && originSessionId !== that.data.currentSessionId) {
+          console.log('非流式回复归属原会话', originSessionId)
+          that.setData({ loading: false })
+          return
+        }
+
         // 累计token用量
         that.updateTokenUsage(result.usage)
-        
+
         that.setData({
           messages: that.data.messages.concat(aiMsg),
           loading: false
         })
-        
+
         that.scrollToBottom()
       }).catch(function(err) {
         clearTimeout(msgTimeout)
         console.error('非流式调用失败:', err)
+        // I-1：失败提示气泡同样按会话归属——切换后仅复位 loading，不污染新会话
+        if (originSessionId && originSessionId !== that.data.currentSessionId) {
+          that.setData({ loading: false })
+          return
+        }
         that.showError('发送失败：' + (err.message || '网络错误，请稍后重试'), message, imageFileID)
       })
     }
@@ -1340,6 +1365,8 @@ Page({
   // 流式发送到AI
   sendToAIStream: function(message, model, imageFileID, extraContext, skillPrompt) {
     var that = this
+    // I-1：发起失败提示同样按会话归属
+    var originSessionId = that.data.currentSessionId || aiManager.getCurrentSessionId()
 
     aiManager.sendMessageStream(message, model, imageFileID, extraContext, skillPrompt).then(function(data) {
       that.setData({
@@ -1350,15 +1377,23 @@ Page({
       that.startThinkingPoll(data.taskId)
     }).catch(function(err) {
       console.error('云函数调用失败:', err)
+      if (originSessionId && originSessionId !== that.data.currentSessionId) {
+        that.setData({ loading: false })
+        return
+      }
       that.showError('发送失败：' + (err.message || '网络错误，请稍后重试'), message, imageFileID)
     })
   },
 
   // 处理AI响应（提取公共逻辑）
-  handleAIResponse: function(finalContent, thinkingContent) {
+  handleAIResponse: function(finalContent, thinkingContent, originSessionId) {
     var that = this
     messageIdCounter++
-    
+
+    // P1 修复：生成完成回调按「发起请求时的会话」归属——若用户在生成期间
+    // 已切换/新建会话，回复只落库到原会话，不再写入当前界面造成串会话
+    var sessionChanged = !!originSessionId && originSessionId !== this.data.currentSessionId
+
     console.log('handleAIResponse:', { finalContent: finalContent ? finalContent.substring(0, 100) : finalContent, thinkingContent: thinkingContent ? '有' : '无' })
     
     var aiImage = null
@@ -1392,18 +1427,26 @@ Page({
       isTyping: true,
       timeStr: that.formatTime(new Date())
     }
-    
-    that.setData({
-      messages: that.data.messages.concat(aiMsg),
-      loading: false
-    })
-    
-    that.scrollToBottom()
-    
-    // 开始打字机效果
-    that.typeWriterContent(msgId, displayContent, 0)
-    
-    aiManager.saveToLocal(null, 'assistant', finalContent, thinkingContent)
+
+    if (sessionChanged) {
+      // 已切换会话：回复仅落库到原会话，不污染当前界面
+      console.log('handleAIResponse: 会话已切换，回复归属原会话', originSessionId)
+      // 必须复位 loading：sendMessage 以 loading 为入口守卫，若不复位，
+      // 切换/新建会话后输入框将永久无法发送（只能退出重进）
+      that.setData({ loading: false })
+    } else {
+      that.setData({
+        messages: that.data.messages.concat(aiMsg),
+        loading: false
+      })
+
+      that.scrollToBottom()
+
+      // 开始打字机效果
+      that.typeWriterContent(msgId, displayContent, 0)
+    }
+
+    aiManager.saveToLocal(originSessionId || null, 'assistant', finalContent, thinkingContent)
   },
 
   typeWriterContent: function(msgId, fullContent, index) {
@@ -1595,6 +1638,9 @@ Page({
   // 开始轮询思考进度
   startThinkingPoll: function(taskId) {
     var that = this
+    // P1 修复：快照发起请求时的会话 id——生成期间用户可能切换/新建会话，
+    // 完成回调需据此判断回复归属，避免把上一个会话的回复串进当前会话
+    var originSessionId = this.data.currentSessionId || aiManager.getCurrentSessionId()
     var pollCount = 0
     var maxPolls = 120 // 最多轮询120次（约60秒）
     var failCount = 0
@@ -1610,13 +1656,22 @@ Page({
       
       if (pollCount > maxPolls) {
         clearInterval(timer)
+        // P1 修复：错误气泡按会话归属——切换会话后仅复位 loading
+        if (originSessionId && originSessionId !== that.data.currentSessionId) {
+          that.setData({ loading: false })
+          return
+        }
         that.showError('请求超时，请重试')
         return
       }
       
       aiManager.getThinkingProgress(taskId).then(function(progress) {
+        // 用户可能在轮询期间切换/新建会话；thinking 仅属发起请求的会话，
+        // 会话已切换时不得改写当前（新）会话最后一条消息
+        var sessionStillCurrent = !originSessionId || originSessionId === that.data.currentSessionId
+
         // 实时更新思考内容到消息气泡
-        if (progress.thinkingContent !== undefined && progress.thinkingContent !== that.data.currentThinkingContent) {
+        if (sessionStillCurrent && progress.thinkingContent !== undefined && progress.thinkingContent !== that.data.currentThinkingContent) {
           that.setData({ currentThinkingContent: progress.thinkingContent })
 
           // 实时更新最后一条消息的thinking字段
@@ -1633,12 +1688,14 @@ Page({
             currentThinkingContent: ''
           })
 
-          // 累计token用量
-          that.updateTokenUsage(progress.usage)
-
           // 折叠思考过程，然后添加AI回复消息
-          that.collapseLastMessageThinking()
-          that.handleAIResponse(progress.finalContent, progress.thinkingContent)
+          // P1 修复（#7b）：token 用量纳入会话归属守卫——切会话后到达的完成
+          // 回调不再把旧会话 usage 记入新会话并持久化到新会话的 tokenStats
+          if (sessionStillCurrent) {
+            that.updateTokenUsage(progress.usage)
+            that.collapseLastMessageThinking()
+          }
+          that.handleAIResponse(progress.finalContent, progress.thinkingContent, originSessionId)
 
         } else if (progress.status === 'error') {
           clearInterval(timer)
@@ -2111,7 +2168,15 @@ Page({
     
     this.recorderManager.onStop(function(res) {
       that.setData({ isRecording: false })
-      
+
+      // P1 修复：「松开取消」此前只调 stop()，onStop 无法区分取消与正常结束，
+      // 取消的录音仍会被识别并把文字填进输入框——取消语义完全失效
+      if (that._cancelRecording) {
+        that._cancelRecording = false
+        console.log('录音已取消，丢弃音频')
+        return
+      }
+
       // 语音转文字
       if (res.tempFilePath) {
         that.speechToText(res.tempFilePath)
@@ -2134,7 +2199,10 @@ Page({
   startRecording: function() {
     // 确保录音管理器已初始化
     this.initRecorderManager()
-    
+
+    // 清除上一次的取消标志，防止误丢本次录音
+    this._cancelRecording = false
+
     this.setData({ isRecording: true })
 
     // 使用PCM格式录音（百度语音识别需要），不支持时降级到AAC
@@ -2168,6 +2236,8 @@ Page({
   // 取消录音
   cancelRecording: function() {
     if (this.data.isRecording && this.recorderManager) {
+      // P1 修复：置取消标志，onStop 回调据此丢弃音频（否则取消的录音仍会识别填字）
+      this._cancelRecording = true
       this.recorderManager.stop()
       this.setData({ isRecording: false })
       wx.showToast({

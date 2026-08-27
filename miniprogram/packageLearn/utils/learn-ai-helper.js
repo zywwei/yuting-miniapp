@@ -7,6 +7,133 @@
 var MAX_EXTRA_CONTEXT = 1800  // 留200字符余量
 var MAX_SKILL_PROMPT = 900    // 留100字符余量
 
+// ===== P1 修复：扩展科目映射层 =====
+// 此前仅支持 cards/poems/english/math 与 classics-* 共 8 个 key，而详情页传入的
+// 是 modules-data.MODULE_MAP 的 37 个连字符 key（如 chinese-writing/science-physics），
+// 全部走 default 分支——上下文为空、提示词错配成「汉字老师」、快捷问题回落识字题。
+// 此处把 MODULE_MAP 的全部 37 个扩展科目 key 归一到主题族，按主题提供提示词/快捷问题/通用上下文拼装。
+var EXTENDED_TOPIC_MAP = {
+  'math-formulas': 'math', 'math-concepts': 'math', 'math-practice': 'math',
+  'math-problems': 'math', 'math-geometry': 'math', 'math-olympiad': 'math',
+  'chinese-reading': 'chinese', 'chinese-writing': 'chinese', 'chinese-rhetoric': 'chinese', 'chinese-classical': 'classical',
+  'science-experiments': 'science', 'science-physics': 'science', 'science-chemistry': 'science', 'science-biology': 'science',
+  'coding-thinking': 'coding', 'coding-logic': 'coding', 'coding-algorithm': 'coding', 'coding-scratch': 'coding',
+  'english-grammar': 'englishExt', 'english-sentences': 'englishExt', 'english-reading': 'englishExt', 'english-listening': 'englishExt',
+  'art-music': 'art', 'art-painting': 'art', 'art-calligraphy': 'art',
+  'social-geography': 'social', 'social-history': 'social', 'social-politics': 'social',
+  'speaking-scenarios': 'speaking', 'speaking-practice': 'speaking', 'speaking-speech': 'speaking',
+  'sports-knowledge': 'sports', 'sports-health': 'sports', 'sports-skills': 'sports',
+  'life-safety': 'life', 'life-mental': 'life', 'life-skills': 'life'
+}
+
+var TOPIC_LABELS = {
+  math: '数学', chinese: '语文', classical: '文言文', science: '科学常识',
+  coding: '编程思维', englishExt: '英语拓展', art: '艺术素养', social: '社会常识',
+  speaking: '口语表达', sports: '体育健康', life: '生活安全'
+}
+
+var EXTENDED_PROMPTS = {
+  math: null,  // 复用内置 math 提示词
+  chinese: '你是一位亲切的语文老师，正在辅导小朋友学习阅读、写作与修辞。请用生动易懂的语言讲解，适合中小学生理解。回答规则：\n1. 讲解写作/修辞技巧时多举课文里的例子\n2. 鼓励孩子说出自己的想法再示范\n3. 每次回答控制在130字以内\n4. 可以用emoji增加趣味性',
+  classical: null,  // 复用 classics-gwd 提示词
+  science: '你是一位博学的科学老师，正在回答小朋友关于物理、化学、生物与趣味实验的问题。请用生活现象解释科学原理。回答规则：\n1. 先说结论再用简单的道理解释\n2. 多举生活中的例子（冰箱、彩虹、影子等）\n3. 涉及实验时强调安全注意事项\n4. 每次回答控制在130字以内\n5. 保持好奇心导向，鼓励孩子提问',
+  coding: '你是一位有趣的编程启蒙老师，正在教小朋友计算思维与编程基础。请用不插电的生活类比讲解抽象概念。回答规则：\n1. 用「做计划」「找规律」等生活场景类比算法\n2. Scratch 相关问题给出积木操作步骤\n3. 每次回答控制在130字以内\n4. 鼓励动手尝试',
+  englishExt: null,  // 复用内置 english 提示词
+  art: '你是一位优雅的艺术老师，正在带小朋友欣赏音乐、美术与书法。请从颜色、节奏、结构等角度引导孩子观察和感受。回答规则：\n1. 描述要具体可感（像带着孩子一起看/听）\n2. 介绍名家名作时讲有趣的故事\n3. 每次回答控制在120字以内\n4. 鼓励孩子创作自己的作品',
+  social: '你是一位知识渊博的社科老师，正在给小朋友讲地理、历史与政治常识。请把知识讲成故事和见闻。回答规则：\n1. 地理问题结合地图与景观描述\n2. 历史问题用讲故事的方式呈现\n3. 常识性问题贴近孩子的日常生活\n4. 每次回答控制在130字以内',
+  speaking: '你是一位耐心的口语教练，正在带小朋友练习英语情景对话与演讲。请鼓励孩子开口并纠正关键发音。回答规则：\n1. 给出对话示范时标注中文意思\n2. 发音要点拆解成口型/舌位提示\n3. 每次回答控制在120字以内\n4. 多用鼓励性语言',
+  sports: '你是一位阳光的体育健康老师，正在教小朋友运动技能与健康知识。请强调安全与循序渐进。回答规则：\n1. 动作要领分步骤讲清\n2. 提醒热身与安全防护\n3. 健康问题给出可执行的小建议\n4. 每次回答控制在120字以内',
+  life: '你是一位细心的生活安全老师，正在教小朋友安全知识与生活技能。请用场景化方式让孩子记住要点。回答规则：\n1. 安全知识明确「该做什么、不该做什么」\n2. 用「如果遇到…应该…」的场景句式\n3. 心理健康话题保持温暖不说教\n4. 每次回答控制在120字以内'
+}
+
+var EXTENDED_QUESTIONS = {
+  chinese: [
+    { text: '📖 内容讲解', question: '这篇内容讲了什么？帮我讲一讲' },
+    { text: '✍️ 写作借鉴', question: '这里的写作手法好在哪里？我怎么用到作文里？' },
+    { text: '📝 关键词句', question: '哪些词句是重点？帮我画一下重点' },
+    { text: '🎯 练一练', question: '出一道相关的练习题考考我' }
+  ],
+  classical: [
+    { text: '📖 白话翻译', question: '这段古文是什么意思？帮我翻译成白话文' },
+    { text: '📝 重点字词', question: '这篇文章里有哪些重要的字词需要掌握？' },
+    { text: '📚 背景故事', question: '这篇文章是在什么背景下写的？' },
+    { text: '🎯 现代意义', question: '这篇文章在今天有什么意义？' }
+  ],
+  science: [
+    { text: '💡 原理讲解', question: '这背后的科学原理是什么？用简单的话解释一下' },
+    { text: '🏠 生活现象', question: '生活中还有哪些类似的现象？' },
+    { text: '🧪 动手试试', question: '我可以在家做什么相关的小实验？安全吗？' },
+    { text: '❓ 为什么', question: '为什么会这样？再多告诉我一些原因' }
+  ],
+  coding: [
+    { text: '💡 概念讲解', question: '这个概念是什么意思？能用生活中的例子说明吗？' },
+    { text: '🧩 动手实践', question: '给我一个可以用Scratch做的小例子吧' },
+    { text: '📝 一步步来', question: '这道题的思路是什么？一步一步带我走一遍' },
+    { text: '🎯 举一反三', question: '还有什么类似的应用场景？' }
+  ],
+  englishExt: [
+    { text: '🔤 怎么读', question: '这里面的关键词怎么读？有什么发音技巧？' },
+    { text: '🧩 讲解含义', question: '这些内容是什么意思？用中文解释一下' },
+    { text: '📝 例句示范', question: '帮我造几个实用的例句' },
+    { text: '🔄 拓展学习', question: '还有哪些相关的常用表达？' }
+  ],
+  art: [
+    { text: '🎨 作品赏析', question: '怎么欣赏这类作品？有什么看点？' },
+    { text: '👨‍🎨 名家故事', question: '这方面有哪些有名的艺术家或作品？有什么故事？' },
+    { text: '✍️ 尝试创作', question: '我想自己试试，有什么入门建议？' },
+    { text: '🎵 小知识', question: '关于这个主题有什么有趣的冷知识？' }
+  ],
+  social: [
+    { text: '📖 知识讲解', question: '这个知识点是什么意思？帮我详细讲讲' },
+    { text: '🌍 相关见闻', question: '这方面有什么有趣的地方或故事？' },
+    { text: '📝 考点归纳', question: '这部分的重点内容帮我总结一下' },
+    { text: '🗺️ 拓展视野', question: '还有哪些相关的知识值得了解？' }
+  ],
+  speaking: [
+    { text: '🔊 发音指导', question: '这些句子怎么读才地道？给我讲讲发音要点' },
+    { text: '💬 对话示范', question: '帮我做一个完整的对话示范' },
+    { text: '🔄 替换练习', question: '换一个场景，这句话应该怎么说？' },
+    { text: '🎯 流利技巧', question: '怎样才能说得流利自然？' }
+  ],
+  sports: [
+    { text: '🏃 动作要领', question: '这个动作的正确要领是什么？分步骤讲一下' },
+    { text: '⚠️ 安全注意', question: '做这项运动需要注意什么安全事项？' },
+    { text: '📋 练习计划', question: '给我制定一个简单的入门练习计划' },
+    { text: '💡 健康常识', question: '这方面的健康知识有什么要注意的？' }
+  ],
+  life: [
+    { text: '⚠️ 安全要点', question: '遇到这种情况正确的做法是什么？' },
+    { text: '🏠 场景演练', question: '如果发生…我应该怎么做？带我演练一遍' },
+    { text: '🧺 生活技能', question: '这个技能的具体步骤是什么？' },
+    { text: '💡 为什么重要', question: '为什么要这样做？不讲会怎样？' }
+  ]
+}
+
+// 把 MODULE_MAP 连字符 key 归一到主题族；非扩展科目原样返回
+function resolveTopicModule(module) {
+  return EXTENDED_TOPIC_MAP[module] || module
+}
+
+// 扩展科目的通用上下文拼装（兼容各模块异构字段名）
+function buildGenericContext(item, topicLabel) {
+  var lines = ['【学习内容】' + (topicLabel || '拓展学习')]
+  var title = item.title || item.name || item.topic || item.question || ''
+  if (title) lines.push('标题：' + title)
+  var body = item.content || item.definition || item.principle || item.explanation ||
+    item.instruction || item.passage || item.desc || ''
+  if (body) lines.push('内容：' + String(body).substring(0, 300))
+  if (item.english) lines.push('英文：' + item.english)
+  if (item.chinese) lines.push('中文：' + item.chinese)
+  if (item.answer !== undefined && item.answer !== '') lines.push('参考答案：' + item.answer)
+  if (item.steps) {
+    lines.push('步骤：' + (Array.isArray(item.steps) ? item.steps.join(' → ') : String(item.steps)).substring(0, 200))
+  }
+  if (item.keywords && Array.isArray(item.keywords)) lines.push('关键词：' + item.keywords.join('、'))
+  if (item.materials && Array.isArray(item.materials)) lines.push('材料：' + item.materials.join('、'))
+  if (item.tips) lines.push('提示：' + (Array.isArray(item.tips) ? item.tips.join('；') : String(item.tips)).substring(0, 150))
+  return lines.join('\n')
+}
+
 /**
  * 构建上下文信息（传给extraContext）
  * @param {string} module - 模块类型
@@ -90,8 +217,16 @@ function buildContext(module, item) {
         '示例：' + (item.example || '')
       break
     
-    default:
-      context = ''
+    default: {
+      // P1 修复：37 个扩展科目此前走 default 返回空上下文（AI 收不到学习内容），
+      // 现按主题族用通用字段拼装上下文
+      var topicModule = resolveTopicModule(module)
+      if (topicModule !== module) {
+        context = buildGenericContext(item, TOPIC_LABELS[topicModule])
+      } else {
+        context = ''
+      }
+    }
   }
   
   // 截断到最大长度
@@ -179,7 +314,18 @@ function getSystemPrompt(module) {
       '5. 鼓励孩子尝试创作'
   }
   
-  var prompt = prompts[module] || prompts.cards
+  // P1 修复：扩展科目按主题族取提示词（不再一律错配成「汉字老师」）。
+  // EXTENDED_PROMPTS 中置 null 的主题表示复用内置同语义提示词，
+  // 键名经 REUSE_BUILTIN 映射到内置 prompts 表的实际键
+  var REUSE_BUILTIN = { math: 'math', englishExt: 'english', classical: 'classics-gwd' }
+  var prompt = prompts[module]
+  if (!prompt) {
+    var topicModule = resolveTopicModule(module)
+    if (topicModule !== module) {
+      prompt = EXTENDED_PROMPTS[topicModule] || prompts[REUSE_BUILTIN[topicModule]] || null
+    }
+  }
+  prompt = prompt || prompts.cards
   
   // 截断到最大长度
   if (prompt.length > MAX_SKILL_PROMPT) {
@@ -257,7 +403,15 @@ function getQuickQuestions(module, item) {
     ]
   }
   
-  return questions[module] || questions.cards
+  // P1 修复：扩展科目按主题族取快捷问题，不再一律回落识字卡片的问题组
+  var result = questions[module]
+  if (!result) {
+    var topicModule = resolveTopicModule(module)
+    if (topicModule !== module) {
+      result = EXTENDED_QUESTIONS[topicModule] || questions[topicModule] || null
+    }
+  }
+  return result || questions.cards
 }
 
 /**
@@ -298,6 +452,14 @@ function buildMessage(question, module, item) {
     case 'classics-poetry-rules':
       itemName = item.title || ''
       break
+    default: {
+      // P1 修复：扩展科目按通用字段取条目名（title/name/topic/question 等），
+      // 此前未命中 case 时 itemName 为空、上下文标题不会注入提问
+      if (EXTENDED_TOPIC_MAP[module]) {
+        itemName = item.title || item.name || item.topic || item.question || item.idiom || item.word || item.english || ''
+      }
+      break
+    }
   }
   
   if (itemName) {

@@ -1,17 +1,28 @@
-var learnData = require('../../../utils/learn-data.js')
+var listAdapter = require('../../../utils/list-adapter.js')
 
 Page({
   data: {
-    topics: [
-      { id: 'm01', title: '音符与节拍', content: '音符表示音的长短，节拍表示音的强弱。常见音符：全音符、二分音符、四分音符、八分音符。', examples: ['4/4拍：每小节4拍', '3/4拍：每小节3拍（华尔兹）'] },
-      { id: 'm02', title: '乐器介绍', content: '乐器分为弦乐器、管乐器、打击乐器和键盘乐器。', examples: ['弦乐器：小提琴、吉他', '管乐器：长笛、小号', '打击乐器：鼓、钢琴'] }
-    ]
+    items: [],
+    learnedCount: 0,
+    totalCount: 0
   },
 
-  onLoad: function() {},
+  onLoad: function() {
+    this.loadData()
+  },
+
+  onShow: function() {
+    this.loadData()
+  },
+
+  loadData: function() {
+    // C3：数据源收口到 modules-data（此前内置演示数据与详情页不同源）
+    this.setData(listAdapter.loadList('art-music'))
+  },
 
   markAsLearned: function(e) {
     var id = e.currentTarget.dataset.id
+    var learnData = require('../../../utils/learn-data.js')
     learnData.markAsLearned('artMusic', id)
     wx.showToast({ title: '已学会', icon: 'success' })
   },

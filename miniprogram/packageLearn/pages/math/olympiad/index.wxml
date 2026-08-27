@@ -1,11 +1,10 @@
 <view class="container">
   <view class="header"><view class="header-title">奥数竞赛</view><view class="header-desc">挑战数学难题</view></view>
   <view class="problem-list">
-    <view wx:for="{{problems}}" wx:key="id" class="problem-item">
-      <view class="problem-title">{{item.title}}</view>
-      <view class="problem-question">{{item.question}}</view>
-      <view class="problem-answer">答案：{{item.answer}}</view>
-      <view class="problem-solution">{{item.solution}}</view>
+    <view wx:for="{{items}}" wx:key="id" class="problem-item" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="problem-title">{{item.no}}. {{item.title}}</view>
+      <view class="problem-question">{{item.desc}}</view>
+      <view class="problem-answer" wx:if="{{item.learned}}">已学</view>
     </view>
   </view>
 </view>

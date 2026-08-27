@@ -72,12 +72,15 @@ Component({
   },
 
   methods: {
-    cleanupWatcher: function() {
+    cleanupWatcher: function(keepLoading) {
       if (this._watcher) {
         this._watcher.close()
         this._watcher = null
       }
-      this.setData({ taskId: null, isLoading: false })
+      // P1 修复：sendMessage 置 isLoading:true 后立即调本方法清理旧监听，
+      // 原实现无条件把 isLoading 复位 false，导致流式期间防重入锁与
+      // 输入框 disabled 全部失效。发送场景传 keepLoading=true 保持加载态。
+      this.setData(keepLoading ? { taskId: null } : { taskId: null, isLoading: false })
     },
 
     addWelcomeMessage: function() {
@@ -262,8 +265,10 @@ Component({
       })
       this.scrollToBottom()
       
-      this.cleanupWatcher()
-      
+      // P1 修复：清理旧监听时保持 isLoading（本方法开头已置 true），
+      // 否则刚设置的加载态立即被复位，流式期间防重入锁失效
+      this.cleanupWatcher(true)
+
       // 如果有图片，先上传
       if (userMsg.images.length > 0) {
         this.uploadImagesAndSend(fullMessage, userMsg.images, extraContext, skillPrompt)
@@ -341,7 +346,10 @@ Component({
         },
         function onError(err) {
           console.error('监听失败:', err)
-          that.setData({ isLoading: false })
+          // P1 修复：原实现只复位 isLoading，未终结末条消息的 isStreaming——
+          // 三点加载动画永久显示且无任何错误提示，面板假死在该条消息上
+          that.updateLastAIMessage('监听失败，请重试 😅')
+          that.setData({ isLoading: false, taskId: null })
           that._watcher = null
         }
       )

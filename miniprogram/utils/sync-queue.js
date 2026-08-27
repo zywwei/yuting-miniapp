@@ -72,6 +72,12 @@ function enqueue(operation) {
     }
   }
   
+  // P1 修复（I-3）：入队时捕获当时家庭 id，flush 重放优先使用
+  // （flush 组装 callData 时已尊重 extra.familyId）——防止切家庭后
+  // 重放报 -2 进 failed，媒体补偿/图片评论/迁移结果等补偿永远落空
+  var extra = operation.extra || {}
+  if (!extra.familyId) extra.familyId = auth.getCurrentFamilyId()
+
   queue.push({
     seq: nextSeq(),  // 内部主键，唯一标识一条队列项
     id: operation.id,
@@ -80,7 +86,7 @@ function enqueue(operation) {
     data: operation.data,
     uploadImages: operation.uploadImages || [],
     // 交互类操作（点赞/评论）的额外参数：targetType、targetId、content 等
-    extra: operation.extra || null,
+    extra: extra,
     funcName: operation.funcName || '',  // 指定云函数名（interaction/record），空则按 collection 推断
     timestamp: Date.now(),
     retries: 0
@@ -199,7 +205,9 @@ async function flush() {
       }
       // P0-8 配套：离线重放也携带当前家庭，避免多家庭用户重试时写入第一个家庭
       // （云端兼容设计：未带 familyId 的旧队列项仍按旧行为处理，不会报错）
-      callData.familyId = auth.getCurrentFamilyId()
+      // P1 修复：优先使用入队时捕获的 familyId——切家庭后 flush 重放若用当前
+      // 家庭 id 会报 -2 进 failed，原家庭数据永远上不了云
+      callData.familyId = (item.extra && item.extra.familyId) || auth.getCurrentFamilyId()
       const res = await wx.cloud.callFunction({
         name: funcName,
         data: callData
@@ -280,21 +288,26 @@ function getFailedItems() {
 
 function retryFailed(id) {
   var failed = getFailed()
-  var item = null
+  var items = []
   var remaining = []
   for (var i = 0; i < failed.length; i++) {
     if (failed[i].id === id) {
-      item = failed[i]
+      items.push(failed[i])
     } else {
       remaining.push(failed[i])
     }
   }
   saveFailed(remaining)
 
-  if (item) {
-    item.retries = 0
+  // P1 修复（P3-2）：同 id 的多个失败操作（如 add 与 update 先后烧尽重试）
+  // 必须全部按原顺序复活——此前只回灌最后匹配项，前序操作被静默丢弃，
+  // 重放的 update 会因目标记录不存在（add 未复活）命中 -3 再度烧尽
+  if (items.length > 0) {
     var queue = getQueue()
-    queue.push(item)
+    for (var j = 0; j < items.length; j++) {
+      items[j].retries = 0
+      queue.push(items[j])
+    }
     saveQueue(queue)
     flushSafe()
   }

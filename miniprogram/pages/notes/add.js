@@ -1063,6 +1063,10 @@ Page({
   // 保存笔记
   save: function() {
     var that = this
+    // P1 修复：发布无防重入——showLoading 默认不带 mask 不拦截点击，
+    // 图片/语音上传的异步窗口内连点会创建两篇重复笔记并各自上云
+    if (this._submitting) return
+    this._submitting = true
     var type = this.data.type
     var title = this.data.title
     var content = this.data.content
@@ -1079,15 +1083,19 @@ Page({
 
     if (!stripHtml(title)) {
       wx.showToast({ title: '请输入标题', icon: 'none' })
+      // Critical 回归修复：校验失败路径必须解除防重入标志，
+      // 否则首次空标题保存后 _submitting 永久为 true、保存功能锁死
+      this._submitting = false
       return
     }
 
     if (visibility === 'designated' && visibleTo.length === 0) {
       wx.showToast({ title: '请选择可见成员', icon: 'none' })
+      this._submitting = false
       return
     }
 
-    wx.showLoading({ title: '保存中...' })
+    wx.showLoading({ title: '保存中...', mask: true })
 
     // 上传语音文件
     var saveVoice = function(callback) {

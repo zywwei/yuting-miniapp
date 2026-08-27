@@ -27,6 +27,17 @@ App({
     }).catch(function() {
       syncQueue.startAutoSync()
     })
+
+    // P1 修复（I-4）：failed 列表此前全仓零消费方——5 次重试烧完即静默滞留
+    // （迁移结果/媒体补偿/图片评论均在其中）。冷启动自动重新入队一轮，
+    // retryFailed 内部会触发 flushSafe
+    try {
+      var failedItems = syncQueue.getFailedItems()
+      if (failedItems.length > 0) {
+        console.warn('[sync] 自动重试 ' + failedItems.length + ' 条历史失败同步')
+        failedItems.forEach(function (f) { syncQueue.retryFailed(f.id) })
+      }
+    } catch (e) { /* 不阻塞启动 */ }
   },
 
   async checkAuth() {
@@ -216,6 +227,14 @@ App({
   switchFamily: function(familyId) {
     var success = auth.switchFamily(familyId)
     if (success) {
+      // P1 修复：auth.switchFamily 会清空当前孩子（switchChild('')），若不在此
+      // 补选，后续页面刷新前 childId 为空，childStorage.getKey 将回落全局裸 key，
+      // 空窗期的读写会跨家庭串号、单例数据还会被 upsert 成云端「家庭级文档」。
+      // 与 checkAuth 的补选逻辑保持一致：默认选中第一个孩子
+      var children = auth.getChildren()
+      if (!auth.getCurrentChildId() && children.length > 0) {
+        auth.switchChild(children[0].childId)
+      }
       this.globalData.family = auth.getFamily()
       this.globalData.member = auth.getMember()
       this.globalData.children = auth.getChildren()

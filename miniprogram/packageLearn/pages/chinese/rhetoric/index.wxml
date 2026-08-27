@@ -1,17 +1,12 @@
 <view class="container">
   <view class="header"><view class="header-title">修辞手法</view><view class="header-desc">学习常见修辞</view></view>
   <view class="rhetoric-list">
-    <view wx:for="{{rhetoric}}" wx:key="id" class="rhetoric-item">
+    <view wx:for="{{items}}" wx:key="id" class="rhetoric-item" bindtap="goDetail" data-id="{{item.id}}">
       <view class="rhetoric-header">
-        <view class="rhetoric-icon">{{item.icon}}</view>
-        <view class="rhetoric-name">{{item.name}}</view>
+        <view class="rhetoric-icon">{{item.no}}</view>
+        <view class="rhetoric-name">{{item.title}}</view>
       </view>
       <view class="rhetoric-desc">{{item.desc}}</view>
-      <view class="rhetoric-example">
-        <view class="example-label">示例：</view>
-        <view class="example-text">{{item.example}}</view>
-      </view>
-      <view class="rhetoric-meaning">{{item.meaning}}</view>
     </view>
   </view>
 </view>

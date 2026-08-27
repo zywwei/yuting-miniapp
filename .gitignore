@@ -63,6 +63,7 @@ miniprogram/nul
 miniprogram/.claude/
 miniprogram/.mcp.json
 dsh.config.yml
+.zcode/
 
 ### 设计稿与工具配置 ###
 design/

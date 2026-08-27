@@ -1,4 +1,5 @@
 var aiManager = getApp().globalData.aiManager
+var auth = require('../../../../utils/auth.js')
 
 Page({
   data: {

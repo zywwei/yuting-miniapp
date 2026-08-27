@@ -1,26 +1,9 @@
 <view class="container">
   <view class="header"><view class="header-title">逻辑训练</view><view class="header-desc">提升逻辑思维</view></view>
-  <view class="exercise-list" wx:if="{{!currentExercise}}">
-    <view wx:for="{{exercises}}" wx:key="id" class="exercise-item" bindtap="startExercise" data-exercise="{{item}}">
-      <view class="exercise-title">{{item.title}}</view>
-      <view class="exercise-question">{{item.question}}</view>
-    </view>
-  </view>
-  <view class="exercise-area" wx:if="{{currentExercise}}">
-    <view class="exercise-title">{{currentExercise.title}}</view>
-    <view class="exercise-question">{{currentExercise.question}}</view>
-    <view class="options">
-      <view wx:for="{{currentExercise.options}}" wx:key="index" class="option-item {{selectedOption === index ? 'selected' : ''}} {{showResult && index === currentExercise.answer ? 'correct' : ''}}" bindtap="selectOption" data-index="{{index}}">
-        {{['A','B','C','D'][index]}}. {{item}}
-      </view>
-    </view>
-    <view class="explanation" wx:if="{{showResult}}">
-      <view class="explanation-title">{{selectedOption === currentExercise.answer ? '✓ 正确' : '✗ 错误'}}</view>
-      <view class="explanation-text">{{currentExercise.explanation}}</view>
-    </view>
-    <view class="actions">
-      <view class="action-btn" wx:if="{{!showResult}}" bindtap="submitAnswer">提交</view>
-      <view class="action-btn" wx:if="{{showResult}}" bindtap="nextExercise">下一题</view>
+  <view class="exercise-list">
+    <view wx:for="{{items}}" wx:key="id" class="exercise-item" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="exercise-title">{{item.no}}. {{item.title}}{{item.learned ? ' · 已学' : ''}}</view>
+      <view class="exercise-question">{{item.desc}}</view>
     </view>
   </view>
 </view>

@@ -139,9 +139,14 @@ Page({
   loadTodayRecords: function() {
     var today = util.getTodayStr()
     var records = childStorage.get('habitRecords') || []
+    // P1 修复：与 detail.js P1-7 同款三段式过滤——自定义习惯按 habitId 精确隔离，
+    // 旧记录无 habitId 时回落 type 聚合；否则多个 custom 习惯的「今日已打卡」互相混计
+    var habitId = this._habitId || ''
+    var habitType = this.data.habitType
     var todayRecords = records.filter(function(r) {
-      return r.date === today && r.type === this.data.habitType
-    }.bind(this))
+      return r.date === today && r.type === habitType &&
+        (!habitId || !r.habitId || r.habitId === habitId)
+    })
 
     this.setData({ todayRecords: todayRecords })
   },

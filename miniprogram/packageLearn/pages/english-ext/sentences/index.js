@@ -1,20 +1,28 @@
-var learnData = require('../../../utils/learn-data.js')
+var listAdapter = require('../../../utils/list-adapter.js')
 
 Page({
   data: {
-    sentences: [
-      { id: 's01', type: '陈述句', structure: '主语 + 动词 + 宾语', example: 'I like apples.', meaning: '我喜欢苹果。' },
-      { id: 's02', type: '一般疑问句', structure: '助动词 + 主语 + 动词?', example: 'Do you like apples?', meaning: '你喜欢苹果吗？' },
-      { id: 's03', type: '特殊疑问句', structure: '疑问词 + 助动词 + 主语 + 动词?', example: 'What do you like?', meaning: '你喜欢什么？' },
-      { id: 's04', type: '祈使句', structure: '动词原形 + 其他', example: 'Open the door.', meaning: '打开门。' },
-      { id: 's05', type: '感叹句', structure: 'What/How + 形容词', example: 'What a beautiful day!', meaning: '多么美好的一天！' }
-    ]
+    items: [],
+    learnedCount: 0,
+    totalCount: 0
   },
 
-  onLoad: function() {},
+  onLoad: function() {
+    this.loadData()
+  },
+
+  onShow: function() {
+    this.loadData()
+  },
+
+  loadData: function() {
+    // C3：数据源收口到 modules-data（此前内置 5 条演示数据与详情页不同源）
+    this.setData(listAdapter.loadList('english-sentences'))
+  },
 
   markAsLearned: function(e) {
     var id = e.currentTarget.dataset.id
+    var learnData = require('../../../utils/learn-data.js')
     learnData.markAsLearned('englishSentences', id)
     wx.showToast({ title: '已学会', icon: 'success' })
   },

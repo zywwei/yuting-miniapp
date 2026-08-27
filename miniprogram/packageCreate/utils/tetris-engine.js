@@ -88,17 +88,20 @@ function getBlocks(type, state, x, y) {
   return blocks
 }
 
-function hasCollision(board, blocks) {
+// P1 修复：新增可选 rows 参数——puzzle 模式棋盘仅 10 行（页面自建 ROWS 常量），
+// 固定用常量 ROWS(20) 判底界会索引到 board[10..] 的 undefined 行而抛 TypeError
+function hasCollision(board, blocks, rows) {
+  var maxRows = rows || ROWS
   for (var i = 0; i < blocks.length; i++) {
     var bx = blocks[i][0]
     var by = blocks[i][1]
-    if (bx < 0 || bx >= COLS || by >= ROWS) return true
+    if (bx < 0 || bx >= COLS || by >= maxRows) return true
     if (by >= 0 && board[by][bx] !== 0) return true
   }
   return false
 }
 
-function tryRotate(board, type, state, x, y, clockwise) {
+function tryRotate(board, type, state, x, y, clockwise, rows) {
   var newState = clockwise
     ? (state + 1) % SHAPES[type].length
     : (state + SHAPES[type].length - 1) % SHAPES[type].length
@@ -107,7 +110,7 @@ function tryRotate(board, type, state, x, y, clockwise) {
     var kx = WALL_KICKS[i][0]
     var ky = WALL_KICKS[i][1]
     var blocks = getBlocks(type, newState, x + kx, y + ky)
-    if (!hasCollision(board, blocks)) {
+    if (!hasCollision(board, blocks, rows)) {
       return { state: newState, x: x + kx, y: y + ky, blocks: blocks }
     }
   }

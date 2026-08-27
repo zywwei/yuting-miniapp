@@ -142,12 +142,15 @@ function calcNewPosition(plane, diceValue, color) {
   var newPos = currentPos + actualDice
   
   // 计算到自己起点的距离
+  // C5：停在起点格（刚起飞落在入口）时余数为 0，若按 0 处理会被立即判为
+  // "越过入口"直接折入终点跑道，绕场规则失效。绕圈中的飞机不会停留于入口格
+  // （落点恰为入口时下方已转入终点跑道第 0 格），故此处 0 必须视为整圈 52。
   var distToStart
   if (color === 'red') {
     // 红色起点是0，需要特殊处理
-    distToStart = (52 - currentPos) % 52
+    distToStart = ((52 - currentPos) % 52) || 52
   } else {
-    distToStart = (startPos - currentPos + 52) % 52
+    distToStart = ((startPos - currentPos + 52) % 52) || 52
   }
   
   // 判断是否经过或到达自己起点

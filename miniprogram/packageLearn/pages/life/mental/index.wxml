@@ -1,13 +1,9 @@
 <view class="container">
   <view class="header"><view class="header-title">心理健康</view><view class="header-desc">培养健康心理</view></view>
   <view class="topic-list">
-    <view wx:for="{{topics}}" wx:key="id" class="topic-item">
-      <view class="topic-title">{{item.title}}</view>
-      <view class="topic-content">{{item.content}}</view>
-      <view class="topic-tips" wx:if="{{item.tips}}">
-        <view class="tips-title">建议：</view>
-        <view wx:for="{{item.tips}}" wx:for-item="tip" wx:key="*this" class="tip-item">• {{tip}}</view>
-      </view>
+    <view wx:for="{{items}}" wx:key="id" class="topic-item" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="topic-title">{{item.no}}. {{item.title}}{{item.learned ? ' · 已学' : ''}}</view>
+      <view class="topic-content">{{item.desc}}</view>
     </view>
   </view>
 </view>

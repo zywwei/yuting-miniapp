@@ -1,54 +1,73 @@
-var learnData = require('../../../utils/learn-data.js')
+var listAdapter = require('../../../utils/list-adapter.js')
+var modulesData = require('../../../utils/modules-data.js')
 
 Page({
   data: {
-    formulas: [],
-    categories: [
-      { id: 'basic', name: '基础运算', icon: '➕' },
-      { id: 'algebra', name: '数与代数', icon: '🔢' },
-      { id: 'geometry', name: '几何图形', icon: '📐' },
-      { id: 'units', name: '单位换算', icon: '📏' },
-      { id: 'sequence', name: '数列规律', icon: '📊' },
-      { id: 'statistics', name: '统计概率', icon: '📈' }
-    ],
+    items: [],
+    allItems: [],
+    categories: [],
     currentCategory: 'all',
     showDetail: false,
-    currentFormula: null
+    currentFormula: null,
+    learnedCount: 0,
+    totalCount: 0
   },
 
   onLoad: function() {
-    this.loadFormulas()
+    this.loadData()
   },
 
-  loadFormulas: function() {
-    var formulas = learnData.loadMathFormulas()
-    // P1-12：分类从同源数据动态提取（真实数据为中文分类，原静态英文 key 已失配）
+  onShow: function() {
+    this.loadData()
+  },
+
+  loadData: function() {
+    // C3：数据源统一收口到 list-adapter（与详情页同源）
+    var result = listAdapter.loadList('math-formulas')
+    this.setData({
+      allItems: result.items,
+      categories: this.buildCategories(result.items),
+      learnedCount: result.learnedCount,
+      totalCount: result.totalCount
+    })
+    this.refreshItems()
+  },
+
+  // P1-12：分类从同源数据动态提取（真实数据为中文分类，原静态英文 key 已失配）
+  buildCategories: function(items) {
     var seen = {}
-    var dynamicCategories = []
-    formulas.forEach(function(f) {
-      if (f.category && !seen[f.category]) {
-        seen[f.category] = true
-        dynamicCategories.push({ id: f.category, name: f.category })
+    var categories = []
+    items.forEach(function(item) {
+      if (item.tag && !seen[item.tag]) {
+        seen[item.tag] = true
+        categories.push({ id: item.tag, name: item.tag })
       }
     })
-    this.setData({ formulas: formulas, categories: dynamicCategories })
+    return categories
   },
 
   switchCategory: function(e) {
     var category = e.currentTarget.dataset.category
     this.setData({ currentCategory: category })
-    if (category === 'all') {
-      this.setData({ formulas: learnData.loadMathFormulas() })
-    } else {
-      this.setData({ formulas: learnData.loadMathFormulas(category) })
-    }
+    this.refreshItems()
   },
 
+  // 按当前分类筛选（客户端过滤，保持 list-adapter 单一数据源）
+  refreshItems: function() {
+    var category = this.data.currentCategory
+    var items = category === 'all' ? this.data.allItems : this.data.allItems.filter(function(item) {
+      return item.tag === category
+    })
+    this.setData({ items: items })
+  },
+
+  // 弹窗详情：取同源完整数据（variables/examples/tips 等完整字段）
   showFormulaDetail: function(e) {
-    var formula = e.currentTarget.dataset.formula
+    var id = e.currentTarget.dataset.id
+    var res = modulesData.getItemById('math-formulas', id)
     this.setData({
       showDetail: true,
-      currentFormula: formula
+      currentFormula: res && res.item ? res.item : null
     })
   },
 
@@ -58,7 +77,16 @@ Page({
 
   markAsLearned: function(e) {
     var formulaId = e.currentTarget.dataset.id
+    var learnData = require('../../../utils/learn-data.js')
     learnData.markAsLearned('mathFormulas', formulaId)
+    // 刷新弹窗与列表的「已学」状态，并保持当前分类筛选
+    var res = modulesData.getItemById('math-formulas', formulaId)
+    if (res && res.item) {
+      this.setData({ currentFormula: res.item })
+    }
+    var result = listAdapter.loadList('math-formulas')
+    this.setData({ allItems: result.items })
+    this.refreshItems()
     wx.showToast({ title: '已学会', icon: 'success' })
   },
 

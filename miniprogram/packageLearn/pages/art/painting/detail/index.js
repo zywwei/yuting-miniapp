@@ -1,4 +1,5 @@
 var modulesData = require('../../../../utils/modules-data.js')
+var listAdapter = require('../../../../utils/list-adapter.js')
 var speak = require('../../../../../utils/speak.js')
 var learnAIHelper = require('../../../../utils/learn-ai-helper.js')
 
@@ -29,16 +30,18 @@ Page({
 
     if (this._initId) {
       for (var i = 0; i < items.length; i++) {
-        if (items[i].id === this._initId) { index = i; break }
+        if (String(items[i].id) === String(this._initId)) { index = i; break }
       }
       this._initId = null
     } else if (this.data.item) {
       index = this.data.currentIndex
     }
 
-    this._items = items
+    // P1 修复：详情模板字段归一化——异构字段模块（question/topic/name 等）
+    // 在此统一适配为模板认识的 title/content/tips[] 等槽位
+    this._items = items.map(function (it) { return listAdapter.normalizeDetailItem('art-painting', it) })
     this.setData({
-      item: items[index] || null,
+      item: this._items[index] || null,
       currentIndex: index,
       totalCount: result.totalCount,
       learnedCount: result.learnedCount

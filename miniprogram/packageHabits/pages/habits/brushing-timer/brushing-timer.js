@@ -202,6 +202,36 @@ Page({
 
   onShow() {
     this.applyEditedPhoto()
+
+    // C7：从后台返回时，运行中的计时已在 onHide 冻结，弹窗确认后继续（时间不补算）
+    if (this._hiddenWhileRunning) {
+      this._hiddenWhileRunning = false
+      // M 修复：modal 未关闭期间快速前后台切换会叠加多个确认弹窗，3s 内去重
+      var now = Date.now()
+      if (this._lastResumePromptAt && now - this._lastResumePromptAt < 3000) return
+      this._lastResumePromptAt = now
+      wx.showModal({
+        title: '继续刷牙？',
+        content: '刚才离开了片刻，计时已暂停',
+        confirmText: '继续',
+        cancelText: '保持暂停',
+        success: (res) => {
+          if (res.confirm && !this.data.isCompleted) {
+            this.resumeTimer()
+          }
+          // 取消则维持现有暂停态，可通过页面的继续按钮恢复
+        }
+      })
+    }
+  },
+
+  onHide() {
+    // C7：切后台冻结主计时器。此前 Android 后台 interval 会继续推进 _elapsed，
+    // 返回后倒计时瞬间扣完并自动 completeTimer 写入满时长满分记录
+    if (this.data.isRunning && !this.data.isCompleted) {
+      this._hiddenWhileRunning = true
+      this.pauseTimer()
+    }
   },
 
   // 从画画编辑器返回时，应用编辑后的照片
@@ -1225,6 +1255,11 @@ Page({
     // 统一清理：主计时器 + 所有登记的特效/动画定时器（含彩虹模式 interval）
     this.clearTimers()
     this.clearTrackedTimers()
+    // P1 修复：clearTrackedTimers 会连带清掉出场动画的阶段定时器（含唯一
+    // 复位 _starting 的 _doStartBattle 调度），若不复位该标志，出场动画期间
+    // 点「重新开始」后所有「开始战斗」点击都会在 startTimer 入口被吞，
+    // 本局永久无法开始
+    this._starting = false
     this._ringModeIndex = 0
     this._usedDuration = null
     this.setData({

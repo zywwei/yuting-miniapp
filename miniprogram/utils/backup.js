@@ -9,6 +9,21 @@ var childStorage = require('./child-storage.js')
 
 var STORAGE_KEYS = childStorage.CHILD_KEYS
 
+// P1 修复：补充家庭级数据——notes/deletedNoteIds 是家庭级裸 key（不进 childId
+// 命名空间，见 child-storage.js 白名单注释），gameRecords 为按家庭隔离的动态
+// key（cloud.js FAMILY 隔离）。此前三者均不在 CHILD_KEYS 内，导致备份/换机
+// 恢复后成长笔记、删除墓碑与游戏战绩全部丢失。
+var FAMILY_EXTRA_KEYS = ['notes', 'deletedNoteIds']
+
+function getFamilyScopedKeys() {
+  var fid = auth.getCurrentFamilyId()
+  return fid ? ['gameRecords_family_' + fid] : []
+}
+
+function collectBackupKeys() {
+  return STORAGE_KEYS.concat(FAMILY_EXTRA_KEYS, getFamilyScopedKeys())
+}
+
 function exportAllData() {
   return new Promise(function(resolve, reject) {
     try {
@@ -31,7 +46,7 @@ function exportAllData() {
         images: []
       }
 
-      STORAGE_KEYS.forEach(function(key) {
+      collectBackupKeys().forEach(function(key) {
         var value = childStorage.get(key)
         if (value !== '' && value !== undefined && value !== null) {
           backupData.storage[key] = value
@@ -105,6 +120,28 @@ function importAllData(backupData) {
           }
         })
 
+        // P1 修复：必须先恢复孩子并切换，再写按孩子隔离的 storage 数据——
+        // 此前先写后切，未选孩子的设备（换机恢复的典型场景）上全部
+        // CHILD_KEYS 会落到全局裸 key，switchChild 之后读
+        // learnProgress_<childId> 等命名空间为空（数据恢复了但读不到）
+        if (backupData.family) {
+          auth.setFamily(backupData.family)
+        }
+        if (backupData.member) {
+          auth.setMember(backupData.member)
+        }
+        if (backupData.children && backupData.children.length > 0) {
+          auth.setChildren(backupData.children)
+          // P1 修复：无条件切到备份家庭的孩子——设备可能残留其他家庭的 childId，
+          // 条件切换会让全部 CHILD_KEYS 写进旧命名空间、导入数据读不到
+          auth.switchChild(backupData.children[0].childId)
+        } else if (!auth.getCurrentChildId()) {
+          // P1 修复：无孩子可切时，按孩子隔离的白名单 key（learnProgress/habits/
+          // brushingRecords 等）会落到全局裸 key，之后一旦选中孩子将读不到本次
+          // 导入的数据。写入无法避免（childStorage 语义如此），必须明确告知用户
+          result.errors.push('备份中没有孩子信息且当前未选择孩子：习惯/学习进度等按孩子隔离的数据写入了默认位置，请先添加并选择孩子后重新导入')
+        }
+
         Object.keys(backupData.storage).forEach(function(key) {
           try {
             var value = backupData.storage[key]
@@ -115,19 +152,6 @@ function importAllData(backupData) {
             result.errors.push('恢复 ' + key + ' 失败: ' + err.message)
           }
         })
-
-        if (backupData.family) {
-          auth.setFamily(backupData.family)
-        }
-        if (backupData.member) {
-          auth.setMember(backupData.member)
-        }
-        if (backupData.children && backupData.children.length > 0) {
-          auth.setChildren(backupData.children)
-          if (!auth.getCurrentChildId()) {
-            auth.switchChild(backupData.children[0].childId)
-          }
-        }
 
         resolve(result)
       }).catch(function(err) {

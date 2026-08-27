@@ -133,6 +133,8 @@ Page({
 
   markLetterLearned: function() {
     var self = this
+    // M1：入口先清上一轮未触发的跳转定时器，绝后患
+    if (self._flipTimer) { clearTimeout(self._flipTimer); self._flipTimer = null }
     var letters = self.data.letters
     var currentIndex = self.data.currentLetterIndex
     var letter = letters[currentIndex]
@@ -162,7 +164,10 @@ Page({
     }
 
     if (currentIndex < letters.length - 1) {
-      setTimeout(function() {
+      // P1 修复：裸 setTimeout 未存句柄——「学会了」后 500ms 内翻页/退出时
+      // 无法清除，定时器仍强制跳下一字母；连点两次会连跳两格。
+      // letters 模式翻页（L82/L91）已按 this._flipTimer 清理，此处补齐登记
+      this._flipTimer = setTimeout(function() {
         self.setData({ currentLetterIndex: currentIndex + 1 })
       }, 500)
     }
@@ -200,6 +205,8 @@ Page({
   },
 
   prevWord: function() {
+    // P1 修复：与 letters 模式对齐——学会后 500ms 内翻页需清掉强跳定时器
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null }
     var currentIndex = this.data.currentWordIndex
     if (currentIndex > 0) {
       this.setData({ currentWordIndex: currentIndex - 1 })
@@ -208,6 +215,8 @@ Page({
   },
 
   nextWord: function() {
+    // P1 修复：同上，翻页前清掉未触发的自动跳转定时器
+    if (this._flipTimer) { clearTimeout(this._flipTimer); this._flipTimer = null }
     var currentIndex = this.data.currentWordIndex
     var words = this.data.words
     if (currentIndex < words.length - 1) {
@@ -218,6 +227,8 @@ Page({
 
   markWordLearned: function() {
     var self = this
+    // P1 修复：入口清上一轮未触发定时器，连点不叠加
+    if (self._flipTimer) { clearTimeout(self._flipTimer); self._flipTimer = null }
     var words = self.data.words
     var currentIndex = self.data.currentWordIndex
     var word = words[currentIndex]

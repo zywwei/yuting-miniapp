@@ -29,7 +29,7 @@ Page({
 
     if (this._initId) {
       for (var i = 0; i < items.length; i++) {
-        if (items[i].id === this._initId) { index = i; break }
+        if (String(items[i].id) === String(this._initId)) { index = i; break }
       }
       this._initId = null
     } else if (this.data.item) {

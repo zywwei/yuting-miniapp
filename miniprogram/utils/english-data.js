@@ -13,6 +13,11 @@ var level3 = require('./english-level-3.js')
 var level4 = require('./english-level-4.js')
 var level5 = require('./english-level-5.js')
 
+// C2 修复配套：词库 id 已重排为 e001-e640 连续唯一，加载时一次性迁移存量进度。
+// P1 修复：迁移调用已从此处的模块顶层（CommonJS 缓存导致整个生命周期只执行
+// 一次，多孩家庭仅首个孩子被迁移）移至 learn-data.getProgress() 等按孩子
+// 触发的必经入口——migrate 内部有按孩子隔离的 DONE_FLAG 守卫，重复调用幂等。
+
 // ===== 字母数据 =====
 var LETTERS = [
   { id: 'l01', letter: 'A', phonetic: '/eɪ/', word: 'Apple', wordMeaning: '苹果', wordPhonetic: '/ˈæpl/', level: 'L1' },
@@ -73,6 +78,12 @@ WORD_LEVELS.forEach(function(l) { WORD_LEVEL_NAME_MAP[l.key] = l.name })
  * @returns {Object} id -> { learnedAt }
  */
 function getLearnedMap() {
+  // P1 修复：getLearnedMap 绕过 learn-data.getProgress 直读 learnProgress.english，
+  // 冷启动直达英语页（分享卡片/页面栈恢复）时不会触发迁移——不仅首屏读旧 id 进度，
+  // 若先 markLearned 写入新 id，后续 migrate 会按「宁丢勿错」把该进度 dropped（新学进度丢失）。
+  // migrate 内部有按孩子隔离的 DONE_FLAG 守卫，重复调用 O(1) 早退。
+  require('./english-migrate.js').migrate()
+
   var learnProgress = childStorage.get('learnProgress') || {}
   return learnProgress.english || {}
 }
@@ -139,6 +150,9 @@ function markLearned(id, name) {
     learnedAt: new Date().toISOString(),
     name: name
   }
+  // C-1：迁移完成后学习写入携带文档级标记（DONE_FLAG 置位即代表已迁移），
+  // 保证上云文档始终可被他端识别为已迁移；未迁移时由 getProgress 入口先行迁移
+  if (childStorage.get('englishMigrateV2Flag')) learnProgress.migratedLayoutV2 = true
   childStorage.set('learnProgress', learnProgress)
   cloud.uploadLearnProgress(learnProgress).catch(function(err) {
     console.warn('学习进度同步失败:', err)

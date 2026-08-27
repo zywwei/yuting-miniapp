@@ -196,13 +196,39 @@ function callGetSingleton(collection, key, childId, memberId) {
 
 // 单例文档入队（离线时走同步队列，联网后由 flush 调 upsertSingleton 重试）
 function enqueueSingleton(collection, key, data) {
+  var payload = data || {}
+  // P1 修复：离线重放入队时补 updatedAt——否则重放文档无时间戳，
+  // shouldUseCloud(undefined) 恒真，他端更新的单例会被无条件回滚丢失
+  if (!payload.updatedAt) payload.updatedAt = new Date().toISOString()
+  var id = 'singleton_' + collection + '_' + key
+  // P1 修复（S1/S2 快照回滚）：同 key 仅保留最新快照（原地替换 data）——
+  // 若每次写入都追加新队列项：① 离线期间高频写入会堆积全量快照撑爆队列存储；
+  // ② 旧快照尚未重放时新数据直传成功，dequeue(id) 会连带清掉新快照，
+  // 云端停留在旧版本
+  if (syncQueue.updateData(id, payload)) return
   syncQueue.enqueue({
-    id: 'singleton_' + collection + '_' + key,
+    id: id,
     action: 'upsertSingleton',
     collection: collection,
-    data: data || {},
-    extra: { key: key, childId: auth.getCurrentChildId() }
+    data: payload,
+    // P1 修复：捕获入队时的 familyId——切家庭后 flush 重放若用当前家庭 id
+    // 会报 -2 进 failed，原家庭数据永远上不了云
+    extra: { key: key, childId: auth.getCurrentChildId(), familyId: auth.getCurrentFamilyId() }
   })
+}
+
+// 显式把单例模块的最新数据入队（供迁移等关键写入显式落队使用，如
+// english-migrate 的迁移结果）。历史背景：upload 在云未就绪时曾直接 return
+// 不入队，离线写入停留本地会被 fetch 用云端旧文档回滚——该缺口已在 upload
+// 内部修复（离线自动入队）；此入口与 upload 的入队走同一去重逻辑，保留给
+// 需要无条件确保落队的调用方
+function queueSingletonUpload(configKey, data) {
+  var config = SINGLETON_MODULE_CONFIGS[configKey]
+  if (!config) {
+    console.warn('queueSingletonUpload: 未知单例配置', configKey)
+    return
+  }
+  enqueueSingleton(config.collection, config.key, data)
 }
 
 // ===== 墓碑清理配置 =====
@@ -422,19 +448,40 @@ async function fetchDrawings() {
   }
 
   try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: { familyId: auth.getCurrentFamilyId(),
-        action: 'list',
-        collection: 'drawings',
-        childId: auth.getCurrentChildId(),
-        page: 1,
-        pageSize: 100
-      }
-    })
+    // P1 修复：分页循环拉取全部画作——单页(100)截断的子集走下方默认合并时，
+    // 会把「本地已同步但云端未返回」的历史画作误判为他端删除而清掉（同 P1-2）
+    var cloudList = []
+    var page = 1
+    while (page <= 50) {  // 安全上限 5000 条
+      var res = await wx.cloud.callFunction({
+        name: 'record',
+        data: { familyId: auth.getCurrentFamilyId(),
+          action: 'list',
+          collection: 'drawings',
+          childId: auth.getCurrentChildId(),
+          page: page,
+          pageSize: 100
+        }
+      })
 
-    if (res.result.code === 0) {
-      var cloudList = res.result.data.list || []
+      if (!res.result || res.result.code !== 0) {
+        console.warn('fetchDrawings: 云函数返回错误:', res.result && res.result.msg)
+        return localDrawings  // 中止合并，防止部分结果误删本地
+      }
+
+      var batch = res.result.data.list || []
+      cloudList = cloudList.concat(batch)
+      if (batch.length < 100) break  // 没有更多了
+      page++
+    }
+    if (page > 50) {
+      // 达到分页安全上限且末页仍满页：云端还有更多数据，此时走默认合并会把
+      // 本地未返回的旧记录误判为他端删除而清掉——中止合并保数据
+      console.warn('fetchDrawings: 达到分页安全上限，中止合并')
+      return localDrawings
+    }
+
+    {
       var deletedIds = getDeletedDrawingIds()
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
@@ -816,7 +863,10 @@ async function fetchBrushingRecords(date) {
       action: 'list',
       collection: 'brushingRecords',
       childId: auth.getCurrentChildId(),
-      pageSize: 200
+      // P1 修复：服务端 record 云函数将 pageSize 钳制到上限 100，请求 200 实际
+      // 只返回 100 条，终止判断 batch.length<200 会在第一页即 break——超量后
+      // 默认合并会把本地旧记录误判为他端删除而清掉。必须与钳制值一致。
+      pageSize: 100
     }
     // 如果指定了日期，只拉取该日期的数据
     if (date) {
@@ -840,8 +890,12 @@ async function fetchBrushingRecords(date) {
 
       var batch = res.result.data.list || []
       cloudList = cloudList.concat(batch)
-      if (batch.length < 200) break  // 没有更多了
+      if (batch.length < 100) break  // 没有更多了（与服务端钳制上限一致）
       page++
+    }
+    if (page > 50) {
+      console.warn('fetchBrushingRecords: 达到分页安全上限，中止合并')
+      return localRecords
     }
 
     var deletedIds = getDeletedBrushingIds()
@@ -1081,8 +1135,17 @@ async function uploadNote(note) {
   function isPersisted(p) {
     return !p || typeof p !== 'string' ||
       p.indexOf('cloud://') === 0 ||
-      p.indexOf('http') === 0 ||
+      // 仅真正的远程链接视为已处理；http://tmp 为微信临时路径，仍需落盘
+      p.indexOf('https://') === 0 ||
       p.indexOf(wx.env.USER_DATA_PATH) === 0
+  }
+
+  // 是否需要上传云存储：仅 cloud:// 托管引用可直接入库，其余（USER_DATA_PATH
+  // 持久化路径、临时路径）均需两阶段上传；https 远程链接不能作为 uploadFile
+  // 来源，与既有行为一致交由服务端 sanitizeMediaFields 规则处理
+  function needsUpload(p) {
+    if (typeof p !== 'string' || !p) return false
+    return !p.startsWith('cloud://') && !p.startsWith('https://')
   }
 
   var images = note.images || []
@@ -1119,7 +1182,9 @@ async function uploadNote(note) {
 
   var uploadImages = []
   for (var j = 0; j < localImages.length; j++) {
-    if (!isPersisted(localImages[j])) {
+    // P0 修复：以「是否已托管为 cloud://」判断是否上传，而非「是否已本地持久化」——
+    // 上方预处理后全部图片均为持久化路径，旧条件恒假导致图片永不上传云端
+    if (needsUpload(localImages[j])) {
       uploadImages.push({
         field: 'images[' + j + ']',
         localPath: localImages[j],
@@ -1129,7 +1194,7 @@ async function uploadNote(note) {
     }
   }
 
-  if (!isPersisted(localVoice)) {
+  if (needsUpload(localVoice)) {
     uploadImages.push({
       field: 'voice',
       localPath: localVoice,
@@ -1146,6 +1211,7 @@ async function uploadNote(note) {
   })
 
   var failedMedia = []  // 上传失败的媒体字段（images[n] / voice），不随记录入库，避免本地路径污染云端
+  var failedUploadItems = []  // P1 修复：失败媒体的完整上传描述，用于构造补偿重试队列项
   try {
     // 逐个上传媒体（图片/语音），每个成功后立即回写本地与 record，避免部分失败时丢失已传 fileID
     for (var k = 0; k < uploadImages.length; k++) {
@@ -1167,8 +1233,9 @@ async function uploadNote(note) {
         }
         childStorage.set('notes', tmpNotes)
       } catch (imgErr) {
-        console.warn('笔记媒体上传失败，该媒体不随记录入库，稍后自动重试:', img.localPath, imgErr)
+        console.warn('笔记媒体上传失败，该媒体不随记录入库，已入补偿队列待重试:', img.localPath, imgErr)
         failedMedia.push(img.field)
+        failedUploadItems.push(img)
       }
     }
     
@@ -1200,6 +1267,25 @@ async function uploadNote(note) {
     // 检查云函数返回值
     if (res.result && res.result.code === 0) {
       syncQueue.dequeue(note.id, 'add')
+
+      // P1 修复：部分媒体上传失败时，此前「dequeue + 置 synced=true」会让失败
+      // 图片失去任何重试载体，下次 fetchNotes 云端（缺图版本）覆盖本地后彻底
+      // 丢失。此处为失败媒体入队一条 update 补偿项：flush 两阶段会先补传失败
+      // 文件、成功后 setNestedValue 回填 fileID，再以 action=update + extra.id
+      // 定位原笔记增量更新 images/voice。
+      if (failedUploadItems.length > 0) {
+        syncQueue.enqueue({
+          id: 'media_retry_' + note.id + '_' + Date.now(),
+          action: 'update',
+          collection: 'notes',
+          data: {
+            images: (record.images || []).slice(),
+            voice: record.voice || ''
+          },
+          uploadImages: failedUploadItems,
+          extra: { id: note.id }
+        })
+      }
 
       // 同步成功，标记 synced=true
       localNotes = childStorage.get('notes') || []
@@ -1514,14 +1600,19 @@ function createListFetcher(config) {
     if (!isCloudReady()) return localList
     
     try {
+      // P1 修复（P3-3）：服务端 record 云函数钳制单页最多 100 条（safePageSize =
+      // min(...,100)），此处若信任 >100 的 config.pageSize，终止判断
+      // batch.length < PAGE_SIZE 恒真导致首页即 break 截断——mergeAndHealV2 会把
+      // 未拉回的 synced 本地记录误判为他端删除而清掉（P1-2 同款事故）
+      var PAGE_SIZE = Math.min(config.pageSize || 100, 100)
+
       // 根据隔离级别构建查询参数
       var queryParams = {
         action: 'list',
         collection: config.collection,
-        page: 1,
-        pageSize: config.pageSize || 100
+        pageSize: PAGE_SIZE
       }
-      
+
       switch (isolation) {
         case ISOLATION_LEVEL.FAMILY:
           queryParams.childId = ''
@@ -1536,15 +1627,38 @@ function createListFetcher(config) {
         default:
           queryParams.childId = auth.getCurrentChildId()
       }
-      
-      var res = await wx.cloud.callFunction({
-        name: 'record',
-        data: Object.assign({ familyId: auth.getCurrentFamilyId() }, queryParams)
-      })
-      
-      if (res.result.code === 0) {
-        var cloudList = res.result.data.list || []
-        
+
+      // P1 修复：分页循环拉取全部记录——单页截断的子集走 mergeAndHealV2 默认合并时，
+      // 会把「本地已同步但云端未返回」的历史记录误判为他端删除而清掉（同 P1-2）
+      var cloudList = []
+      var page = 1
+      var hitPageLimit = false
+      while (page <= 50) {  // 安全上限
+        queryParams.page = page
+        var res = await wx.cloud.callFunction({
+          name: 'record',
+          data: Object.assign({ familyId: auth.getCurrentFamilyId() }, queryParams)
+        })
+
+        if (!res.result || res.result.code !== 0) {
+          console.warn(config.collection + ': 云函数返回错误:', res.result && res.result.msg)
+          return localList  // 中止合并，防止部分结果误删本地
+        }
+
+        var pageBatch = res.result.data.list || []
+        cloudList = cloudList.concat(pageBatch)
+        if (pageBatch.length < PAGE_SIZE) break  // 没有更多了
+        page++
+        if (page > 50) hitPageLimit = true
+      }
+      if (hitPageLimit) {
+        // 与本轮其余 5 个 fetch 同款：达到分页安全上限且末页满页时，
+        // 云端仍有更多数据，默认合并会把未拉回的 synced 本地记录误删——中止保数据
+        console.warn(config.collection + ': 达到分页安全上限，中止合并')
+        return localList
+      }
+
+      {
         // 兼容旧格式：展开数组类型的文档
         if (config.expandLegacyItem) {
           cloudList = config.expandLegacyItem(cloudList)
@@ -1825,7 +1939,7 @@ var LIST_MODULE_CONFIGS = {
     storageKey: 'notes',
     deletedKey: 'deletedNoteIds',
     isolation: ISOLATION_LEVEL.CHILD,
-    pageSize: 200,
+    pageSize: 100,
     hasImage: false
   },
   brushingRecords: {
@@ -1833,7 +1947,7 @@ var LIST_MODULE_CONFIGS = {
     storageKey: 'brushingRecords',
     deletedKey: 'deletedBrushingIds',
     isolation: ISOLATION_LEVEL.CHILD,
-    pageSize: 200,
+    pageSize: 100,
     hasImage: true,
     multiImage: true,
     imageField: 'images',
@@ -1852,7 +1966,7 @@ var LIST_MODULE_CONFIGS = {
     storageKey: 'habitRecords',
     deletedKey: 'deletedHabitRecordIds',
     isolation: ISOLATION_LEVEL.CHILD,
-    pageSize: 200,
+    pageSize: 100,
     hasImage: true,
     imageField: 'images',
     cloudPathPrefix: 'habits/'
@@ -1921,7 +2035,7 @@ var LIST_MODULE_CONFIGS = {
     storageKey: 'gameRecords',
     deletedKey: 'deletedGameRecordIds',
     isolation: ISOLATION_LEVEL.FAMILY,
-    pageSize: 200,
+    pageSize: 100,
     hasImage: false
   }
 }
@@ -1949,11 +2063,18 @@ function createSingletonSync(config) {
      */
     upload: async function uploadSingleton(data) {
       var storageKey = getStorageKey(config)
-      
+
       // 1. 写本地（立即生效）
       childStorage.set(storageKey, data)
-      
-      if (!isCloudReady()) return
+
+      // P1 修复（离线单例写入缺口）：云未就绪时入队快照（enqueueSingleton
+      // 同 key 去重，仅保留最新）——此前直接 return，离线写入永远停留本地：
+      // 联网后 flush 无快照可重放，下次 fetch 按乐观锁（本地无时间戳=云端胜）
+      // 用云端旧文档覆盖本地，离线期间的习惯编辑/学习进度等全部丢失
+      if (!isCloudReady()) {
+        enqueueSingleton(config.collection, config.key, data)
+        return
+      }
       
       try {
         var now = new Date().toISOString()
@@ -2245,6 +2366,10 @@ async function fetchNotes() {
       cloudList = cloudList.concat(batch)
       if (batch.length < pageSize) break  // 没有更多了
       page++
+    }
+    if (page > 50) {
+      console.warn('fetchNotes: 达到分页安全上限，中止合并')
+      return localNotes
     }
 
     var deletedIds = getDeletedNoteIds()
@@ -2563,8 +2688,13 @@ async function fetchHabitRecords() {
     // 完整分页才是正解；任何一页失败则中止合并返回本地（部分结果合并会误删）。
     var cloudList = []
     var page = 1
-    var pageSize = 500
-    while (page <= 20) {  // 安全上限 10000 条
+    // 服务端 record 云函数钳制单页最多 100 条（safePageSize = min(..., 100)），
+    // pageSize 必须与钳制值一致：若请求 500，首页最多返回 100 条，
+    // `batch.length < pageSize` 恒真导致第一页即 break，仍只拉最新 100 条，
+    // mergeAndHeal 会把本地 synced 旧记录误判为「他端删除」而清掉（数据丢失）
+    var pageSize = 100
+    var hitPageLimit = false
+    while (page <= 50) {  // 安全上限 5000 条
       var res = await wx.cloud.callFunction({
         name: 'record',
         data: { familyId: auth.getCurrentFamilyId(),
@@ -2585,6 +2715,11 @@ async function fetchHabitRecords() {
       cloudList = cloudList.concat(batch)
       if (batch.length < pageSize) break  // 没有更多了
       page++
+      if (page > 50) hitPageLimit = true
+    }
+    if (hitPageLimit) {
+      console.warn('fetchHabitRecords: 达到分页安全上限，中止合并')
+      return localRecords
     }
 
     var deletedIds = getDeletedHabitRecordIds()
@@ -2877,12 +3012,29 @@ async function fetchStallProducts() {
   var localProducts = childStorage.get('stallProducts') || []
   if (!isCloudReady()) return localProducts
   try {
-    var res = await wx.cloud.callFunction({
-      name: 'record',
-      data: { familyId: auth.getCurrentFamilyId(), action: 'list', collection: 'stallProducts', childId: auth.getCurrentChildId(), pageSize: 100 }
-    })
-    if (res.result.code === 0) {
-      var cloudList = res.result.data.list || []
+    // P1 修复：分页循环拉全量——单页(100)截断的子集走下方默认合并时，
+    // 会把「本地已同步但云端未返回」的历史商品误判为他端删除而清掉（同 P1-2）
+    var cloudList = []
+    var page = 1
+    while (page <= 50) {  // 安全上限 5000 条
+      var res = await wx.cloud.callFunction({
+        name: 'record',
+        data: { familyId: auth.getCurrentFamilyId(), action: 'list', collection: 'stallProducts', childId: auth.getCurrentChildId(), page: page, pageSize: 100 }
+      })
+      if (!res.result || res.result.code !== 0) {
+        console.warn('fetchStallProducts: 云函数返回错误:', res.result && res.result.msg)
+        return localProducts  // 中止合并，防止部分结果误删本地
+      }
+      var batch = res.result.data.list || []
+      cloudList = cloudList.concat(batch)
+      if (batch.length < 100) break  // 没有更多了
+      page++
+    }
+    if (page > 50) {
+      console.warn('fetchStallProducts: 达到分页安全上限，中止合并')
+      return localProducts
+    }
+    {
       var deletedIds = getDeletedStallProductIds()
       var deletedSet = {}
       deletedIds.forEach(function(id) { deletedSet[id] = true })
@@ -3269,6 +3421,7 @@ module.exports = {
   // ===== 学习进度 =====
   uploadLearnProgress: uploadLearnProgress,
   fetchLearnProgress: fetchLearnProgress,
+  queueSingletonUpload: queueSingletonUpload,
   
   // ===== 设置 =====
   uploadSettings: uploadSettings,

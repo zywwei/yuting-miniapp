@@ -1,14 +1,10 @@
 <view class="container">
   <view class="header"><view class="header-title">几何证明</view><view class="header-desc">学习几何知识</view></view>
   <view class="topic-list">
-    <view wx:for="{{topics}}" wx:key="id" class="topic-item">
-      <view class="topic-title">{{item.title}}</view>
-      <view class="topic-content">{{item.content}}</view>
-      <view class="topic-example" wx:if="{{item.example}}">
-        <view class="example-title">示例：</view>
-        <view class="example-text">{{item.example}}</view>
-      </view>
-      <view class="learn-btn" bindtap="markAsLearned" data-id="{{item.id}}">已学会</view>
+    <view wx:for="{{items}}" wx:key="id" class="topic-item" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="topic-title">{{item.no}}. {{item.title}}</view>
+      <view class="topic-content">{{item.desc}}</view>
+      <view class="learn-btn" catchtap="markAsLearned" data-id="{{item.id}}">已学会{{item.learned ? ' ✓' : ''}}</view>
     </view>
   </view>
 </view>

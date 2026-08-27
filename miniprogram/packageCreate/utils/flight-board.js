@@ -173,7 +173,10 @@ var SPECIAL_CELLS_HARD = [
   { index: 27, type: 'back', icon: '⬅️', desc: '后退3步' },
   { index: 31, type: 'item', icon: '🎁', desc: '获得道具' },
   { index: 35, type: 'stop', icon: '⏸️', desc: '停一回合' },
-  { index: 39, type: 'teleport', icon: '🌀', desc: '传送' },
+  // P1 修复：原 index 39（teleport）与绿方起飞位 START_POSITIONS.green=39 重叠，
+  // 导致 HARD 难度下绿方每架飞机刚起飞就 100% 触发传送；移至空闲的 36 号格，
+  // 特殊格总数与类型分布不变，且不与任何颜色起点（0/13/26/39）重叠
+  { index: 36, type: 'teleport', icon: '🌀', desc: '传送' },
   { index: 42, type: 'speed', icon: '⚡', desc: '加速+2' },
   { index: 46, type: 'slow', icon: '🐌', desc: '减速-1' },
   { index: 49, type: 'shield', icon: '🛡️', desc: '获得护盾' },

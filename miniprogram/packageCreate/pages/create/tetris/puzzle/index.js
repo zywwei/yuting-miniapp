@@ -233,7 +233,9 @@ Page({
   rotatePiece: function () {
     if (!this.data.currentPiece || this.data.phase !== 'playing') return
     var p = this.data.currentPiece
-    var result = engine.tryRotate(this.data.board, p.type, p.state, p.x, p.y, true)
+    // P1 修复：puzzle 棋盘仅 ROWS(10) 行，必须传给引擎按实际行数做碰撞判定，
+    // 否则引擎固定按 20 行判底界，方块落到底部两行内旋转即索引 undefined 抛错
+    var result = engine.tryRotate(this.data.board, p.type, p.state, p.x, p.y, true, ROWS)
     if (result) {
       p.state = result.state
       p.x = result.x

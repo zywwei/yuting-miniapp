@@ -1744,7 +1744,7 @@ async function mimoTTS(text, voice, overrideApiKey, overrideVoice, familyId) {
       res.on('end', () => {
         try {
           const result = JSON.parse(responseData)
-          console.log('小米TTS响应:', JSON.stringify(result).substring(0, 500))
+          console.log('小米TTS响应:', { statusCode: res.statusCode, hasAudio: !!(result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.audio) })
           
           if (res.statusCode === 200 && result.choices && result.choices[0]) {
             // 小米TTS返回格式：choices[0].message.audio.data
@@ -1937,9 +1937,7 @@ async function testTts(member, event) {
       const configResult = await db.collection('aiConfigs').where({
         familyId: member.familyId
       }).get()
-      
-      console.log('testTts查询结果:', configResult.data)
-      
+
       let apiKey = ''
       if (configResult.data && configResult.data.length > 0) {
         const config = configResult.data[0]
@@ -1962,8 +1960,9 @@ async function testTts(member, event) {
         console.log('尝试音色:', voice)
         const result = await mimoTTS('你好，这是小米TTS测试。', 'mimo-v2.5-tts', apiKey, voice)
         
-        console.log('音色', voice, '测试结果:', result)
-        
+        // B5：只打印摘要（code/音频长度），不输出含 base64 音频的完整 result
+        console.log('音色测试:', voice, 'code:', result.code, 'audioLength:', (result.data && result.data.audio) ? result.data.audio.length : 0)
+
         if (result.code === 0) {
           return { 
             code: 0, 

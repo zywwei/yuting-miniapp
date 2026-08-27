@@ -544,6 +544,40 @@ async function removeChild(openid, { familyId, childId }) {
   }
 }
 
+// P1 安全修复辅助：判断目标成员是否为家庭创建者。
+// 背景：joinFamily 允许受邀者自报 role='father/mother' 获得 admin 权限，
+// 而 admin 之间可互相移除/禁用——创建者可能被踢出导致家庭失管。
+// 此处用 families.creatorOpenid 作唯一锚点保护创建者；
+// 完整治理需后续将「授予 admin」收口为现有 admin 的显式授权操作。
+async function isFamilyCreator(familyId, memberId) {
+  // P1 安全修复（I2 fail-closed）：查询异常时状态不明，按受保护处理拒绝操作
+  // ——误拒可重试，误放行难挽回（removed 的创建者被 B1 挡住无法自助回归）
+  var familyDoc
+  try {
+    familyDoc = await db.collection('families').doc(familyId).get()
+  } catch (e) {
+    console.warn('[family] isFamilyCreator 查询家庭失败，按受保护处理:', e)
+    return true
+  }
+  var creatorOpenid = familyDoc.data && familyDoc.data.creatorOpenid
+  if (!creatorOpenid) {
+    // 存量脏数据兜底：无法判定保护目标时不阻塞管理操作，仅告警
+    console.warn('[family] 家庭缺失 creatorOpenid，创建者保护降级:', familyId)
+    return false
+  }
+  try {
+    const targetRes = await db.collection('familyMembers')
+      .where({ _id: memberId, familyId: familyId })
+      .get()
+    const target = targetRes.data && targetRes.data[0]
+    if (!target) return false  // 目标不存在：后续 update 自然落空，不视为创建者
+    return target.openid === creatorOpenid
+  } catch (e) {
+    console.warn('[family] isFamilyCreator 查询成员失败，按受保护处理:', e)
+    return true
+  }
+}
+
 async function removeMember(openid, { familyId, memberId }) {
   try {
     const member = await getMemberByOpenid(openid, familyId)
@@ -553,6 +587,10 @@ async function removeMember(openid, { familyId, memberId }) {
 
     if (member._id === memberId) {
       return { code: -2, msg: '不能移除自己' }
+    }
+
+    if (await isFamilyCreator(member.familyId, memberId)) {
+      return { code: -4, msg: '不能移除家庭创建者' }
     }
 
     const upd = await db.collection('familyMembers')
@@ -577,6 +615,10 @@ async function disableMember(openid, { familyId, memberId }) {
 
     if (member._id === memberId) {
       return { code: -2, msg: '不能禁用自己' }
+    }
+
+    if (await isFamilyCreator(member.familyId, memberId)) {
+      return { code: -4, msg: '不能禁用家庭创建者' }
     }
 
     const upd = await db.collection('familyMembers')

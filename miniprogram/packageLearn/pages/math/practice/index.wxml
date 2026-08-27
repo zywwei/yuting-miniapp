@@ -1,10 +1,10 @@
 <!-- 数学计算练习页面 -->
 <view class="container">
-  <!-- 练习类型选择 -->
-  <view wx:if="{{!showPractice}}">
+  <!-- 练习类型选择 + 全部题目 -->
+  <block wx:if="{{!showPractice}}">
     <view class="header">
       <view class="header-title">计算练习</view>
-      <view class="header-desc">选择练习类型</view>
+      <view class="header-desc">选择练习类型开始练习，或浏览全部题目</view>
     </view>
 
     <view class="type-list">
@@ -20,7 +20,22 @@
         <view class="type-difficulty">难度：{{item.difficulty}}</view>
       </view>
     </view>
-  </view>
+
+    <view class="type-list" style="padding-top:0;">
+      <view class="type-name" style="font-weight:bold;margin-bottom:16rpx;">全部题目</view>
+      <view
+        wx:for="{{items}}"
+        wx:key="id"
+        class="type-item"
+        bindtap="goDetail"
+        data-id="{{item.id}}"
+      >
+        <view class="type-icon">{{item.no}}</view>
+        <view class="type-name">{{item.title}}</view>
+        <view class="type-difficulty" wx:if="{{item.tag}}">{{item.tag}}{{item.learned ? ' · 已学' : ''}}</view>
+      </view>
+    </view>
+  </block>
 
   <!-- 练习界面 -->
   <view wx:if="{{showPractice}}" class="practice-container">

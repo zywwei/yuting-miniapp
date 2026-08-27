@@ -22,7 +22,7 @@
         bindtap="switchCategory"
         data-category="{{item.id}}"
       >
-        {{item.icon}} {{item.name}}
+        {{item.name}}
       </view>
     </view>
   </scroll-view>
@@ -30,21 +30,19 @@
   <!-- 概念列表 -->
   <view class="concept-list">
     <view
-      wx:for="{{concepts}}"
+      wx:for="{{items}}"
       wx:key="id"
       class="concept-item"
+      bindtap="goDetail"
+      data-id="{{item.id}}"
     >
       <view class="concept-header">
-        <view class="concept-title">{{item.title}}</view>
-        <view class="concept-grade">{{item.grade}}年级</view>
+        <view class="concept-title">{{item.no}}. {{item.title}}{{item.learned ? ' ✓' : ''}}</view>
+        <view class="concept-grade" wx:if="{{item.tag}}">{{item.tag}}</view>
       </view>
-      <view class="concept-content">{{item.content}}</view>
-      <view class="concept-example" wx:if="{{item.example}}">
-        <view class="example-label">示例：</view>
-        <view class="example-text">{{item.example}}</view>
-      </view>
+      <view class="concept-content">{{item.desc}}</view>
       <view class="concept-footer">
-        <view class="learn-btn" bindtap="markAsLearned" data-id="{{item.id}}">已学会</view>
+        <view class="learn-btn" catchtap="markAsLearned" data-id="{{item.id}}">已学会</view>
       </view>
     </view>
   </view>
