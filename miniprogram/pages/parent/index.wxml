@@ -119,6 +119,21 @@
     <view wx:else class="empty-text">暂无笔记</view>
   </view>
 
+  <!-- AI画画配额（仅家庭创建者可见） -->
+  <view class="section" wx:if="{{isCreator}}">
+    <view class="section-title">🎨 AI画画配额</view>
+    <view class="quota-desc">限制家庭成员使用AI画画的频率，防止费用滥用</view>
+    <view class="quota-row">
+      <text class="quota-label">每日次数</text>
+      <input class="quota-input" type="number" value="{{quotaDaily}}" bindinput="onQuotaDailyInput" placeholder="默认100" maxlength="4" />
+    </view>
+    <view class="quota-row">
+      <text class="quota-label">每分钟次数</text>
+      <input class="quota-input" type="number" value="{{quotaPerMinute}}" bindinput="onQuotaPerMinuteInput" placeholder="默认20" maxlength="3" />
+    </view>
+    <button class="quota-save-btn" bindtap="saveQuota" disabled="{{quotaSaving}}">{{quotaSaving ? '保存中...' : '保存配额'}}</button>
+  </view>
+
   <!-- 数据备份与恢复 -->
   <view class="section">
     <view class="section-title">💾 数据备份与恢复</view>

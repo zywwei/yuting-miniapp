@@ -42,6 +42,37 @@ var EMOJI_LIST = EMOJI_CATEGORIES.face.list
 // 消息ID计数器
 var messageIdCounter = 0
 
+// 全量模型列表每页展示条数（滚动到底加载下一页）
+var ALL_MODELS_PAGE_SIZE = 50
+
+// AI画画预设选项（画幅/清晰度，直接点选）
+var ASPECT_RATIO_OPTIONS = [
+  { key: '1:1', name: '1:1 方图' },
+  { key: '4:3', name: '4:3 横版' },
+  { key: '3:4', name: '3:4 竖版' },
+  { key: '16:9', name: '16:9 宽屏' },
+  { key: '9:16', name: '9:16 全屏' }
+]
+var QUALITY_OPTIONS = [
+  { key: 'low', name: '低' },
+  { key: 'standard', name: '标准' },
+  { key: 'high', name: '高清' },
+  { key: 'auto', name: '自动' }
+]
+// 支持全量模型列表同步的供应商
+var DYNAMIC_MODEL_PROVIDERS = ['openrouter', 'kilo', 'opencode']
+// 图片生成推荐模型（按此顺序展示，其余收进"更多模型"）
+var RECOMMENDED_IMAGE_MODELS = [
+  'openai/gpt-image-2',
+  'google/gemini-2.5-flash-image',
+  'google/gemini-3.1-flash-image',
+  'openai/gpt-image-1',
+  'bytedance-seed/seedream-4.5',
+  'qwen/qwen-image-3-pro',
+  'black-forest-labs/flux.2-pro',
+  'x-ai/grok-imagine-image-2.0'
+]
+
 Page({
   data: {
     isConfigured: false,
@@ -98,6 +129,37 @@ Page({
     isPageUnloaded: false, // 页面是否已卸载
     // 键盘高度
     keyboardHeight: 0,
+    // 全量模型选择（供应商模型列表同步）
+    showAllModelsModal: false,
+    allModelsLoading: false,
+    allModelsList: [],
+    allModelsFiltered: [],
+    allModelsFilter: 'all',
+    allModelsSearch: '',
+    allModelsTotal: 0,
+    allModelsShown: 0,
+    allModelsPage: 1,
+    allModelsRefreshing: false,
+    _allModelsProvider: '',
+    // AI画画
+    showDrawModal: false,
+    drawModels: [],
+    drawRecommendModels: [],
+    drawMoreModels: [],
+    showDrawModelList: false,
+    showDrawMoreModels: false,
+    drawModelsLoading: false,
+    drawModelsError: false,
+    drawModelKey: '',
+    drawModelName: '',
+    aspectRatioOptions: ASPECT_RATIO_OPTIONS,
+    qualityOptions: QUALITY_OPTIONS,
+    drawAspectRatio: '1:1',
+    drawQuality: 'standard',
+    drawPrompt: '',
+    drawing: false,
+    drawWaitingText: '',
+    drawRefImages: [],
     // 欢迎消息
     welcomeTitle: '你好，我是AI助手',
     quickQuestions: [],
@@ -235,6 +297,10 @@ Page({
     if (this._thinkingPollTimer) {
       clearInterval(this._thinkingPollTimer)
     }
+    if (this._drawTimer) {
+      clearInterval(this._drawTimer)
+      this._drawTimer = null
+    }
     if (this._thinkingWatcher) {
       this._thinkingWatcher.close()
     }
@@ -278,6 +344,7 @@ Page({
           color: models[key].color,
           description: models[key].description,
           configured: false, // 后面根据配置更新
+          hasDynamicModels: DYNAMIC_MODEL_PROVIDERS.indexOf(key) > -1,
           subModels: models[key].subModels || []
         })
       }
@@ -322,6 +389,7 @@ Page({
           description: provider.description,
           // P0-7 配套：非 admin 配置为脱敏版，已配置状态以服务端 hasKeyByProvider 为准
           configured: !!(configuredModels[provider.key] && configuredModels[provider.key].apiKey) || !!(config.hasKeyByProvider && config.hasKeyByProvider[provider.key]),
+          hasDynamicModels: provider.hasDynamicModels,
           subModels: provider.subModels
         }
       })
@@ -353,6 +421,11 @@ Page({
               currentModelKey = subModel
               break
             }
+          }
+          // 全量模型弹窗选中的 id 不在本地预设列表时，用 id 兜底展示（所见即所用）
+          if (!currentModelKey) {
+            currentModelKey = subModel
+            currentSubModelName = subModel
           }
         }
         
@@ -429,12 +502,17 @@ Page({
     aiManager.getHistory(this.data.currentSessionId).then(function(result) {
       var messages = result.list.map(function(item, index) {
         messageIdCounter++
+        // 云端图片消息字段为 imageFileID（AI生成图片），本地缓存为 image
+        var image = item.imageFileID || item.image || null
+        // 生成图判定：云端有 imageFileID，或本地缓存的云存储图片（用户发的图 role 为 user，可区分）
+        var isGenerated = !!(image && item.role === 'assistant' && (item.imageFileID || image.indexOf('cloud://') === 0))
         return {
           id: 'msg_' + messageIdCounter,
           role: item.role,
           content: item.content,
           richText: item.role === 'assistant' ? markdown.parseMarkdown(item.content) : '',
-          image: item.image || null,
+          image: image,
+          isGenerated: isGenerated,
           thinking: item.thinking || null,
           showThinking: false,
           timeStr: that.formatTime(item.createTime)
@@ -530,6 +608,7 @@ Page({
           color: models[key].color,
           description: models[key].description,
           configured: false,
+          hasDynamicModels: DYNAMIC_MODEL_PROVIDERS.indexOf(key) > -1,
           subModels: models[key].subModels || []
         })
       }
@@ -767,6 +846,535 @@ Page({
   previewImage: function(e) {
     var url = e.currentTarget.dataset.url
     previewImageHelper(url, [url])
+  },
+
+  // ========== 全量模型选择（供应商模型列表同步） ==========
+
+  // 打开全量模型弹窗（data-provider 指定平台，默认当前供应商）
+  showAllModels: function(e) {
+    var provider = (e && e.currentTarget && e.currentTarget.dataset.provider) || this.data.currentProvider
+    if (DYNAMIC_MODEL_PROVIDERS.indexOf(provider) === -1) {
+      wx.showToast({ title: '该平台暂不支持模型同步', icon: 'none' })
+      return
+    }
+    this.setData({
+      showAllModelsModal: true,
+      allModelsList: [],
+      allModelsFiltered: [],
+      allModelsSearch: '',
+      allModelsFilter: 'all',
+      allModelsPage: 1,
+      _allModelsProvider: provider
+    })
+    this.fetchAllModels(provider, false)
+  },
+
+  // 拉取全量模型列表
+  fetchAllModels: function(provider, forceRefresh) {
+    var that = this
+    that.setData({ allModelsLoading: true })
+    aiManager.listModels(provider, 'chat', forceRefresh).then(function(data) {
+      var list = (data.models || []).map(function(m, i) {
+        return {
+          id: m.id,
+          name: m.name,
+          desc: (m.contextLength ? '上下文' + that.formatContextLength(m.contextLength) : '') + (m.isFree ? ' · 免费' : (m.pricing && m.pricing.prompt != null ? ' · $' + m.pricing.prompt + '/百万token' : '')),
+          isFree: m.isFree
+        }
+      })
+      that.setData({
+        allModelsLoading: false,
+        allModelsList: list,
+        allModelsTotal: list.length,
+        allModelsRefreshing: false
+      })
+      that._allModelsCache = list
+      that.applyAllModelsFilter()
+    }).catch(function(err) {
+      console.error('拉取模型列表失败:', err)
+      that.setData({ allModelsLoading: false })
+      wx.showToast({ title: err.message || '获取模型列表失败', icon: 'none' })
+    })
+  },
+
+  // 格式化上下文长度
+  formatContextLength: function(len) {
+    if (len >= 1000000) return (len / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+    if (len >= 1000) return Math.round(len / 1000) + 'K'
+    return '' + len
+  },
+
+  // 应用搜索/筛选（本地过滤，不重复请求）
+  applyAllModelsFilter: function() {
+    var keyword = (this.data.allModelsSearch || '').toLowerCase()
+    var filter = this.data.allModelsFilter
+    var source = this._allModelsCache || this.data.allModelsList
+    var filtered = source.filter(function(m) {
+      if (filter === 'free' && !m.isFree) return false
+      if (!keyword) return true
+      return m.id.toLowerCase().indexOf(keyword) > -1 || m.name.toLowerCase().indexOf(keyword) > -1
+    })
+    this.setData({
+      allModelsFiltered: filtered.slice(0, ALL_MODELS_PAGE_SIZE * this.data.allModelsPage),
+      allModelsShown: filtered.length
+    })
+  },
+
+  // 搜索输入
+  onAllModelsSearch: function(e) {
+    this.setData({ allModelsSearch: e.detail.value, allModelsPage: 1 })
+    this.applyAllModelsFilter()
+  },
+
+  // 切换筛选（全部/免费）
+  switchAllModelsFilter: function(e) {
+    this.setData({ allModelsFilter: e.currentTarget.dataset.filter, allModelsPage: 1 })
+    this.applyAllModelsFilter()
+  },
+
+  // 滚动到底加载更多
+  loadMoreAllModels: function() {
+    var nextPage = this.data.allModelsPage + 1
+    var total = this.data.allModelsShown
+    // 只要已展示数量小于筛选总数就翻页（总数不是整页倍数时也能展示完尾部）
+    if (this.data.allModelsFiltered.length < total) {
+      this.setData({ allModelsPage: nextPage })
+      this.applyAllModelsFilter()
+    }
+  },
+
+  // 刷新模型列表（3秒冷却，防连续点击放大上游请求）
+  refreshAllModels: function() {
+    if (this.data.allModelsRefreshing) return
+    this.setData({ allModelsPage: 1, allModelsSearch: '', allModelsFilter: 'all', allModelsRefreshing: true })
+    var that = this
+    setTimeout(function() {
+      that.setData({ allModelsRefreshing: false })
+    }, 3000)
+    this.fetchAllModels(this.data._allModelsProvider, true)
+  },
+
+  // 选中全量模型（写入配置，同 quickSwitchModel）
+  selectAllModel: function(e) {
+    var that = this
+    var key = e.currentTarget.dataset.key
+    var name = e.currentTarget.dataset.name
+    var provider = this.data._allModelsProvider
+
+    aiManager.getConfig().then(function(config) {
+      var saveConfig = {
+        currentModel: provider,
+        models: {}
+      }
+      saveConfig.models[provider] = config.models[provider] || {}
+      saveConfig.models[provider].model = key
+
+      aiManager.saveConfig(saveConfig).then(function() {
+        var models = aiManager.getModels()
+        var providerInfo = models[provider] || {}
+        that.setData({
+          currentProvider: provider,
+          currentModelKey: key,
+          currentSubModelName: name,
+          modelInfo: {
+            icon: providerInfo.icon || '🤖',
+            name: providerInfo.name || 'AI助手'
+          },
+          showAllModelsModal: false
+        })
+        that.estimateCost()
+        wx.showToast({ title: '已切换到' + name, icon: 'none' })
+      }).catch(function(err) {
+        console.error('保存模型选择失败:', err)
+        wx.showToast({ title: err.message || '保存失败', icon: 'none' })
+      })
+    }).catch(function(err) {
+      console.error('获取配置失败:', err)
+      wx.showToast({ title: err.message || '获取配置失败', icon: 'none' })
+    })
+  },
+
+  // 关闭全量模型弹窗
+  hideAllModels: function() {
+    this.setData({ showAllModelsModal: false })
+  },
+
+  // ========== AI画画 ==========
+
+  // 打开画画弹窗（从更多面板进入）
+  showDraw: function() {
+    this.setData({ showMorePanel: false, showDrawModal: true, showDrawModelList: false })
+    this.loadDrawModels()
+  },
+
+  // 关闭画画弹窗
+  hideDraw: function() {
+    this.setData({ showDrawModal: false })
+  },
+
+  // 加载图片生成模型列表
+  loadDrawModels: function(forceRefresh) {
+    var that = this
+    var cached = this.data.drawModels
+    if (cached && cached.length > 0 && !forceRefresh) return
+
+    that.setData({ drawModelsLoading: true, drawModelsError: false })
+    aiManager.listModels('openrouter', 'image', !!forceRefresh).then(function(data) {
+      var list = (data.models || []).map(function(m) {
+        return { id: m.id, name: m.name }
+      })
+      // 分组：推荐模型按常量顺序展示，其余收进"更多模型"
+      var recommendIds = {}
+      for (var k = 0; k < RECOMMENDED_IMAGE_MODELS.length; k++) {
+        recommendIds[RECOMMENDED_IMAGE_MODELS[k]] = true
+      }
+      var recommendModels = []
+      var moreModels = []
+      for (var i = 0; i < list.length; i++) {
+        if (recommendIds[list[i].id]) {
+          recommendModels.push(list[i])
+        } else {
+          moreModels.push(list[i])
+        }
+      }
+      // 推荐分组按常量顺序排序
+      recommendModels.sort(function(a, b) {
+        return RECOMMENDED_IMAGE_MODELS.indexOf(a.id) - RECOMMENDED_IMAGE_MODELS.indexOf(b.id)
+      })
+      // 默认选中：已选中的保留，否则优先 gpt-image-2，再否则推荐第一个
+      var defaultKey = that.data.drawModelKey
+      if (!defaultKey) {
+        for (var m = 0; m < recommendModels.length; m++) {
+          if (recommendModels[m].id === 'openai/gpt-image-2') {
+            defaultKey = recommendModels[m].id
+            break
+          }
+        }
+        if (!defaultKey && recommendModels.length > 0) defaultKey = recommendModels[0].id
+        if (!defaultKey && list.length > 0) defaultKey = list[0].id
+      }
+      var defaultName = ''
+      for (var j = 0; j < list.length; j++) {
+        if (list[j].id === defaultKey) { defaultName = list[j].name; break }
+      }
+      that.setData({
+        drawModels: list,
+        drawRecommendModels: recommendModels,
+        drawMoreModels: moreModels,
+        drawModelsLoading: false,
+        drawModelKey: defaultKey,
+        drawModelName: defaultName
+      })
+    }).catch(function(err) {
+      console.error('获取图片模型失败:', err)
+      // 降级：用内置推荐常量保证画画功能可用（name 用 id 展示）
+      var fallback = RECOMMENDED_IMAGE_MODELS.map(function(id) {
+        return { id: id, name: id }
+      })
+      var fallbackKey = that.data.drawModelKey || 'openai/gpt-image-2'
+      that.setData({
+        drawModels: fallback,
+        drawRecommendModels: fallback,
+        drawMoreModels: [],
+        drawModelsLoading: false,
+        drawModelsError: true,
+        drawModelKey: fallbackKey,
+        drawModelName: fallbackKey
+      })
+      wx.showToast({ title: '模型列表同步失败，已用内置列表', icon: 'none' })
+    })
+  },
+
+  // 重试加载图片模型
+  retryDrawModels: function() {
+    this.setData({ drawModels: [] })
+    this.loadDrawModels(true)
+  },
+
+  // 展开/收起图片模型列表
+  toggleDrawModelList: function() {
+    this.setData({ showDrawModelList: !this.data.showDrawModelList })
+  },
+
+  // 展开/收起更多图片模型
+  toggleDrawMoreModels: function() {
+    this.setData({ showDrawMoreModels: !this.data.showDrawMoreModels })
+  },
+
+  // 选择图片模型
+  selectDrawModel: function(e) {
+    this.setData({
+      drawModelKey: e.currentTarget.dataset.key,
+      drawModelName: e.currentTarget.dataset.name,
+      showDrawModelList: false,
+      showDrawMoreModels: false
+    })
+  },
+
+  // 切换画幅
+  selectDrawRatio: function(e) {
+    this.setData({ drawAspectRatio: e.currentTarget.dataset.key })
+  },
+
+  // 切换清晰度
+  selectDrawQuality: function(e) {
+    this.setData({ drawQuality: e.currentTarget.dataset.key })
+  },
+
+  // 画画提示词输入
+  onDrawPromptInput: function(e) {
+    this.setData({ drawPrompt: e.detail.value })
+  },
+
+  // 选择参考图（最多3张）
+  chooseDrawRefImage: function() {
+    var that = this
+    var remain = 3 - this.data.drawRefImages.length
+    if (remain <= 0) {
+      wx.showToast({ title: '参考图最多3张', icon: 'none' })
+      return
+    }
+    wx.chooseMedia({
+      count: remain,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: function(res) {
+        var newImages = res.tempFiles.map(function(file) {
+          return file.tempFilePath
+        })
+        that.setData({
+          drawRefImages: that.data.drawRefImages.concat(newImages)
+        })
+      }
+    })
+  },
+
+  // 移除参考图
+  removeDrawRefImage: function(e) {
+    var index = e.currentTarget.dataset.index
+    var images = this.data.drawRefImages.filter(function(img, i) {
+      return i !== index
+    })
+    this.setData({ drawRefImages: images })
+  },
+
+  // 预览参考图
+  previewDrawRef: function(e) {
+    var url = e.currentTarget.dataset.url
+    previewImageHelper(url, this.data.drawRefImages)
+  },
+
+  // 上传参考图（返回 fileID 数组）
+  uploadDrawRefs: function(localImages) {
+    var cloud = getApp().globalData.cloud
+    var tasks = localImages.map(function(path) {
+      return cloud.uploadImageCompressed(path, 'ai-chat-images')
+    })
+    return Promise.all(tasks)
+  },
+
+  // 提交生成图片（提示词立即上屏，等待过程显示秒数）
+  submitDraw: function() {
+    var that = this
+    var prompt = this.data.drawPrompt.trim()
+    if (!prompt) {
+      wx.showToast({ title: '请先描述想画的内容', icon: 'none' })
+      return
+    }
+    if (!this.data.drawModelKey) {
+      wx.showToast({ title: '请先选择图片模型', icon: 'none' })
+      return
+    }
+    if (this.data.drawing) return
+
+    var sessionId = this.data.currentSessionId
+    var refLocalImages = (this.data.drawRefImages || []).slice()
+    that.setData({ drawing: true, showDrawModal: false, drawPrompt: '', drawRefImages: [] })
+
+    // 有参考图先上传，再上屏+生成
+    if (refLocalImages.length > 0) {
+      that.setData({ loading: true, loadingText: '画画中...', drawWaitingText: '🎨 上传参考图中…' })
+      that.uploadDrawRefs(refLocalImages).then(function(fileIDs) {
+        that.startDrawRequest(prompt, sessionId, fileIDs)
+      }).catch(function(err) {
+        console.error('参考图上传失败:', err)
+        that.setData({ loading: false, drawing: false, drawWaitingText: '' })
+        that.showError('参考图上传失败：' + (err.message || '请重试'))
+      })
+      return
+    }
+    that.startDrawRequest(prompt, sessionId, [])
+  },
+
+  // 发起画画请求（用户气泡上屏 + 秒计时 + 调接口）
+  startDrawRequest: function(prompt, sessionId, refFileIDs) {
+    var that = this
+    // 提示词气泡立即上屏（不等图片回来，参考图一并展示）
+    messageIdCounter++
+    var userMsg = {
+      id: 'msg_' + messageIdCounter,
+      role: 'user',
+      content: prompt,
+      images: refFileIDs.length > 0 ? refFileIDs : null,
+      thinking: null,
+      showThinking: false,
+      timeStr: this.formatTime(new Date())
+    }
+    aiManager.saveToLocal(sessionId, 'user', prompt, null, null)
+    that.setData({
+      messages: that.data.messages.concat(userMsg),
+      loading: true,
+      loadingText: '画画中...',
+      drawWaitingText: '🎨 画画中，已等待 0 秒…'
+    })
+    that.scrollToBottom()
+
+    // 等待秒数计时（每秒更新）
+    var waitedSeconds = 0
+    if (that._drawTimer) clearInterval(that._drawTimer)
+    that._drawTimer = setInterval(function() {
+      waitedSeconds++
+      that.setData({ drawWaitingText: '🎨 画画中，已等待 ' + waitedSeconds + ' 秒…' })
+    }, 1000)
+
+    aiManager.generateImage(prompt, this.data.drawModelKey, {
+      aspectRatio: this.data.drawAspectRatio,
+      quality: this.data.drawQuality,
+      sessionId: sessionId,
+      refImageFileIDs: refFileIDs
+    }).then(function(result) {
+      that.clearDrawTimer()
+      that.addDrawMessages(result.fileID)
+    }).catch(function(err) {
+      console.error('生成图片失败:', err)
+      that.clearDrawTimer()
+      that.setData({ loading: false, drawing: false })
+      that.showError('画画失败：' + (err.message || '请稍后重试'))
+    })
+  },
+
+  // 清理画画计时器
+  clearDrawTimer: function() {
+    if (this._drawTimer) {
+      clearInterval(this._drawTimer)
+      this._drawTimer = null
+    }
+    this.setData({ drawWaitingText: '' })
+  },
+
+  // 画画结果入列（AI图片气泡，用户提示词已在提交时上屏）
+  addDrawMessages: function(fileID) {
+    var that = this
+    messageIdCounter++
+    var aiMsg = {
+      id: 'msg_' + messageIdCounter,
+      role: 'assistant',
+      content: '',
+      richText: '',
+      image: fileID,
+      thinking: null,
+      showThinking: false,
+      timeStr: this.formatTime(new Date()),
+      isGenerated: true
+    }
+    // 本地缓存（保存/分享/历史刷新都需要 fileID 可恢复）
+    aiManager.saveToLocal(this.data.currentSessionId, 'assistant', '', null, fileID)
+
+    that.setData({
+      messages: that.data.messages.concat(aiMsg),
+      loading: false,
+      drawing: false
+    })
+    that.scrollToBottom()
+  },
+
+  // 保存AI生成的图片到相册
+  saveGeneratedImage: function(e) {
+    var fileID = e.currentTarget.dataset.fileid
+    if (!fileID) return
+    var that = this
+    wx.showLoading({ title: '保存中...' })
+    wx.cloud.getTempFileURL({
+      fileList: [fileID]
+    }).then(function(res) {
+      var url = res.fileList && res.fileList[0] && res.fileList[0].tempFileURL
+      if (!url) throw new Error('获取图片链接失败')
+      return new Promise(function(resolve, reject) {
+        wx.downloadFile({
+          url: url,
+          success: function(dl) { resolve(dl.tempFilePath) },
+          fail: function(err) { reject(new Error('下载失败: ' + (err.errMsg || ''))) }
+        })
+      })
+    }).then(function(tempPath) {
+      wx.hideLoading()
+      return new Promise(function(resolve, reject) {
+        wx.saveImageToPhotosAlbum({
+          filePath: tempPath,
+          success: function() { resolve() },
+          fail: function(err) {
+            if (err.errMsg.indexOf('auth deny') > -1 || err.errMsg.indexOf('authorize') > -1) {
+              wx.showModal({
+                title: '提示',
+                content: '需要您授权保存图片到相册',
+                confirmText: '去授权',
+                success: function(res) {
+                  if (res.confirm) wx.openSetting()
+                }
+              })
+              reject(new Error('cancel'))
+            } else {
+              reject(new Error('保存失败'))
+            }
+          }
+        })
+      })
+    }).then(function() {
+      wx.showToast({ title: '已保存到相册', icon: 'success' })
+    }).catch(function(err) {
+      wx.hideLoading()
+      if (err.message !== 'cancel') {
+        console.error('保存图片失败:', err)
+        wx.showToast({ title: err.message || '保存失败', icon: 'none' })
+      }
+    })
+  },
+
+  // 分享AI生成的图片到其他程序
+  shareGeneratedImage: function(e) {
+    var fileID = e.currentTarget.dataset.fileid
+    if (!fileID) return
+    var that = this
+    wx.showLoading({ title: '加载中...' })
+    wx.cloud.getTempFileURL({
+      fileList: [fileID]
+    }).then(function(res) {
+      var url = res.fileList && res.fileList[0] && res.fileList[0].tempFileURL
+      if (!url) throw new Error('获取图片链接失败')
+      // 部分低版本基础库 showShareImageMenu 只支持本地路径，先下载
+      return new Promise(function(resolve, reject) {
+        wx.downloadFile({
+          url: url,
+          success: function(dl) { resolve(dl.tempFilePath) },
+          fail: function(err) { reject(new Error('下载失败: ' + (err.errMsg || ''))) }
+        })
+      })
+    }).then(function(tempPath) {
+      wx.hideLoading()
+      wx.showShareImageMenu({
+        path: tempPath,
+        fail: function(err) {
+          // 用户取消不算错误
+          if (err.errMsg.indexOf('cancel') === -1) {
+            wx.showToast({ title: '分享失败', icon: 'none' })
+          }
+        }
+      })
+    }).catch(function(err) {
+      wx.hideLoading()
+      console.error('分享图片失败:', err)
+      wx.showToast({ title: err.message || '分享失败', icon: 'none' })
+    })
   },
 
   // ========== Skills相关方法 ==========

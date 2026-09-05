@@ -24,7 +24,12 @@ Page({
     backupStatusType: '',
     member: null,
     family: null,
-    isAdmin: false
+    isAdmin: false,
+    // AI画画配额（仅家庭创建者可配置）
+    isCreator: false,
+    quotaDaily: '',
+    quotaPerMinute: '',
+    quotaSaving: false
   },
 
   onLoad: function() {
@@ -96,6 +101,67 @@ Page({
       member: member,
       family: family,
       isAdmin: auth.isAdmin()
+    })
+
+    // 家庭创建者加载AI画画配额配置
+    var isCreator = !!(family && family.creatorOpenid && member && family.creatorOpenid === auth.getOpenid())
+    this.setData({ isCreator: isCreator })
+    if (isCreator) {
+      this.loadQuotaConfig()
+    }
+  },
+
+  // 加载AI画画配额配置
+  loadQuotaConfig: function() {
+    var that = this
+    var aiManager = getApp().globalData.aiManager
+    if (!aiManager || !aiManager.getQuotaConfig) return
+    aiManager.getQuotaConfig().then(function(data) {
+      that.setData({
+        quotaDaily: String(data.generateImageDaily),
+        quotaPerMinute: String(data.generateImagePerMinute)
+      })
+    }).catch(function(err) {
+      console.error('加载配额配置失败:', err)
+    })
+  },
+
+  // 配额输入
+  onQuotaDailyInput: function(e) {
+    this.setData({ quotaDaily: e.detail.value })
+  },
+
+  onQuotaPerMinuteInput: function(e) {
+    this.setData({ quotaPerMinute: e.detail.value })
+  },
+
+  // 保存AI画画配额（仅创建者）
+  saveQuota: function() {
+    var that = this
+    var daily = parseInt(this.data.quotaDaily)
+    var perMinute = parseInt(this.data.quotaPerMinute)
+    if (isNaN(daily) || daily < 1 || daily > 1000) {
+      wx.showToast({ title: '每日次数需在1-1000之间', icon: 'none' })
+      return
+    }
+    if (isNaN(perMinute) || perMinute < 1 || perMinute > 100) {
+      wx.showToast({ title: '每分钟次数需在1-100之间', icon: 'none' })
+      return
+    }
+    if (this.data.quotaSaving) return
+
+    this.setData({ quotaSaving: true })
+    var aiManager = getApp().globalData.aiManager
+    aiManager.saveQuotaConfig({
+      generateImageDaily: daily,
+      generateImagePerMinute: perMinute
+    }).then(function() {
+      that.setData({ quotaSaving: false })
+      wx.showToast({ title: '配额已保存', icon: 'success' })
+    }).catch(function(err) {
+      console.error('保存配额失败:', err)
+      that.setData({ quotaSaving: false })
+      wx.showToast({ title: err.message || '保存失败', icon: 'none' })
     })
   },
 

@@ -960,6 +960,124 @@ function getCurrentModelInfo() {
   }
 }
 
+/**
+ * 获取平台全量模型列表（云端同步，24h缓存）
+ * @param {string} provider - 平台key（openrouter/kilo/opencode）
+ * @param {string} type - 'chat' 文本模型 | 'image' 图片生成模型
+ * @param {boolean} forceRefresh - 强制刷新
+ * @returns {Promise<Object>} { models, provider, type, cached }
+ */
+function listModels(provider, type, forceRefresh) {
+  return new Promise(function(resolve, reject) {
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: { familyId: auth.getCurrentFamilyId(),
+        action: 'listModels',
+        provider: provider,
+        type: type || 'chat',
+        forceRefresh: !!forceRefresh
+      }
+    }).then(function(res) {
+      if (res.result && res.result.code === 0) {
+        resolve(res.result.data)
+      } else {
+        reject(new Error((res.result && res.result.msg) || '获取模型列表失败'))
+      }
+    }).catch(function(err) {
+      console.error('获取模型列表失败:', err)
+      reject(err)
+    })
+  })
+}
+
+/**
+ * AI 图片生成
+ * @param {string} prompt - 图片描述
+ * @param {string} imageModel - 图片模型id
+ * @param {Object} options - { aspectRatio: 画幅, quality: 清晰度, sessionId: 会话ID, refImageFileIDs: 参考图fileID数组 }
+ * @returns {Promise<Object>} { fileID, model, prompt }
+ */
+function generateImage(prompt, imageModel, options) {
+  options = options || {}
+  return new Promise(function(resolve, reject) {
+    var reqData = { familyId: auth.getCurrentFamilyId(),
+      action: 'generateImage',
+      childId: auth.getCurrentChildId(),
+      sessionId: options.sessionId || getCurrentSessionId(),
+      prompt: prompt,
+      model: imageModel,
+      aspectRatio: options.aspectRatio || '',
+      quality: options.quality || ''
+    }
+    if (options.refImageFileIDs && options.refImageFileIDs.length > 0) {
+      reqData.imageFileID = options.refImageFileIDs
+    }
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: reqData
+    }).then(function(res) {
+      if (res.result && res.result.code === 0) {
+        resolve(res.result.data)
+      } else {
+        reject(new Error((res.result && res.result.msg) || '图片生成失败'))
+      }
+    }).catch(function(err) {
+      console.error('图片生成失败:', err)
+      reject(err)
+    })
+  })
+}
+
+/**
+ * 读取AI画画配额配置
+ * @returns {Promise<Object>} { generateImageDaily, generateImagePerMinute }
+ */
+function getQuotaConfig() {
+  return new Promise(function(resolve, reject) {
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: { familyId: auth.getCurrentFamilyId(),
+        action: 'getQuotaConfig'
+      }
+    }).then(function(res) {
+      if (res.result && res.result.code === 0) {
+        resolve(res.result.data)
+      } else {
+        reject(new Error((res.result && res.result.msg) || '获取配额配置失败'))
+      }
+    }).catch(function(err) {
+      console.error('获取配额配置失败:', err)
+      reject(err)
+    })
+  })
+}
+
+/**
+ * 保存AI画画配额配置（仅家庭创建者）
+ * @param {Object} config - { generateImageDaily, generateImagePerMinute }
+ * @returns {Promise}
+ */
+function saveQuotaConfig(config) {
+  return new Promise(function(resolve, reject) {
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: { familyId: auth.getCurrentFamilyId(),
+        action: 'saveQuotaConfig',
+        config: config
+      }
+    }).then(function(res) {
+      if (res.result && res.result.code === 0) {
+        resolve(res.result)
+      } else {
+        reject(new Error((res.result && res.result.msg) || '保存配额配置失败'))
+      }
+    }).catch(function(err) {
+      console.error('保存配额配置失败:', err)
+      reject(err)
+    })
+  })
+}
+
 module.exports = {
   getModels: getModels,
   getModelInfo: getModelInfo,
@@ -981,5 +1099,9 @@ module.exports = {
   setCurrentSessionId: setCurrentSessionId,
   saveToLocal: saveToLocal,
   isConfigured: isConfigured,
-  getCurrentModelInfo: getCurrentModelInfo
+  getCurrentModelInfo: getCurrentModelInfo,
+  listModels: listModels,
+  generateImage: generateImage,
+  getQuotaConfig: getQuotaConfig,
+  saveQuotaConfig: saveQuotaConfig
 }

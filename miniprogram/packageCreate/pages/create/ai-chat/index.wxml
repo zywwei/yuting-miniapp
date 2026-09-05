@@ -123,6 +123,11 @@
                   <view class="model-sub-desc">{{sub.desc}}</view>
                   <view class="model-sub-check" wx:if="{{currentModelKey === sub.key}}">✓</view>
                 </view>
+                <!-- 全量模型入口（支持同步的平台显示） -->
+                <view class="model-sub-all-entry" wx:if="{{item.hasDynamicModels}}" bindtap="showAllModels" data-provider="{{item.key}}">
+                  <text class="model-sub-all-icon">🔍</text>
+                  <text>全部模型（在线同步）</text>
+                </view>
               </view>
             </view>
           </view>
@@ -211,6 +216,11 @@
           <view class="msg-image" wx:elif="{{item.image}}" bindtap="previewImage" data-url="{{item.image}}">
             <image src="{{item.image}}" mode="widthFix" class="image-preview" />
           </view>
+          <!-- AI生成图片的操作按钮（保存/分享） -->
+          <view class="msg-image-actions" wx:if="{{item.isGenerated && item.image}}">
+            <view class="msg-image-action-btn" catchtap="saveGeneratedImage" data-fileid="{{item.image}}">⬇️ 保存</view>
+            <view class="msg-image-action-btn" catchtap="shareGeneratedImage" data-fileid="{{item.image}}">📤 分享</view>
+          </view>
           <!-- 文本消息 -->
           <view class="msg-text" wx:if="{{item.content && item.role === 'user'}}">{{item.content}}</view>
           <view class="msg-text msg-rich" wx:if="{{item.content && item.role === 'assistant'}}">
@@ -250,6 +260,8 @@
             <view class="dot"></view>
             <view class="dot"></view>
           </view>
+          <!-- AI画画等待秒数 -->
+          <view class="draw-waiting-text" wx:if="{{drawWaitingText}}">{{drawWaitingText}}</view>
         </view>
       </view>
 
@@ -264,6 +276,10 @@
           <view class="more-panel-icon">🖼️</view>
           <text class="more-panel-label">图片</text>
         </view>
+        <view class="more-panel-item" bindtap="showDraw">
+          <view class="more-panel-icon">🎨</view>
+          <text class="more-panel-label">AI画画</text>
+        </view>
         <view class="more-panel-item" bindtap="showSkillList">
           <view class="more-panel-icon">⚡</view>
           <text class="more-panel-label">技能</text>
@@ -277,6 +293,163 @@
           <view class="more-panel-icon">🧠</view>
           <text class="more-panel-label">实时思考</text>
         </view>
+      </view>
+    </view>
+
+    <!-- AI画画弹窗 -->
+    <view class="draw-modal" wx:if="{{showDrawModal}}" bindtap="hideDraw">
+      <view class="draw-modal-content" catchtap="stopPropagation">
+        <view class="draw-modal-header">
+          <text class="draw-modal-title">🎨 AI画画</text>
+          <text class="draw-modal-close" bindtap="hideDraw">✕</text>
+        </view>
+        <scroll-view scroll-y class="draw-modal-scroll">
+          <!-- 模型选择（默认只显示当前选中，点击更换） -->
+          <view class="draw-section">
+            <view class="draw-section-title">图片模型</view>
+            <view class="draw-loading" wx:if="{{drawModelsLoading}}">加载模型中...</view>
+            <block wx:else>
+              <view class="draw-load-fail" wx:if="{{drawModelsError}}">
+                <text>在线列表同步失败，当前为内置模型</text>
+                <text class="draw-retry" bindtap="retryDrawModels">重试</text>
+              </view>
+              <view class="draw-current-model" bindtap="toggleDrawModelList">
+                <text class="draw-current-model-name">{{drawModelName || '选择模型'}}</text>
+                <text class="draw-current-model-arrow">{{showDrawModelList ? '▴' : '更换 ▾'}}</text>
+              </view>
+              <view class="draw-model-list" wx:if="{{showDrawModelList}}">
+                <view class="draw-model-group-title">推荐</view>
+                <view
+                  wx:for="{{drawRecommendModels}}"
+                  wx:key="id"
+                  class="draw-model-item {{drawModelKey === item.id ? 'active' : ''}}"
+                  bindtap="selectDrawModel"
+                  data-key="{{item.id}}"
+                  data-name="{{item.name}}"
+                >{{item.name}}</view>
+                <view class="draw-model-group-title draw-more-toggle" bindtap="toggleDrawMoreModels" wx:if="{{drawMoreModels.length > 0}}">
+                  更多模型（{{drawMoreModels.length}}）{{showDrawMoreModels ? '▴' : '▾'}}
+                </view>
+                <block wx:if="{{showDrawMoreModels}}">
+                  <view
+                    wx:for="{{drawMoreModels}}"
+                    wx:key="id"
+                    class="draw-model-item {{drawModelKey === item.id ? 'active' : ''}}"
+                    bindtap="selectDrawModel"
+                    data-key="{{item.id}}"
+                    data-name="{{item.name}}"
+                  >{{item.name}}</view>
+                </block>
+              </view>
+            </block>
+          </view>
+          <!-- 画幅选择 -->
+          <view class="draw-section">
+            <view class="draw-section-title">画幅</view>
+            <view class="draw-option-list">
+              <view
+                wx:for="{{aspectRatioOptions}}"
+                wx:key="key"
+                class="draw-option-item {{drawAspectRatio === item.key ? 'active' : ''}}"
+                bindtap="selectDrawRatio"
+                data-key="{{item.key}}"
+              >{{item.name}}</view>
+            </view>
+          </view>
+          <!-- 清晰度选择 -->
+          <view class="draw-section">
+            <view class="draw-section-title">清晰度</view>
+            <view class="draw-option-list">
+              <view
+                wx:for="{{qualityOptions}}"
+                wx:key="key"
+                class="draw-option-item {{drawQuality === item.key ? 'active' : ''}}"
+                bindtap="selectDrawQuality"
+                data-key="{{item.key}}"
+              >{{item.name}}</view>
+            </view>
+          </view>
+          <!-- 提示词输入 -->
+          <view class="draw-section">
+            <view class="draw-section-title">图片描述</view>
+            <textarea
+              class="draw-textarea"
+              value="{{drawPrompt}}"
+              bindinput="onDrawPromptInput"
+              placeholder="例如：一只戴宇航员头盔的小猫，漂浮在星空中，卡通风格"
+              maxlength="1000"
+              auto-height
+            />
+          </view>
+          <!-- 参考图（可选） -->
+          <view class="draw-section">
+            <view class="draw-section-title">参考图（可选，最多3张）</view>
+            <view class="draw-ref-list">
+              <view
+                wx:for="{{drawRefImages}}"
+                wx:key="*this"
+                class="draw-ref-item"
+              >
+                <image src="{{item}}" mode="aspectFill" class="draw-ref-thumb" bindtap="previewDrawRef" data-url="{{item}}" />
+                <text class="draw-ref-del" catchtap="removeDrawRefImage" data-index="{{index}}">✕</text>
+              </view>
+              <view class="draw-ref-add" wx:if="{{drawRefImages.length < 3}}" bindtap="chooseDrawRefImage">＋</view>
+            </view>
+            <view class="draw-ref-tip">以参考图为基础二次创作，部分模型不支持时会报错提示</view>
+          </view>
+        </scroll-view>
+        <button class="draw-submit-btn {{drawing ? 'disabled' : ''}}" bindtap="submitDraw">
+          {{drawing ? '生成中...' : '开始生成'}}
+        </button>
+      </view>
+    </view>
+
+    <!-- 全量模型选择弹窗 -->
+    <view class="all-models-modal" wx:if="{{showAllModelsModal}}" bindtap="hideAllModels">
+      <view class="all-models-content" catchtap="stopPropagation">
+        <view class="all-models-header">
+          <text class="all-models-title">选择模型（{{allModelsTotal}}）</text>
+          <text class="all-models-close" bindtap="hideAllModels">✕</text>
+        </view>
+        <!-- 搜索框 -->
+        <view class="all-models-search-bar">
+          <input
+            class="all-models-search-input"
+            value="{{allModelsSearch}}"
+            bindinput="onAllModelsSearch"
+            placeholder="搜索模型名称"
+            confirm-type="search"
+          />
+          <view class="all-models-refresh" bindtap="refreshAllModels">🔄</view>
+        </view>
+        <!-- 筛选Tab -->
+        <view class="all-models-filters">
+          <view class="all-models-filter {{allModelsFilter === 'all' ? 'active' : ''}}" bindtap="switchAllModelsFilter" data-filter="all">全部</view>
+          <view class="all-models-filter {{allModelsFilter === 'free' ? 'active' : ''}}" bindtap="switchAllModelsFilter" data-filter="free">免费</view>
+        </view>
+        <!-- 模型列表 -->
+        <scroll-view scroll-y class="all-models-scroll" bindscrolltolower="loadMoreAllModels">
+          <view class="all-models-loading" wx:if="{{allModelsLoading}}">加载模型列表中...</view>
+          <block wx:else>
+            <view
+              wx:for="{{allModelsFiltered}}"
+              wx:key="id"
+              class="all-models-item {{currentModelKey === item.id && _allModelsProvider === currentProvider ? 'active' : ''}}"
+              bindtap="selectAllModel"
+              data-key="{{item.id}}"
+              data-name="{{item.name}}"
+            >
+              <view class="all-models-info">
+                <view class="all-models-name">{{item.name}}</view>
+                <view class="all-models-id">{{item.id}}</view>
+                <view class="all-models-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
+              </view>
+              <view class="all-models-check" wx:if="{{currentModelKey === item.id && _allModelsProvider === currentProvider}}">✓</view>
+            </view>
+            <view class="all-models-end" wx:if="{{allModelsFiltered.length < allModelsShown}}">上拉加载更多</view>
+            <view class="all-models-end" wx:if="{{allModelsFiltered.length === 0}}">未找到匹配的模型</view>
+          </block>
+        </scroll-view>
       </view>
     </view>
 

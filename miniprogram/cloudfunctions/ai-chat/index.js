@@ -32,6 +32,7 @@ const kimi = require('./models/kimi')
 const siliconflow = require('./models/siliconflow')
 const mimo = require('./models/xiaomi') // MiMo模型使用小米的调用模块
 const openaiCompatible = require('./models/openai-compatible') // OpenRouter、Kilo、OpenCode等通用模块
+const modelList = require('./models/model-list') // 平台模型列表同步
 
 // 模型默认配置
 const MODEL_DEFAULTS = {
@@ -137,6 +138,21 @@ exports.main = async (event, context) => {
       return await deleteSession(member, event.childId, event.sessionId)
     case 'getModelPrices':
       return getModelPrices()
+    case 'listModels':
+      return modelList.listModels(db, event.provider, event.type || 'chat', !!event.forceRefresh)
+    case 'generateImage': {
+      // 动态配额（aiQuotaConfig，创建者可在家长中心修改）：先分钟限流，后家庭日配额
+      const imageQuota = await getImageQuota(member.familyId)
+      const minuteErr = checkRateLimit(OPENID, 'generateImage', imageQuota.perMinute)
+      if (minuteErr) return minuteErr
+      const quotaErr = await checkDailyQuota(member, 'generateImage', imageQuota.daily, 'AI画画')
+      if (quotaErr) return quotaErr
+      return await generateImage(member, event)
+    }
+    case 'getQuotaConfig':
+      return await getQuotaConfig(member)
+    case 'saveQuotaConfig':
+      return await saveQuotaConfig(member, event, OPENID)
     case 'speechToText': {
       // B4：外部付费接口纳入家庭级日配额（防费用滥用）
       const quotaErr = await checkDailyQuota(member, 'speechToText')
@@ -170,10 +186,83 @@ const DAILY_QUOTA = {
   speechToText: 20,
   textToSpeech: 50,
   testTts: 5
+  // generateImage 走动态配额（aiQuotaConfig 集合，家庭创建者可在家长中心修改），见 getImageQuota
 }
 
-async function checkDailyQuota(member, action) {
-  var limit = DAILY_QUOTA[action]
+// AI画画配额默认值（无配置时生效）
+const DEFAULT_IMAGE_QUOTA = {
+  daily: 100,     // 每日次数
+  perMinute: 20   // 每分钟次数
+}
+
+// 配额数值归一化（非法值返回 fallback；fallback 为 null 时返回 null 表示不合法）
+function normalizeQuotaNumber(value, min, max, fallback) {
+  const n = parseInt(value)
+  if (isNaN(n) || n < min) return fallback
+  return Math.min(n, max)
+}
+
+// 读取家庭AI画画配额（无配置/读取失败时用默认值）
+async function getImageQuota(familyId) {
+  try {
+    const res = await db.collection('aiQuotaConfig').doc(familyId).get()
+    const conf = res.data || {}
+    return {
+      daily: normalizeQuotaNumber(conf.generateImageDaily, 1, 1000, DEFAULT_IMAGE_QUOTA.daily),
+      perMinute: normalizeQuotaNumber(conf.generateImagePerMinute, 1, 100, DEFAULT_IMAGE_QUOTA.perMinute)
+    }
+  } catch (err) {
+    return { daily: DEFAULT_IMAGE_QUOTA.daily, perMinute: DEFAULT_IMAGE_QUOTA.perMinute }
+  }
+}
+
+// 读取配额配置（前端展示用）
+async function getQuotaConfig(member) {
+  const quota = await getImageQuota(member.familyId)
+  return {
+    code: 0,
+    data: { generateImageDaily: quota.daily, generateImagePerMinute: quota.perMinute }
+  }
+}
+
+// 保存配额配置（仅家庭创建者，families.creatorOpenid 为准）
+async function saveQuotaConfig(member, event, openid) {
+  try {
+    const familyRes = await db.collection('families').doc(member.familyId).get()
+    const creatorOpenid = familyRes.data && familyRes.data.creatorOpenid
+    if (!creatorOpenid || creatorOpenid !== openid) {
+      return { code: -4, msg: '仅家庭创建者可修改配额' }
+    }
+  } catch (err) {
+    console.error('校验创建者身份失败:', err)
+    return { code: -4, msg: '身份校验失败' }
+  }
+
+  const conf = event.config || {}
+  const daily = normalizeQuotaNumber(conf.generateImageDaily, 1, 1000, null)
+  const perMinute = normalizeQuotaNumber(conf.generateImagePerMinute, 1, 100, null)
+  if (daily === null || perMinute === null) {
+    return { code: -5, msg: '配额数值不合法（每日1-1000，每分钟1-100）' }
+  }
+
+  try {
+    await db.collection('aiQuotaConfig').doc(member.familyId).set({
+      data: {
+        familyId: member.familyId,
+        generateImageDaily: daily,
+        generateImagePerMinute: perMinute,
+        updateTime: new Date()
+      }
+    })
+    return { code: 0, msg: '保存成功' }
+  } catch (err) {
+    console.error('保存配额配置失败:', err)
+    return { code: -2, msg: '保存失败: ' + err.message }
+  }
+}
+
+async function checkDailyQuota(member, action, customLimit, actionName) {
+  var limit = (typeof customLimit === 'number' && customLimit > 0) ? customLimit : DAILY_QUOTA[action]
   if (!limit || !member || !member.familyId) return null
   try {
     var now = Date.now()
@@ -191,7 +280,7 @@ async function checkDailyQuota(member, action) {
     var fresh = await db.collection('aiDailyQuota').doc(key).get()
     var count = (fresh.data && fresh.data.count) || 0
     if (count > limit) {
-      return { code: -6, msg: '今日' + action + '调用次数已达上限，明天再试吧' }
+      return { code: -6, msg: '今日' + (actionName || action) + '调用次数已达上限，明天再试吧' }
     }
     return null
   } catch (e) {
@@ -244,7 +333,9 @@ const RATE_LIMIT_CONFIG = {
   // B4：外部付费接口同样纳入内存级快速限流（家庭级日配额见 DAILY_QUOTA）
   'speechToText': { maxRequests: 10, windowMs: 60000 },
   'textToSpeech': { maxRequests: 20, windowMs: 60000 },
-  'testTts': { maxRequests: 3, windowMs: 60000 }
+  'testTts': { maxRequests: 3, windowMs: 60000 },
+  // generateImage 走动态配额（aiQuotaConfig），见 generateImage 分支
+  'listModels': { maxRequests: 10, windowMs: 60000 }
 }
 
 // 速率限制存储（内存中，重启后清空）
@@ -254,24 +345,27 @@ const rateLimitStore = {}
  * 检查速率限制
  * @param {string} userId - 用户ID
  * @param {string} action - 操作类型
+ * @param {number} customMax - 自定义上限（覆盖配置，用于动态配额）
  * @returns {Object|null} 如果超限返回错误对象，否则返回null
  */
-function checkRateLimit(userId, action) {
+function checkRateLimit(userId, action, customMax) {
   const config = RATE_LIMIT_CONFIG[action]
-  if (!config) return null
+  const max = (typeof customMax === 'number' && customMax > 0) ? customMax : (config && config.maxRequests)
+  if (!max) return null
   
+  const windowMs = (config && config.windowMs) || 60000
   const key = `${userId}:${action}`
   const now = Date.now()
   
   // 清理过期记录
   if (rateLimitStore[key]) {
-    rateLimitStore[key] = rateLimitStore[key].filter(time => now - time < config.windowMs)
+    rateLimitStore[key] = rateLimitStore[key].filter(time => now - time < windowMs)
   } else {
     rateLimitStore[key] = []
   }
   
   // 检查是否超限
-  if (rateLimitStore[key].length >= config.maxRequests) {
+  if (rateLimitStore[key].length >= max) {
     return {
       code: -6,
       msg: `请求过于频繁，请稍后再试`
@@ -626,8 +720,15 @@ async function buildMessages(config, history, newMessage, imageFileID, extraCont
       console.warn('跳过无效role的历史消息:', role)
       continue
     }
+// B10：无 content 的历史消息跳过（防止向 AI API 传空内容），
+// 但带 imageFileID 的 AI 图片消息回放时替换为占位文本，保证图片不丢
+// （占位文本注明不可展开，避免模型一本正经描述不存在的图片细节）
     if (typeof item.content !== 'string' || !item.content.trim()) {
-      console.warn('跳过无content的历史消息:', item._id || '')
+      if (item.imageFileID) {
+        messages.push({ role: role, content: '（此前AI生成了一张图片，此处无法查看细节，请不要展开描述它）' })
+      } else {
+        console.warn('跳过无content的历史消息:', item._id || '')
+      }
       continue
     }
     messages.push({
@@ -672,8 +773,8 @@ async function buildMessages(config, history, newMessage, imageFileID, extraCont
   return messages
 }
 
-// 保存消息
-async function saveMessage(member, childId, sessionId, role, content, model, usage, thinking) {
+// 保存消息（imageFileID：AI生成的图片，仅图片消息使用）
+async function saveMessage(member, childId, sessionId, role, content, model, usage, thinking, imageFileID) {
   try {
     await db.collection('aiChats').add({
       data: {
@@ -685,6 +786,7 @@ async function saveMessage(member, childId, sessionId, role, content, model, usa
         thinking: thinking || null,
         model: model,
         tokenUsage: usage || null,
+        imageFileID: imageFileID || null,
         createTime: new Date()
       }
     })
@@ -1283,6 +1385,159 @@ function getModelPrices() {
   }
   
   return { code: 0, data: prices }
+}
+
+// AI 图片生成（OpenRouter Images API）
+// 参数：event.prompt 提示词；event.model 图片模型 id；event.aspectRatio 画幅；event.quality 清晰度；event.childId/event.sessionId 会话归属
+async function generateImage(member, event) {
+  try {
+    const prompt = (event.prompt || '').trim()
+    if (!prompt) {
+      return { code: -5, msg: '请输入图片描述' }
+    }
+    if (prompt.length > 1000) {
+      return { code: -5, msg: '图片描述过长，请限制在1000字符以内' }
+    }
+    const imageModel = event.model || 'openai/gpt-image-2'
+    const childId = event.childId || ''
+    const sessionId = event.sessionId || ('img_' + Date.now())
+    const familyId = member.familyId
+
+    // 1. 读取 API Key（与聊天一致的配置来源）
+    const configResult = await getConfig(member, childId)
+    if (configResult.code !== 0) return configResult
+    const providerConfig = configResult.data.models && configResult.data.models.openrouter
+    if (!providerConfig || !providerConfig.apiKey) {
+      return { code: -3, msg: '请先在设置中配置OpenRouter的API Key' }
+    }
+
+    // 2. 调用 OpenRouter Images API（画幅/清晰度白名单校验后透传；
+    // quality 上游仅接受 low/medium/high/auto，前端 standard 映射为 medium）
+    const payload = { model: imageModel, prompt: prompt }
+    const allowedRatios = ['1:1', '4:3', '3:4', '16:9', '9:16']
+    if (event.aspectRatio && allowedRatios.indexOf(event.aspectRatio) > -1) {
+      payload.aspect_ratio = event.aspectRatio
+    }
+    if (event.quality === 'high') {
+      payload.quality = 'high'
+    } else if (event.quality === 'standard') {
+      payload.quality = 'medium'
+    } else if (event.quality === 'low') {
+      payload.quality = 'low'
+    } else if (event.quality === 'auto') {
+      payload.quality = 'auto'
+    }
+
+    // 参考图（图生图）：云存储 fileID 换临时 URL 后拼 input_references
+    const refIDs = Array.isArray(event.imageFileID) ? event.imageFileID : (event.imageFileID ? [event.imageFileID] : [])
+    if (refIDs.length > 0) {
+      const cloudIDs = refIDs.filter(id => typeof id === 'string' && id.indexOf('cloud://') === 0)
+      if (cloudIDs.length > 0) {
+        try {
+          const urlRes = await cloud.getTempFileURL({ fileList: cloudIDs })
+          const refs = []
+          if (urlRes.fileList) {
+            urlRes.fileList.forEach(item => {
+              if (item.tempFileURL) {
+                refs.push({ type: 'image_url', image_url: { url: item.tempFileURL } })
+              }
+            })
+          }
+          if (refs.length > 0) payload.input_references = refs
+        } catch (err) {
+          console.error('参考图换链失败:', err)
+          return { code: -1, msg: '参考图处理失败，请重试' }
+        }
+      }
+    }
+
+    const https = require('https')
+    const reqResult = await new Promise((resolve) => {
+      const data = JSON.stringify(payload)
+      const req = https.request({
+        hostname: 'openrouter.ai',
+        path: '/api/v1/images',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + providerConfig.apiKey,
+          'Content-Length': Buffer.byteLength(data),
+          'HTTP-Referer': 'https://yuting-miniapp.com',
+          'X-Title': 'Yuting MiniApp'
+        }
+      }, (res) => {
+        const chunks = []
+        res.on('data', (chunk) => chunks.push(chunk))
+        res.on('end', () => {
+          try {
+            const body = Buffer.concat(chunks)
+            const result = JSON.parse(body.toString('utf8'))
+            if (res.statusCode === 200 && result.data && result.data.length > 0) {
+              resolve({ code: 0, data: result.data[0] })
+            } else {
+              resolve({ code: -1, msg: result.error?.message || ('生成失败(HTTP ' + res.statusCode + ')') })
+            }
+          } catch (err) {
+            resolve({ code: -1, msg: '解析响应失败: ' + err.message })
+          }
+        })
+      })
+      req.setTimeout(55000, () => {
+        req.destroy()
+        resolve({ code: -1, msg: '生成超时，请稍后重试或换用更快的模型' })
+      })
+      req.on('error', (err) => {
+        resolve({ code: -1, msg: '网络请求失败: ' + err.message })
+      })
+      req.write(data)
+      req.end()
+    })
+
+    if (reqResult.code !== 0) {
+      return reqResult
+    }
+
+    const imageData = reqResult.data
+    if (!imageData.b64_json) {
+      return { code: -1, msg: '生成结果中未包含图片数据' }
+    }
+
+    // 3. base64 转云存储（展示、历史持久化、保存/分享都走 fileID）
+    const mediaType = imageData.media_type || 'image/png'
+    const extMap = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
+    const ext = extMap[mediaType] || 'png'
+    const cloudPath = 'ai-generated-images/' + familyId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + ext
+    const uploadRes = await cloud.uploadFile({
+      cloudPath: cloudPath,
+      fileContent: Buffer.from(imageData.b64_json, 'base64')
+    })
+    const fileID = uploadRes.fileID
+
+    // 4. 消息落库（用户提示词 + AI图片回复），复用聊天历史体系。
+    // 注意：图片生成成功已扣费，无论落库成败都必须返回 fileID（避免用户重试重复扣费），
+    // 落库失败仅打日志
+    const saveResults = await Promise.allSettled([
+      saveMessage(member, childId, sessionId, 'user', prompt, 'openrouter:' + imageModel, null, null, refIDs.length > 0 ? refIDs : null),
+      saveMessage(member, childId, sessionId, 'assistant', '已为你生成图片', 'openrouter:' + imageModel, null, null, fileID)
+    ])
+    saveResults.forEach(function(result, index) {
+      if (result.status === 'rejected') {
+        console.error(`图片消息落库失败(${index === 0 ? '用户' : 'AI'}):`, result.reason)
+      }
+    })
+
+    return {
+      code: 0,
+      data: {
+        fileID: fileID,
+        model: imageModel,
+        prompt: prompt
+      }
+    }
+  } catch (err) {
+    console.error('图片生成失败:', err)
+    return { code: -2, msg: '图片生成失败: ' + err.message }
+  }
 }
 
 // 从云数据库读取百度API密钥（带25天TTL）
