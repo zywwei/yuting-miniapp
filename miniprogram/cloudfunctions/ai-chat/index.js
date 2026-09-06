@@ -33,18 +33,19 @@ const siliconflow = require('./models/siliconflow')
 const mimo = require('./models/xiaomi') // MiMo模型使用小米的调用模块
 const openaiCompatible = require('./models/openai-compatible') // OpenRouter、Kilo、OpenCode等通用模块
 const modelList = require('./models/model-list') // 平台模型列表同步
+const balance = require('./models/balance') // 平台余额查询
 
 // 模型默认配置
 const MODEL_DEFAULTS = {
   'minimax': { module: minimax, defaultModel: 'MiniMax-M3' },
   'minimax-plan': { module: minimax, defaultModel: 'MiniMax-M3' },
-  'zhipu': { module: zhipu, defaultModel: 'glm-5.2' },
-  'zhipu-plan': { module: zhipu, defaultModel: 'glm-5.2' },
-  'kimi': { module: kimi, defaultModel: 'kimi-k2.6' },
-  'kimi-plan': { module: kimi, defaultModel: 'kimi-k2.7-code' },
+  'zhipu': { module: zhipu, defaultModel: 'glm-5.3' },
+  'zhipu-plan': { module: zhipu, defaultModel: 'glm-5.3' },
+  'kimi': { module: kimi, defaultModel: 'kimi-k3' },
+  'kimi-plan': { module: kimi, defaultModel: 'kimi-k3' },
   'wenxin': { module: wenxin, defaultModel: 'ernie-4.0-turbo-8k', needSecretKey: true },
   'wenxin-plan': { module: wenxin, defaultModel: 'ernie-4.0-turbo-8k', needSecretKey: true },
-  'qwen': { module: qwen, defaultModel: 'qwen3.7-max' },
+  'qwen': { module: qwen, defaultModel: 'qwen3.8-max' },
   'deepseek': { module: deepseek, defaultModel: 'deepseek-v4-flash' },
   'siliconflow': { module: siliconflow, defaultModel: 'deepseek-ai/DeepSeek-V4' },
   'mimo': { module: mimo, defaultModel: 'mimo-v2.5-pro', baseUrl: 'https://api.xiaomimimo.com/v1' },
@@ -63,17 +64,18 @@ const MODEL_DEFAULTS = {
  * @param {string} secretKey - 密钥（文心一言需要）
  * @returns {Promise<Object>} 响应结果
  */
-async function callAIModel(modelName, apiKey, messages, model, secretKey) {
+async function callAIModel(modelName, apiKey, messages, model, secretKey, options) {
   const config = MODEL_DEFAULTS[modelName]
   if (!config) {
     return { code: -4, msg: '不支持的模型: ' + modelName }
   }
 
   const actualModel = model || config.defaultModel
+  const opts = options || {}
   
   // 特殊处理需要自定义调用函数的模型
   if (config.callFn) {
-    return await config.module[config.callFn](apiKey, messages, actualModel)
+    return await config.module[config.callFn](apiKey, messages, actualModel, { reasoningEffort: opts.reasoningEffort })
   }
   
   // 特殊处理需要baseUrl的模型
@@ -84,6 +86,11 @@ async function callAIModel(modelName, apiKey, messages, model, secretKey) {
   // 特殊处理需要secretKey的模型
   if (config.needSecretKey) {
     return await config.module.callAPI(apiKey, secretKey || '', messages, actualModel)
+  }
+
+  // deepseek 支持思考深度透传（其他直连模型暂不支持）
+  if (modelName === 'deepseek') {
+    return await config.module.callAPI(apiKey, messages, actualModel, { reasoningEffort: opts.reasoningEffort })
   }
   
   // 默认调用
@@ -117,9 +124,9 @@ exports.main = async (event, context) => {
     case 'saveConfig':
       return await saveConfig(member, event.childId, event.config)
     case 'chat':
-      return await chat(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID, event.extraContext, event.skillPrompt)
+      return await chat(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID, event.extraContext, event.skillPrompt, event.reasoningEffort)
     case 'chatStream':
-      return await chatStream(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID, event.extraContext, event.skillPrompt)
+      return await chatStream(member, event.childId, event.sessionId, event.message, event.model, event.imageFileID, event.extraContext, event.skillPrompt, event.reasoningEffort)
     case 'getThinkingProgress':
       return await getThinkingProgress(member, event.taskId)
     case 'getUserPreference':
@@ -138,8 +145,22 @@ exports.main = async (event, context) => {
       return await deleteSession(member, event.childId, event.sessionId)
     case 'getModelPrices':
       return getModelPrices()
-    case 'listModels':
-      return modelList.listModels(db, event.provider, event.type || 'chat', !!event.forceRefresh)
+    case 'listModels': {
+      const platform = modelList.resolvePlatform(event.provider)
+      if (!platform) {
+        return { code: -4, msg: '该平台暂不支持模型列表同步' }
+      }
+      // 需鉴权的平台用家庭配置中的 Key（直接查库，getConfig 对非 admin 脱敏）；
+      // 无 Key 时云端自动降级为公开浏览（仅可看不可选）
+      const listApiKey = platform.conf.needKey
+        ? await getProviderApiKey(member, event.childId, event.provider)
+        : null
+      return modelList.listModels(db, event.provider, event.type || 'chat', !!event.forceRefresh, listApiKey)
+    }
+    case 'getBalance': {
+      const balanceApiKey = await getProviderApiKey(member, event.childId, event.provider)
+      return balance.getBalance(db, event.provider, balanceApiKey, !!event.forceRefresh)
+    }
     case 'generateImage': {
       // 动态配额（aiQuotaConfig，创建者可在家长中心修改）：先分钟限流，后家庭日配额
       const imageQuota = await getImageQuota(member.familyId)
@@ -394,6 +415,20 @@ function isAdmin(member) {
   return !!(member && member.permissions && member.permissions.indexOf('admin') >= 0)
 }
 
+// 读取家庭配置中的供应商 API Key 明文（直接查库，getConfig 对非 admin 脱敏不可用）
+async function getProviderApiKey(member, childId, provider) {
+  try {
+    const cfgDoc = await db.collection('aiConfigs')
+      .where({ familyId: member.familyId, childId: childId || '' })
+      .get()
+    const savedModels = (cfgDoc.data[0] && cfgDoc.data[0].models) || {}
+    return modelList.findApiKey(savedModels, provider)
+  } catch (err) {
+    console.error('读取API Key失败:', err)
+    return null
+  }
+}
+
 // 获取AI配置
 async function getConfig(member, childId) {
   try {
@@ -555,7 +590,7 @@ async function testConfig(member, childId, model, apiKey, secretKey) {
 }
 
 // 验证并准备聊天参数（chat和chatStream共用）
-async function validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt) {
+async function validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt, reasoningEffort) {
   // 1. 输入验证
   const hasImages = Array.isArray(imageFileID) ? imageFileID.length > 0 : !!imageFileID
   if (!message && !hasImages) {
@@ -588,6 +623,11 @@ async function validateAndPrepare(member, childId, sessionId, message, model, im
     return { code: -3, msg: '请先配置API Key' }
   }
 
+  // 子模型 id 长度上限（防自定义配置撑大上游请求）
+  if (modelConfig.model && (typeof modelConfig.model !== 'string' || modelConfig.model.length > 128)) {
+    return { code: -5, msg: '模型标识不合法' }
+  }
+
   // 4. 获取对话历史
   const historyResult = await getHistory(member, childId, sessionId, 1, 20)
   const history = historyResult.code === 0 ? historyResult.data.list : []
@@ -598,23 +638,27 @@ async function validateAndPrepare(member, childId, sessionId, message, model, im
   // 6. 确定使用的模型
   const aiModel = model || config.currentModel
 
+  // 7. 思考深度（OpenRouter 系 low/medium/high/xhigh/max/minimal，其余忽略）
+  const allowedEfforts = ['low', 'medium', 'high', 'xhigh', 'max', 'minimal']
+  const effort = allowedEfforts.indexOf(reasoningEffort) > -1 ? reasoningEffort : null
+
   return {
     code: 0,
-    data: { config, modelConfig, messages, aiModel }
+    data: { config, modelConfig, messages, aiModel, reasoningEffort: effort }
   }
 }
 
 // 发送消息并获取AI回复
-async function chat(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt) {
+async function chat(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt, reasoningEffort) {
   try {
     // 1. 验证并准备参数
-    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt)
+    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt, reasoningEffort)
     if (prepared.code !== 0) return prepared
 
     const { config, modelConfig, messages, aiModel } = prepared.data
 
     // 2. 调用AI模型
-    const result = await callAIModel(aiModel, modelConfig.apiKey, messages, modelConfig.model, modelConfig.secretKey)
+    const result = await callAIModel(aiModel, modelConfig.apiKey, messages, modelConfig.model, modelConfig.secretKey, { reasoningEffort: prepared.data.reasoningEffort })
 
     if (result.code !== 0) {
       return result
@@ -798,10 +842,10 @@ async function saveMessage(member, childId, sessionId, role, content, model, usa
 }
 
 // 流式聊天 - 支持思考过程实时展示
-async function chatStream(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt) {
+async function chatStream(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt, reasoningEffort) {
   try {
     // 1. 验证并准备参数
-    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt)
+    const prepared = await validateAndPrepare(member, childId, sessionId, message, model, imageFileID, extraContext, skillPrompt, reasoningEffort)
     if (prepared.code !== 0) return prepared
 
     const { config, modelConfig, messages, aiModel } = prepared.data
@@ -843,7 +887,7 @@ async function chatStream(member, childId, sessionId, message, model, imageFileI
       })
 
     // 7. 异步调用AI模型
-    callAIWithProgress(aiModel, modelConfig, messages, taskId, member, childId, sessionId, message).catch(function(err) {
+    callAIWithProgress(aiModel, modelConfig, messages, taskId, member, childId, sessionId, message, prepared.data.reasoningEffort).catch(function(err) {
       console.error('流式AI调用异常:', err)
       updateThinkingProgress(taskId, 'error', err.message || '未知错误')
     })
@@ -862,7 +906,7 @@ async function chatStream(member, childId, sessionId, message, model, imageFileI
 }
 
 // 异步调用AI并更新思考进度（支持流式）
-async function callAIWithProgress(aiModel, modelConfig, messages, taskId, member, childId, sessionId, message) {
+async function callAIWithProgress(aiModel, modelConfig, messages, taskId, member, childId, sessionId, message, reasoningEffort) {
   try {
     await updateThinkingProgress(taskId, 'thinking', '')
 
@@ -929,7 +973,7 @@ async function callAIWithProgress(aiModel, modelConfig, messages, taskId, member
       await updateThinkingProgress(taskId, 'completed', streamResult.data.thinking || '', streamResult.data.content, streamResult.data.usage)
     } else {
       // 降级：非流式调用
-      const result = await callAIModel(aiModel, modelConfig.apiKey, messages, modelConfig.model, modelConfig.secretKey)
+      const result = await callAIModel(aiModel, modelConfig.apiKey, messages, modelConfig.model, modelConfig.secretKey, { reasoningEffort: reasoningEffort })
 
       if (result.code !== 0) {
         await updateThinkingProgress(taskId, 'error', result.msg)

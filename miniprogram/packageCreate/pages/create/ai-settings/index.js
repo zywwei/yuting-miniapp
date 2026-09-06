@@ -1,6 +1,9 @@
 var aiManager = getApp().globalData.aiManager
 var auth = require('../../../../utils/auth.js')
 
+// 全量模型列表每页展示条数
+var ALL_MODELS_PAGE_SIZE = 50
+
 Page({
   data: {
     activeTab: 'prompt', // model 或 prompt，默认打开提示词
@@ -10,9 +13,25 @@ Page({
     currentModel: 'minimax',
     currentSubModel: '',
     currentSubModelName: '',
+    isCustomSubModel: false,
+    hasKeyByProvider: {},
+    balanceMap: {},
     currentModelInfo: {},
     expandModel: false,
     configuredModels: {},
+    // 全量模型选择（供应商模型列表同步）
+    showAllModelsModal: false,
+    allModelsLoading: false,
+    allModelsList: [],
+    allModelsFiltered: [],
+    allModelsFilter: 'all',
+    allModelsSearch: '',
+    allModelsTotal: 0,
+    allModelsShown: 0,
+    allModelsPage: 1,
+    allModelsRefreshing: false,
+    allModelsBrowseOnly: false,
+    _allModelsProvider: '',
     templates: [],
     currentTemplate: 'default',
     currentTemplateContent: '',
@@ -135,8 +154,11 @@ Page({
     for (var key in modelsObj) {
       var model = {
         key: key,
-        info: modelsObj[key],
-        configured: false
+        info: Object.assign({}, modelsObj[key], {
+          subModels: aiManager.getMergedSubModels(key)
+        }),
+        configured: false,
+        hasDynamicModels: this.hasDynamicModels(key)
       }
       
       if (modelsObj[key].callType === 'direct') {
@@ -242,6 +264,10 @@ Page({
             break
           }
         }
+        // 全量模型弹窗选中的 id 不在本地预设列表时，用 id 兜底展示
+        if (!currentSubModelName) {
+          currentSubModelName = currentSubModel
+        }
       }
       
       // 更新模型列表的配置状态并排序
@@ -278,9 +304,11 @@ Page({
         customPrompt: config.systemPrompt || '',
         apiKey: config.models[config.currentModel]?.apiKey || '',
         secretKey: config.models[config.currentModel]?.secretKey || '',
+        hasKeyByProvider: config.hasKeyByProvider || {},
         currentModelInfo: modelInfo || {},
         currentSubModel: currentSubModel,
         currentSubModelName: currentSubModelName,
+        isCustomSubModel: that.isCustomSubModelKey(currentModel, currentSubModel),
         configuredModels: configuredModels,
         domesticModels: domesticModels,
         platformModels: platformModels,
@@ -373,6 +401,7 @@ Page({
         currentModelInfo: modelInfo || {},
         currentSubModel: subModel,
         currentSubModelName: subModelName,
+        isCustomSubModel: that.isCustomSubModelKey(key, subModel),
         expandModel: true,
         apiKey: apiKey,
         secretKey: secretKey,
@@ -380,6 +409,8 @@ Page({
         showSecretKey: false
       })
     })
+    // 展开时顺带查询余额
+    this.loadBalance(key)
   },
 
   // 加载模型配置
@@ -389,11 +420,39 @@ Page({
       that.setData({ 
         currentSubModel: subModel,
         currentSubModelName: subModelName,
+        isCustomSubModel: that.isCustomSubModelKey(key, subModel),
         apiKey: apiKey,
         secretKey: secretKey,
         showApiKey: false,
         showSecretKey: false
       })
+    })
+    // 展开时顺带查询余额（支持的平台显示，不支持的静默）
+    this.loadBalance(key)
+  },
+
+  // 查询供应商余额（一直显示：查询中/余额/未查到；不支持的平台直接显示未查到）
+  loadBalance: function(provider, forceRefresh) {
+    var that = this
+    if (this.data.balanceMap[provider] && !forceRefresh) return
+    var supported = (aiManager.getBalanceProviders && aiManager.getBalanceProviders()) || []
+    if (supported.indexOf(provider) === -1) {
+      var unsupportedMap = Object.assign({}, this.data.balanceMap)
+      unsupportedMap[provider] = '未查到'
+      that.setData({ balanceMap: unsupportedMap })
+      return
+    }
+    var loadingMap = Object.assign({}, this.data.balanceMap)
+    loadingMap[provider] = '查询中…'
+    that.setData({ balanceMap: loadingMap })
+    aiManager.getBalance(provider, forceRefresh).then(function(data) {
+      var balanceMap = Object.assign({}, that.data.balanceMap)
+      balanceMap[provider] = data.text
+      that.setData({ balanceMap: balanceMap })
+    }).catch(function() {
+      var balanceMap = Object.assign({}, that.data.balanceMap)
+      balanceMap[provider] = '未查到'
+      that.setData({ balanceMap: balanceMap })
     })
   },
 
@@ -441,9 +500,251 @@ Page({
     var name = e.currentTarget.dataset.name
     this.setData({ 
       currentSubModel: key,
-      currentSubModelName: name
+      currentSubModelName: name,
+      isCustomSubModel: this.isCustomSubModelKey(this.data.currentModel, key)
     })
   },
+
+  // ========== 全量模型选择（供应商模型列表同步） ==========
+
+  // 是否支持同步（以 ai-manager 为准）
+  hasDynamicModels: function(key) {
+    var list = (aiManager.getDynamicModelProviders && aiManager.getDynamicModelProviders()) || []
+    return list.indexOf(key) > -1
+  },
+
+  // 打开全量模型弹窗
+  showAllModels: function(e) {
+    var provider = (e && e.currentTarget && e.currentTarget.dataset.provider) || this.data.currentModel
+    if (!this.hasDynamicModels(provider)) {
+      wx.showToast({ title: '该平台暂不支持模型同步', icon: 'none' })
+      return
+    }
+    // siliconflow 无降级浏览能力，无 key 时提前拦截
+    var hasKeyMap = this.data.hasKeyByProvider || {}
+    if (provider === 'siliconflow' && !hasKeyMap[provider]) {
+      wx.showToast({ title: '请先配置该供应商的API Key', icon: 'none' })
+      return
+    }
+    this.setData({
+      showAllModelsModal: true,
+      allModelsList: [],
+      allModelsFiltered: [],
+      allModelsSearch: '',
+      allModelsFilter: 'all',
+      allModelsPage: 1,
+      allModelsBrowseOnly: false,
+      _allModelsProvider: provider
+    })
+    this.fetchAllModels(provider, false)
+  },
+
+  // 关闭全量模型弹窗
+  hideAllModels: function() {
+    this.setData({ showAllModelsModal: false })
+  },
+
+  // 拉取全量模型列表
+  fetchAllModels: function(provider, forceRefresh) {
+    var that = this
+    that.setData({ allModelsLoading: true })
+    aiManager.listModels(provider, 'chat', forceRefresh).then(function(data) {
+      var list = (data.models || []).map(function(m) {
+        return {
+          id: m.id,
+          name: m.name,
+          desc: (m.contextLength ? '上下文' + that.formatContextLength(m.contextLength) : '') + (m.isFree ? ' · 免费' : (m.pricing && m.pricing.prompt != null ? ' · $' + m.pricing.prompt + '/百万token' : '')),
+          isFree: m.isFree,
+          supportsReasoning: !!m.supportsReasoning,
+          supportsReasoningEffort: !!m.supportsReasoningEffort,
+          reasoningEfforts: m.reasoningEfforts,
+          defaultEffort: m.defaultEffort || null
+        }
+      })
+      that.setData({
+        allModelsLoading: false,
+        allModelsList: list,
+        allModelsTotal: list.length,
+        allModelsRefreshing: false,
+        allModelsBrowseOnly: !!(data.browseOnly)
+      })
+      that._allModelsCache = list
+      that.applyAllModelsFilter()
+      // 模型同步成功后联动刷新余额
+      that.loadBalance(provider, true)
+    }).catch(function(err) {
+      console.error('拉取模型列表失败:', err)
+      that.setData({ allModelsLoading: false, allModelsRefreshing: false })
+      wx.showToast({ title: err.message || '获取模型列表失败', icon: 'none' })
+    })
+  },
+
+  // 格式化上下文长度
+  formatContextLength: function(len) {
+    if (len >= 1000000) return (len / 1000000).toFixed(1).replace(/\.0$/, '') + 'M'
+    if (len >= 1000) return Math.round(len / 1000) + 'K'
+    return '' + len
+  },
+
+  // 应用搜索/筛选（本地过滤，不重复请求）
+  applyAllModelsFilter: function() {
+    var keyword = (this.data.allModelsSearch || '').toLowerCase()
+    var filter = this.data.allModelsFilter
+    var source = this._allModelsCache || this.data.allModelsList
+    // 标记已在预设中的模型
+    var merged = aiManager.getMergedSubModels(this.data._allModelsProvider)
+    var presetKeys = {}
+    for (var i = 0; i < merged.length; i++) { presetKeys[merged[i].key] = true }
+    var filtered = source.filter(function(m) {
+      if (filter === 'free' && !m.isFree) return false
+      if (!keyword) return true
+      return m.id.toLowerCase().indexOf(keyword) > -1 || m.name.toLowerCase().indexOf(keyword) > -1
+    }).map(function(m) {
+      return Object.assign({}, m, { inPreset: !!presetKeys[m.id] })
+    })
+    this.setData({
+      allModelsFiltered: filtered.slice(0, ALL_MODELS_PAGE_SIZE * this.data.allModelsPage),
+      allModelsShown: filtered.length
+    })
+  },
+
+  // 搜索输入
+  onAllModelsSearch: function(e) {
+    this.setData({ allModelsSearch: e.detail.value, allModelsPage: 1 })
+    this.applyAllModelsFilter()
+  },
+
+  // 切换筛选（全部/免费）
+  switchAllModelsFilter: function(e) {
+    this.setData({ allModelsFilter: e.currentTarget.dataset.filter, allModelsPage: 1 })
+    this.applyAllModelsFilter()
+  },
+
+  // 滚动到底加载更多
+  loadMoreAllModels: function() {
+    var nextPage = this.data.allModelsPage + 1
+    if (this.data.allModelsFiltered.length < this.data.allModelsShown) {
+      this.setData({ allModelsPage: nextPage })
+      this.applyAllModelsFilter()
+    }
+  },
+
+  // 刷新模型列表（3秒冷却）
+  refreshAllModels: function() {
+    if (this.data.allModelsRefreshing) return
+    this.setData({ allModelsPage: 1, allModelsSearch: '', allModelsFilter: 'all', allModelsRefreshing: true })
+    var that = this
+    setTimeout(function() {
+      that.setData({ allModelsRefreshing: false })
+    }, 3000)
+    this.fetchAllModels(this.data._allModelsProvider, true)
+  },
+
+  // 选中全量模型（仅更新页面状态，随保存配置统一保存）
+  selectAllModel: function(e) {
+    // 浏览模式（未配 Key）仅可看不可选
+    if (this.data.allModelsBrowseOnly) {
+      wx.showToast({ title: '仅浏览，配置 Key 后可选', icon: 'none' })
+      return
+    }
+    var key = e.currentTarget.dataset.key
+    this.setData({
+      currentSubModel: key,
+      currentSubModelName: e.currentTarget.dataset.name,
+      isCustomSubModel: this.isCustomSubModelKey(this.data.currentModel, key),
+      showAllModelsModal: false
+    })
+    wx.showToast({ title: '已选择，点保存配置生效', icon: 'none' })
+  },
+
+  // 从在线列表加入预设（立即保存）
+  addPresetModel: function(e) {
+    var that = this
+    if (this.data.allModelsBrowseOnly) {
+      wx.showToast({ title: '仅浏览，配置 Key 后可加预设', icon: 'none' })
+      return
+    }
+    var provider = this.data._allModelsProvider
+    var key = e.currentTarget.dataset.key
+    var name = e.currentTarget.dataset.name
+    aiManager.addCustomSubModel(provider, { key: key, name: name }).then(function() {
+      wx.showToast({ title: '已加入预设', icon: 'success' })
+      that.refreshSettingsModels(provider)
+    }).catch(function(err) {
+      wx.showToast({ title: err.message || '添加失败', icon: 'none' })
+    })
+  },
+
+  // 从预设列表删除模型（立即保存）
+  removePresetModel: function(e) {
+    var that = this
+    var provider = e.currentTarget.dataset.provider
+    var key = e.currentTarget.dataset.key
+    wx.showModal({
+      title: '删除预设',
+      content: '确定从预设列表删除该模型吗？',
+      success: function(res) {
+        if (!res.confirm) return
+        aiManager.removeSubModel(provider, key).then(function() {
+          // 删除的是当前选中则回退到第一项
+          if (provider === that.data.currentModel && key === that.data.currentSubModel) {
+            var list = aiManager.getMergedSubModels(provider)
+            if (list.length > 0) {
+              that.setData({
+                currentSubModel: list[0].key,
+                currentSubModelName: list[0].name,
+                isCustomSubModel: that.isCustomSubModelKey(provider, list[0].key)
+              })
+            }
+          }
+          that.refreshSettingsModels(provider)
+          wx.showToast({ title: '已删除', icon: 'success' })
+        }).catch(function(err) {
+          wx.showToast({ title: err.message || '删除失败', icon: 'none' })
+        })
+      }
+    })
+  },
+
+  // 刷新指定供应商的预设列表展示
+  refreshSettingsModels: function(provider) {
+    var that = this
+    var merged = aiManager.getMergedSubModels(provider)
+    var updateList = function(list) {
+      return list.map(function(m) {
+        if (m.key === provider) {
+          return Object.assign({}, m, { info: Object.assign({}, m.info, { subModels: merged }) })
+        }
+        return m
+      })
+    }
+    var update = {
+      domesticModels: updateList(this.data.domesticModels),
+      platformModels: updateList(this.data.platformModels)
+    }
+    if (provider === this.data.currentModel) {
+      update.currentModelInfo = Object.assign({}, this.data.currentModelInfo, { subModels: merged })
+      update.isCustomSubModel = that.isCustomSubModelKey(provider, this.data.currentSubModel)
+    }
+    this.setData(update)
+    // 同步更新全量弹窗里的预设标识
+    if (this.data.showAllModelsModal) {
+      this.applyAllModelsFilter()
+    }
+  },
+
+  // 判断子模型是否为在线同步的自定义模型（不在合并后的预设列表里）
+  isCustomSubModelKey: function(provider, key) {
+    if (!key) return false
+    var merged = aiManager.getMergedSubModels(provider)
+    for (var i = 0; i < merged.length; i++) {
+      if (merged[i].key === key) return false
+    }
+    return true
+  },
+
+  // 阻止事件冒泡（弹窗内容区点击不关闭）
+  stopPropagation: function() {},
 
   // 选择提示词模板
   selectTemplate: function(e) {

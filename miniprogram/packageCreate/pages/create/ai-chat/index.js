@@ -60,7 +60,35 @@ var QUALITY_OPTIONS = [
   { key: 'auto', name: '自动' }
 ]
 // 支持全量模型列表同步的供应商
-var DYNAMIC_MODEL_PROVIDERS = ['openrouter', 'kilo', 'opencode']
+// 思考深度档位中文名（按 OpenRouter 官方 effort 取值）
+var EFFORT_NAMES = {
+  minimal: '极低',
+  low: '低',
+  medium: '中',
+  high: '高',
+  xhigh: '超高',
+  max: '最高'
+}
+// 全接受（supported_efforts 为 null）时的默认展示档位
+var DEFAULT_EFFORT_KEYS = ['low', 'medium', 'high']
+// DeepSeek V4 官方档位
+var DEEPSEEK_EFFORT_KEYS = ['low', 'high', 'max']
+
+// 支持全量模型列表同步的供应商（以 ai-manager 为准，wenxin 暂不支持）
+function getDynamicModelProviders() {
+  return (aiManager.getDynamicModelProviders && aiManager.getDynamicModelProviders()) || ['openrouter', 'kilo', 'opencode']
+}
+
+// 按档位 key 数组生成选项（过滤 none 等不可选项）
+function buildEffortOptions(keys) {
+  var options = []
+  for (var i = 0; i < keys.length; i++) {
+    if (EFFORT_NAMES[keys[i]]) {
+      options.push({ key: keys[i], name: EFFORT_NAMES[keys[i]] })
+    }
+  }
+  return options
+}
 // 图片生成推荐模型（按此顺序展示，其余收进"更多模型"）
 var RECOMMENDED_IMAGE_MODELS = [
   'openai/gpt-image-2',
@@ -118,11 +146,21 @@ Page({
     currentProvider: '',
     currentProviderModels: [],
     currentModelKey: '',
+    isCustomSubModel: false,
+    hasKeyByProvider: {},
     templateList: [],
     currentTemplateKey: 'default',
     expandProvider: false,
     // 流式思考相关
     streamThinkingEnabled: false,
+    // 思考深度（实时思考开启且模型支持时可选，low/medium/high）
+    reasoningEffort: 'medium',
+    modelSupportsEffort: false,
+    effortOptions: [
+      { key: 'low', name: '低' },
+      { key: 'medium', name: '中' },
+      { key: 'high', name: '高' }
+    ],
     currentTaskId: null,
     currentThinkingContent: '',
     currentSpeakingId: null, // 当前正在朗读的消息ID
@@ -140,6 +178,7 @@ Page({
     allModelsShown: 0,
     allModelsPage: 1,
     allModelsRefreshing: false,
+    allModelsBrowseOnly: false,
     _allModelsProvider: '',
     // AI画画
     showDrawModal: false,
@@ -344,8 +383,8 @@ Page({
           color: models[key].color,
           description: models[key].description,
           configured: false, // 后面根据配置更新
-          hasDynamicModels: DYNAMIC_MODEL_PROVIDERS.indexOf(key) > -1,
-          subModels: models[key].subModels || []
+          hasDynamicModels: getDynamicModelProviders().indexOf(key) > -1,
+          subModels: aiManager.getMergedSubModels(key)
         })
       }
     }
@@ -411,7 +450,7 @@ Page({
       var currentModelKey = ''
       
       if (models[currentProvider] && models[currentProvider].subModels) {
-        currentProviderModels = models[currentProvider].subModels
+        currentProviderModels = aiManager.getMergedSubModels(currentProvider)
         var subModel = configuredModels[currentProvider] ? configuredModels[currentProvider].model : ''
         
         if (subModel) {
@@ -459,8 +498,14 @@ Page({
         currentProviderModels: currentProviderModels,
         currentModelKey: currentModelKey,
         currentSubModelName: currentSubModelName,
+        // 在线同步的自定义模型（列表顶部单独展示）
+        isCustomSubModel: that.isCustomSubModelKey(currentProvider, currentModelKey),
         currentTemplateKey: currentTemplateKey,
         currentTemplateName: currentTemplateName,
+        // 思考深度回填（未配置时默认中）
+        reasoningEffort: (configuredModels[currentProvider] && configuredModels[currentProvider].reasoningEffort) || 'medium',
+        // 供同步入口判断 key 状态
+        hasKeyByProvider: config.hasKeyByProvider || {},
         // P0-7 配套：非 admin 配置为脱敏版，已配置状态以服务端 hasKeyByProvider 为准
         isConfigured: !!(configuredModels[currentProvider] && configuredModels[currentProvider].apiKey) || !!(config.hasKeyByProvider && config.hasKeyByProvider[currentProvider]),
         modelInfo: {
@@ -472,7 +517,7 @@ Page({
       console.error('获取配置失败:', err)
       // 使用默认值
       var defaultProvider = 'minimax'
-      var defaultModels = models[defaultProvider] ? models[defaultProvider].subModels || [] : []
+      var defaultModels = aiManager.getMergedSubModels(defaultProvider)
       
       that.setData({
         currentProvider: defaultProvider,
@@ -608,8 +653,8 @@ Page({
           color: models[key].color,
           description: models[key].description,
           configured: false,
-          hasDynamicModels: DYNAMIC_MODEL_PROVIDERS.indexOf(key) > -1,
-          subModels: models[key].subModels || []
+          hasDynamicModels: getDynamicModelProviders().indexOf(key) > -1,
+          subModels: aiManager.getMergedSubModels(key)
         })
       }
     }
@@ -639,6 +684,16 @@ Page({
     }).catch(function() {
       that.setData({ allProviders: allProviders })
     })
+  },
+
+  // 判断子模型是否为在线同步的自定义模型（不在合并后的预设列表里）
+  isCustomSubModelKey: function(provider, key) {
+    if (!key) return false
+    var merged = aiManager.getMergedSubModels(provider)
+    for (var i = 0; i < merged.length; i++) {
+      if (merged[i].key === key) return false
+    }
+    return true
   },
 
   // 隐藏快速切换弹窗
@@ -682,18 +737,18 @@ Page({
         return
       }
       
-      // 获取该供应商的子模型
-      var provider = models[key] || {}
-      var providerModels = provider.subModels || []
+      // 获取该供应商的子模型（合并后的预设列表）
+      var providerModels = aiManager.getMergedSubModels(key)
       var defaultModel = providerModels.length > 0 ? providerModels[0].key : ''
+      var providerInfo = models[key] || {}
       
       // 切换供应商
       that.setData({
         currentProvider: key,
         currentModelKey: defaultModel,
         modelInfo: {
-          icon: provider.icon || '🤖',
-          name: provider.name || 'AI助手'
+          icon: providerInfo.icon || '🤖',
+          name: providerInfo.name || 'AI助手'
         },
         expandProvider: true
       })
@@ -727,12 +782,17 @@ Page({
         that.setData({
           currentModelKey: key,
           currentSubModelName: name,
+          isCustomSubModel: that.isCustomSubModelKey(that.data.currentProvider, key),
           showQuickSwitchModal: false,
           expandProvider: false
         })
         
         // 重新计算费用
         that.estimateCost()
+        // 重新检查思考深度支持度
+        if (that.data.streamThinkingEnabled) {
+          that.checkEffortSupport()
+        }
         
         wx.showToast({
           title: '已切换到' + name,
@@ -853,8 +913,14 @@ Page({
   // 打开全量模型弹窗（data-provider 指定平台，默认当前供应商）
   showAllModels: function(e) {
     var provider = (e && e.currentTarget && e.currentTarget.dataset.provider) || this.data.currentProvider
-    if (DYNAMIC_MODEL_PROVIDERS.indexOf(provider) === -1) {
+    if (getDynamicModelProviders().indexOf(provider) === -1) {
       wx.showToast({ title: '该平台暂不支持模型同步', icon: 'none' })
+      return
+    }
+    // siliconflow 无降级浏览能力，无 key 时提前拦截（其他需 key 平台可降级浏览）
+    var hasKeyMap = this.data.hasKeyByProvider || {}
+    if (provider === 'siliconflow' && !hasKeyMap[provider]) {
+      wx.showToast({ title: '请先配置该供应商的API Key', icon: 'none' })
       return
     }
     this.setData({
@@ -864,6 +930,7 @@ Page({
       allModelsSearch: '',
       allModelsFilter: 'all',
       allModelsPage: 1,
+      allModelsBrowseOnly: false,
       _allModelsProvider: provider
     })
     this.fetchAllModels(provider, false)
@@ -879,20 +946,26 @@ Page({
           id: m.id,
           name: m.name,
           desc: (m.contextLength ? '上下文' + that.formatContextLength(m.contextLength) : '') + (m.isFree ? ' · 免费' : (m.pricing && m.pricing.prompt != null ? ' · $' + m.pricing.prompt + '/百万token' : '')),
-          isFree: m.isFree
+          isFree: m.isFree,
+          // 保留能力字段供思考深度判定（C1：精简映射不能丢）
+          supportsReasoning: !!m.supportsReasoning,
+          supportsReasoningEffort: !!m.supportsReasoningEffort,
+          reasoningEfforts: m.reasoningEfforts,
+          defaultEffort: m.defaultEffort || null
         }
       })
       that.setData({
         allModelsLoading: false,
         allModelsList: list,
         allModelsTotal: list.length,
-        allModelsRefreshing: false
+        allModelsRefreshing: false,
+        allModelsBrowseOnly: !!(data.browseOnly)
       })
       that._allModelsCache = list
       that.applyAllModelsFilter()
     }).catch(function(err) {
       console.error('拉取模型列表失败:', err)
-      that.setData({ allModelsLoading: false })
+      that.setData({ allModelsLoading: false, allModelsRefreshing: false })
       wx.showToast({ title: err.message || '获取模型列表失败', icon: 'none' })
     })
   },
@@ -909,10 +982,16 @@ Page({
     var keyword = (this.data.allModelsSearch || '').toLowerCase()
     var filter = this.data.allModelsFilter
     var source = this._allModelsCache || this.data.allModelsList
+    // 标记已在预设中的模型
+    var merged = aiManager.getMergedSubModels(this.data._allModelsProvider)
+    var presetKeys = {}
+    for (var i = 0; i < merged.length; i++) { presetKeys[merged[i].key] = true }
     var filtered = source.filter(function(m) {
       if (filter === 'free' && !m.isFree) return false
       if (!keyword) return true
       return m.id.toLowerCase().indexOf(keyword) > -1 || m.name.toLowerCase().indexOf(keyword) > -1
+    }).map(function(m) {
+      return Object.assign({}, m, { inPreset: !!presetKeys[m.id] })
     })
     this.setData({
       allModelsFiltered: filtered.slice(0, ALL_MODELS_PAGE_SIZE * this.data.allModelsPage),
@@ -957,6 +1036,11 @@ Page({
   // 选中全量模型（写入配置，同 quickSwitchModel）
   selectAllModel: function(e) {
     var that = this
+    // 浏览模式（未配 Key）仅可看不可选
+    if (this.data.allModelsBrowseOnly) {
+      wx.showToast({ title: '仅浏览，配置 Key 后可选', icon: 'none' })
+      return
+    }
     var key = e.currentTarget.dataset.key
     var name = e.currentTarget.dataset.name
     var provider = this.data._allModelsProvider
@@ -976,6 +1060,7 @@ Page({
           currentProvider: provider,
           currentModelKey: key,
           currentSubModelName: name,
+          isCustomSubModel: that.isCustomSubModelKey(provider, key),
           modelInfo: {
             icon: providerInfo.icon || '🤖',
             name: providerInfo.name || 'AI助手'
@@ -983,6 +1068,10 @@ Page({
           showAllModelsModal: false
         })
         that.estimateCost()
+        // 重新检查思考深度支持度
+        if (that.data.streamThinkingEnabled) {
+          that.checkEffortSupport()
+        }
         wx.showToast({ title: '已切换到' + name, icon: 'none' })
       }).catch(function(err) {
         console.error('保存模型选择失败:', err)
@@ -997,6 +1086,100 @@ Page({
   // 关闭全量模型弹窗
   hideAllModels: function() {
     this.setData({ showAllModelsModal: false })
+  },
+
+  // 从在线列表加入预设
+  addPresetModel: function(e) {
+    var that = this
+    if (this.data.allModelsBrowseOnly) {
+      wx.showToast({ title: '仅浏览，配置 Key 后可加预设', icon: 'none' })
+      return
+    }
+    var provider = this.data._allModelsProvider
+    var key = e.currentTarget.dataset.key
+    var name = e.currentTarget.dataset.name
+    aiManager.addCustomSubModel(provider, { key: key, name: name }).then(function() {
+      wx.showToast({ title: '已加入预设', icon: 'success' })
+      that.refreshProviderModels(provider)
+    }).catch(function(err) {
+      wx.showToast({ title: err.message || '添加失败', icon: 'none' })
+    })
+  },
+
+  // 从预设列表删除模型
+  removePresetModel: function(e) {
+    var that = this
+    var provider = e.currentTarget.dataset.provider
+    var key = e.currentTarget.dataset.key
+    wx.showModal({
+      title: '删除预设',
+      content: '确定从预设列表删除该模型吗？',
+      success: function(res) {
+        if (!res.confirm) return
+        aiManager.removeSubModel(provider, key).then(function() {
+          // 删除的是当前选中则回退到第一项
+          var afterRemove = function() {
+            that.refreshProviderModels(provider)
+            wx.showToast({ title: '已删除', icon: 'success' })
+          }
+          if (provider === that.data.currentProvider && key === that.data.currentModelKey) {
+            var list = aiManager.getMergedSubModels(provider)
+            if (list.length > 0) {
+              aiManager.getConfig().then(function(config) {
+                var saveConfig = {
+                  currentModel: provider,
+                  models: {}
+                }
+                saveConfig.models[provider] = config.models[provider] || {}
+                saveConfig.models[provider].model = list[0].key
+                aiManager.saveConfig(saveConfig).then(function() {
+                  that.setData({
+                    currentModelKey: list[0].key,
+                    currentSubModelName: list[0].name,
+                    isCustomSubModel: that.isCustomSubModelKey(provider, list[0].key)
+                  })
+                  that.estimateCost()
+                  afterRemove()
+                }).catch(afterRemove)
+              }).catch(afterRemove)
+            } else {
+              // 列表已空，清空选中状态
+              that.setData({
+                currentModelKey: '',
+                currentSubModelName: '',
+                isCustomSubModel: false
+              })
+              afterRemove()
+            }
+          } else {
+            afterRemove()
+          }
+        }).catch(function(err) {
+          wx.showToast({ title: err.message || '删除失败', icon: 'none' })
+        })
+      }
+    })
+  },
+
+  // 刷新指定供应商的预设列表展示
+  refreshProviderModels: function(provider) {
+    var merged = aiManager.getMergedSubModels(provider)
+    var allProviders = this.data.allProviders.map(function(p) {
+      if (p.key === provider) {
+        return Object.assign({}, p, { subModels: merged })
+      }
+      return p
+    })
+    var update = { allProviders: allProviders }
+    if (provider === this.data.currentProvider) {
+      update.currentProviderModels = merged
+      update.isCustomSubModel = this.isCustomSubModelKey(provider, this.data.currentModelKey)
+    }
+    this.setData(update)
+    // 同步更新全量弹窗里的预设标识
+    if (this.data.showAllModelsModal) {
+      this.applyAllModelsFilter()
+    }
   },
 
   // ========== AI画画 ==========
@@ -1892,8 +2075,10 @@ Page({
     var imageFileIDs = Array.isArray(imageFileID) ? imageFileID : (imageFileID ? [imageFileID] : [])
 
     // 根据开关选择流式或普通模式
+    // 思考深度仅实时思考开启时透传（不改变默认行为）
+    var effort = this.data.streamThinkingEnabled ? this.data.reasoningEffort : null
     if (this.data.streamThinkingEnabled) {
-      this.sendToAIStream(message, model, imageFileIDs, extraContext, skillPrompt)
+      this.sendToAIStream(message, model, imageFileIDs, extraContext, skillPrompt, effort)
     } else {
       // 长时间等待提示（不作为错误处理）
       var msgTimeout = setTimeout(function() {
@@ -1905,7 +2090,7 @@ Page({
       // （aiManager.sendMessage 内部已按发送时会话落库），不再写入当前界面。
       // 注意 sessionChanged 必须在回调时点与「当时的」currentSessionId 比对
       var originSessionId = that.data.currentSessionId || aiManager.getCurrentSessionId()
-      aiManager.sendMessage(message, model, imageFileIDs, extraContext, skillPrompt).then(function(result) {
+      aiManager.sendMessage(message, model, imageFileIDs, extraContext, skillPrompt, effort).then(function(result) {
         clearTimeout(msgTimeout)
         messageIdCounter++
         // 检查AI回复是否包含图片URL
@@ -1971,12 +2156,12 @@ Page({
   },
 
   // 流式发送到AI
-  sendToAIStream: function(message, model, imageFileID, extraContext, skillPrompt) {
+  sendToAIStream: function(message, model, imageFileID, extraContext, skillPrompt, reasoningEffort) {
     var that = this
     // I-1：发起失败提示同样按会话归属
     var originSessionId = that.data.currentSessionId || aiManager.getCurrentSessionId()
 
-    aiManager.sendMessageStream(message, model, imageFileID, extraContext, skillPrompt).then(function(data) {
+    aiManager.sendMessageStream(message, model, imageFileID, extraContext, skillPrompt, reasoningEffort).then(function(data) {
       that.setData({
         currentTaskId: data.taskId,
         currentThinkingContent: ''
@@ -2377,10 +2562,140 @@ Page({
 
     // 保存开关状态到本地存储
     childStorage.set('streamThinkingEnabled', newValue)
+
+    // 开启时检查当前模型是否支持思考深度
+    if (newValue) {
+      this.checkEffortSupport()
+    }
     
     wx.showToast({
       title: newValue ? '已开启实时思考' : '已关闭实时思考',
       icon: 'none'
+    })
+  },
+
+  // 检查当前模型是否支持思考深度（按同步的模型实际数据 + 官方文档确认的直连模型）
+  checkEffortSupport: function() {
+    var that = this
+    var provider = this.data.currentProvider
+    var modelKey = this.data.currentModelKey
+    if (!modelKey) {
+      that.setData({ modelSupportsEffort: false })
+      return
+    }
+    // DeepSeek V4 系：官方文档确认支持 reasoning_effort（low/high/max）
+    if (provider === 'deepseek' && modelKey.indexOf('deepseek-v4') === 0) {
+      that.applyEffortOptions(DEEPSEEK_EFFORT_KEYS, 'medium')
+      return
+    }
+    // 仅 OpenRouter 系有能力数据可判断
+    if (['openrouter', 'kilo', 'opencode'].indexOf(provider) === -1) {
+      that.setData({ modelSupportsEffort: false })
+      return
+    }
+    // 优先用已缓存的全量列表（须是带能力字段的新结构，否则强制刷新）
+    var cached = this._allModelsCache
+    if (cached && cached.length > 0 && cached[0].supportsReasoningEffort !== undefined) {
+      that.applyEffortSupport(cached, provider, modelKey)
+      return
+    }
+    aiManager.listModels(provider, 'chat', true).then(function(data) {
+      var list = data.models || []
+      that._allModelsCache = list
+      that.applyEffortSupport(list, provider, modelKey)
+    }).catch(function() {
+      that.setData({ modelSupportsEffort: false })
+    })
+  },
+
+  // 根据模型列表判定支持度，并按模型实际档位生成选项
+  applyEffortSupport: function(list, provider, modelKey) {
+    var found = null
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === modelKey) {
+        found = list[i]
+        break
+      }
+    }
+    if (!found || !found.supportsReasoningEffort) {
+      this.setData({ modelSupportsEffort: false })
+      return
+    }
+    // reasoningEfforts 数组按模型实际档位展示；null（全接受）用默认三档；缺失视为不支持
+    var efforts = found.reasoningEfforts
+    if (efforts === undefined || efforts === null) {
+      if (efforts === undefined) {
+        this.setData({ modelSupportsEffort: false })
+        return
+      }
+      efforts = DEFAULT_EFFORT_KEYS
+    }
+    // 过滤 none（关闭由开关控制，不在深度选项里）
+    var keys = []
+    for (var j = 0; j < efforts.length; j++) {
+      if (efforts[j] !== 'none' && EFFORT_NAMES[efforts[j]] && keys.indexOf(efforts[j]) === -1) {
+        keys.push(efforts[j])
+      }
+    }
+    if (keys.length === 0) {
+      this.setData({ modelSupportsEffort: false })
+      return
+    }
+    this.applyEffortOptions(keys, found.defaultEffort)
+  },
+
+  // 应用档位选项（保持已存选择在选项内，否则用模型默认或首项）
+  applyEffortOptions: function(keys, defaultEffort) {
+    var options = buildEffortOptions(keys)
+    if (options.length === 0) {
+      this.setData({ modelSupportsEffort: false })
+      return
+    }
+    var current = this.data.reasoningEffort
+    var valid = false
+    for (var i = 0; i < options.length; i++) {
+      if (options[i].key === current) { valid = true; break }
+    }
+    var selected = current
+    if (!valid) {
+      selected = null
+      if (defaultEffort) {
+        for (var j = 0; j < options.length; j++) {
+          if (options[j].key === defaultEffort) { selected = defaultEffort; break }
+        }
+      }
+      if (!selected) selected = options[0].key
+    }
+    this.setData({
+      modelSupportsEffort: true,
+      effortOptions: options,
+      reasoningEffort: selected
+    })
+  },
+
+  // 选择思考深度
+  selectReasoningEffort: function(e) {
+    var that = this
+    var effort = e.currentTarget.dataset.key
+    if (!EFFORT_NAMES[effort]) return
+
+    aiManager.getConfig().then(function(config) {
+      var provider = that.data.currentProvider
+      var saveConfig = {
+        currentModel: provider,
+        models: {}
+      }
+      saveConfig.models[provider] = config.models[provider] || {}
+      saveConfig.models[provider].reasoningEffort = effort
+
+      aiManager.saveConfig(saveConfig).then(function() {
+        that.setData({ reasoningEffort: effort })
+        wx.showToast({ title: '思考深度已切换', icon: 'none' })
+      }).catch(function(err) {
+        wx.showToast({ title: err.message || '保存失败', icon: 'none' })
+      })
+    }).catch(function(err) {
+      wx.showToast({ title: err.message || '获取配置失败', icon: 'none' })
     })
   },
 

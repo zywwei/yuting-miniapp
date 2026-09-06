@@ -11,8 +11,15 @@ const deepseekCaller = new OpenAICompatibleCaller({
   path: '/v1/chat/completions'
 })
 
-async function callAPI(apiKey, messages, model = 'deepseek-v4-flash') {
-  return deepseekCaller.call(apiKey, messages, model)
+async function callAPI(apiKey, messages, model = 'deepseek-v4-flash', options = {}) {
+  const extra = {}
+  // DeepSeek V4 思考强度（官方仅 low/high/max，medium 显式映射为 high）
+  let effort = options.reasoningEffort
+  if (effort === 'medium') effort = 'high'
+  if (effort && ['low', 'high', 'max'].indexOf(effort) > -1) {
+    extra.reasoning_effort = effort
+  }
+  return deepseekCaller.call(apiKey, messages, model, extra)
 }
 
 module.exports = {

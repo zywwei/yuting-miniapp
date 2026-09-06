@@ -103,6 +103,7 @@
                   </view>
                   <view class="provider-desc">{{item.description}}</view>
                 </view>
+                <view class="provider-sync" catchtap="showAllModels" data-provider="{{item.key}}">🔄</view>
                 <view class="provider-expand {{currentProvider === item.key ? 'open' : ''}}">
                   <text>›</text>
                 </view>
@@ -110,6 +111,18 @@
               
               <!-- 子模型列表（展开时显示） -->
               <view class="model-sub-list" wx:if="{{currentProvider === item.key && expandProvider}}">
+                <!-- 已选中的在线同步模型（不在预设列表时置顶展示） -->
+                <view
+                  wx:if="{{isCustomSubModel}}"
+                  class="model-sub-item active"
+                  bindtap="quickSwitchModel"
+                  data-key="{{currentModelKey}}"
+                  data-name="{{currentSubModelName}}"
+                >
+                  <view class="model-sub-name">{{currentSubModelName}}</view>
+                  <view class="model-sub-desc">在线同步</view>
+                  <view class="model-sub-check">✓</view>
+                </view>
                 <view 
                   wx:for="{{item.subModels}}" 
                   wx:for-item="sub"
@@ -121,6 +134,7 @@
                 >
                   <view class="model-sub-name">{{sub.name}}</view>
                   <view class="model-sub-desc">{{sub.desc}}</view>
+                  <view class="model-sub-del" catchtap="removePresetModel" data-provider="{{item.key}}" data-key="{{sub.key}}">✕</view>
                   <view class="model-sub-check" wx:if="{{currentModelKey === sub.key}}">✓</view>
                 </view>
                 <!-- 全量模型入口（支持同步的平台显示） -->
@@ -294,6 +308,18 @@
           <text class="more-panel-label">实时思考</text>
         </view>
       </view>
+      <!-- 思考深度（实时思考开启且当前模型支持时可选） -->
+      <view class="effort-row" wx:if="{{streamThinkingEnabled && modelSupportsEffort}}">
+        <text class="effort-label">思考深度</text>
+        <view
+          wx:for="{{effortOptions}}"
+          wx:key="key"
+          class="effort-option {{reasoningEffort === item.key ? 'active' : ''}}"
+          bindtap="selectReasoningEffort"
+          data-key="{{item.key}}"
+        >{{item.name}}</view>
+      </view>
+      <view class="effort-tip" wx:if="{{streamThinkingEnabled && !modelSupportsEffort}}">当前模型不支持调节思考深度</view>
     </view>
 
     <!-- AI画画弹窗 -->
@@ -411,6 +437,7 @@
           <text class="all-models-title">选择模型（{{allModelsTotal}}）</text>
           <text class="all-models-close" bindtap="hideAllModels">✕</text>
         </view>
+        <view class="all-models-browse-tip" wx:if="{{allModelsBrowseOnly}}">未配置 Key，仅浏览，配置后可选</view>
         <!-- 搜索框 -->
         <view class="all-models-search-bar">
           <input
@@ -444,6 +471,8 @@
                 <view class="all-models-id">{{item.id}}</view>
                 <view class="all-models-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
               </view>
+              <view class="all-models-add" catchtap="addPresetModel" data-key="{{item.id}}" data-name="{{item.name}}" wx:if="{{!item.inPreset}}">＋</view>
+              <view class="all-models-added" wx:else>已加</view>
               <view class="all-models-check" wx:if="{{currentModelKey === item.id && _allModelsProvider === currentProvider}}">✓</view>
             </view>
             <view class="all-models-end" wx:if="{{allModelsFiltered.length < allModelsShown}}">上拉加载更多</view>

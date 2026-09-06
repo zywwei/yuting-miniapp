@@ -129,8 +129,10 @@
               <view class="model-provider">
                 {{item.info.provider}}
                 <text class="current-sub" wx:if="{{currentModel === item.key && currentSubModelName}}">· {{currentSubModelName}}</text>
+                <text class="balance-text" wx:if="{{balanceMap[item.key]}}">· 余额{{balanceMap[item.key]}}</text>
               </view>
             </view>
+            <view class="model-sync-btn" catchtap="showAllModels" data-provider="{{item.key}}">🔄</view>
             <view class="model-expand {{currentModel === item.key && expandModel ? 'open' : ''}}" wx:if="{{item.info.subModels && item.info.subModels.length > 0}}">
               <text>›</text>
             </view>
@@ -142,6 +144,18 @@
             <view class="sub-model-section" wx:if="{{item.info.subModels && item.info.subModels.length > 0}}">
               <view class="sub-model-title">选择模型版本</view>
               <view class="sub-model-list">
+                <!-- 已选中的在线同步模型（不在预设列表时置顶展示） -->
+                <view
+                  wx:if="{{isCustomSubModel}}"
+                  class="sub-item active"
+                  bindtap="selectSubModel"
+                  data-key="{{currentSubModel}}"
+                  data-name="{{currentSubModelName}}"
+                >
+                  <view class="sub-name">{{currentSubModelName}}</view>
+                  <view class="sub-desc">在线同步</view>
+                  <view class="sub-check">✓</view>
+                </view>
                 <view 
                   wx:for="{{item.info.subModels}}" 
                   wx:for-item="sub"
@@ -153,7 +167,12 @@
                 >
                   <view class="sub-name">{{sub.name}}</view>
                   <view class="sub-desc">{{sub.desc}}</view>
+                  <view class="sub-del" catchtap="removePresetModel" data-provider="{{item.key}}" data-key="{{sub.key}}">✕</view>
                   <view class="sub-check" wx:if="{{currentSubModel === sub.key}}">✓</view>
+                </view>
+                <!-- 全量模型入口（支持同步的平台显示） -->
+                <view class="sub-all-entry" wx:if="{{item.hasDynamicModels}}" bindtap="showAllModels" data-provider="{{item.key}}">
+                  <text>🔍 全部模型（在线同步）</text>
                 </view>
               </view>
             </view>
@@ -353,6 +372,58 @@
           </view>
         </view>
       </view>
+    </view>
+  </view>
+
+  <!-- 全量模型选择弹窗 -->
+  <view class="all-models-modal" wx:if="{{showAllModelsModal}}" bindtap="hideAllModels">
+    <view class="all-models-content" catchtap="stopPropagation">
+        <view class="all-models-header">
+          <text class="all-models-title">选择模型（{{allModelsTotal}}）</text>
+          <text class="all-models-close" bindtap="hideAllModels">✕</text>
+        </view>
+        <view class="all-models-browse-tip" wx:if="{{allModelsBrowseOnly}}">未配置 Key，仅浏览，配置后可选</view>
+      <!-- 搜索框 -->
+      <view class="all-models-search-bar">
+        <input
+          class="all-models-search-input"
+          value="{{allModelsSearch}}"
+          bindinput="onAllModelsSearch"
+          placeholder="搜索模型名称"
+          confirm-type="search"
+        />
+        <view class="all-models-refresh" bindtap="refreshAllModels">🔄</view>
+      </view>
+      <!-- 筛选Tab -->
+      <view class="all-models-filters">
+        <view class="all-models-filter {{allModelsFilter === 'all' ? 'active' : ''}}" bindtap="switchAllModelsFilter" data-filter="all">全部</view>
+        <view class="all-models-filter {{allModelsFilter === 'free' ? 'active' : ''}}" bindtap="switchAllModelsFilter" data-filter="free">免费</view>
+      </view>
+      <!-- 模型列表 -->
+      <scroll-view scroll-y class="all-models-scroll" bindscrolltolower="loadMoreAllModels">
+        <view class="all-models-loading" wx:if="{{allModelsLoading}}">加载模型列表中...</view>
+        <block wx:else>
+          <view
+            wx:for="{{allModelsFiltered}}"
+            wx:key="id"
+            class="all-models-item {{currentSubModel === item.id && _allModelsProvider === currentModel ? 'active' : ''}}"
+            bindtap="selectAllModel"
+            data-key="{{item.id}}"
+            data-name="{{item.name}}"
+          >
+            <view class="all-models-info">
+              <view class="all-models-name">{{item.name}}</view>
+              <view class="all-models-id">{{item.id}}</view>
+              <view class="all-models-desc" wx:if="{{item.desc}}">{{item.desc}}</view>
+            </view>
+            <view class="all-models-add" catchtap="addPresetModel" data-key="{{item.id}}" data-name="{{item.name}}" wx:if="{{!item.inPreset}}">＋</view>
+            <view class="all-models-added" wx:else>已加</view>
+            <view class="all-models-check" wx:if="{{currentSubModel === item.id && _allModelsProvider === currentModel}}">✓</view>
+          </view>
+          <view class="all-models-end" wx:if="{{allModelsFiltered.length < allModelsShown}}">上拉加载更多</view>
+          <view class="all-models-end" wx:if="{{allModelsFiltered.length === 0}}">未找到匹配的模型</view>
+        </block>
+      </scroll-view>
     </view>
   </view>
 </view>

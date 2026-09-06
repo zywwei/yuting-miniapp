@@ -14,13 +14,18 @@ const url = require('url')
  */
 async function callAPI(apiKey, messages, model, baseUrl, options = {}) {
   return new Promise((resolve, reject) => {
-    const data = JSON.stringify({
+    const body = {
       model: model,
       messages: messages,
       temperature: options.temperature || 0.7,
       max_tokens: options.maxTokens || 2000,
       stream: false
-    })
+    }
+    // 思考深度（OpenRouter 系 reasoning.effort：low/medium/high/xhigh/max/minimal）
+    if (options.reasoningEffort && ['low', 'medium', 'high', 'xhigh', 'max', 'minimal'].indexOf(options.reasoningEffort) > -1) {
+      body.reasoning = { effort: options.reasoningEffort }
+    }
+    const data = JSON.stringify(body)
 
     // 解析URL（带错误处理）
     let parsedUrl
@@ -110,27 +115,32 @@ async function callAPI(apiKey, messages, model, baseUrl, options = {}) {
 /**
  * 调用 OpenRouter API
  */
-async function callOpenRouter(apiKey, messages, model = 'openrouter/free') {
+async function callOpenRouter(apiKey, messages, model = 'openrouter/free', options = {}) {
   return callAPI(apiKey, messages, model, 'https://openrouter.ai/api/v1', {
     headers: {
       'HTTP-Referer': 'https://yuting-miniapp.com',
       'X-Title': 'Yuting MiniApp'
-    }
+    },
+    reasoningEffort: options.reasoningEffort
   })
 }
 
 /**
  * 调用 Kilo Gateway API
  */
-async function callKilo(apiKey, messages, model = 'kilo-auto/free') {
-  return callAPI(apiKey, messages, model, 'https://api.kilo.ai/api/gateway')
+async function callKilo(apiKey, messages, model = 'kilo-auto/free', options = {}) {
+  return callAPI(apiKey, messages, model, 'https://api.kilo.ai/api/gateway', {
+    reasoningEffort: options.reasoningEffort
+  })
 }
 
 /**
  * 调用 OpenCode Zen API
  */
-async function callOpenCode(apiKey, messages, model = 'mimo-v2.5-free') {
-  return callAPI(apiKey, messages, model, 'https://opencode.ai/zen/v1')
+async function callOpenCode(apiKey, messages, model = 'mimo-v2.5-free', options = {}) {
+  return callAPI(apiKey, messages, model, 'https://opencode.ai/zen/v1', {
+    reasoningEffort: options.reasoningEffort
+  })
 }
 
 module.exports = {

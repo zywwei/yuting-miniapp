@@ -424,6 +424,30 @@ page.dark-mode {
   font-weight: bold;
 }
 
+.model-sub-del {
+  font-size: 24rpx;
+  color: #ccc;
+  padding: 8rpx 12rpx;
+  margin-left: 8rpx;
+}
+
+.all-models-add {
+  font-size: 36rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+  padding: 8rpx 16rpx;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+}
+
+.all-models-added {
+  font-size: 22rpx;
+  color: #bbb;
+  padding: 8rpx 8rpx;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+}
+
 /* 未配置提示 */
 .not-configured {
   flex: 1;
@@ -2081,6 +2105,41 @@ page.dark-mode {
   margin: 8rpx 0;
 }
 
+/* 思考深度选择 */
+.effort-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 24rpx 8rpx;
+}
+
+.effort-label {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.effort-option {
+  padding: 8rpx 24rpx;
+  background: #f8f8f8;
+  border: 2rpx solid #eee;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  color: #333;
+}
+
+.effort-option.active {
+  border-color: #FF6B8A;
+  background: #FFF0F3;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+.effort-tip {
+  font-size: 22rpx;
+  color: #999;
+  padding: 12rpx 24rpx 8rpx;
+}
+
 /* ========== AI生成图片操作按钮 ========== */
 .msg-image-actions {
   display: flex;
@@ -2119,7 +2178,7 @@ page.dark-mode {
 
 .draw-modal-content {
   width: 100%;
-  max-height: 80vh;
+  height: 80vh;
   background: #fff;
   border-radius: 32rpx 32rpx 0 0;
   overflow: hidden;
@@ -2148,7 +2207,8 @@ page.dark-mode {
 }
 
 .draw-modal-scroll {
-  max-height: 56vh;
+  /* scroll-view 必须有确定高度才能滚动 */
+  height: 50vh;
   padding: 0 32rpx;
   box-sizing: border-box;
 }
@@ -2397,6 +2457,13 @@ page.dark-mode {
   padding: 8rpx 16rpx;
 }
 
+.all-models-browse-tip {
+  font-size: 24rpx;
+  color: #E6A23C;
+  background: #FDF6EC;
+  padding: 12rpx 32rpx;
+}
+
 .all-models-search-bar {
   display: flex;
   align-items: center;
@@ -2438,7 +2505,8 @@ page.dark-mode {
 }
 
 .all-models-scroll {
-  flex: 1;
+  /* scroll-view 必须有确定高度才能滚动（flex:1 在小程序里不生效） */
+  height: 52vh;
   padding: 0 32rpx;
   box-sizing: border-box;
 }
@@ -2518,4 +2586,12 @@ page.dark-mode {
 
 .model-sub-all-icon {
   font-size: 26rpx;
+}
+
+/* 供应商卡片同步按钮 */
+.provider-sync {
+  font-size: 32rpx;
+  padding: 12rpx;
+  margin-right: 4rpx;
+  flex-shrink: 0;
 }

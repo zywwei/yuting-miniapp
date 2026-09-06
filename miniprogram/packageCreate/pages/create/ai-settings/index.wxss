@@ -167,11 +167,23 @@
   font-weight: bold;
 }
 
+.balance-text {
+  color: #07C160;
+}
+
 .model-expand {
   font-size: 32rpx;
   color: #999;
   transition: transform 0.2s;
   margin-right: 12rpx;
+}
+
+/* 厂家卡片同步按钮 */
+.model-sync-btn {
+  font-size: 32rpx;
+  padding: 12rpx;
+  margin-right: 4rpx;
+  flex-shrink: 0;
 }
 
 .model-expand.open {
@@ -669,4 +681,198 @@
 .voice-item-desc {
   font-size: 22rpx;
   color: #999;
+}
+
+/* 子模型列表内的全量模型入口 */
+.sub-all-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx;
+  background: #FFF0F3;
+  border-radius: 12rpx;
+  color: #FF6B8A;
+  font-size: 26rpx;
+  font-weight: bold;
+}
+
+.sub-del {
+  font-size: 24rpx;
+  color: #ccc;
+  padding: 8rpx 12rpx;
+  margin-left: 8rpx;
+}
+
+.all-models-add {
+  font-size: 36rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+  padding: 8rpx 16rpx;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+}
+
+.all-models-added {
+  font-size: 22rpx;
+  color: #bbb;
+  padding: 8rpx 8rpx;
+  margin-left: 8rpx;
+  flex-shrink: 0;
+}
+
+/* ========== 全量模型选择弹窗 ========== */
+.all-models-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+}
+
+.all-models-content {
+  width: 100%;
+  height: 80vh;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.all-models-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.all-models-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.all-models-close {
+  font-size: 32rpx;
+  color: #999;
+  padding: 8rpx 16rpx;
+}
+
+.all-models-browse-tip {
+  font-size: 24rpx;
+  color: #E6A23C;
+  background: #FDF6EC;
+  padding: 12rpx 32rpx;
+}
+
+.all-models-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 32rpx 0;
+}
+
+.all-models-search-input {
+  flex: 1;
+  background: #f8f8f8;
+  border-radius: 32rpx;
+  padding: 14rpx 28rpx;
+  font-size: 26rpx;
+}
+
+.all-models-refresh {
+  font-size: 34rpx;
+  padding: 8rpx;
+}
+
+.all-models-filters {
+  display: flex;
+  gap: 16rpx;
+  padding: 20rpx 32rpx;
+}
+
+.all-models-filter {
+  padding: 10rpx 28rpx;
+  background: #f8f8f8;
+  border-radius: 28rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.all-models-filter.active {
+  background: #FFF0F3;
+  color: #FF6B8A;
+  font-weight: bold;
+}
+
+.all-models-scroll {
+  /* scroll-view 必须有确定高度才能滚动 */
+  height: 52vh;
+  padding: 0 32rpx;
+  box-sizing: border-box;
+}
+
+.all-models-loading {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 60rpx 0;
+}
+
+.all-models-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  margin-bottom: 12rpx;
+  background: #f8f8f8;
+  border-radius: 16rpx;
+  border: 2rpx solid transparent;
+}
+
+.all-models-item.active {
+  border-color: #FF6B8A;
+  background: #FFF0F3;
+}
+
+.all-models-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.all-models-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.all-models-id {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+  word-break: break-all;
+}
+
+.all-models-desc {
+  font-size: 22rpx;
+  color: #666;
+  margin-top: 4rpx;
+}
+
+.all-models-check {
+  font-size: 30rpx;
+  color: #FF6B8A;
+  font-weight: bold;
+  margin-left: 16rpx;
+}
+
+.all-models-end {
+  text-align: center;
+  color: #999;
+  font-size: 24rpx;
+  padding: 24rpx 0 40rpx;
 }

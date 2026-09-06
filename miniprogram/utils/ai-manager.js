@@ -10,6 +10,142 @@ var auth = require('./auth.js')
 var CONFIG_KEY = 'aiConfig'
 var CHATS_KEY = 'aiChats'
 
+// 支持模型列表同步的供应商（wenxin 走旧版 RPC 无标准接口，暂不支持）
+var DYNAMIC_MODEL_PROVIDERS = [
+  'openrouter', 'kilo', 'opencode',
+  'minimax', 'minimax-plan',
+  'zhipu', 'zhipu-plan',
+  'kimi', 'kimi-plan',
+  'qwen', 'deepseek',
+  'mimo', 'mimo-plan',
+  'siliconflow'
+]
+
+/**
+ * 查询供应商余额
+ * @param {string} provider - 供应商 key
+ * @param {boolean} forceRefresh - 强制刷新（绕过缓存）
+ * @returns {Promise<Object>} { text } 展示文本，如 ¥110.00
+ */
+function getBalance(provider, forceRefresh) {
+  return new Promise(function(resolve, reject) {
+    wx.cloud.callFunction({
+      name: 'ai-chat',
+      data: { familyId: auth.getCurrentFamilyId(),
+        action: 'getBalance',
+        childId: auth.getCurrentChildId(),
+        provider: provider,
+        forceRefresh: !!forceRefresh
+      }
+    }).then(function(res) {
+      if (res.result && res.result.code === 0) {
+        resolve(res.result.data)
+      } else {
+        reject(new Error((res.result && res.result.msg) || '查询余额失败'))
+      }
+    }).catch(function(err) {
+      console.error('查询余额失败:', err)
+      reject(err)
+    })
+  })
+}
+
+/**
+ * 获取支持余额查询的供应商 key 列表
+ */
+function getBalanceProviders() {
+  return ['deepseek', 'openrouter', 'siliconflow', 'kimi', 'kimi-plan', 'minimax-plan']
+}
+
+/**
+ * 获取支持模型列表同步的供应商 key 列表
+ */
+function getDynamicModelProviders() {
+  return DYNAMIC_MODEL_PROVIDERS
+}
+
+/**
+ * 获取合并后的子模型列表（本地预设 - 用户删除 + 用户添加）
+ * @param {string} providerKey - 供应商 key
+ * @returns {Array} [{key, name, desc, custom}]
+ */
+function getMergedSubModels(providerKey) {
+  var base = (MODELS[providerKey] && MODELS[providerKey].subModels) || []
+  var config = childStorage.get(CONFIG_KEY) || {}
+  var saved = (config.models && config.models[providerKey]) || {}
+  var removed = saved.removedModels || []
+  var custom = saved.customModels || []
+  var list = base
+    .filter(function(m) { return removed.indexOf(m.key) === -1 })
+    .map(function(m) { return { key: m.key, name: m.name, desc: m.desc } })
+  custom.forEach(function(c) {
+    if (!c || !c.key) return
+    var exists = false
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].key === c.key) { exists = true; break }
+    }
+    if (!exists) {
+      list.push({ key: c.key, name: c.name || c.key, desc: c.desc || '在线同步', custom: true })
+    }
+  })
+  return list
+}
+
+/**
+ * 添加自定义预设模型（从在线同步列表加入）
+ * @param {string} providerKey - 供应商 key
+ * @param {Object} model - {key, name, desc}
+ * @returns {Promise}
+ */
+function addCustomSubModel(providerKey, model) {
+  if (!model || !model.key || typeof model.key !== 'string' || model.key.length > 128) {
+    return Promise.reject(new Error('模型标识不合法'))
+  }
+  var name = (model.name || model.key).toString().slice(0, 64)
+  var desc = (model.desc || '在线同步').toString().slice(0, 100)
+  var config = childStorage.get(CONFIG_KEY) || getDefaultConfig()
+  var saved = (config.models && config.models[providerKey]) || {}
+  var custom = (saved.customModels || []).slice()
+  var removed = saved.removedModels || []
+  var exists = false
+  for (var i = 0; i < custom.length; i++) {
+    if (custom[i].key === model.key) { exists = true; break }
+  }
+  if (!exists) {
+    custom.push({ key: model.key, name: name, desc: desc })
+  }
+  // 若之前删除过同 key 的预设，移除删除标记
+  var newRemoved = removed.filter(function(k) { return k !== model.key })
+  var saveData = { models: {} }
+  saveData.models[providerKey] = { customModels: custom, removedModels: newRemoved }
+  return saveConfig(saveData)
+}
+
+/**
+ * 删除预设模型（本地预设进删除标记，自定义的直接移除）
+ * @param {string} providerKey - 供应商 key
+ * @param {string} key - 子模型 key
+ * @returns {Promise}
+ */
+function removeSubModel(providerKey, key) {
+  var config = childStorage.get(CONFIG_KEY) || getDefaultConfig()
+  var saved = (config.models && config.models[providerKey]) || {}
+  var custom = (saved.customModels || []).filter(function(c) { return c.key !== key })
+  var removed = (saved.removedModels || []).slice()
+  // 仅本地预设需要删除标记
+  var base = (MODELS[providerKey] && MODELS[providerKey].subModels) || []
+  var isPreset = false
+  for (var i = 0; i < base.length; i++) {
+    if (base[i].key === key) { isPreset = true; break }
+  }
+  if (isPreset && removed.indexOf(key) === -1) {
+    removed.push(key)
+  }
+  var saveData = { models: {} }
+  saveData.models[providerKey] = { customModels: custom, removedModels: removed }
+  return saveConfig(saveData)
+}
+
 // 预设模型列表 - 2026年6月最新版本
 var MODELS = {
   // 直接调用(按量付费) - 国内模型
@@ -37,12 +173,12 @@ var MODELS = {
     color: '#059669',
     callType: 'direct',
     category: 'domestic',
-    defaultModel: 'glm-5.2',
+    defaultModel: 'glm-5.3',
     subModels: [
-      { key: 'glm-5.2', name: 'GLM-5.2', desc: '旗舰，1M上下文' },
-      { key: 'glm-5.1', name: 'GLM-5.1', desc: 'Coding能力强' },
-      { key: 'glm-4.7', name: 'GLM-4.7', desc: '通用对话' },
-      { key: 'glm-4.7-flash', name: 'GLM-4.7-Flash', desc: '免费模型' }
+      { key: 'glm-5.3', name: 'GLM-5.3', desc: '最新旗舰，编程最强' },
+      { key: 'glm-5.3-flash', name: 'GLM-5.3-Flash', desc: '多模态，低成本' },
+      { key: 'glm-5.2', name: 'GLM-5.2', desc: '长程任务' },
+      { key: 'glm-5.1', name: 'GLM-5.1', desc: 'Coding能力强' }
     ]
   },
   'kimi': {
@@ -53,8 +189,9 @@ var MODELS = {
     color: '#6366F1',
     callType: 'direct',
     category: 'domestic',
-    defaultModel: 'kimi-k2.6',
+    defaultModel: 'kimi-k3',
     subModels: [
+      { key: 'kimi-k3', name: 'Kimi K3', desc: '最新旗舰，2.8T参数' },
       { key: 'kimi-k2.7-code', name: 'Kimi K2.7 Code', desc: '最强Coding' },
       { key: 'kimi-k2.6', name: 'Kimi K2.6', desc: '多模态理解' },
       { key: 'kimi-k2.5', name: 'Kimi K2.5', desc: '性价比高' }
@@ -68,6 +205,7 @@ var MODELS = {
     color: '#2932E1',
     callType: 'direct',
     category: 'domestic',
+    // 注意：文心走旧版 RPC 接口（模型由 URL 路径决定），暂不支持 ERNIE 5.x 和模型列表同步
     defaultModel: 'ernie-4.0-turbo-8k',
     subModels: [
       { key: 'ernie-4.0-turbo-8k', name: 'ERNIE 4.0 Turbo', desc: '最新旗舰' },
@@ -83,11 +221,11 @@ var MODELS = {
     color: '#FF6A00',
     callType: 'direct',
     category: 'domestic',
-    defaultModel: 'qwen3.7-max',
+    defaultModel: 'qwen3.8-max',
     subModels: [
-      { key: 'qwen3.7-max', name: 'Qwen3.7-Max', desc: '最新旗舰' },
-      { key: 'qwen3.7-plus', name: 'Qwen3.7-Plus', desc: '均衡性能' },
-      { key: 'qwen3.6-flash', name: 'Qwen3.6-Flash', desc: '快速响应' }
+      { key: 'qwen3.8-max', name: 'Qwen3.8-Max', desc: '最新旗舰' },
+      { key: 'qwen3.8-flash', name: 'Qwen3.8-Flash', desc: '高性价比' },
+      { key: 'qwen3.7-max', name: 'Qwen3.7-Max', desc: '均衡性能' }
     ]
   },
   'deepseek': {
@@ -145,12 +283,12 @@ var MODELS = {
     color: '#059669',
     callType: 'plan',
     category: 'platform',
-    defaultModel: 'glm-5.2',
+    defaultModel: 'glm-5.3',
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     subModels: [
-      { key: 'glm-5.2', name: 'GLM-5.2', desc: '旗舰，1M上下文' },
-      { key: 'glm-5.1', name: 'GLM-5.1', desc: 'Coding能力强' },
-      { key: 'glm-4.7', name: 'GLM-4.7', desc: '通用对话' }
+      { key: 'glm-5.3', name: 'GLM-5.3', desc: '最新旗舰' },
+      { key: 'glm-5.3-flash', name: 'GLM-5.3-Flash', desc: '多模态，低成本' },
+      { key: 'glm-5.2', name: 'GLM-5.2', desc: '长程任务' }
     ]
   },
   'minimax-plan': {
@@ -192,8 +330,9 @@ var MODELS = {
     color: '#6366F1',
     callType: 'plan',
     category: 'platform',
-    defaultModel: 'kimi-k2.7-code',
+    defaultModel: 'kimi-k3',
     subModels: [
+      { key: 'kimi-k3', name: 'Kimi K3', desc: '最新旗舰' },
       { key: 'kimi-k2.7-code', name: 'Kimi K2.7 Code', desc: '最强Coding' },
       { key: 'kimi-k2.6', name: 'Kimi K2.6', desc: '多模态理解' }
     ]
@@ -485,8 +624,9 @@ function saveConfig(config) {
  * @param {string} imageFileID - 图片文件ID（可选，支持多模态）
  * @param {string} extraContext - 额外上下文（可选，数据注入）
  * @param {string} skillPrompt - 技能提示词（可选，技能激活时使用）
+ * @param {string} reasoningEffort - 思考深度（可选，仅支持的模型生效）
  */
-function sendMessage(message, model, imageFileID, extraContext, skillPrompt) {
+function sendMessage(message, model, imageFileID, extraContext, skillPrompt, reasoningEffort) {
   return new Promise(function(resolve, reject) {
     var sessionId = getCurrentSessionId()
     
@@ -496,6 +636,11 @@ function sendMessage(message, model, imageFileID, extraContext, skillPrompt) {
       sessionId: sessionId,
       message: message || '',
       model: model
+    }
+    
+    // 思考深度（白名单校验后透传）
+    if (reasoningEffort && ['low', 'medium', 'high', 'xhigh', 'max', 'minimal'].indexOf(reasoningEffort) > -1) {
+      data.reasoningEffort = reasoningEffort
     }
     
     // 如果有图片，添加到请求数据（兼容数组和字符串）
@@ -541,9 +686,10 @@ function sendMessage(message, model, imageFileID, extraContext, skillPrompt) {
  * @param {string} imageFileID - 图片文件ID（可选，支持数组）
  * @param {string} extraContext - 额外上下文（可选，数据注入）
  * @param {string} skillPrompt - 技能提示词（可选，技能激活时使用）
+ * @param {string} reasoningEffort - 思考深度（可选，仅支持的模型生效）
  * @returns {Promise} 返回taskId用于轮询
  */
-function sendMessageStream(message, model, imageFileID, extraContext, skillPrompt) {
+function sendMessageStream(message, model, imageFileID, extraContext, skillPrompt, reasoningEffort) {
   return new Promise(function(resolve, reject) {
     var sessionId = getCurrentSessionId()
     
@@ -553,6 +699,10 @@ function sendMessageStream(message, model, imageFileID, extraContext, skillPromp
       sessionId: sessionId,
       message: message || '',
       model: model
+    }
+    
+    if (reasoningEffort && ['low', 'medium', 'high', 'xhigh', 'max', 'minimal'].indexOf(reasoningEffort) > -1) {
+      data.reasoningEffort = reasoningEffort
     }
     
     var hasImages = Array.isArray(imageFileID) ? imageFileID.length > 0 : !!imageFileID
@@ -973,6 +1123,7 @@ function listModels(provider, type, forceRefresh) {
       name: 'ai-chat',
       data: { familyId: auth.getCurrentFamilyId(),
         action: 'listModels',
+        childId: auth.getCurrentChildId(),
         provider: provider,
         type: type || 'chat',
         forceRefresh: !!forceRefresh
@@ -1103,5 +1254,11 @@ module.exports = {
   listModels: listModels,
   generateImage: generateImage,
   getQuotaConfig: getQuotaConfig,
-  saveQuotaConfig: saveQuotaConfig
+  saveQuotaConfig: saveQuotaConfig,
+  getDynamicModelProviders: getDynamicModelProviders,
+  getBalanceProviders: getBalanceProviders,
+  getMergedSubModels: getMergedSubModels,
+  addCustomSubModel: addCustomSubModel,
+  removeSubModel: removeSubModel,
+  getBalance: getBalance
 }
